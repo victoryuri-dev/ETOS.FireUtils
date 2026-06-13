@@ -1,0 +1,19 @@
+.hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 56px;
+  background: var(--surface); border-bottom: 0.5px solid var(--border);
+  flex-shrink: 0; z-index: 50;
+}
+.logo     { display: flex; align-items: center; gap: 10px; }
+.logoName { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: 0.07em; }
+.logoTag  { font-size: 9px; color: var(--text-faint); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+.center   { display: flex; align-items: center; gap: 8px; }
+.crumbLink {
+  font-size: 12px; color: var(--text-faint); display: flex; align-items: center;
+  gap: 5px; cursor: pointer; padding: 5px 8px;
+  border-radius: var(--radius-md); transition: color 0.15s;
+}
+.crumbLink:hover { color: var(--text-muted); }
+.sep         { color: var(--border); }
+.crumbCurrent { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.right { display: flex; align-items: center; gap: 8px; }
