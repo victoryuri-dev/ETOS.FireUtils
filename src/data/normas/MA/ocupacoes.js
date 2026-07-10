@@ -1,61 +1,136 @@
 export const NORMA = {
   estado: 'MA',
-  nome:   'NT 42/2019 CBMMA',
+  nome:   'NT 01/2019 CBMMA',
   desc:   'Norma Tecnica de Licenciamento e Fiscalizacao — CBMMA',
 }
 
 export const OCUPACOES = {
-    'A': {
-        'A-1': 'A-1 — Habitacao unifamiliar',
-        'A-2': 'A-2 — Habitacao multifamiliar',
-        'A-3': 'A-3 — Habitacao coletiva',
+  'A': {
+    descricao: 'Residencial',
+    divisoes: {
+      'A-1': 'Habitacao unifamiliar',
+      'A-2': 'Habitacao multifamiliar',
+      'A-3': 'Habitacao coletiva',
     },
-    'B': {
-        'B-1': 'B-1 — Hotel / apart-hotel',
-        'B-2': 'B-2 — Pensao / albergue',
+  },
+  'B': {
+    descricao: 'Servico de Hospedagem',
+    divisoes: {
+      'B-1': 'Hotel e assemelhado',
+      'B-2': 'Hotel residencial',
     },
-    'C': {
-        'C-1': 'C-1 — Comercio de pequeno porte',
-        'C-2': 'C-2 — Comercio de medio porte',
-        'C-3': 'C-3 — Shopping / centro comercial',
+  },
+  'C': {
+    descricao: 'Comercial',
+    divisoes: {
+      'C-1': 'Comercio com baixa carga de incendio',
+      'C-2': 'Comercio com media e alta carga de incendio',
+      'C-3': 'Shopping centers',
     },
-    'D': {
-        'D-1': 'D-1 — Servicos de protecao',
-        'D-2': 'D-2 — Servicos funerarios',
-        'D-3': 'D-3 — Telecomunicacoes',
+  },
+  'D': {
+    descricao: 'Servico profissional',
+    divisoes: {
+      'D-1': 'Local para prestacao de servico profissional ou conducao de negocios e administracao publica em geral',
+      'D-2': 'Agencia bancaria',
+      'D-3': 'Servico de reparacao (exceto os classificados em G-4)',
+      'D-4': 'Laboratorio',
     },
-    'E': {
-        'E-1': 'E-1 — Escritorios em geral',
-        'E-2': 'E-2 — Agencias bancarias',
-        'E-3': 'E-3 — Cartorios / reparticoes',
-        'E-4': 'E-4 — Consultorios / ambulatorios',
+  },
+  'E': {
+    descricao: 'Educacional e cultura fisica',
+    divisoes: {
+      'E-1': 'Escola em geral',
+      'E-2': 'Escola especial',
+      'E-3': 'Espaco para cultura fisica',
+      'E-4': 'Centro de treinamento profissional',
+      'E-5': 'Pre-escola',
+      'E-6': 'Escola para portadores de deficiencias',
     },
-    'F': {
-        'F-1': 'F-1 — Templos / auditorios',
-        'F-2': 'F-2 — Restaurantes / lanchonetes',
-        'F-3': 'F-3 — Museus / bibliotecas',
-        'F-4': 'F-4 — Ginasios / estadios',
-        'F-5': 'F-5 — Escolas',
-        'F-6': 'F-6 — Creches',
-        'F-7': 'F-7 — Cinemas / teatros',
+  },
+  'F': {
+    descricao: 'Local de Reuniao de Publico',
+    divisoes: {
+      'F-1':  'Local onde ha objeto de valor inestimavel',
+      'F-2':  'Local religioso e velorio',
+      'F-3':  'Centro esportivo e de exibicao',
+      'F-4':  'Estacao e terminal de passageiro',
+      'F-5':  'Arte cenica e auditorio',
+      'F-6':  'Clubes sociais e Salao de Festas',
+      'F-7':  'Eventos temporarios',
+      'F-8':  'Local para refeicao',
+      'F-9':  'Recreacao publica',
+      'F-10': 'Exposicao de objetos ou animais',
+      'F-11': 'Boates',
     },
-    'G': {
-        'G-1': 'G-1 — Depositos em geral',
-        'G-2': 'G-2 — Silos / armazens',
-        'G-3': 'G-3 — Depositos frigorificos',
+  },
+  'G': {
+    descricao: 'Servico automotivo e assemelhados',
+    divisoes: {
+      'G-1': 'Garagem sem acesso de publico e sem abastecimento',
+      'G-2': 'Garagem com acesso de publico e sem abastecimento',
+      'G-3': 'Local dotado de abastecimento de combustivel',
+      'G-4': 'Servico de conservacao, manutencao e reparos',
+      'G-5': 'Hangares',
+      'G-6': 'Marinas, portos e garagens nauticas',
     },
-    'H': {
-        'H-1': 'H-1 — Hospital geral',
-        'H-2': 'H-2 — Hospital psiquiatrico',
-        'H-3': 'H-3 — Clinica com internacao',
-        'H-4': 'H-4 — Pronto-socorro',
+  },
+  'H': {
+    descricao: 'Servico de saude e institucional',
+    divisoes: {
+      'H-1': 'Hospital veterinario e assemelhados',
+      'H-2': 'Local onde pessoas requerem cuidados especiais por limitacoes fisicas ou mentais',
+      'H-3': 'Hospital e assemelhado',
+      'H-4': 'Edificacoes das forcas armadas e policiais',
+      'H-5': 'Local onde a liberdade das pessoas sofre restricoes',
+      'H-6': 'Clinica e consultorio medico e odontologico',
     },
-    'I': {
-        'I-1': 'I-1 — Industria de baixo risco',
-        'I-2': 'I-2 — Industria de medio risco',
-        'I-3': 'I-3 — Industria de alto risco',
-    }
-};
+  },
+  'I': {
+    descricao: 'Industria',
+    divisoes: {
+      'I-1': 'Industria com carga de incendio ate 300 MJ/m²',
+      'I-2': 'Industria com carga de incendio acima de 300 MJ/m² ate 1.200 MJ/m²',
+      'I-3': 'Industria com carga de incendio superior a 1.200 MJ/m²',
+    },
+  },
+  'J': {
+    descricao: 'Deposito',
+    divisoes: {
+      'J-1': 'Deposito de material incombustivel',
+      'J-2': 'Deposito com carga de incendio ate 300 MJ/m²',
+      'J-3': 'Deposito com carga de incendio acima de 300 MJ/m² ate 1.200 MJ/m²',
+      'J-4': 'Deposito com carga de incendio superior a 1.200 MJ/m²',
+    },
+  },
+  'K': {
+    descricao: 'Energia',
+    divisoes: {
+      'K-1': 'Central de transmissao e distribuicao de energia',
+    },
+  },
+  'L': {
+    descricao: 'Explosivo',
+    divisoes: {
+      'L-1': 'Comercio',
+      'L-2': 'Industria',
+      'L-3': 'Deposito',
+    },
+  },
+  'M': {
+    descricao: 'Especial',
+    divisoes: {
+      'M-1': 'Tunel',
+      'M-2': 'Liquido ou gas inflamavel ou combustivel',
+      'M-3': 'Central de comunicacao',
+      'M-4': 'Canteiro de obras',
+      'M-5': 'Silos',
+      'M-6': 'Floresta nativa ou cultivada',
+      'M-7': 'Patio de conteineres',
+      'M-8': 'Torres de telefonia movel',
+    },
+  },
+}
 
 export const CARGADEINCENDIO = {
   "A-1": {
@@ -247,7 +322,6 @@ export const CARGADEINCENDIO = {
     "5223-1/00": { descricao: "Estacionamento de veículos (garagem com ou sem acesso de público e sem abastecimento)", cargaIncendio: 200 }
   },
   "G-3": {
-    "4731-8/00": { descricao: "Comércio varejista de combustíveis para veículos automotores", cargaIncendio: 1000 },
     "4731-8/00": { descricao: "Postos de abastecimentos (tanque enterrado)", cargaIncendio: 300 }
   },
   "G-4": {
@@ -353,27 +427,17 @@ export const CARGADEINCENDIO = {
     "1921-7/00": { descricao: "Petróleo – Fabricação de produtos do refino de petróleo", cargaIncendio: 4000 },
     // ... (continua para todos os CNAEs da divisão I-3)
   },
-  "J-1": {
-    // Depósito de materiais incombustíveis
-  },
-  "J-2": {
-    // Depósito com carga de incêndio até 300 MJ/m²
-  },
-  "J-3": {
-    // Depósito com carga de incêndio de 301 a 1200 MJ/m²
-  },
-  "J-4": {
-    // Depósito com carga de incêndio acima de 1200 MJ/m²
-  },
+  "J-1": {},
+  "J-2": {},
+  "J-3": {},
+  "J-4": {},
   "K-1": {
     "3513-1/00": { descricao: "Energia elétrica (comércio atacadista)", cargaIncendio: 200 },
     "3514-0/00": { descricao: "Energia elétrica (distribuição)", cargaIncendio: 200 },
     "3511-5/00": { descricao: "Energia elétrica (geração)", cargaIncendio: 200 },
     "3512-3/00": { descricao: "Energia elétrica (transmissão)", cargaIncendio: 200 }
   },
-  "L-1": {
-    // Explosivos e pirotécnicos (fabricação)
-  },
+  "L-1": {},
   "M-2": {
     "4681-8/01": { descricao: "Combustíveis – Álcool carburante, biodiesel, gasolina e demais derivados de petróleo, exceto lubrificantes, não realizado por transportador retalhista – TRR (comércio atacadista)", cargaIncendio: 2100 },
     "4681-8/02": { descricao: "Combustíveis – Álcool carburante, biodiesel, gasolina e demais derivados de petróleo, realizado por transportador retalhista – TRR (comércio atacadista)", cargaIncendio: 2100 },
@@ -399,5 +463,4 @@ export const CARGADEINCENDIO = {
   "M-6": {
     "9103-1/00": { descricao: "Parques nacionais, reservas ecológicas e áreas de proteção ambiental", cargaIncendio: 500 }
   }
-};
-
+}

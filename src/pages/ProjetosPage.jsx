@@ -1,12 +1,8 @@
 import { useState, useMemo } from 'react'
 import Icon from '../components/ui/Icon'
+import { useNorma } from '../hooks/useNorma'
 
 // ── helpers ───────────────────────────────────────────────────────────
-
-const GRUPO_NOMES = {
-  A:'Residencial', B:'Hospedagem', C:'Comércio', D:'Serv. essenciais',
-  E:'Serv. profissionais', F:'Reunião pública', G:'Depósitos', H:'Saúde', I:'Industrial',
-}
 
 function calcCompletude(s) {
   const checks = [
@@ -416,6 +412,7 @@ function EmptyState({ hasFilter, onNew }) {
 // ── ProjetosPage ──────────────────────────────────────────────────────
 
 export default function ProjetosPage({ onOpenProject, onNewProject }) {
+  const { grupos } = useNorma()
   const [view,        setView]        = useState('grid')
   const [tick,        setTick]        = useState(0)
   const [toDelete,    setToDelete]    = useState(null)
@@ -587,7 +584,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
             {/* Grupo */}
             <select value={filterGrupo} onChange={e => setFilterGrupo(e.target.value)} style={{ width:'auto' }}>
               <option value="">Todos os grupos</option>
-              {gruposDisponiveis.map(g => <option key={g} value={g}>{g} — {GRUPO_NOMES[g] || g}</option>)}
+              {gruposDisponiveis.map(g => <option key={g} value={g}>{g} — {grupos[g] || g}</option>)}
             </select>
 
             {/* Separador */}

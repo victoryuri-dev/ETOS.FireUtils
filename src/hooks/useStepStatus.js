@@ -1,0 +1,59 @@
+import { useProjeto } from '../context/ProjetoContext'
+
+function getStatus(n, state) {
+  switch (n) {
+    case 1: {
+      const filled = [state.nome, state.endereco, state.cidade].filter(Boolean).length
+      if (filled === 3) return 'done'
+      if (filled > 0) return 'partial'
+      return 'empty'
+    }
+    case 2: {
+      const hasDims = state.areaTotal && state.altura
+      const hasAny  = state.areaTotal || state.altura || state.nPavimentos > 1
+      if (hasDims) return 'done'
+      if (hasAny)  return 'partial'
+      return 'empty'
+    }
+    case 3: {
+      if (state.propNome && state.propDocumento) return 'done'
+      if (state.propNome || state.propDocumento) return 'partial'
+      return 'empty'
+    }
+    case 4: {
+      if (state.rtNome && state.artNumero) return 'done'
+      if (state.rtNome || state.artNumero)  return 'partial'
+      return 'empty'
+    }
+    case 5: {
+      const pavs = state.pavimentos
+      if (!pavs.length) return 'empty'
+      if (pavs.every(p => p.divisao && p.cnae)) return 'done'
+      return 'partial'
+    }
+    case 6: {
+      const keys = Object.keys(state.cargaState)
+      if (!keys.length) return 'empty'
+      const allHave = keys.every(k => {
+        const c = state.cargaState[k]
+        return c?.metodo === 'levantamento' ? !!c.valorManual : !!c.cargaIncendio
+      })
+      if (allHave) return 'done'
+      return 'partial'
+    }
+    case 7: {
+      const ativos = Object.values(state.sistemas).filter(s => s.ativo).length
+      if (ativos > 0) return 'partial'
+      return 'empty'
+    }
+    case 8:
+      return 'empty'
+    default:
+      return 'empty'
+  }
+}
+
+export function useStepStatus() {
+  const { state } = useProjeto()
+  return (n) => getStatus(n, state)
+}

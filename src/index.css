@@ -1,13 +1,13 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --red:#C0152A;--red-dim:rgba(192,21,42,.10);--red-border:rgba(192,21,42,.28);
-  --green:#1D9E75;--green-dim:rgba(29,158,117,.10);--green-border:rgba(29,158,117,.25);
-  --amber:#c98a1a;--amber-dim:rgba(186,117,23,.10);--amber-border:rgba(186,117,23,.25);
-  --blue-dim:rgba(80,140,220,.08);--blue-border:rgba(80,140,220,.25);
-  --bg:#0f0f11;--surface:#111113;--surface-2:#161618;
-  --border:rgba(255,255,255,.07);--border-2:rgba(255,255,255,.04);
-  --text:#e0e0e0;--text-muted:rgba(255,255,255,.45);
-  --text-faint:rgba(255,255,255,.25);--text-hint:rgba(255,255,255,.15);
+  --red:#C0152A;--red-dim:rgba(192,21,42,.12);--red-border:rgba(192,21,42,.35);
+  --green:#1D9E75;--green-dim:rgba(29,158,117,.12);--green-border:rgba(29,158,117,.35);
+  --amber:#c98a1a;--amber-dim:rgba(186,117,23,.12);--amber-border:rgba(186,117,23,.35);
+  --blue-dim:rgba(80,140,220,.10);--blue-border:rgba(80,140,220,.30);
+  --bg:#0f0f11;--surface:#141416;--surface-2:#1a1a1d;
+  --border:rgba(255,255,255,.11);--border-2:rgba(255,255,255,.06);
+  --text:#eaeaea;--text-muted:rgba(255,255,255,.70);
+  --text-faint:rgba(255,255,255,.50);--text-hint:rgba(255,255,255,.40);
   --radius-sm:6px;--radius-md:8px;--radius-lg:12px;
   --sidebar-w:240px;--steps-w:218px;
   --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;

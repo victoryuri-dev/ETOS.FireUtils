@@ -12,7 +12,12 @@ import * as MA from './MA/ocupacoes'
 import * as PE from './PE/ocupacoes'
 import * as PB from './PB/ocupacoes'
 
-const NORMAS = { MA, PE, PB }
+import * as MA_SE  from './MA/saida_emergencia'
+import * as MA_MED from './MA/medidas'
+
+const NORMAS     = { MA, PE, PB }
+const NORMAS_SE  = { MA: MA_SE }
+const NORMAS_MED = { MA: MA_MED }
 
 // Estados listados no seletor — ativo:false = aparece mas nao pode selecionar
 export const ESTADOS_DISPONIVEIS = [
@@ -22,7 +27,12 @@ export const ESTADOS_DISPONIVEIS = [
 ]
 
 export function getNorma(uf)       { return NORMAS[uf] ?? null }
+export function getSE(uf)          { return NORMAS_SE[uf] ?? NORMAS_SE['MA'] }
 export function getOcupacoes(uf)   { return getNorma(uf)?.OCUPACOES ?? {} }
+export function getGrupos(uf)      {
+  const oc = getOcupacoes(uf)
+  return Object.fromEntries(Object.entries(oc).map(([k, v]) => [k, v.descricao ?? k]))
+}
 export function getCargaMap(uf)    { return getNorma(uf)?.CARGADEINCENDIO ?? {} }
 export function getNormaInfo(uf)   { return getNorma(uf)?.NORMA ?? null }
 
@@ -36,6 +46,118 @@ export function getCNAEsDivisao(uf, divisao) {
 export function getCargaCNAE(uf, divisao, cnae) {
   return getCNAEsDivisao(uf, divisao)[cnae] ?? null
 }
+
+// ── Medidas de segurança ─────────────────────────────────────────────────────
+
+export function getMedidas(uf) {
+  return NORMAS_MED[uf] ?? null
+}
+
+/**
+ * Resolve as medidas de segurança exigidas para uma edificação.
+ *
+ * @param {string}   uf       — estado (ex: 'MA')
+ * @param {string[]} divisoes — lista de divisões (ex: ['C-2','D-1'])
+ * @param {number}   altura   — altura em metros
+ * @param {number}   area     — área construída total em m²
+ *
+ * @returns {{
+ *   simplificado: boolean,
+ *   medidas: Record<string, { obrigatorio: boolean, notasGerais: string[], notaSimp?: number }>
+ * }}
+ */
+export function getMedidasObrigatorias(uf, divisoes, altura, area) {
+  const norma = getMedidas(uf)
+  if (!norma) return null
+
+  const h = parseFloat(altura) || 0
+  const a = parseFloat(area)   || 0
+  const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = norma
+  const simplificado = a < LIMIARES.areaMin && h < LIMIARES.alturaMin
+
+  return simplificado
+    ? _resolverSimplificado(TABELA_SIMPLIFICADA, divisoes)
+    : _resolverNormal(MEDIDAS, divisoes, h)
+}
+
+/**
+ * Retorna o texto da nota específica de uma medida para um grupo/divisão.
+ * Prioridade: divisão exata → grupo (letra).
+ *
+ * @param {string} uf
+ * @param {string} divisao — ex: 'A-1' ou 'F-3'
+ * @param {string} medida  — ex: 'compart_horizontal'
+ * @returns {string|null}
+ */
+export function getNotaMedida(uf, divisao, medida) {
+  const norma = getMedidas(uf)
+  if (!norma?.NOTAS_ESPECIFICAS) return null
+  const notas = norma.NOTAS_ESPECIFICAS
+  return notas[divisao.charAt(0)]?.[medida] ?? null
+}
+
+// Resolve Tabela 5 — processo simplificado
+function _resolverSimplificado(tabela, divisoes) {
+  const resultado = {}
+
+  divisoes.forEach(div => {
+    const grupo = div.charAt(0)
+    const src = tabela.divisoes?.[div] ?? tabela.grupos?.[grupo] ?? {}
+
+    Object.entries(src).forEach(([medida, val]) => {
+      if (!resultado[medida]) resultado[medida] = { obrigatorio: true, notasGerais: [] }
+      // val pode ser true ou { notaSimp: N } — registra a nota da Tabela 5
+      if (val !== true && val?.notaSimp !== undefined) {
+        resultado[medida].notaSimp = val.notaSimp
+      }
+    })
+  })
+
+  return { simplificado: true, medidas: resultado }
+}
+
+// Resolve Tabela 6 — processo normal (condições por divisão e altura)
+function _resolverNormal(MEDIDAS, divisoes, altura) {
+  const todasMedidas = new Set()
+  divisoes.forEach(div => {
+    const g = MEDIDAS[div.charAt(0)]
+    if (g) Object.keys(g.medidas).forEach(m => todasMedidas.add(m))
+  })
+
+  const resultado = {}
+  todasMedidas.forEach(m => { resultado[m] = { obrigatorio: false, notasGerais: [] } })
+
+  divisoes.forEach(divisao => {
+    const g = MEDIDAS[divisao.charAt(0)]
+    if (!g) return
+
+    Object.entries(g.medidas).forEach(([medida, cond]) => {
+      const conditions = Array.isArray(cond) ? cond : [cond]
+
+      for (const c of conditions) {
+        if (_condSatisfeita(c, divisao, altura)) {
+          resultado[medida].obrigatorio = true
+          if (c.notaGeral && !resultado[medida].notasGerais.includes(c.notaGeral)) {
+            resultado[medida].notasGerais.push(c.notaGeral)
+          }
+          break
+        }
+      }
+    })
+  })
+
+  return { simplificado: false, medidas: resultado }
+}
+
+function _condSatisfeita(cond, divisao, altura) {
+  if (Array.isArray(cond.divisoes) && cond.divisoes.length === 0) return false
+  if (cond.divisoes !== 'todas' && !cond.divisoes.includes(divisao)) return false
+  const min = cond.alturaMin ?? -Infinity
+  const max = cond.alturaMax ?? Infinity
+  return altura > min && altura <= max
+}
+
+// ── CNAEs ────────────────────────────────────────────────────────────────────
 
 // Busca um CNAE em TODAS as divisoes (para autocomplete global)
 export function buscarCNAE(uf, query) {

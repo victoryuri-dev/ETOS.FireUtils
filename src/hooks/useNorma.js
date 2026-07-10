@@ -1,5 +1,5 @@
 import { useProjeto } from '../context/ProjetoContext'
-import { getOcupacoes, getCargaMap, getNormaInfo, buscarCNAE, getCNAEsDivisao } from '../data/normas/index'
+import { getOcupacoes, getGrupos, getCargaMap, getNormaInfo, buscarCNAE, getCNAEsDivisao } from '../data/normas/index'
 export function useNorma() {
   const { state } = useProjeto()
   const uf = state.uf || 'MA'
@@ -7,6 +7,7 @@ export function useNorma() {
     uf,
     info:       getNormaInfo(uf),
     ocupacoes:  getOcupacoes(uf),
+    grupos:     getGrupos(uf),
     cargaMap:   getCargaMap(uf),
     buscar:     (q) => buscarCNAE(uf, q),
     cnaesDiv:   (div) => getCNAEsDivisao(uf, div),

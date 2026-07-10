@@ -33,6 +33,7 @@ const INITIAL_STATE = {
   sistemas: {
     acesso_viatura:      { obrigatorio: true,  ativo: true  },
     seg_estrutural:      { obrigatorio: true,  ativo: true  },
+    compart_horizontal:  { obrigatorio: false, ativo: false },
     compart_vertical:    { obrigatorio: false, ativo: false },
     controle_acabamento: { obrigatorio: false, ativo: false },
     saida_emergencia:    { obrigatorio: true,  ativo: true  },
@@ -67,7 +68,7 @@ function reducer(state, action) {
       list.push(ter || { id: 'P1', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
       for (let p = 2; p <= nPav; p++) {
         const id = `P${p}`
-        list.push(find(id) || { id, label: p === nPav && nPav > 1 ? 'Cobertura' : `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+        list.push(find(id) || { id, label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
       }
       return { ...state, pavimentos: list }
     }

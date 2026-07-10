@@ -9,7 +9,7 @@ export default function Step8() {
     const q = c?.metodo==='levantamento' ? parseFloat(c?.valorManual)||0 : c?.cargaIncendio||0
     return Math.max(acc,q)
   },0)
-  const getDivLabel = code => { const g=code?.charAt(0); return (ocupacoes[g]||{})[code]||code }
+  const getDivLabel = code => { const g=code?.charAt(0); return (ocupacoes[g]?.divisoes||{})[code]||code }
   return (
     <div style={{maxWidth:720,margin:'0 auto',padding:'34px 48px 96px'}}>
       <div style={{marginBottom:26}}>

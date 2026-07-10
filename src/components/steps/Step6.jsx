@@ -14,9 +14,10 @@ function collectDivs(pavimentos) {
     if (p.cnae && !map[p.divisao].cnae) map[p.divisao].cnae = p.cnae
     p.acess.forEach(a => {
       if (!a.divisao) return
-      if (!map[a.divisao]) map[a.divisao] = { pavs:[], cnae:'', cnaeDesc:'' }
-      const tag = p.label + ' (acess.)'
+      if (!map[a.divisao]) map[a.divisao] = { pavs:[], cnae: a.cnae || '', cnaeDesc: a.cnaeDesc || '' }
+      const tag = p.label + ' (subsidiaria)'
       if (!map[a.divisao].pavs.includes(tag)) map[a.divisao].pavs.push(tag)
+      if (a.cnae && !map[a.divisao].cnae) { map[a.divisao].cnae = a.cnae; map[a.divisao].cnaeDesc = a.cnaeDesc || '' }
     })
   })
   return map
@@ -72,7 +73,7 @@ export default function Step6() {
 
   const getDivLabel = (code) => {
     const g = code?.charAt(0)
-    return (ocupacoes[g] || {})[code] || code
+    return (ocupacoes[g]?.divisoes || {})[code] || code
   }
 
   return (
@@ -107,7 +108,10 @@ export default function Step6() {
               <div key={code} style={{padding:'12px 0',borderBottom:'.5px solid var(--border-2)'}}>
                 <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{getDivLabel(code)}</div>
+                    <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>
+                      <span style={{fontFamily:'monospace',color:'var(--red)',marginRight:6}}>{code}</span>
+                      {getDivLabel(code)}
+                    </div>
                     <div style={{fontSize:11,color:'var(--text-faint)',marginTop:2}}>
                       {cnae
                         ? <><span style={{fontFamily:'monospace',color:'var(--red)'}}>{cnae}</span> — {divMap[code]?.cnaeDesc || cnaesDiv(code)[cnae]?.descricao || ''}</>

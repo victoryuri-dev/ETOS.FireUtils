@@ -1,6 +1,7 @@
 import StepsNav from '../components/layout/StepsNav'
 import Icon     from '../components/ui/Icon'
 import { useWizard } from '../hooks/useWizard'
+import { useStepStatus } from '../hooks/useStepStatus'
 import Step1 from '../components/steps/Step1'
 import Step2 from '../components/steps/Step2'
 import Step3 from '../components/steps/Step3'
@@ -23,7 +24,8 @@ const STEPS_CONFIG = [
 const STEPS = { 1:Step1, 2:Step2, 3:Step3, 4:Step4, 5:Step5, 6:Step6, 7:Step7, 8:Step8 }
 
 export default function ConfiguracaoPage({ onGoDashboard }) {
-  const { step, totalSteps, next, prev, goTo, isUnlocked, isDone } = useWizard(8)
+  const { step, totalSteps, next, prev, goTo, isUnlocked } = useWizard(8)
+  const getStatus = useStepStatus()
   const ActiveStep = STEPS[step]
 
   return (
@@ -35,7 +37,7 @@ export default function ConfiguracaoPage({ onGoDashboard }) {
           steps={STEPS_CONFIG}
           current={step}
           isUnlocked={isUnlocked}
-          isDone={isDone}
+          getStatus={getStatus}
           onGo={goTo}
         />
         <div style={{ flex:1, overflowY:'auto' }}>
