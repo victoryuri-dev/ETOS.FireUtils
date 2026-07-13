@@ -3,13 +3,13 @@ import { ESTADOS_DISPONIVEIS, getNormaInfo } from '../../data/normas/index'
 import Icon from '../ui/Icon'
 
 const S = {
-  section:{maxWidth:720,margin:'0 auto',padding:'34px 48px 96px'},
-  header:{marginBottom:26},
-  stepLbl:{fontSize:11,color:'var(--red)',textTransform:'uppercase',letterSpacing:'.08em',fontWeight:600,marginBottom:5},
-  title:{fontSize:22,fontWeight:600,color:'var(--text)',marginBottom:5},
-  desc:{fontSize:13,color:'var(--text-faint)',lineHeight:1.6},
-  block:{marginBottom:26},
-  blockTitle:{fontSize:11,fontWeight:500,color:'var(--text-faint)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:12,paddingBottom:8,borderBottom:'.5px solid var(--border)'},
+  section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
+  header: 'mb-[26px]',
+  stepLbl: 'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',
+  title: 'text-[22px] font-semibold text-ink mb-[5px]',
+  desc: 'text-[13px] text-ink-faint leading-[1.6]',
+  block: 'mb-[26px]',
+  blockTitle: 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border',
 }
 
 export default function Step1() {
@@ -18,28 +18,28 @@ export default function Step1() {
   const normaInfo = getNormaInfo(state.uf || 'MA')
 
   return (
-    <div style={S.section}>
-      <div style={S.header}>
-        <div style={S.stepLbl}>Etapa 1 de 8</div>
-        <h2 style={S.title}>Identificacao do projeto</h2>
-        <p style={S.desc}>Dados gerais de identificacao e localizacao. A norma e vinculada ao estado selecionado.</p>
+    <div className={S.section}>
+      <div className={S.header}>
+        <div className={S.stepLbl}>Etapa 1 de 8</div>
+        <h2 className={S.title}>Identificacao do projeto</h2>
+        <p className={S.desc}>Dados gerais de identificacao e localizacao. A norma e vinculada ao estado selecionado.</p>
       </div>
 
-      <div style={S.block}>
-        <div style={S.blockTitle}>Identificacao</div>
-        <div className="fg" style={{marginBottom:12}}>
+      <div className={S.block}>
+        <div className={S.blockTitle}>Identificacao</div>
+        <div className="fg mb-3">
           <label>Nome do projeto <span className="req">*</span></label>
           <input value={state.nome} onChange={set('nome')} placeholder="Ex: Edificio Comercial Centro"/>
         </div>
         <div className="fg">
           <label>Data de inicio</label>
-          <input type="date" value={state.dataInicio} onChange={set('dataInicio')} style={{maxWidth:220}}/>
+          <input type="date" value={state.dataInicio} onChange={set('dataInicio')} className="max-w-[220px]"/>
         </div>
       </div>
 
-      <div style={S.block}>
-        <div style={S.blockTitle}>Localizacao</div>
-        <div className="fg" style={{marginBottom:12}}>
+      <div className={S.block}>
+        <div className={S.blockTitle}>Localizacao</div>
+        <div className="fg mb-3">
           <label>Endereco completo <span className="req">*</span></label>
           <input value={state.endereco} onChange={set('endereco')} placeholder="Rua, numero, complemento, bairro"/>
         </div>
@@ -59,10 +59,10 @@ export default function Step1() {
         </div>
       </div>
 
-      <div style={S.block}>
-        <div style={S.blockTitle}>Norma aplicavel</div>
+      <div className={S.block}>
+        <div className={S.blockTitle}>Norma aplicavel</div>
         <div className="ibox amber">
-          <Icon name="info" size={14} color="var(--amber)" style={{flexShrink:0}}/>
+          <Icon name="info" size={14} color="var(--color-amber)" className="shrink-0"/>
           <span>Norma vinculada ao estado selecionado. Verifique a versao vigente antes de iniciar o dimensionamento.</span>
         </div>
         {normaInfo && (

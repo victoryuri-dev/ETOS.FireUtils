@@ -31,8 +31,6 @@ export default function ProjectAside({ activePage, onNavigate }) {
     state.sistemas?.[s.key]?.ativo || state.sistemas?.[s.key]?.obrigatorio
   )
 
-  const W = col ? 56 : 240
-
   // Item de navegação genérico
   const Item = ({ pageKey, icon, label, indent }) => {
     const active = activePage === pageKey
@@ -40,62 +38,50 @@ export default function ProjectAside({ activePage, onNavigate }) {
       <div
         onClick={() => onNavigate(pageKey)}
         title={col ? label : undefined}
-        style={{
-          display:'flex', alignItems:'center',
-          gap:10, padding: col ? '9px 0' : `9px ${indent ? 28 : 20}px`,
-          justifyContent: col ? 'center' : 'flex-start',
-          fontSize:13,
-          color: active ? 'var(--text)' : 'var(--text-muted)',
-          fontWeight: active ? 500 : 400,
-          background: active ? 'var(--red-dim)' : 'transparent',
-          borderLeft: active && !col ? '2px solid var(--red)' : '2px solid transparent',
-          borderRight: active && col ? '2px solid var(--red)' : 'none',
-          cursor:'pointer', whiteSpace:'nowrap',
-          transition:'background .1s, color .1s',
-        }}
-        onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,.03)'; e.currentTarget.style.color = 'var(--text)' }}}
-        onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}}
+        className={[
+          'flex items-center gap-2.5 cursor-pointer whitespace-nowrap transition-[background-color,color] duration-100 text-[13px] border-l-2 border-solid',
+          col ? 'py-2.5 px-0 justify-center' : indent ? 'py-2.5 px-7 justify-start' : 'py-2.5 px-5 justify-start',
+          active
+            ? 'text-ink font-medium bg-red-dim border-l-red'
+            : 'text-ink-muted font-normal bg-transparent border-l-transparent hover:bg-white/[.03] hover:text-ink',
+          active && col ? 'border-r-2 border-r-solid border-r-red' : '',
+        ].filter(Boolean).join(' ')}
       >
-        <Icon name={icon} size={14} style={{ flexShrink:0 }}/>
-        {!col && <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{label}</span>}
+        <Icon name={icon} size={14} className="shrink-0"/>
+        {!col && <span className="overflow-hidden text-ellipsis">{label}</span>}
       </div>
     )
   }
 
   // Label de seção
   const SectionLabel = ({ text }) => col ? null : (
-    <div style={{ fontSize:10, color:'var(--text-faint)', padding:'12px 20px 4px', letterSpacing:'.08em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
+    <div className="text-[10px] text-ink-faint px-5 pt-3 pb-1 tracking-[.08em] uppercase whitespace-nowrap">
       {text}
     </div>
   )
 
   return (
-    <aside style={{
-      width:W, flexShrink:0,
-      background:'var(--surface)', borderRight:'.5px solid var(--border)',
-      display:'flex', flexDirection:'column', overflow:'hidden',
-      transition:'width .2s',
-    }}>
+    <aside className={`shrink-0 bg-surface border-r border-solid border-border flex flex-col overflow-hidden transition-[width] duration-200 ${col ? 'w-14' : 'w-60'}`}>
 
       {/* Toggle colapso */}
       <div
         onClick={() => setCol(c => !c)}
-        style={{ height:44, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'var(--text-faint)', borderBottom:'.5px solid var(--border)', flexShrink:0 }}
+        className="h-11 flex items-center justify-center cursor-pointer text-ink-faint border-b border-solid border-border shrink-0"
       >
         <Icon name={col ? 'chevR' : 'chevL'} size={14}/>
       </div>
 
       {/* Cabeçalho do projeto */}
       {!col && (
-        <div style={{ padding:'14px 20px', borderBottom:'.5px solid var(--border)', flexShrink:0 }}>
-          <div style={{ fontSize:10, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:3 }}>
+        <div className="px-5 py-3.5 border-b border-solid border-border shrink-0">
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.08em] mb-[3px]">
             {state.seqId || 'Projeto'}
           </div>
-          <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          <div className="text-[13px] font-semibold text-ink leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
             {state.nome || 'Sem nome'}
           </div>
           {state.uf && (
-            <div style={{ fontSize:11, color:'var(--text-faint)', marginTop:3 }}>
+            <div className="text-[11px] text-ink-faint mt-[3px]">
               {[state.cidade, state.uf].filter(Boolean).join(' — ')}
             </div>
           )}
@@ -103,14 +89,14 @@ export default function ProjectAside({ activePage, onNavigate }) {
       )}
 
       {/* Navegação principal */}
-      <div style={{ padding:'6px 0', borderBottom:'.5px solid var(--border)', flexShrink:0 }}>
+      <div className="py-1.5 border-b border-solid border-border shrink-0">
         <Item pageKey="dashboard" icon="dash"     label="Resumo"/>
         <Item pageKey="config"    icon="settings" label="Configuração"/>
       </div>
 
       {/* Medidas de segurança */}
       {enabledSystems.length > 0 && (
-        <div style={{ flex:1, overflowY:'auto', padding:'6px 0' }}>
+        <div className="flex-1 overflow-y-auto py-1.5">
           <SectionLabel text="Medidas de segurança"/>
           {enabledSystems.map(s => (
             <Item key={s.key} pageKey={`medida-${s.key}`} icon={s.icon} label={s.label} indent/>

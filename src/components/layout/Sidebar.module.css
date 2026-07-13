@@ -1,19 +1,19 @@
 .sidebar {
   width: var(--sidebar-w); flex-shrink: 0;
-  background: var(--surface); border-right: 0.5px solid var(--border);
+  background: var(--color-surface); border-right: 0.5px solid var(--color-border);
   display: flex; flex-direction: column;
   overflow: hidden; transition: width 0.2s;
 }
 .sidebar.collapsed { width: 56px; }
 .toggle {
   display: flex; align-items: center; justify-content: center;
-  height: 44px; cursor: pointer; color: var(--text-faint);
-  border-bottom: 0.5px solid var(--border);
+  height: 44px; cursor: pointer; color: var(--color-ink-faint);
+  border-bottom: 0.5px solid var(--color-border);
   flex-shrink: 0; transition: color 0.15s;
 }
-.toggle:hover { color: var(--text-muted); }
+.toggle:hover { color: var(--color-ink-muted); }
 .section {
-  font-size: 10px; color: var(--text-faint);
+  font-size: 10px; color: var(--color-ink-faint);
   padding: 14px 20px 4px; letter-spacing: 0.08em;
   text-transform: uppercase; white-space: nowrap;
   transition: opacity 0.15s;
@@ -21,18 +21,18 @@
 .collapsed .section { opacity: 0; }
 .item {
   padding: 9px 20px; font-size: 13px;
-  color: var(--text-muted); cursor: pointer;
+  color: var(--color-ink-muted); cursor: pointer;
   display: flex; align-items: center; gap: 10px;
   border-left: 2px solid transparent;
   white-space: nowrap; transition: background 0.1s;
 }
-.item:hover:not(.active):not(.disabled) { background: rgba(255,255,255,0.03); color: var(--text); }
+.item:hover:not(.active):not(.disabled) { background: rgba(255,255,255,0.03); color: var(--color-ink); }
 .item.active {
-  color: var(--text); border-left: 2px solid var(--red);
-  background: var(--red-dim); font-weight: 500;
+  color: var(--color-ink); border-left: 2px solid var(--color-red);
+  background: var(--color-red-dim); font-weight: 500;
 }
 .item.disabled { opacity: 0.28; pointer-events: none; }
 .label { transition: opacity 0.15s; }
 .collapsed .label { opacity: 0; width: 0; overflow: hidden; }
 .collapsed .item  { padding: 9px 0; justify-content: center; border-left: none; }
-.collapsed .item.active { border-right: 2px solid var(--red); }
+.collapsed .item.active { border-right: 2px solid var(--color-red); }

@@ -26,47 +26,43 @@ function pavimentosIniciais(projetoPavs) {
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────
-const inputSt = {
-  background:'var(--bg)', border:'.5px solid var(--border)',
-  borderRadius:'var(--radius-md)', color:'var(--text)',
-  fontSize:12, padding:'6px 10px', width:'100%',
-  outline:'none', boxSizing:'border-box',
-}
+const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'
 function Label({ children }) {
-  return <div style={{ fontSize:10, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:4 }}>{children}</div>
+  return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">{children}</div>
 }
 function DivBadge({ label }) {
   return (
-    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:26, height:22, padding:'0 6px', borderRadius:4, background:'var(--red)', color:'#fff', fontSize:11, fontWeight:700 }}>{label || '?'}</span>
+    <span className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-1.5 rounded bg-red text-white text-[11px] font-bold">{label || '?'}</span>
   )
 }
 function Toggle({ checked, onChange, label }) {
   return (
-    <button onClick={() => onChange(!checked)} style={{ display:'flex', alignItems:'center', gap:8, background:'transparent', border:'.5px solid var(--border)', borderRadius:'var(--radius-md)', padding:'6px 12px', cursor:'pointer', fontSize:12, color: checked ? 'var(--text)' : 'var(--text-faint)', fontWeight: checked ? 500 : 400 }}>
-      <div style={{ width:28, height:16, borderRadius:8, flexShrink:0, position:'relative', transition:'background .2s', background: checked ? 'var(--red)' : 'var(--border)' }}>
-        <div style={{ position:'absolute', top:2, left: checked ? 14 : 2, width:12, height:12, borderRadius:'50%', background:'#fff', transition:'left .2s' }}/>
+    <button onClick={() => onChange(!checked)} className={`flex items-center gap-2 bg-transparent border border-solid border-border rounded-md py-1.5 px-3 cursor-pointer text-xs ${checked ? 'text-ink font-medium' : 'text-ink-faint font-normal'}`}>
+      <div className={`w-7 h-4 rounded-[8px] shrink-0 relative transition-colors duration-200 ${checked ? 'bg-red' : 'bg-border'}`}>
+        <div className={`absolute top-0.5 ${checked ? 'left-3.5' : 'left-0.5'} w-3 h-3 rounded-full bg-white transition-[left] duration-200`}/>
       </div>
       {label}
     </button>
   )
 }
 function TH({ children, right, center }) {
-  return <th style={{ fontSize:10, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.07em', fontWeight:500, padding:'9px 14px', textAlign: right ? 'right' : center ? 'center' : 'left', borderBottom:'.5px solid var(--border)', whiteSpace:'nowrap', background:'var(--surface-2)' }}>{children}</th>
+  return <th className={`text-[10px] text-ink-faint uppercase tracking-[.07em] font-medium py-[9px] px-3.5 border-b border-solid border-border whitespace-nowrap bg-surface-2 ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}>{children}</th>
 }
 function TD({ children, red, bold, muted, right, center }) {
-  return <td style={{ padding:'10px 14px', fontSize:13, color: red ? 'var(--red)' : muted ? 'var(--text-faint)' : 'var(--text)', fontWeight: bold ? 700 : 400, borderBottom:'.5px solid var(--border-2)', textAlign: right ? 'right' : center ? 'center' : 'left', verticalAlign:'middle' }}>{children}</td>
+  const colorClass = red ? 'text-red' : muted ? 'text-ink-faint' : 'text-ink'
+  return <td className={`py-2.5 px-3.5 text-[13px] ${colorClass} ${bold ? 'font-bold' : 'font-normal'} border-b border-solid border-border-2 align-middle ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}>{children}</td>
 }
 function Chip({ val, green }) {
-  return <span style={{ display:'inline-block', padding:'3px 10px', borderRadius:4, background: green ? 'var(--green-dim)' : 'var(--red-dim)', border: `.5px solid ${green ? 'var(--green-border)' : 'var(--red-border)'}`, color: green ? 'var(--green)' : 'var(--red)', fontWeight:700, fontSize:13, fontFamily:'monospace' }}>{val}</span>
+  return <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[13px] font-mono border border-solid ${green ? 'bg-green-dim border-green-border text-green' : 'bg-red-dim border-red-border text-red'}`}>{val}</span>
 }
 function DimTable({ children }) {
-  return <div style={{ border:'.5px solid var(--border)', borderRadius:'var(--radius-md)', overflow:'hidden', marginBottom:4 }}><table style={{ width:'100%', borderCollapse:'collapse' }}>{children}</table></div>
+  return <div className="border border-solid border-border rounded-md overflow-hidden mb-1"><table className="w-full border-collapse">{children}</table></div>
 }
 function SectionTitle({ label, desc }) {
   return (
-    <div style={{ marginBottom: desc ? 8 : 12 }}>
-      <h3 style={{ fontSize:13, fontWeight:600, color:'var(--text)', margin:'0 0 4px' }}>{label}</h3>
-      {desc && <p style={{ fontSize:11, color:'var(--text-faint)', margin:0, lineHeight:1.5 }}>{desc}</p>}
+    <div className={desc ? 'mb-2' : 'mb-3'}>
+      <h3 className="text-[13px] font-semibold text-ink mt-0 mx-0 mb-1">{label}</h3>
+      {desc && <p className="text-[11px] text-ink-faint m-0 leading-[1.5]">{desc}</p>}
     </div>
   )
 }
@@ -74,15 +70,15 @@ function LargAdotadaInput({ laMin, value, onChange }) {
   const [err, setErr] = useState(false)
   const display = value != null ? value : laMin
   return (
-    <td style={{ padding:'6px 14px', borderBottom:'.5px solid var(--border-2)', textAlign:'right', verticalAlign:'middle' }}>
-      <div style={{ position:'relative', display:'inline-flex', alignItems:'center', gap:4 }}>
+    <td className="py-1.5 px-3.5 border-b border-solid border-border-2 text-right align-middle">
+      <div className="relative inline-flex items-center gap-1">
         <input type="number" step="0.05" min={laMin} value={display}
           onChange={e => { const v = parseFloat(e.target.value); if (isNaN(v)||v<laMin){setErr(true);onChange(laMin)}else{setErr(false);onChange(+v.toFixed(2))} }}
           onBlur={e => { const v = parseFloat(e.target.value); if (isNaN(v)||v<laMin){setErr(false);onChange(laMin)} }}
-          style={{ width:90, background:'var(--surface)', border:`.5px solid ${err?'var(--red)':'var(--border)'}`, borderRadius:'var(--radius-md)', color:'var(--green)', fontWeight:700, fontSize:13, padding:'4px 8px', textAlign:'right', outline:'none', fontFamily:'monospace' }}
+          className={`w-[90px] bg-surface border border-solid rounded-md text-green font-bold text-[13px] py-1 px-2 text-right outline-none font-mono ${err ? 'border-red' : 'border-border'}`}
         />
-        <span style={{ fontSize:11, color:'var(--text-faint)' }}>m</span>
-        {err && <div style={{ position:'absolute', top:'calc(100% + 4px)', right:0, whiteSpace:'nowrap', fontSize:10, background:'var(--red)', color:'#fff', padding:'3px 7px', borderRadius:4, zIndex:10 }}>Mín: {fmtM(laMin)}</div>}
+        <span className="text-[11px] text-ink-faint">m</span>
+        {err && <div className="absolute top-[calc(100%+4px)] right-0 whitespace-nowrap text-[10px] bg-red text-white py-[3px] px-[7px] rounded z-10">Mín: {fmtM(laMin)}</div>}
       </div>
     </td>
   )
@@ -91,7 +87,7 @@ function LargAdotadaInput({ laMin, value, onChange }) {
 // ── DivisaoSelect — usa OCUPACOES do estado vigente ───────────────────
 function DivisaoSelect({ value, onChange, ocupacoes }) {
   return (
-    <select style={inputSt} value={value} onChange={e => onChange(e.target.value)}>
+    <select className={inputClass} value={value} onChange={e => onChange(e.target.value)}>
       <option value="">Selecionar divisão...</option>
       {Object.keys(ocupacoes).sort().map(grupo => (
         <optgroup key={grupo} label={`Grupo ${grupo} — ${ocupacoes[grupo]?.descricao || grupo}`}>
@@ -146,11 +142,11 @@ function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes
   const inputLabel = isArea ? 'Área (m²)' : isFixo ? 'N° de assentos' : 'N° de pessoas'
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1.5fr', gap:10 }}>
+    <div className="flex flex-col gap-2.5">
+      <div className="grid grid-cols-[1fr_1.5fr] gap-2.5">
         <div>
           <Label>Nome do ambiente</Label>
-          <input style={inputSt} placeholder="ex.: Sala 101, Loja..." autoFocus={autoFocus}
+          <input className={inputClass} placeholder="ex.: Sala 101, Loja..." autoFocus={autoFocus}
             value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} onKeyDown={e => e.key==='Enter' && handleSave()}/>
         </div>
         <div>
@@ -160,28 +156,28 @@ function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes
       </div>
 
       {form.divisao && (
-        <div style={{ display:'grid', gridTemplateColumns: opcoes.length > 1 ? '1.4fr 1fr 100px' : '1.8fr 1fr 100px', gap:10, alignItems:'flex-end' }}>
+        <div className={`grid gap-2.5 items-end ${opcoes.length > 1 ? 'grid-cols-[1.4fr_1fr_100px]' : 'grid-cols-[1.8fr_1fr_100px]'}`}>
           <div>
             <Label>Taxa normativa — {form.divisao}</Label>
             {opcoes.length > 1 ? (
-              <select style={inputSt} value={form.popTipo} onChange={e => setTipo(e.target.value)}>
+              <select className={inputClass} value={form.popTipo} onChange={e => setTipo(e.target.value)}>
                 {opcoes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             ) : (
-              <div style={{ ...inputSt, background:'var(--surface)', color:'var(--text-faint)', display:'flex', alignItems:'center' }}>
+              <div className={`${inputClass} bg-surface text-ink-faint flex items-center`}>
                 {opcoes[0]?.label || '—'}
               </div>
             )}
           </div>
           <div>
             <Label>{inputLabel}</Label>
-            {isArea   && <input style={inputSt} type="number" min="0" placeholder="ex.: 64,5" value={form.area}     onChange={e => setForm(f=>({...f,area:e.target.value}))}     onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
-            {isFixo   && <input style={inputSt} type="number" min="0" placeholder="ex.: 120"  value={form.assentos} onChange={e => setForm(f=>({...f,assentos:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
-            {isManual && <input style={inputSt} type="number" min="0" placeholder="ex.: 8"    value={form.popManual} onChange={e => setForm(f=>({...f,popManual:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
+            {isArea   && <input className={inputClass} type="number" min="0" placeholder="ex.: 64,5" value={form.area}     onChange={e => setForm(f=>({...f,area:e.target.value}))}     onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
+            {isFixo   && <input className={inputClass} type="number" min="0" placeholder="ex.: 120"  value={form.assentos} onChange={e => setForm(f=>({...f,assentos:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
+            {isManual && <input className={inputClass} type="number" min="0" placeholder="ex.: 8"    value={form.popManual} onChange={e => setForm(f=>({...f,popManual:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
           </div>
           <div>
             <Label>Pop. calculada</Label>
-            <div style={{ ...inputSt, background:'var(--surface)', display:'flex', alignItems:'center', justifyContent:'center', color: popCalc()>0 ? 'var(--red)' : 'var(--text-faint)', fontWeight:700, fontSize:15 }}>
+            <div className={`${inputClass} bg-surface flex items-center justify-center font-bold text-[15px] ${popCalc()>0 ? 'text-red' : 'text-ink-faint'}`}>
               {popCalc() || '—'}
             </div>
           </div>
@@ -189,15 +185,15 @@ function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes
       )}
 
       {taxa?.notas?.length > 0 && taxa.A === null && (
-        <div className="ibox amber" style={{ marginBottom:0 }}>
-          <Icon name="warn" size={13} color="var(--amber)" style={{flexShrink:0}}/>
-          <span style={{fontSize:11}}>{taxa.obs}</span>
+        <div className="ibox amber mb-0">
+          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+          <span className="text-[11px]">{taxa.obs}</span>
         </div>
       )}
 
-      <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
+      <div className="flex gap-1.5 justify-end">
         <button className="btn-ghost" onClick={onCancel}><Icon name="x" size={12}/> Cancelar</button>
-        <button className="btn-primary" onClick={handleSave} style={{ opacity: canSave()?1:0.45, pointerEvents: canSave()?'auto':'none' }}>
+        <button className={`btn-primary ${canSave() ? 'opacity-100 pointer-events-auto' : 'opacity-45 pointer-events-none'}`} onClick={handleSave}>
           <Icon name="check" size={12}/> {initial ? 'Salvar' : 'Adicionar'}
         </button>
       </div>
@@ -206,6 +202,8 @@ function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes
 }
 
 // ── PavimentoModal ────────────────────────────────────────────────────
+const MODAL_COL = 'grid-cols-[1.4fr_56px_1.6fr_80px_54px_48px]'
+
 function PavimentoModal({ pav, onClose, onSave, seNorma, ocupacoes }) {
   const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS } = seNorma
   const [ambientes, setAmbientes] = useState(() => pav.ambientes.map(a => ({...a})))
@@ -220,40 +218,39 @@ function PavimentoModal({ pav, onClose, onSave, seNorma, ocupacoes }) {
   const addAmb  = d => { setAmbientes(p => [...p, {id:uid(),...d}]); setShowAdd(false) }
   const saveAmb = (id,d) => { setAmbientes(p => p.map(a => a.id===id ? {...a,...d} : a)); setEditId(null) }
   const delAmb  = id => { setAmbientes(p => p.filter(a => a.id!==id)); if (editId===id) setEditId(null) }
-  const COL = '1.4fr 56px 1.6fr 80px 54px 48px'
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:500, background:'rgba(0,0,0,.65)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background:'var(--surface)', border:'.5px solid var(--border)', borderRadius:'var(--radius-lg)', width:900, maxWidth:'96vw', maxHeight:'92vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 24px 64px rgba(0,0,0,.55)' }}>
+    <div className="fixed inset-0 z-[500] bg-black/65 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-surface border border-solid border-border rounded-lg w-[900px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]">
 
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', padding:'18px 22px', borderBottom:'.5px solid var(--border)', flexShrink:0 }}>
+        <div className="flex items-start justify-between py-[18px] px-[22px] border-b border-solid border-border shrink-0">
           <div>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--text)' }}>{pav.nome}</span>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-base font-bold text-ink">{pav.nome}</span>
               {pav.tipo === 'descarga'
-                ? <span style={{ fontSize:10, padding:'3px 8px', borderRadius:4, background:'var(--amber-dim)', border:'.5px solid var(--amber-border)', color:'var(--amber)', fontWeight:600 }}>PISO DE DESCARGA</span>
-                : <span style={{ fontSize:10, padding:'3px 8px', borderRadius:4, background:'var(--surface-2)', border:'.5px solid var(--border)', color:'var(--text-faint)', fontWeight:500 }}>PAVIMENTO TIPO</span>}
+                ? <span className="text-[10px] py-[3px] px-2 rounded bg-amber-dim border border-solid border-amber-border text-amber font-semibold">PISO DE DESCARGA</span>
+                : <span className="text-[10px] py-[3px] px-2 rounded bg-surface-2 border border-solid border-border text-ink-faint font-medium">PAVIMENTO TIPO</span>}
             </div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:'5px 14px', fontSize:11, color:'var(--text-faint)' }}>
+            <div className="flex flex-wrap gap-x-3.5 gap-y-[5px] text-[11px] text-ink-faint">
               <span>{ambientes.length} ambiente{ambientes.length!==1?'s':''}</span>
-              <span style={{opacity:.25}}>·</span>
-              <span>Pop. total: <strong style={{ color:'var(--red)', fontWeight:700 }}>{totalPop} pessoas</strong></span>
-              {divisoes.length > 0 && <><span style={{opacity:.25}}>·</span><span style={{ display:'flex', alignItems:'center', gap:4 }}>Divisões: {divisoes.map(d=><DivBadge key={d} label={d}/>)}</span></>}
+              <span className="opacity-25">·</span>
+              <span>Pop. total: <strong className="text-red font-bold">{totalPop} pessoas</strong></span>
+              {divisoes.length > 0 && <><span className="opacity-25">·</span><span className="flex items-center gap-1">Divisões: {divisoes.map(d=><DivBadge key={d} label={d}/>)}</span></>}
             </div>
           </div>
-          <button className="btn-ghost" style={{ padding:'6px', marginLeft:12 }} onClick={onClose}><Icon name="x" size={14}/></button>
+          <button className="btn-ghost p-1.5 ml-3" onClick={onClose}><Icon name="x" size={14}/></button>
         </div>
 
         {/* Col headers */}
-        <div style={{ display:'grid', gridTemplateColumns:COL, gap:8, padding:'8px 22px', background:'var(--surface-2)', borderBottom:'.5px solid var(--border)', flexShrink:0, fontSize:10, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.06em' }}>
-          <span>Nome</span><span>Div.</span><span>Taxa / Entrada</span><span>Valor</span><span style={{textAlign:'right'}}>Pop.</span><span/>
+        <div className={`grid ${MODAL_COL} gap-2 py-2 px-[22px] bg-surface-2 border-b border-solid border-border shrink-0 text-[10px] text-ink-faint uppercase tracking-[.06em]`}>
+          <span>Nome</span><span>Div.</span><span>Taxa / Entrada</span><span>Valor</span><span className="text-right">Pop.</span><span/>
         </div>
 
         {/* Rows */}
-        <div style={{ flex:1, overflowY:'auto' }}>
+        <div className="flex-1 overflow-y-auto">
           {ambientes.length === 0 && !showAdd && (
-            <div style={{ padding:'40px', textAlign:'center', color:'var(--text-faint)', fontSize:13 }}>
+            <div className="p-10 text-center text-ink-faint text-[13px]">
               Nenhum ambiente adicionado. Clique em "Adicionar ambiente".
             </div>
           )}
@@ -263,8 +260,8 @@ function PavimentoModal({ pav, onClose, onSave, seNorma, ocupacoes }) {
             const taxaLabel = opcoes.find(o => o.value===a.popTipo)?.label || TAXA_POPULACIONAL[a.divisao]?.obs || '—'
             if (editId === a.id) {
               return (
-                <div key={a.id} style={{ padding:'14px 22px', background:'rgba(192,21,42,.04)', borderBottom:'.5px solid var(--red-border)' }}>
-                  <div style={{ fontSize:10, color:'var(--red)', fontWeight:600, textTransform:'uppercase', letterSpacing:'.07em', marginBottom:10 }}>Editando: {a.nome}</div>
+                <div key={a.id} className="py-3.5 px-[22px] bg-[rgba(192,21,42,.04)] border-b border-solid border-red-border">
+                  <div className="text-[10px] text-red font-semibold uppercase tracking-[.07em] mb-2.5">Editando: {a.nome}</div>
                   <AmbienteForm initial={a} autoFocus onSave={d => saveAmb(a.id,d)} onCancel={() => setEditId(null)} seNorma={seNorma} ocupacoes={ocupacoes}/>
                 </div>
               )
@@ -272,55 +269,51 @@ function PavimentoModal({ pav, onClose, onSave, seNorma, ocupacoes }) {
             return (
               <div key={a.id}
                 onClick={() => { setShowAdd(false); setEditId(a.id) }}
-                onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,.025)'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}
-                style={{ display:'grid', gridTemplateColumns:COL, gap:8, alignItems:'center', padding:'11px 22px', borderBottom:'.5px solid var(--border-2)', cursor:'pointer', transition:'background .1s' }}
+                className={`grid ${MODAL_COL} gap-2 items-center py-[11px] px-[22px] border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.025]`}
               >
-                <span style={{ fontSize:13, fontWeight:500, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.nome}</span>
+                <span className="text-[13px] font-medium text-ink overflow-hidden text-ellipsis whitespace-nowrap">{a.nome}</span>
                 <DivBadge label={a.divisao||'?'}/>
                 <div>
-                  <div style={{ fontSize:11, color:'var(--text-faint)', lineHeight:1.3 }}>{taxaLabel}</div>
-                  {a.popTipo==='manual' && <div style={{ fontSize:10, color:'var(--amber)', marginTop:1 }}>Manual</div>}
+                  <div className="text-[11px] text-ink-faint leading-[1.3]">{taxaLabel}</div>
+                  {a.popTipo==='manual' && <div className="text-[10px] text-amber mt-px">Manual</div>}
                 </div>
-                <span style={{ fontSize:12, color:'var(--text-muted)' }}>
+                <span className="text-xs text-ink-muted">
                   {a.popTipo==='area' ? `${a.area} m²` : a.popTipo==='fixo' ? `${a.assentos} assentos` : `${a.popManual} pess.`}
                 </span>
-                <span style={{ fontSize:14, fontWeight:700, color:'var(--red)', textAlign:'right' }}>{pop}</span>
-                <div style={{ display:'flex', justifyContent:'flex-end' }}>
+                <span className="text-sm font-bold text-red text-right">{pop}</span>
+                <div className="flex justify-end">
                   <button onClick={e => { e.stopPropagation(); delAmb(a.id) }}
-                    style={{ background:'transparent', border:'.5px solid transparent', borderRadius:'var(--radius-md)', color:'var(--text-faint)', cursor:'pointer', padding:'4px 5px', display:'flex' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor='var(--red-border)'; e.currentTarget.style.color='var(--red)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor='transparent'; e.currentTarget.style.color='var(--text-faint)' }}
+                    className="bg-transparent border border-solid border-transparent rounded-md text-ink-faint cursor-pointer py-1 px-[5px] flex hover:border-red-border hover:text-red"
                   ><Icon name="trash" size={12}/></button>
                 </div>
               </div>
             )
           })}
           {showAdd && (
-            <div style={{ padding:'16px 22px', background:'rgba(192,21,42,.05)', borderTop:'.5px solid var(--red-border)' }}>
-              <div style={{ fontSize:10, color:'var(--red)', fontWeight:600, textTransform:'uppercase', letterSpacing:'.07em', marginBottom:12 }}>Novo ambiente</div>
+            <div className="py-4 px-[22px] bg-[rgba(192,21,42,.05)] border-t border-solid border-red-border">
+              <div className="text-[10px] text-red font-semibold uppercase tracking-[.07em] mb-3">Novo ambiente</div>
               <AmbienteForm autoFocus onSave={addAmb} onCancel={() => setShowAdd(false)} seNorma={seNorma} ocupacoes={ocupacoes}/>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ flexShrink:0 }}>
+        <div className="shrink-0">
           {notasAtivas.length > 0 && (
-            <div style={{ padding:'8px 22px', background:'var(--surface-2)', borderTop:'.5px solid var(--border)' }}>
-              {notasAtivas.map(k => NOTAS_NORMATIVAS[k] && <div key={k} style={{ fontSize:10, color:'var(--text-faint)', lineHeight:1.5 }}>{NOTAS_NORMATIVAS[k]}</div>)}
+            <div className="py-2 px-[22px] bg-surface-2 border-t border-solid border-border">
+              {notasAtivas.map(k => NOTAS_NORMATIVAS[k] && <div key={k} className="text-[10px] text-ink-faint leading-[1.5]">{NOTAS_NORMATIVAS[k]}</div>)}
             </div>
           )}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 22px', borderTop:'.5px solid var(--border)' }}>
-            <div style={{ display:'flex', gap:24 }}>
+          <div className="flex items-center justify-between py-3.5 px-[22px] border-t border-solid border-border">
+            <div className="flex gap-6">
               {[{ label:'Ambientes', val:String(ambientes.length), red:false },{ label:'Área (m²)', val:totalArea.toLocaleString('pt-BR'), red:false },{ label:'Pop. total', val:`${totalPop} pess.`, red:true }].map(s => (
                 <div key={s.label}>
-                  <div style={{ fontSize:9, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:2 }}>{s.label}</div>
-                  <div style={{ fontSize:18, fontWeight:700, color: s.red ? 'var(--red)' : 'var(--text)' }}>{s.val}</div>
+                  <div className="text-[9px] text-ink-faint uppercase tracking-[.07em] mb-0.5">{s.label}</div>
+                  <div className={`text-lg font-bold ${s.red ? 'text-red' : 'text-ink'}`}>{s.val}</div>
                 </div>
               ))}
             </div>
-            <div style={{ display:'flex', gap:10 }}>
+            <div className="flex gap-2.5">
               {!showAdd && !editId && <button className="btn-ghost" onClick={() => { setEditId(null); setShowAdd(true) }}><Icon name="plus" size={12}/> Adicionar ambiente</button>}
               <button className="btn-primary" onClick={() => { onSave({...pav, ambientes}); onClose() }}>Confirmar</button>
             </div>
@@ -358,6 +351,8 @@ function importarFiredata(json) {
 }
 
 // ── Page principal ────────────────────────────────────────────────────
+const MAIN_COL = 'grid-cols-[1fr_80px_130px_1fr_28px]'
+
 export default function SaidaEmergenciaPage() {
   const { state }       = useProjeto()
   const { uf, info, ocupacoes } = useNorma()
@@ -449,58 +444,58 @@ export default function SaidaEmergenciaPage() {
   const temPavimentos = pavimentos.length > 0
 
   return (
-    <div style={{ flex:1, overflowY:'auto' }}>
-      <div style={{ maxWidth:980, margin:'0 auto', padding:'32px 40px 80px' }}>
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
 
         {/* Header */}
-        <div style={{ marginBottom:32 }}>
-          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, marginBottom:12 }}>
+        <div className="mb-8">
+          <div className="flex items-start justify-between gap-4 mb-3">
             <div>
-              <div style={{ fontSize:11, color:'var(--red)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:4 }}>Saídas de Emergência</div>
-              <h2 style={{ fontSize:22, fontWeight:700, color:'var(--text)', marginBottom:6 }}>Dimensionamento</h2>
-              <p style={{ fontSize:13, color:'var(--text-faint)', lineHeight:1.6, maxWidth:600, margin:0 }}>
+              <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Saídas de Emergência</div>
+              <h2 className="text-[22px] font-bold text-ink mb-1.5">Dimensionamento</h2>
+              <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
                 Adicione pavimentos e configure os ambientes de cada um. Resultados calculados automaticamente conforme {info?.nome || 'NT vigente'} / NBR 9077.
               </p>
             </div>
-            <div style={{ flexShrink:0 }}>
-              <input ref={fileInputRef} type="file" accept=".json" style={{ display:'none' }} onChange={handleImport}/>
-              <button className="btn-ghost" onClick={() => fileInputRef.current?.click()} style={{ display:'flex', alignItems:'center', gap:6, whiteSpace:'nowrap' }}>
+            <div className="shrink-0">
+              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
+              <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>
                 <Icon name="upload" size={13}/>
                 Importar do Revit
               </button>
-              <div style={{ fontSize:10, color:'var(--text-faint)', marginTop:5, textAlign:'right' }}>
+              <div className="text-[10px] text-ink-faint mt-[5px] text-right">
                 firedata.json
               </div>
             </div>
           </div>
 
           {importInfo && (
-            <div className="ibox green" style={{ marginBottom:0 }}>
-              <Icon name="check" size={13} color="var(--green)" style={{flexShrink:0}}/>
-              <span style={{fontSize:12}}>Dados importados do Revit — última exportação: <strong>{importInfo}</strong>. Confira os nomes dos ambientes e ajuste se necessário.</span>
+            <div className="ibox green mb-0">
+              <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+              <span className="text-xs">Dados importados do Revit — última exportação: <strong>{importInfo}</strong>. Confira os nomes dos ambientes e ajuste se necessário.</span>
             </div>
           )}
           {importErro && (
-            <div className="ibox red" style={{ marginBottom:0 }}>
-              <Icon name="warn" size={13} color="var(--red)" style={{flexShrink:0}}/>
-              <span style={{fontSize:12}}>Erro ao importar: {importErro}</span>
+            <div className="ibox red mb-0">
+              <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
+              <span className="text-xs">Erro ao importar: {importErro}</span>
             </div>
           )}
         </div>
 
         {/* Pavimentos */}
-        <div style={{ background:'var(--surface)', border:'.5px solid var(--border)', borderRadius:'var(--radius-lg)', overflow:'hidden', marginBottom:28 }}>
-          <div style={{ padding:'14px 20px', borderBottom:'.5px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div style={{ fontSize:14, fontWeight:600, color:'var(--text)', display:'flex', alignItems:'center', gap:8 }}>
+        <div className="bg-surface border border-solid border-border rounded-lg overflow-hidden mb-7">
+          <div className="py-3.5 px-5 border-b border-solid border-border flex items-center justify-between">
+            <div className="text-sm font-semibold text-ink flex items-center gap-2">
               Pavimentos
-              {govPav && <span style={{ fontSize:11, fontWeight:400, color:'var(--text-faint)' }}>— Mais populoso: <span style={{ color:'var(--red)', fontWeight:600 }}>{govPav.nome} ({calcPopPav(govPav, TAXA_POPULACIONAL)} pess.)</span></span>}
+              {govPav && <span className="text-[11px] font-normal text-ink-faint">— Mais populoso: <span className="text-red font-semibold">{govPav.nome} ({calcPopPav(govPav, TAXA_POPULACIONAL)} pess.)</span></span>}
             </div>
             {!addForm && <button className="btn-ghost" onClick={() => setAddForm(true)}><Icon name="plus" size={12}/> Adicionar pavimento</button>}
           </div>
 
           {temPavimentos && (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 80px 130px 1fr 28px', gap:14, padding:'8px 20px', background:'var(--surface-2)', borderBottom:'.5px solid var(--border)', fontSize:10, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.06em' }}>
-              <span>Pavimento</span><span style={{textAlign:'center'}}>Amb.</span><span style={{textAlign:'center'}}>Pop.</span><span>Divisões</span><span/>
+            <div className={`grid ${MAIN_COL} gap-3.5 py-2 px-5 bg-surface-2 border-b border-solid border-border text-[10px] text-ink-faint uppercase tracking-[.06em]`}>
+              <span>Pavimento</span><span className="text-center">Amb.</span><span className="text-center">Pop.</span><span>Divisões</span><span/>
             </div>
           )}
 
@@ -511,44 +506,40 @@ export default function SaidaEmergenciaPage() {
             return (
               <div key={p.id}
                 onClick={() => setOpenId(p.id)}
-                onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,.025)'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}
-                style={{ display:'grid', gridTemplateColumns:'1fr 80px 130px 1fr 28px', gap:14, alignItems:'center', padding:'13px 20px', borderBottom:'.5px solid var(--border-2)', cursor:'pointer', transition:'background .1s' }}
+                className={`grid ${MAIN_COL} gap-3.5 items-center py-[13px] px-5 border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.025]`}
               >
                 <div>
-                  <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                    <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{p.nome}</span>
+                  <div className="flex items-center gap-[7px]">
+                    <span className="text-[13px] font-semibold text-ink">{p.nome}</span>
                     {p.tipo==='descarga'
-                      ? <span style={{ fontSize:9, padding:'2px 6px', borderRadius:3, background:'var(--amber-dim)', border:'.5px solid var(--amber-border)', color:'var(--amber)', fontWeight:600 }}>DESCARGA</span>
-                      : <span style={{ fontSize:9, padding:'2px 6px', borderRadius:3, background:'var(--surface-2)', border:'.5px solid var(--border)', color:'var(--text-faint)' }}>TIPO</span>}
+                      ? <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>
+                      : <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-surface-2 border border-solid border-border text-ink-faint">TIPO</span>}
                   </div>
-                  {isGov && <div style={{ fontSize:10, color:'var(--red)', fontWeight:500, marginTop:2 }}>Mais populoso · referência para ER</div>}
+                  {isGov && <div className="text-[10px] text-red font-medium mt-0.5">Mais populoso · referência para ER</div>}
                 </div>
-                <div style={{ textAlign:'center', fontSize:15, fontWeight:700, color: p.ambientes.length ? 'var(--red)' : 'var(--text-faint)' }}>{p.ambientes.length}</div>
-                <div style={{ textAlign:'center', fontSize:14, fontWeight:700, color: pop>0 ? 'var(--red)' : 'var(--text-faint)' }}>{pop>0 ? `${pop} pess.` : <span style={{fontSize:11,fontWeight:400}}>—</span>}</div>
-                <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>{divs.map(d=><DivBadge key={d} label={d}/>)}{!divs.length && <span style={{fontSize:11,color:'var(--text-faint)'}}>—</span>}</div>
+                <div className={`text-center text-[15px] font-bold ${p.ambientes.length ? 'text-red' : 'text-ink-faint'}`}>{p.ambientes.length}</div>
+                <div className={`text-center text-sm font-bold ${pop>0 ? 'text-red' : 'text-ink-faint'}`}>{pop>0 ? `${pop} pess.` : <span className="text-[11px] font-normal">—</span>}</div>
+                <div className="flex gap-1 flex-wrap">{divs.map(d=><DivBadge key={d} label={d}/>)}{!divs.length && <span className="text-[11px] text-ink-faint">—</span>}</div>
                 <div onClick={e => { e.stopPropagation(); setPavimentos(prev=>prev.filter(x=>x.id!==p.id)) }}
-                  onMouseEnter={e => e.currentTarget.style.color='var(--red)'}
-                  onMouseLeave={e => e.currentTarget.style.color='var(--text-faint)'}
-                  style={{ color:'var(--text-faint)', cursor:'pointer', display:'flex' }}><Icon name="trash" size={13}/></div>
+                  className="text-ink-faint cursor-pointer flex hover:text-red"><Icon name="trash" size={13}/></div>
               </div>
             )
           })}
 
-          {!temPavimentos && !addForm && <div style={{ padding:'36px', textAlign:'center', color:'var(--text-faint)', fontSize:13 }}>Nenhum pavimento adicionado.</div>}
+          {!temPavimentos && !addForm && <div className="p-9 text-center text-ink-faint text-[13px]">Nenhum pavimento adicionado.</div>}
 
           {addForm && (
-            <div style={{ padding:'16px 20px', background:'rgba(192,21,42,.05)', borderTop: temPavimentos ? '.5px solid var(--red-border)' : 'none' }}>
-              <div style={{ fontSize:10, color:'var(--red)', fontWeight:600, textTransform:'uppercase', letterSpacing:'.07em', marginBottom:12 }}>Novo pavimento</div>
-              <div style={{ display:'flex', gap:10, alignItems:'flex-end' }}>
-                <div style={{ flex:1 }}>
+            <div className={`py-4 px-5 bg-[rgba(192,21,42,.05)] ${temPavimentos ? 'border-t border-solid border-red-border' : ''}`}>
+              <div className="text-[10px] text-red font-semibold uppercase tracking-[.07em] mb-3">Novo pavimento</div>
+              <div className="flex gap-2.5 items-end">
+                <div className="flex-1">
                   <Label>Nome</Label>
-                  <input style={inputSt} autoFocus placeholder="ex.: Térreo, 1º Pavimento..."
+                  <input className={inputClass} autoFocus placeholder="ex.: Térreo, 1º Pavimento..."
                     value={newPav.nome} onChange={e => setNewPav(f=>({...f,nome:e.target.value}))} onKeyDown={e => e.key==='Enter' && addPavimento()}/>
                 </div>
                 <div>
                   <Label>Tipo de pavimento</Label>
-                  <select style={{ ...inputSt, width:'auto' }} value={newPav.tipo} onChange={e => setNewPav(f=>({...f,tipo:e.target.value}))}>
+                  <select className={`${inputClass} w-auto`} value={newPav.tipo} onChange={e => setNewPav(f=>({...f,tipo:e.target.value}))}>
                     <option value="tipo">Pavimento tipo</option>
                     <option value="descarga">Piso de descarga (Térreo)</option>
                   </select>
@@ -556,7 +547,7 @@ export default function SaidaEmergenciaPage() {
                 <button className="btn-primary" onClick={addPavimento}>Adicionar</button>
                 <button className="btn-ghost" onClick={() => setAddForm(false)}>Cancelar</button>
               </div>
-              <div style={{ marginTop:10, fontSize:11, color:'var(--text-faint)', lineHeight:1.5 }}>
+              <div className="mt-2.5 text-[11px] text-ink-faint leading-[1.5]">
                 <strong>Piso de descarga</strong>: pavimento de saída da edificação (térreo). Conta para AD e PT, mas não para ER.
               </div>
             </div>
@@ -564,15 +555,15 @@ export default function SaidaEmergenciaPage() {
         </div>
 
         {temPavimentos && !pavimentos.some(p => p.tipo==='descarga') && (
-          <div className="ibox amber" style={{ marginBottom:24 }}>
-            <Icon name="warn" size={14} color="var(--amber)" style={{flexShrink:0}}/>
-            <span style={{fontSize:12}}>Nenhum piso de descarga definido. Identifique o térreo como "Piso de descarga" para o cálculo correto das distâncias máximas.</span>
+          <div className="ibox amber mb-6">
+            <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+            <span className="text-xs">Nenhum piso de descarga definido. Identifique o térreo como "Piso de descarga" para o cálculo correto das distâncias máximas.</span>
           </div>
         )}
 
         {/* Resultados */}
         {temPavimentos && (
-          <div style={{ display:'flex', flexDirection:'column', gap:28 }}>
+          <div className="flex flex-col gap-7">
 
             <div>
               <SectionTitle label="Acessos e Descargas (AD)" desc={`Todos os pavimentos · ${fmt(LARGURAS_MINIMAS.LARG_UP)} m/UP · mínimo ${fmt(LARGURAS_MINIMAS.AD)} m`}/>
@@ -600,7 +591,7 @@ export default function SaidaEmergenciaPage() {
                   </tbody>
                 </DimTable>
               ) : (
-                <div className="ibox amber"><Icon name="warn" size={14} color="var(--amber)" style={{flexShrink:0}}/><span style={{fontSize:12}}>Nenhum pavimento tipo configurado. O piso de descarga não é referência para ER.</span></div>
+                <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span className="text-xs">Nenhum pavimento tipo configurado. O piso de descarga não é referência para ER.</span></div>
               )}
             </div>
 
@@ -619,9 +610,9 @@ export default function SaidaEmergenciaPage() {
             </div>
 
             <div>
-              <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:12 }}>
+              <div className="flex items-start justify-between mb-3">
                 <SectionTitle label="Distâncias Máximas a Percorrer" desc="Distância máxima do ponto mais remoto até a saída de emergência (NBR 9077)"/>
-                <div style={{ display:'flex', gap:8, flexShrink:0, marginLeft:16 }}>
+                <div className="flex gap-2 shrink-0 ml-4">
                   <Toggle checked={temChuveiros} onChange={setTemChuveiros} label="Chuveiros automáticos"/>
                   <Toggle checked={temDeteccao}  onChange={setTemDeteccao}  label="Detecção de incêndio"/>
                 </div>
@@ -636,33 +627,33 @@ export default function SaidaEmergenciaPage() {
                       <tr key={pav.id}>
                         <TD bold>{pav.nome}</TD>
                         <TD muted>{pav.tipo==='descarga' ? 'Piso de descarga' : 'Demais andares'}</TD>
-                        <td style={{ padding:'8px 14px', borderBottom:'.5px solid var(--border-2)', verticalAlign:'middle' }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <td className="py-2 px-3.5 border-b border-solid border-border-2 align-middle">
+                          <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => toggleSaidaUnica(pav.id, true)}
-                              style={{ fontSize:11, padding:'4px 10px', borderRadius:'var(--radius-md)', border:`.5px solid ${unica ? 'var(--red-border)' : 'var(--border)'}`, background: unica ? 'var(--red-dim)' : 'transparent', color: unica ? 'var(--red)' : 'var(--text-faint)', cursor:'pointer', fontWeight: unica ? 600 : 400, transition:'all .15s' }}
+                              className={`text-[11px] py-1 px-2.5 rounded-md border border-solid cursor-pointer transition-all duration-150 ${unica ? 'border-red-border bg-red-dim text-red font-semibold' : 'border-border bg-transparent text-ink-faint font-normal'}`}
                             >Saída única</button>
                             <button
                               onClick={() => toggleSaidaUnica(pav.id, false)}
-                              style={{ fontSize:11, padding:'4px 10px', borderRadius:'var(--radius-md)', border:`.5px solid ${!unica ? 'var(--green-border)' : 'var(--border)'}`, background: !unica ? 'var(--green-dim)' : 'transparent', color: !unica ? 'var(--green)' : 'var(--text-faint)', cursor:'pointer', fontWeight: !unica ? 600 : 400, transition:'all .15s' }}
+                              className={`text-[11px] py-1 px-2.5 rounded-md border border-solid cursor-pointer transition-all duration-150 ${!unica ? 'border-green-border bg-green-dim text-green font-semibold' : 'border-border bg-transparent text-ink-faint font-normal'}`}
                             >Mais de uma saída</button>
                             {unica && minSaidas > 1 && (
-                              <span style={{ fontSize:10, color:'var(--amber)', display:'flex', alignItems:'center', gap:3 }}>
-                                <Icon name="warn" size={10} color="var(--amber)"/> mín. {minSaidas} UPs
+                              <span className="text-[10px] text-amber flex items-center gap-[3px]">
+                                <Icon name="warn" size={10} color="var(--color-amber)"/> mín. {minSaidas} UPs
                               </span>
                             )}
                           </div>
                         </td>
                         <TD muted>{prot.length ? prot.join(' + ') : '—'}</TD>
-                        <td style={{ padding:'10px 14px', textAlign:'right', borderBottom:'.5px solid var(--border-2)' }}>
-                          {dist!==null ? <Chip val={`${dist} m`} green/> : <span style={{ fontSize:12, color:'var(--text-faint)' }}>Consultar NT</span>}
+                        <td className="py-2.5 px-3.5 text-right border-b border-solid border-border-2">
+                          {dist!==null ? <Chip val={`${dist} m`} green/> : <span className="text-xs text-ink-faint">Consultar NT</span>}
                         </td>
                       </tr>
                     )
                   })}
                 </tbody>
               </DimTable>
-              <div style={{ fontSize:11, color:'var(--text-faint)', lineHeight:1.6, marginTop:6 }}>Fonte: NBR 9077 — Saídas de Emergência em Edifícios, Tabelas 1 e 2.</div>
+              <div className="text-[11px] text-ink-faint leading-[1.6] mt-1.5">Fonte: NBR 9077 — Saídas de Emergência em Edifícios, Tabelas 1 e 2.</div>
             </div>
           </div>
         )}

@@ -24,13 +24,13 @@ function collectDivs(pavimentos) {
 }
 
 const S = {
-  section:{maxWidth:720,margin:'0 auto',padding:'34px 48px 96px'},
-  header:{marginBottom:26},
-  stepLbl:{fontSize:11,color:'var(--red)',textTransform:'uppercase',letterSpacing:'.08em',fontWeight:600,marginBottom:5},
-  title:{fontSize:22,fontWeight:600,color:'var(--text)',marginBottom:5},
-  desc:{fontSize:13,color:'var(--text-faint)',lineHeight:1.6},
-  block:{marginBottom:26},
-  blockTitle:{fontSize:11,fontWeight:500,color:'var(--text-faint)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:12,paddingBottom:8,borderBottom:'.5px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'},
+  section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
+  header: 'mb-[26px]',
+  stepLbl: 'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',
+  title: 'text-[22px] font-semibold text-ink mb-[5px]',
+  desc: 'text-[13px] text-ink-faint leading-[1.6]',
+  block: 'mb-[26px]',
+  blockTitle: 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border flex items-center justify-between',
 }
 
 export default function Step6() {
@@ -77,25 +77,25 @@ export default function Step6() {
   }
 
   return (
-    <div style={S.section}>
-      <div style={S.header}>
-        <div style={S.stepLbl}>Etapa 6 de 8</div>
-        <h2 style={S.title}>Carga de Incendio</h2>
-        <p style={S.desc}>A carga de incendio de cada divisao e determinada pelo CNAE configurado na etapa anterior. Por tabela: valor normativo automatico. Por levantamento: campo livre.</p>
+    <div className={S.section}>
+      <div className={S.header}>
+        <div className={S.stepLbl}>Etapa 6 de 8</div>
+        <h2 className={S.title}>Carga de Incendio</h2>
+        <p className={S.desc}>A carga de incendio de cada divisao e determinada pelo CNAE configurado na etapa anterior. Por tabela: valor normativo automatico. Por levantamento: campo livre.</p>
       </div>
 
       <div className="ibox blue">
-        <Icon name="info" size={14} color="rgba(80,140,220,.85)" style={{flexShrink:0}}/>
+        <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
         <span>Divisoes sem CNAE configurado nao terao carga automatica. Volte a etapa 5 para configurar o CNAE de cada pavimento.</span>
       </div>
 
       {keys.length === 0 ? (
-        <div className="ibox amber"><Icon name="warn" size={14} color="var(--amber)" style={{flexShrink:0}}/><span>Nenhuma divisao configurada.</span></div>
+        <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span>Nenhuma divisao configurada.</span></div>
       ) : <>
-        <div style={S.block}>
-          <div style={S.blockTitle}>
+        <div className={S.block}>
+          <div className={S.blockTitle}>
             <span>Carga por divisao</span>
-            <span style={{fontSize:11,color:'var(--text-hint)',textTransform:'none',fontWeight:400}}>gerado da classificacao</span>
+            <span className="text-[11px] text-ink-hint normal-case font-normal">gerado da classificacao</span>
           </div>
           {keys.map(code => {
             const st = state.cargaState[code] || { metodo:'tabela', valorManual:'' }
@@ -105,39 +105,39 @@ export default function Step6() {
             const semCNAE = !cnae
 
             return (
-              <div key={code} style={{padding:'12px 0',borderBottom:'.5px solid var(--border-2)'}}>
-                <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>
-                      <span style={{fontFamily:'monospace',color:'var(--red)',marginRight:6}}>{code}</span>
+              <div key={code} className="py-3 border-b border-solid border-border-2">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex-1">
+                    <div className="text-[13px] text-ink font-medium">
+                      <span className="font-mono text-red mr-1.5">{code}</span>
                       {getDivLabel(code)}
                     </div>
-                    <div style={{fontSize:11,color:'var(--text-faint)',marginTop:2}}>
+                    <div className="text-[11px] text-ink-faint mt-0.5">
                       {cnae
-                        ? <><span style={{fontFamily:'monospace',color:'var(--red)'}}>{cnae}</span> — {divMap[code]?.cnaeDesc || cnaesDiv(code)[cnae]?.descricao || ''}</>
-                        : <span style={{color:'var(--amber)'}}>Sem CNAE configurado — volte a etapa 5</span>
+                        ? <><span className="font-mono text-red">{cnae}</span> — {divMap[code]?.cnaeDesc || cnaesDiv(code)[cnae]?.descricao || ''}</>
+                        : <span className="text-amber">Sem CNAE configurado — volte a etapa 5</span>
                       }
                     </div>
-                    <div style={{fontSize:11,color:'var(--text-hint)',marginTop:2}}>{divMap[code]?.pavs?.join(', ')}</div>
+                    <div className="text-[11px] text-ink-hint mt-0.5">{divMap[code]?.pavs?.join(', ')}</div>
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                  <div className="flex items-center gap-2 flex-wrap">
                     <select value={st.metodo} onChange={e => setMetodo(code, e.target.value)}
-                      style={{background:'var(--surface-2)',border:'.5px solid var(--border)',color:'var(--text)',fontSize:11,padding:'6px 10px',borderRadius:'var(--radius-md)',outline:'none',width:'auto'}}>
+                      className="bg-surface-2 border border-solid border-border text-ink text-[11px] py-1.5 px-2.5 rounded-md outline-none w-auto">
                       <option value="tabela">Por tabela normativa</option>
                       <option value="levantamento">Por levantamento</option>
                     </select>
                     {st.metodo === 'levantamento' ? (
-                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <div className="flex items-center gap-1.5">
                         <input type="number" value={st.valorManual} onChange={e => setValor(code, e.target.value)}
-                          style={{width:90,textAlign:'right'}} placeholder="0"/>
-                        <span style={{fontSize:12,color:'var(--text-faint)',whiteSpace:'nowrap'}}>MJ/m2</span>
+                          className="w-[90px] text-right" placeholder="0"/>
+                        <span className="text-xs text-ink-faint whitespace-nowrap">MJ/m2</span>
                       </div>
                     ) : (
-                      <div style={{display:'flex',alignItems:'center',gap:6}}>
-                        <div style={{width:90,textAlign:'right',padding:'9px 12px',background:'var(--surface-2)',border:'.5px solid var(--border)',borderRadius:'var(--radius-md)',fontSize:13,color:semCNAE?'var(--text-faint)':'var(--text)',opacity:semCNAE?.5:1}}>
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-[90px] text-right py-2.5 px-3 bg-surface-2 border border-solid border-border rounded-md text-[13px] ${semCNAE ? 'text-ink-faint opacity-50' : 'text-ink opacity-100'}`}>
                           {q ?? '—'}
                         </div>
-                        <span style={{fontSize:12,color:'var(--text-faint)',whiteSpace:'nowrap'}}>MJ/m2</span>
+                        <span className="text-xs text-ink-faint whitespace-nowrap">MJ/m2</span>
                       </div>
                     )}
                     {cls && <span className={`carga-class ${cls}`}>{getLbl(st.metodo === 'levantamento' ? (parseFloat(st.valorManual)||0) : (q||0))}</span>}
@@ -150,16 +150,16 @@ export default function Step6() {
 
         {/* Resumo */}
         {maxQ > 0 && (
-          <div style={S.block}>
-            <div style={S.blockTitle}>Carga representativa da edificacao</div>
-            <div style={{background:'var(--surface-2)',border:'.5px solid var(--border)',borderRadius:'var(--radius-lg)',padding:'16px 20px',display:'flex',alignItems:'center',gap:20}}>
+          <div className={S.block}>
+            <div className={S.blockTitle}>Carga representativa da edificacao</div>
+            <div className="bg-surface-2 border border-solid border-border rounded-lg py-4 px-5 flex items-center gap-5">
               <div>
-                <div style={{fontSize:32,fontWeight:700,lineHeight:1,color:`var(--${maxCls === 'low' ? 'green' : maxCls === 'med' ? 'amber' : 'red'})`}}>{maxQ}</div>
-                <div style={{fontSize:13,color:'var(--text-faint)',marginTop:4}}>MJ/m2</div>
+                <div className={`text-[32px] font-bold leading-none ${maxCls === 'low' ? 'text-green' : maxCls === 'med' ? 'text-amber' : 'text-red'}`}>{maxQ}</div>
+                <div className="text-[13px] text-ink-faint mt-1">MJ/m2</div>
               </div>
               <div>
-                <div style={{fontSize:14,fontWeight:600,marginBottom:3,color:`var(--${maxCls === 'low' ? 'green' : maxCls === 'med' ? 'amber' : 'red'})`}}>{getLbl(maxQ)}</div>
-                <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.5}}>
+                <div className={`text-sm font-semibold mb-[3px] ${maxCls === 'low' ? 'text-green' : maxCls === 'med' ? 'text-amber' : 'text-red'}`}>{getLbl(maxQ)}</div>
+                <div className="text-xs text-ink-muted leading-[1.5]">
                   Maior carga entre as divisoes.{' '}
                   {maxCls==='low'&&'Extintores e saidas obrigatorios.'}
                   {maxCls==='med'&&'Hidrantes e sinalizacao obrigatorios. Avaliar sprinkler conforme altura.'}

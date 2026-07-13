@@ -33,35 +33,35 @@ export default function Step7() {
   const sistemas = { ...SISTEMAS_INIT, ...state.sistemas }
 
   return (
-    <div style={{maxWidth:720,margin:'0 auto',padding:'34px 48px 96px'}}>
-      <div style={{marginBottom:26}}>
-        <div style={{fontSize:11,color:'var(--red)',textTransform:'uppercase',letterSpacing:'.08em',fontWeight:600,marginBottom:5}}>Etapa 7 de 8</div>
-        <h2 style={{fontSize:22,fontWeight:600,color:'var(--text)',marginBottom:5}}>Medidas de Seguranca contra Incendio</h2>
-        <p style={{fontSize:13,color:'var(--text-faint)',lineHeight:1.6}}>Sistemas identificados com base nas configuracoes anteriores. Obrigatorios nao podem ser removidos.</p>
+    <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
+      <div className="mb-[26px]">
+        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 7 de 8</div>
+        <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Medidas de Seguranca contra Incendio</h2>
+        <p className="text-[13px] text-ink-faint leading-[1.6]">Sistemas identificados com base nas configuracoes anteriores. Obrigatorios nao podem ser removidos.</p>
       </div>
 
       <div className="ibox red">
-        <Icon name="warn" size={14} color="var(--red)" style={{flexShrink:0}}/>
-        <span>Sistemas <strong style={{color:'var(--red)'}}>obrigatorios</strong> sao definidos pela NT 42/2019 CBMMA para esta ocupacao, altura e area. Sistemas opcionais podem ser habilitados conforme necessidade tecnica.</span>
+        <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
+        <span>Sistemas <strong className="text-red">obrigatorios</strong> sao definidos pela NT 42/2019 CBMMA para esta ocupacao, altura e area. Sistemas opcionais podem ser habilitados conforme necessidade tecnica.</span>
       </div>
 
       {/* Legenda */}
-      <div style={{display:'flex',gap:16,marginBottom:20,fontSize:11,color:'var(--text-faint)'}}>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
-          <div style={{width:10,height:10,borderRadius:'50%',background:'var(--red)'}}/>
+      <div className="flex gap-4 mb-5 text-[11px] text-ink-faint">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-red"/>
           Obrigatorio (NT 42/2019)
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
-          <div style={{width:10,height:10,borderRadius:'50%',background:'var(--green)'}}/>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-green"/>
           Opcional habilitado
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
-          <div style={{width:10,height:10,borderRadius:'50%',background:'var(--border)',border:'.5px solid var(--border)'}}/>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-border border border-solid border-border"/>
           Opcional desabilitado
         </div>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+      <div className="grid grid-cols-3 gap-2">
         {SIST_CONFIG.map(s => {
           const sist = sistemas[s.key] || { obrigatorio: s.obrig, ativo: s.obrig }
           const on    = sist.ativo
@@ -70,33 +70,21 @@ export default function Step7() {
           return (
             <div key={s.key}
               onClick={() => !obrig && dispatch({ type:'TOGGLE_SISTEMA', key:s.key })}
-              style={{
-                border:`.5px solid ${obrig ? 'var(--red-border)' : on ? 'var(--green-border)' : 'var(--border)'}`,
-                borderRadius:'var(--radius-md)', padding:13, cursor:obrig?'default':'pointer',
-                display:'flex', flexDirection:'column', gap:8,
-                background: obrig ? 'var(--red-dim)' : on ? 'var(--green-dim)' : 'transparent',
-                position:'relative', transition:'border-color .15s, background .15s',
-              }}>
+              className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative transition-[border-color,background-color] duration-150 ${obrig ? 'cursor-default border-red-border bg-red-dim' : on ? 'cursor-pointer border-green-border bg-green-dim' : 'cursor-pointer border-border bg-transparent'}`}>
               {/* Checkbox no canto */}
-              <div style={{position:'absolute',top:9,right:9,width:16,height:16,borderRadius:'50%',
-                background: obrig ? 'var(--red)' : on ? 'var(--green)' : 'transparent',
-                border:`.5px solid ${obrig ? 'var(--red)' : on ? 'var(--green)' : 'var(--border)'}`,
-                display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${obrig ? 'bg-red border-red' : on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
                 {(on || obrig) && <Icon name="check" size={9} color="#fff"/>}
               </div>
               {/* Icone */}
-              <div style={{width:28,height:28,borderRadius:'var(--radius-md)',
-                background: obrig ? 'var(--red-dim)' : on ? 'var(--green-dim)' : 'rgba(255,255,255,.04)',
-                display:'flex',alignItems:'center',justifyContent:'center',
-                color: obrig ? 'var(--red)' : on ? 'var(--green)' : 'var(--text-faint)'}}>
+              <div className={`w-7 h-7 rounded-md flex items-center justify-center ${obrig ? 'bg-red-dim text-red' : on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
                 <Icon name={s.icon} size={14}/>
               </div>
               {/* Nome */}
-              <div style={{fontSize:12,fontWeight:500,color: obrig ? 'var(--red)' : on ? 'var(--green)' : 'var(--text-muted)',lineHeight:1.3}}>
+              <div className={`text-xs font-medium leading-[1.3] ${obrig ? 'text-red' : on ? 'text-green' : 'text-ink-muted'}`}>
                 {s.label}
               </div>
               {/* Status */}
-              <div style={{fontSize:10,color: obrig ? 'rgba(192,21,42,.6)' : on ? 'rgba(29,158,117,.65)' : 'var(--text-hint)'}}>
+              <div className={`text-[10px] ${obrig ? 'text-[rgba(192,21,42,.6)]' : on ? 'text-[rgba(29,158,117,.65)]' : 'text-ink-hint'}`}>
                 {obrig ? 'Obrigatorio — NT 42/2019' : on ? 'Opcional — habilitado' : 'Opcional — desabilitado'}
               </div>
             </div>

@@ -11,39 +11,39 @@ export default function Step8() {
   },0)
   const getDivLabel = code => { const g=code?.charAt(0); return (ocupacoes[g]?.divisoes||{})[code]||code }
   return (
-    <div style={{maxWidth:720,margin:'0 auto',padding:'34px 48px 96px'}}>
-      <div style={{marginBottom:26}}>
-        <div style={{fontSize:11,color:'var(--red)',textTransform:'uppercase',letterSpacing:'.08em',fontWeight:600,marginBottom:5}}>Etapa 8 de 8</div>
-        <h2 style={{fontSize:22,fontWeight:600,color:'var(--text)',marginBottom:5}}>Revisao e confirmacao</h2>
-        <p style={{fontSize:13,color:'var(--text-faint)',lineHeight:1.6}}>Verifique todos os dados antes de salvar.</p>
+    <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
+      <div className="mb-[26px]">
+        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 8 de 8</div>
+        <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Revisao e confirmacao</h2>
+        <p className="text-[13px] text-ink-faint leading-[1.6]">Verifique todos os dados antes de salvar.</p>
       </div>
-      <div className="ibox green"><Icon name="check" size={14} color="var(--green)" style={{flexShrink:0}}/><span>Confirme e salve para iniciar os dimensionamentos.</span></div>
+      <div className="ibox green"><Icon name="check" size={14} color="var(--color-green)" className="shrink-0"/><span>Confirme e salve para iniciar os dimensionamentos.</span></div>
       {[
         {t:'Identificacao', rows:[['Nome',state.nome||'—'],['Cidade',state.cidade||'—'],['Estado','Maranhao (MA)'],['Norma','NT 42/2019 CBMMA']]},
         {t:'Edificacao', rows:[['Situacao',state.situacao==='nova'?'Edificacao nova':'Edificacao existente'],['Area construida',state.areaTotal?state.areaTotal+' m2':'—'],['Altura / Pavimentos',(state.altura?state.altura+' m':'—')+' / '+state.nPavimentos+' pavimentos']]},
         {t:'Risco',rows:[['Carga representativa',maxQ?maxQ+' MJ/m2 — '+getLbl(maxQ):'—']]},
       ].map(({t,rows})=>(
-        <div key={t} style={{marginBottom:26}}>
-          <div style={{fontSize:11,fontWeight:500,color:'var(--text-faint)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:12,paddingBottom:8,borderBottom:'.5px solid var(--border)'}}>{t}</div>
-          <table style={{width:'100%',borderCollapse:'collapse'}}>
+        <div key={t} className="mb-[26px]">
+          <div className="text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border">{t}</div>
+          <table className="w-full border-collapse">
             <tbody>
               {rows.map(([k,v])=>(
-                <tr key={k} style={{borderBottom:'.5px solid var(--border-2)'}}>
-                  <td style={{padding:'9px 0',fontSize:13,color:'var(--text-faint)',width:'42%'}}>{k}</td>
-                  <td style={{padding:'9px 0',fontSize:13,color:'var(--text)',fontWeight:500}}>{v}</td>
+                <tr key={k} className="border-b border-solid border-border-2">
+                  <td className="py-2.5 text-[13px] text-ink-faint w-[42%]">{k}</td>
+                  <td className="py-2.5 text-[13px] text-ink font-medium">{v}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ))}
-      <div style={{marginBottom:26}}>
-        <div style={{fontSize:11,fontWeight:500,color:'var(--text-faint)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:12,paddingBottom:8,borderBottom:'.5px solid var(--border)'}}>Classificacao por pavimento</div>
+      <div className="mb-[26px]">
+        <div className="text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border">Classificacao por pavimento</div>
         {state.pavimentos.map(p=>(
-          <div key={p.id} style={{padding:'4px 0',borderBottom:'.5px solid var(--border-2)',fontSize:13}}>
-            <span style={{color:'var(--text-faint)',width:140,display:'inline-block'}}>{p.label}</span>
+          <div key={p.id} className="py-1 border-b border-solid border-border-2 text-[13px]">
+            <span className="text-ink-faint w-[140px] inline-block">{p.label}</span>
             {getDivLabel(p.divisao)}
-            {p.cnae&&<span style={{marginLeft:8,fontFamily:'monospace',fontSize:11,color:'var(--red)'}}>{p.cnae}</span>}
+            {p.cnae&&<span className="ml-2 font-mono text-[11px] text-red">{p.cnae}</span>}
           </div>
         ))}
       </div>

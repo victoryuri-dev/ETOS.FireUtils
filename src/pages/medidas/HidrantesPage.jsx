@@ -15,40 +15,40 @@ const V_MAX = 3.0
 // ── Shared UI ─────────────────────────────────────────────────────────
 function SecTitle({ n, label }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
-      <div style={{ width:24, height:24, borderRadius:6, background:'var(--red)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#fff', flexShrink:0 }}>{n}</div>
-      <h3 style={{ fontSize:14, fontWeight:700, color:'var(--text)', margin:0 }}>{label}</h3>
+    <div className="flex items-center gap-2.5 mb-4">
+      <div className="w-6 h-6 rounded-md bg-red flex items-center justify-center text-[11px] font-bold text-white shrink-0">{n}</div>
+      <h3 className="text-sm font-bold text-ink m-0">{label}</h3>
     </div>
   )
 }
 function Table({ children }) {
-  return <div style={{ border:'.5px solid var(--border)', borderRadius:'var(--radius-md)', overflow:'hidden', marginBottom:4 }}><table style={{ width:'100%', borderCollapse:'collapse' }}>{children}</table></div>
+  return <div className="border border-solid border-border rounded-md overflow-hidden mb-1"><table className="w-full border-collapse">{children}</table></div>
 }
 function TH({ children, right, center, w }) {
-  return <th style={{ fontSize:10, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.07em', fontWeight:500, padding:'9px 14px', textAlign: right?'right':center?'center':'left', borderBottom:'.5px solid var(--border)', background:'var(--surface-2)', whiteSpace:'nowrap', width:w }}>{children}</th>
+  return <th style={{width:w}} className={`text-[10px] text-ink-faint uppercase tracking-[.07em] font-medium py-[9px] px-3.5 border-b border-solid border-border bg-surface-2 whitespace-nowrap ${right?'text-right':center?'text-center':'text-left'}`}>{children}</th>
 }
 function TD({ children, red, green, bold, muted, right, center, mono }) {
-  const color = red ? 'var(--red)' : green ? 'var(--green)' : muted ? 'var(--text-faint)' : 'var(--text)'
-  return <td style={{ padding:'9px 14px', fontSize:13, color, fontWeight:bold?700:400, borderBottom:'.5px solid var(--border-2)', textAlign:right?'right':center?'center':'left', verticalAlign:'middle', fontFamily:mono?'monospace':'inherit' }}>{children}</td>
+  const colorClass = red ? 'text-red' : green ? 'text-green' : muted ? 'text-ink-faint' : 'text-ink'
+  return <td className={`py-[9px] px-3.5 text-[13px] ${colorClass} ${bold?'font-bold':'font-normal'} border-b border-solid border-border-2 align-middle ${right?'text-right':center?'text-center':'text-left'} ${mono?'font-mono':'font-sans'}`}>{children}</td>
 }
 function VelChip({ v }) {
   const ok = v <= V_MAX
-  return <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 8px', borderRadius:4, background: ok?'var(--green-dim)':'var(--red-dim)', border:`.5px solid ${ok?'var(--green-border)':'var(--red-border)'}`, color: ok?'var(--green)':'var(--red)', fontWeight:700, fontSize:12, fontFamily:'monospace' }}>{ok?'✓':' ✗'} {ms(v)}</span>
+  return <span className={`inline-flex items-center gap-1 py-[3px] px-2 rounded font-mono font-bold text-xs border border-solid ${ok?'bg-green-dim border-green-border text-green':'bg-red-dim border-red-border text-red'}`}>{ok?'✓':' ✗'} {ms(v)}</span>
 }
 function AtendeChip({ ok }) {
-  return <span style={{ display:'inline-block', padding:'3px 10px', borderRadius:4, background: ok?'var(--green-dim)':'var(--red-dim)', border:`.5px solid ${ok?'var(--green-border)':'var(--red-border)'}`, color: ok?'var(--green)':'var(--red)', fontWeight:700, fontSize:11 }}>{ok ? 'ATENDE' : 'NÃO ATENDE'}</span>
+  return <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid ${ok?'bg-green-dim border-green-border text-green':'bg-red-dim border-red-border text-red'}`}>{ok ? 'ATENDE' : 'NÃO ATENDE'}</span>
 }
 function Formula({ children }) {
-  return <div style={{ background:'var(--bg)', border:'.5px solid var(--border)', borderRadius:'var(--radius-md)', padding:'10px 14px', fontSize:12, color:'var(--text-muted)', fontFamily:'monospace', lineHeight:1.6, marginTop:8 }}>{children}</div>
+  return <div className="bg-bg border border-solid border-border rounded-md py-2.5 px-3.5 text-xs text-ink-muted font-mono leading-[1.6] mt-2">{children}</div>
 }
 function FormulaVal({ children }) {
-  return <strong style={{ color:'var(--red)' }}>{children}</strong>
+  return <strong className="text-red">{children}</strong>
 }
-function Card({ children, style }) {
-  return <div style={{ background:'var(--surface)', border:'.5px solid var(--border)', borderRadius:'var(--radius-lg)', overflow:'hidden', ...style }}>{children}</div>
+function Card({ children, className='' }) {
+  return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
 }
 function CardHeader({ children }) {
-  return <div style={{ padding:'12px 18px', borderBottom:'.5px solid var(--border)', background:'var(--surface-2)', display:'flex', alignItems:'center', gap:8 }}>{children}</div>
+  return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2">{children}</div>
 }
 
 // ── Resumo Executivo ──────────────────────────────────────────────────
@@ -59,7 +59,7 @@ function ResumoExecutivo({ d }) {
 
   const cards = [
     {
-      id: 'HID-01', label: '1º MAIS DESFAVORÁVEL', color: 'var(--red)',
+      id: 'HID-01', label: '1º MAIS DESFAVORÁVEL', color: 'var(--color-red)',
       rows: [
         { label:'Pressão na válvula', val: fmca(res.p_hid01) },
         { label:'Vazão real',         val: lmin(res.Q_h01) },
@@ -68,7 +68,7 @@ function ResumoExecutivo({ d }) {
       atende: res.p_hid01 >= pmin && res.p_hid01 <= pmax,
     },
     {
-      id: 'HID-02', label: '2º MAIS DESFAVORÁVEL', color: 'var(--amber)',
+      id: 'HID-02', label: '2º MAIS DESFAVORÁVEL', color: 'var(--color-amber)',
       rows: [
         { label:'Pressão na válvula', val: fmca(res.p_hid02) },
         { label:'Vazão real',         val: lmin(res.Q_h02) },
@@ -77,7 +77,7 @@ function ResumoExecutivo({ d }) {
       atende: res.p_hid02 >= pmin && res.p_hid02 <= pmax,
     },
     {
-      id: 'BOMBA', label: 'PONTO DE OPERAÇÃO', color: 'var(--green)',
+      id: 'BOMBA', label: 'PONTO DE OPERAÇÃO', color: 'var(--color-green)',
       rows: [
         { label:'Altura manométrica (Ht)', val: fmca(res.Ht) },
         { label:'Vazão total (Qt)',        val: lmin(res.Qt_final) },
@@ -90,22 +90,22 @@ function ResumoExecutivo({ d }) {
   ]
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:32 }}>
+    <div className="grid grid-cols-3 gap-4 mb-8">
       {cards.map(c => (
         <Card key={c.id}>
           <CardHeader>
-            <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:4, background:'var(--surface)', border:`.5px solid var(--border)`, color: c.color, fontFamily:'monospace' }}>{c.id}</span>
-            <span style={{ fontSize:10, color:'var(--text-faint)', fontWeight:500, textTransform:'uppercase', letterSpacing:'.06em' }}>{c.label}</span>
+            <span style={{color:c.color}} className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border font-mono">{c.id}</span>
+            <span className="text-[10px] text-ink-faint font-medium uppercase tracking-[.06em]">{c.label}</span>
           </CardHeader>
-          <div style={{ padding:'14px 18px', display:'flex', flexDirection:'column', gap:10 }}>
+          <div className="py-3.5 px-[18px] flex flex-col gap-2.5">
             {c.rows.map((r, i) => (
-              <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:8 }}>
-                <span style={{ fontSize:12, color:'var(--text-faint)' }}>{r.label}</span>
-                <span style={{ fontSize:14, fontWeight:700, color:'var(--text)', fontFamily:'monospace', whiteSpace:'nowrap' }}>{r.val}</span>
+              <div key={i} className="flex justify-between items-baseline gap-2">
+                <span className="text-xs text-ink-faint">{r.label}</span>
+                <span className="text-sm font-bold text-ink font-mono whitespace-nowrap">{r.val}</span>
               </div>
             ))}
             {c.atende !== null && (
-              <div style={{ marginTop:4 }}>
+              <div className="mt-1">
                 <AtendeChip ok={c.atende}/>
               </div>
             )}
@@ -160,15 +160,15 @@ function Cotas({ d }) {
     { label:'RTI → HID-02', dz: d.Hz_H2, abaixo: d.Z_HID02 < d.Z_RTI },
   ]
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+    <div className="flex flex-col gap-3.5">
       <Table>
         <thead><tr><TH>Ponto</TH><TH right>Cota Z (m)</TH></tr></thead>
         <tbody>
           {pontos.map(p => (
             <tr key={p.id}>
               <TD bold>{p.id}</TD>
-              <td style={{ padding:'9px 14px', textAlign:'right', borderBottom:'.5px solid var(--border-2)' }}>
-                <span style={{ fontFamily:'monospace', fontWeight:700, color:'var(--amber)' }}>{f3(p.z)} m</span>
+              <td className="py-[9px] px-3.5 text-right border-b border-solid border-border-2">
+                <span className="font-mono font-bold text-amber">{f3(p.z)} m</span>
               </td>
             </tr>
           ))}
@@ -180,11 +180,11 @@ function Cotas({ d }) {
           {percursos.map(p => (
             <tr key={p.label}>
               <TD bold>{p.label}</TD>
-              <td style={{ padding:'9px 14px', textAlign:'right', borderBottom:'.5px solid var(--border-2)' }}>
-                <span style={{ fontFamily:'monospace', fontWeight:700, color:'var(--amber)' }}>{f3(p.dz)}</span>
+              <td className="py-[9px] px-3.5 text-right border-b border-solid border-border-2">
+                <span className="font-mono font-bold text-amber">{f3(p.dz)}</span>
               </td>
-              <td style={{ padding:'9px 14px', textAlign:'center', borderBottom:'.5px solid var(--border-2)' }}>
-                <span style={{ fontSize:11, padding:'3px 8px', borderRadius:4, background: p.abaixo?'var(--blue-dim)':'var(--red-dim)', border:`.5px solid ${p.abaixo?'var(--blue-border)':'var(--red-border)'}`, color: p.abaixo?'#6aabff':'var(--red)', fontWeight:500 }}>
+              <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2">
+                <span className={`text-[11px] py-[3px] px-2 rounded font-medium border border-solid ${p.abaixo?'bg-blue-dim border-blue-border text-[#6aabff]':'bg-red-dim border-red-border text-red'}`}>
                   {p.abaixo ? 'Hidrante abaixo da RTI' : 'Hidrante acima da RTI'}
                 </span>
               </td>
@@ -192,7 +192,7 @@ function Cotas({ d }) {
           ))}
         </tbody>
       </Table>
-      <div style={{ fontSize:11, color:'var(--text-faint)', lineHeight:1.6 }}>
+      <div className="text-[11px] text-ink-faint leading-[1.6]">
         ΔZ = Z<sub>RTI</sub> − Z<sub>Hidrante</sub>. Negativo indica hidrante acima da RTI — a bomba precisa vencer essa altura.
       </div>
     </div>
@@ -203,12 +203,12 @@ function Cotas({ d }) {
 function TrechoCard({ id, t, d }) {
   const dmm = (t.D * 1000).toFixed(1)
   return (
-    <Card style={{ marginBottom:12 }}>
+    <Card className="mb-3">
       <CardHeader>
-        <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:4, background:'var(--surface)', border:'.5px solid var(--border)', color:'var(--text-faint)', fontFamily:'monospace' }}>{id.toUpperCase()}</span>
-        <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{t.label}</span>
+        <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border text-ink-faint font-mono">{id.toUpperCase()}</span>
+        <span className="text-[13px] font-semibold text-ink">{t.label}</span>
       </CardHeader>
-      <div style={{ padding:'14px 18px' }}>
+      <div className="py-3.5 px-[18px]">
         <Table>
           <thead><tr><TH>Item</TH><TH>Valor</TH></tr></thead>
           <tbody>
@@ -217,12 +217,12 @@ function TrechoCard({ id, t, d }) {
             <tr><TD muted>Vazão no trecho (Q)</TD><TD red bold>{lmin(t.Q_lmin)} ({m3s(t.Q_m3s)})</TD></tr>
             <tr>
               <TD muted>Velocidade (V = Q/A)</TD>
-              <td style={{ padding:'9px 14px', borderBottom:'.5px solid var(--border-2)' }}><VelChip v={t.V}/></td>
+              <td className="py-[9px] px-3.5 border-b border-solid border-border-2"><VelChip v={t.V}/></td>
             </tr>
           </tbody>
         </Table>
 
-        <div style={{ fontSize:11, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.07em', margin:'12px 0 6px' }}>
+        <div className="text-[11px] text-ink-faint uppercase tracking-[.07em] mt-3 mb-1.5">
           Acessórios ({t.n_aces} tipo{t.n_aces !== 1 ? 's' : ''}):
         </div>
         <Table>
@@ -261,8 +261,8 @@ function PerdasCarga({ d }) {
   return (
     <div>
       {trechos.map(([id, t]) => <TrechoCard key={id} id={id} t={t} d={d}/>)}
-      <div style={{ marginTop:16 }}>
-        <div style={{ fontSize:12, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:8 }}>Resumo dos Trechos</div>
+      <div className="mt-4">
+        <div className="text-xs text-ink-faint uppercase tracking-[.07em] mb-2">Resumo dos Trechos</div>
         <Table>
           <thead><tr><TH>Trecho</TH><TH right>Q (L/min)</TH><TH right>D (mm)</TH><TH right>Lt (m)</TH><TH center>V (m/s)</TH><TH right>Hf (mca)</TH></tr></thead>
           <tbody>
@@ -272,7 +272,7 @@ function PerdasCarga({ d }) {
                 <TD right red mono>{f2(t.Q_lmin)}</TD>
                 <TD right mono muted>{(t.D*1000).toFixed(1)}</TD>
                 <TD right mono muted>{f4(t.Lt)}</TD>
-                <td style={{ padding:'9px 14px', textAlign:'center', borderBottom:'.5px solid var(--border-2)' }}><VelChip v={t.V}/></td>
+                <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2"><VelChip v={t.V}/></td>
                 <TD right bold red mono>{f4(t.Hf)}</TD>
               </tr>
             ))}
@@ -302,8 +302,8 @@ function AlturaMano({ d }) {
 
   return (
     <div>
-      <div style={{ fontSize:12, color:'var(--text-faint)', marginBottom:10 }}>
-        Percurso crítico: <strong style={{ color:'var(--red)' }}>{res.hid_governa}</strong>
+      <div className="text-xs text-ink-faint mb-2.5">
+        Percurso crítico: <strong className="text-red">{res.hid_governa}</strong>
       </div>
       <Table>
         <thead><tr><TH>Parcela</TH><TH>Valor</TH><TH>Descrição</TH></tr></thead>
@@ -342,15 +342,15 @@ function PressaoVazao({ d }) {
   ]
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+    <div className="flex flex-col gap-3">
       <Formula>P = Ht + ΔZ − Σhf &nbsp;|&nbsp; Q = K × √P &nbsp;|&nbsp; Iteração convergida em {res.iteracoes} ciclo(s) · K = {f4(res.K)} · ΔP = {fmca(res.dZ_max_H1)}</Formula>
       {hids.map(h => (
         <Card key={h.id}>
           <CardHeader>
-            <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:4, background:'var(--red-dim)', border:'.5px solid var(--red-border)', color:'var(--red)', fontFamily:'monospace' }}>{h.id}</span>
-            <span style={{ fontSize:12, color:'var(--text-faint)' }}>{h.label}</span>
+            <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-red-dim border border-solid border-red-border text-red font-mono">{h.id}</span>
+            <span className="text-xs text-ink-faint">{h.label}</span>
           </CardHeader>
-          <div style={{ padding:'14px 18px' }}>
+          <div className="py-3.5 px-[18px]">
             <Table>
               <thead><tr><TH>Parâmetro</TH><TH>Desenvolvimento</TH><TH right>Resultado</TH></tr></thead>
               <tbody>
@@ -377,7 +377,7 @@ function PressaoVazao({ d }) {
                 <tr>
                   <TD muted>Verificação normativa</TD>
                   <TD muted>Pmin = {pmin} / Pmax = {pmax} mca</TD>
-                  <td style={{ padding:'9px 14px', textAlign:'right', borderBottom:'.5px solid var(--border-2)' }}>
+                  <td className="py-[9px] px-3.5 text-right border-b border-solid border-border-2">
                     <AtendeChip ok={h.P >= pmin && h.P <= pmax}/>
                   </td>
                 </tr>
@@ -419,15 +419,15 @@ function Bomba({ d }) {
       <Formula>
         Pcv = (1000 × {m3s(Qt_m3s)} × {f4(res.Ht)}) / (75 × {eta/100}) = <FormulaVal>{f2(pot_cv)} cv</FormulaVal>
       </Formula>
-      <div style={{ fontSize:12, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.07em', margin:'16px 0 8px' }}>Ponto de operação para seleção</div>
+      <div className="text-xs text-ink-faint uppercase tracking-[.07em] mt-4 mb-2">Ponto de operação para seleção</div>
       <Table>
         <thead><tr><TH center>Q (m³/h)</TH><TH center>Hm (mca)</TH><TH center>Potência mínima (cv)</TH><TH center>Potência mínima (kW)</TH></tr></thead>
         <tbody>
           <tr>
-            <td style={{ padding:'12px 14px', textAlign:'center', borderBottom:'.5px solid var(--border-2)' }}><span style={{ fontSize:18, fontWeight:700, color:'var(--red)', fontFamily:'monospace' }}>{f2(Qt_m3h)}</span></td>
-            <td style={{ padding:'12px 14px', textAlign:'center', borderBottom:'.5px solid var(--border-2)' }}><span style={{ fontSize:18, fontWeight:700, color:'var(--red)', fontFamily:'monospace' }}>{f2(res.Ht)}</span></td>
-            <td style={{ padding:'12px 14px', textAlign:'center', borderBottom:'.5px solid var(--border-2)' }}><span style={{ fontSize:18, fontWeight:700, color:'var(--amber)', fontFamily:'monospace' }}>{f2(pot_cv)}</span></td>
-            <td style={{ padding:'12px 14px', textAlign:'center', borderBottom:'.5px solid var(--border-2)' }}><span style={{ fontSize:18, fontWeight:700, color:'var(--amber)', fontFamily:'monospace' }}>{f2(pot_kw)}</span></td>
+            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(Qt_m3h)}</span></td>
+            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(res.Ht)}</span></td>
+            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{f2(pot_cv)}</span></td>
+            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{f2(pot_kw)}</span></td>
           </tr>
         </tbody>
       </Table>
@@ -472,55 +472,55 @@ export default function HidrantesPage() {
   ] : []
 
   return (
-    <div style={{ flex:1, overflowY:'auto' }}>
-      <div style={{ maxWidth:980, margin:'0 auto', padding:'32px 40px 80px' }}>
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
 
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, marginBottom:28 }}>
+        <div className="flex items-start justify-between gap-4 mb-7">
           <div>
-            <div style={{ fontSize:11, color:'var(--red)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:4 }}>Medidas de Segurança</div>
-            <h2 style={{ fontSize:22, fontWeight:700, color:'var(--text)', marginBottom:6 }}>Hidrantes / Mangotinho</h2>
-            <p style={{ fontSize:13, color:'var(--text-faint)', lineHeight:1.6, maxWidth:600, margin:0 }}>
+            <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
+            <h2 className="text-[22px] font-bold text-ink mb-1.5">Hidrantes / Mangotinho</h2>
+            <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
               Resultados gerados pelo plugin Revit e apresentados conforme NT 22 CBMMA / NBR 13714.
             </p>
           </div>
-          <div style={{ flexShrink:0 }}>
-            <input ref={fileInputRef} type="file" accept=".json" style={{ display:'none' }} onChange={handleImport}/>
-            <button className="btn-ghost" onClick={() => fileInputRef.current?.click()} style={{ display:'flex', alignItems:'center', gap:6, whiteSpace:'nowrap' }}>
+          <div className="shrink-0">
+            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
+            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>
               <Icon name="upload" size={13}/>
               Importar do Revit
             </button>
-            <div style={{ fontSize:10, color:'var(--text-faint)', marginTop:5, textAlign:'right' }}>firedata.json</div>
+            <div className="text-[10px] text-ink-faint mt-[5px] text-right">firedata.json</div>
           </div>
         </div>
 
         {importErro && (
-          <div className="ibox red" style={{ marginBottom:24 }}>
-            <Icon name="warn" size={13} color="var(--red)" style={{flexShrink:0}}/>
-            <span style={{fontSize:12}}>Erro ao importar: {importErro}</span>
+          <div className="ibox red mb-6">
+            <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
+            <span className="text-xs">Erro ao importar: {importErro}</span>
           </div>
         )}
 
         {!dados && !importErro && (
-          <div style={{ padding:'60px 40px', textAlign:'center', border:'.5px dashed var(--border)', borderRadius:'var(--radius-lg)', color:'var(--text-faint)' }}>
-            <Icon name="upload" size={32} color="var(--border)"/>
-            <div style={{ marginTop:12, fontSize:13 }}>Importe o <strong>firedata.json</strong> gerado pelo plugin Revit para visualizar o dimensionamento.</div>
+          <div className="py-[60px] px-10 text-center border border-dashed border-border rounded-lg text-ink-faint">
+            <Icon name="upload" size={32} color="var(--color-border)"/>
+            <div className="mt-3 text-[13px]">Importe o <strong>firedata.json</strong> gerado pelo plugin Revit para visualizar o dimensionamento.</div>
           </div>
         )}
 
         {dados && (
           <>
             {importTs && (
-              <div className="ibox green" style={{ marginBottom:24 }}>
-                <Icon name="check" size={13} color="var(--green)" style={{flexShrink:0}}/>
-                <span style={{fontSize:12}}>Dados importados do Revit — exportação: <strong>{importTs}</strong> · Método: <strong>{dados.calculo_escolha}</strong></span>
+              <div className="ibox green mb-6">
+                <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                <span className="text-xs">Dados importados do Revit — exportação: <strong>{importTs}</strong> · Método: <strong>{dados.calculo_escolha}</strong></span>
               </div>
             )}
 
             <ResumoExecutivo d={dados}/>
 
             {sections.map(s => (
-              <div key={s.n} style={{ marginBottom:32 }}>
+              <div key={s.n} className="mb-8">
                 <SecTitle n={s.n} label={s.label}/>
                 {s.content}
               </div>

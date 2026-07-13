@@ -3,12 +3,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import Icon from '../ui/Icon'
 
-const blockTitle = {
-  fontSize:11, fontWeight:500, color:'var(--text-faint)',
-  textTransform:'uppercase', letterSpacing:'.08em',
-  marginBottom:12, paddingBottom:8, borderBottom:'.5px solid var(--border)',
-  display:'flex', alignItems:'center', justifyContent:'space-between',
-}
+const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border flex items-center justify-between'
 
 function maskCNAE(raw) {
   const d = raw.replace(/\D/g, '').slice(0, 7)
@@ -71,38 +66,36 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
   const naoEncontrado = query.length >= 3 && results.length === 0
 
   return (
-    <div ref={ref} style={{position:'relative'}}>
-      <div className="fg" style={{marginBottom:0}}>
-        <label style={{fontSize:11}}>
+    <div ref={ref} className="relative">
+      <div className="fg">
+        <label className="text-[11px]">
           CNAE <span className="req">*</span>
           <span className="fhint"> — clique para ver todos ou digite para filtrar</span>
         </label>
-        <div style={{position:'relative'}}>
-          <Icon name="search" size={13} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'var(--text-faint)',pointerEvents:'none'}}/>
+        <div className="relative">
+          <Icon name="search" size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none"/>
           <input value={query} onChange={handleInput} onFocus={handleFocus}
             placeholder="Clique para ver todos os CNAEs desta divisao..."
-            style={{paddingLeft:32, paddingRight:query?30:12}}/>
+            className={`pl-8 ${query ? 'pr-[30px]' : 'pr-3'}`}/>
           {query && (
-            <button onClick={handleClear} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'var(--text-faint)',cursor:'pointer',padding:2}}>
+            <button onClick={handleClear} className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none text-ink-faint cursor-pointer p-0.5">
               <Icon name="x" size={12}/>
             </button>
           )}
         </div>
         {open && results.length > 0 && (
-          <div style={{position:'absolute',top:'100%',left:0,right:0,background:'var(--surface)',border:'.5px solid var(--red-border)',borderRadius:'var(--radius-md)',zIndex:400,maxHeight:260,overflowY:'auto',boxShadow:'0 8px 32px rgba(0,0,0,.5)'}}>
-            <div style={{padding:'6px 12px',fontSize:10,color:'var(--text-faint)',borderBottom:'.5px solid var(--border-2)',background:'var(--surface-2)'}}>
+          <div className="absolute top-full left-0 right-0 bg-surface border border-solid border-red-border rounded-md z-[400] max-h-[260px] overflow-y-auto shadow-[0_8px_32px_rgba(0,0,0,.5)]">
+            <div className="px-3 py-1.5 text-[10px] text-ink-faint border-b border-solid border-border-2 bg-surface-2">
               {results.length} resultado{results.length !== 1 ? 's' : ''} {query ? `para "${query}"` : `em ${divisao}`}
             </div>
             {results.map((r, i) => (
               <div key={i} onClick={() => handleSelect(r)}
-                style={{padding:'10px 12px',cursor:'pointer',borderBottom:'.5px solid var(--border-2)',display:'grid',gridTemplateColumns:'90px 1fr 72px',gap:12,alignItems:'center'}}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--red-dim)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <span style={{fontSize:12,fontFamily:'monospace',color:'var(--red)',fontWeight:600}}>{r.cnae}</span>
-                <span style={{fontSize:12,color:'var(--text)',lineHeight:1.4}}>{r.descricao}</span>
-                <div style={{textAlign:'center',background:r.cargaIncendio<=300?'var(--green-dim)':r.cargaIncendio<=1200?'var(--amber-dim)':'var(--red-dim)',border:`.5px solid ${r.cargaIncendio<=300?'var(--green-border)':r.cargaIncendio<=1200?'var(--amber-border)':'var(--red-border)'}`,borderRadius:'var(--radius-sm)',padding:'4px 6px'}}>
-                  <div style={{fontSize:14,fontWeight:700,lineHeight:1,color:r.cargaIncendio<=300?'var(--green)':r.cargaIncendio<=1200?'var(--amber)':'var(--red)'}}>{r.cargaIncendio}</div>
-                  <div style={{fontSize:9,color:'var(--text-faint)',marginTop:1}}>MJ/m2</div>
+                className="px-3 py-2.5 cursor-pointer border-b border-solid border-border-2 grid grid-cols-[90px_1fr_72px] gap-3 items-center hover:bg-red-dim">
+                <span className="text-xs font-mono text-red font-semibold">{r.cnae}</span>
+                <span className="text-xs text-ink leading-[1.4]">{r.descricao}</span>
+                <div className={`text-center border border-solid rounded-sm py-1 px-1.5 ${r.cargaIncendio<=300?'bg-green-dim border-green-border':r.cargaIncendio<=1200?'bg-amber-dim border-amber-border':'bg-red-dim border-red-border'}`}>
+                  <div className={`text-sm font-bold leading-none ${r.cargaIncendio<=300?'text-green':r.cargaIncendio<=1200?'text-amber':'text-red'}`}>{r.cargaIncendio}</div>
+                  <div className="text-[9px] text-ink-faint mt-px">MJ/m2</div>
                 </div>
               </div>
             ))}
@@ -110,14 +103,14 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
         )}
       </div>
       {selectedData && (
-        <div style={{marginTop:6,fontSize:11,color:'var(--text-muted)',padding:'6px 10px',background:'var(--surface-2)',borderRadius:'var(--radius-md)',border:'.5px solid var(--border)'}}>
-          <span style={{fontFamily:'monospace',color:'var(--red)',marginRight:8}}>{value}</span>
+        <div className="mt-1.5 text-[11px] text-ink-muted py-1.5 px-2.5 bg-surface-2 rounded-md border border-solid border-border">
+          <span className="font-mono text-red mr-2">{value}</span>
           {selectedData.descricao}
         </div>
       )}
       {naoEncontrado && (
-        <div className="fg" style={{marginTop:8}}>
-          <label style={{fontSize:11}}>CNAE nao encontrado — descreva a atividade</label>
+        <div className="fg mt-2">
+          <label className="text-[11px]">CNAE nao encontrado — descreva a atividade</label>
           <input value={descValue || ''} onChange={e => onDescChange(e.target.value)} placeholder="Descreva a atividade para referencia no memorial"/>
         </div>
       )}
@@ -128,10 +121,10 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
 // ── Cabeçalho de seção com descrição normativa ────────────────────────
 function SectionHead({ titulo, descricao, aviso }) {
   return (
-    <div style={{marginBottom:14}}>
-      <div style={{fontSize:11,fontWeight:600,color:'var(--text-faint)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>{titulo}</div>
-      {descricao && <p style={{fontSize:11,color:'var(--text-faint)',lineHeight:1.55,margin:'0 0 4px',maxWidth:600}}>{descricao}</p>}
-      {aviso && <p style={{fontSize:11,color:'var(--amber)',lineHeight:1.55,margin:0,maxWidth:600}}>{aviso}</p>}
+    <div className="mb-3.5">
+      <div className="text-[11px] font-semibold text-ink-faint uppercase tracking-[.08em] mb-1">{titulo}</div>
+      {descricao && <p className="text-[11px] text-ink-faint leading-[1.55] mt-0 mb-1 max-w-[600px]">{descricao}</p>}
+      {aviso && <p className="text-[11px] text-amber leading-[1.55] m-0 max-w-[600px]">{aviso}</p>}
     </div>
   )
 }
@@ -159,10 +152,10 @@ function AcessRow({ pav, acess, index, usadas }) {
   }
 
   return (
-    <div style={{border:'.5px solid var(--border)',borderRadius:'var(--radius-md)',padding:'14px',background:'var(--bg)'}}>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 2fr 120px',gap:10,marginBottom:12}}>
+    <div className="border border-solid border-border rounded-md p-3.5 bg-bg">
+      <div className="grid grid-cols-[1fr_2fr_120px] gap-2.5 mb-3">
         <div className="fg">
-          <label style={{fontSize:11}}>Grupo</label>
+          <label className="text-[11px]">Grupo</label>
           <select value={grupoAtual} onChange={e => setGrupo(e.target.value)}>
             {gruposKeys.map(g => (
               <option key={g} value={g}>{g} — {grupos[g] || g}</option>
@@ -170,7 +163,7 @@ function AcessRow({ pav, acess, index, usadas }) {
           </select>
         </div>
         <div className="fg">
-          <label style={{fontSize:11}}>Divisao</label>
+          <label className="text-[11px]">Divisao</label>
           <select value={acess.divisao} onChange={e => setDivisao(e.target.value)}>
             {Object.entries(divisoesGrp).map(([code, label]) => {
               const jaUsada = usadas.has(code) && code !== acess.divisao
@@ -179,13 +172,13 @@ function AcessRow({ pav, acess, index, usadas }) {
           </select>
         </div>
         <div className="fg">
-          <label style={{fontSize:11}}>Area (m2)</label>
+          <label className="text-[11px]">Area (m2)</label>
           <input type="number" value={acess.area} onChange={e => setArea(e.target.value)} placeholder="m2"/>
         </div>
       </div>
       <CnaeBusca divisao={acess.divisao} value={acess.cnae || ''} descValue={acess.cnaeDesc || ''}
         onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:10}}>
+      <div className="flex justify-end mt-2.5">
         <button className="btn-del" onClick={() => dispatch({ type:'REMOVE_ACESS', id:pav.id, index })}>
           <Icon name="trash" size={12}/> Remover
         </button>
@@ -218,34 +211,34 @@ function PavModal({ pav, onClose }) {
 
   return (
     <div
-      style={{position:'fixed',inset:0,zIndex:500,background:'rgba(0,0,0,.65)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center'}}
+      className="fixed inset-0 z-[500] bg-black/65 backdrop-blur-sm flex items-center justify-center"
       onClick={onClose}
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{background:'var(--surface)',border:'.5px solid var(--border)',borderRadius:'var(--radius-lg)',width:700,maxWidth:'96vw',maxHeight:'92vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 64px rgba(0,0,0,.55)'}}
+        className="bg-surface border border-solid border-border rounded-lg w-[700px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]"
       >
         {/* Header */}
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 22px',borderBottom:'.5px solid var(--border)',flexShrink:0}}>
+        <div className="flex items-center justify-between py-[18px] px-[22px] border-b border-solid border-border shrink-0">
           <div>
-            <div style={{fontSize:16,fontWeight:700,color:'var(--text)',marginBottom:3}}>{pav.label}</div>
-            <div style={{fontSize:11,color:'var(--text-faint)'}}>Classificacao de ocupacao</div>
+            <div className="text-base font-bold text-ink mb-[3px]">{pav.label}</div>
+            <div className="text-[11px] text-ink-faint">Classificacao de ocupacao</div>
           </div>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <div className="flex gap-2 items-center">
             {pav.id === 'P1' && (
-              <button className="btn-ghost" style={{fontSize:11,borderColor:'var(--red-border)',color:'var(--red)'}}
+              <button className="btn-ghost text-[11px] border-red-border text-red"
                 onClick={() => dispatch({ type:'REPLICATE_TERREO' })}>
                 <Icon name="check" size={11}/> Repetir para todos
               </button>
             )}
-            <button className="btn-ghost" style={{padding:'6px'}} onClick={onClose}>
+            <button className="btn-ghost p-1.5" onClick={onClose}>
               <Icon name="x" size={14}/>
             </button>
           </div>
         </div>
 
         {/* Body */}
-        <div style={{flex:1,overflowY:'auto',padding:'20px 22px'}}>
+        <div className="flex-1 overflow-y-auto py-5 px-[22px]">
 
           {/* Ocupação principal */}
           <SectionHead
@@ -253,7 +246,7 @@ function PavModal({ pav, onClose }) {
             descricao="Atividade ou uso principal exercido na edificacao ou area de risco."
           />
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 2fr 120px',gap:10,marginBottom:14}}>
+          <div className="grid grid-cols-[1fr_2fr_120px] gap-2.5 mb-3.5">
             <div className="fg">
               <label>Grupo</label>
               <select value={pav.grupo} onChange={e => setGrupo(e.target.value)}>
@@ -277,7 +270,7 @@ function PavModal({ pav, onClose }) {
             </div>
           </div>
 
-          <div style={{marginBottom:22}}>
+          <div className="mb-[22px]">
             <CnaeBusca divisao={pav.divisao} value={pav.cnae} descValue={pav.cnaeDesc}
               onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
           </div>
@@ -289,19 +282,19 @@ function PavModal({ pav, onClose }) {
             aviso="Quando a ocupacao subsidiaria ultrapassa 10% da area total da edificacao, ela passa a ser tratada como ocupacao mista ou secundaria."
           />
 
-          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div className="flex flex-col gap-2.5">
             {pav.acess.map((a, i) => (
               <AcessRow key={i} pav={pav} acess={a} index={i} usadas={usadas}/>
             ))}
           </div>
-          <button className="btn-add" style={{marginTop:10}}
+          <button className="btn-add mt-2.5"
             onClick={() => dispatch({ type:'ADD_ACESS', id:pav.id })}>
             <Icon name="plus" size={11}/> Adicionar ocupacao subsidiaria
           </button>
         </div>
 
         {/* Footer */}
-        <div style={{padding:'14px 22px',borderTop:'.5px solid var(--border)',display:'flex',justifyContent:'flex-end',flexShrink:0}}>
+        <div className="py-3.5 px-[22px] border-t border-solid border-border flex justify-end shrink-0">
           <button className="btn-primary" onClick={onClose}>Concluir</button>
         </div>
       </div>
@@ -319,55 +312,48 @@ function PavCard({ pav, onOpen }) {
   return (
     <div
       onClick={onOpen}
-      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--red-border)'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = configured ? 'rgba(192,21,42,.25)' : 'var(--border)'}
-      style={{
-        background:'var(--surface-2)',
-        border:`.5px solid ${configured ? 'rgba(192,21,42,.25)' : 'var(--border)'}`,
-        borderRadius:'var(--radius-lg)',marginBottom:8,
-        cursor:'pointer',transition:'border-color .15s',
-      }}
+      className={`bg-surface-2 rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-red-border ${configured ? 'border-[rgba(192,21,42,.25)]' : 'border-border'}`}
     >
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px'}}>
+      <div className="flex items-center justify-between py-3 px-4">
         {/* Left: ícone + nome + resumo */}
-        <div style={{display:'flex',alignItems:'center',gap:12,minWidth:0}}>
-          <div style={{width:32,height:32,borderRadius:'var(--radius-md)',background: configured ? 'var(--red-dim)' : 'var(--surface)',border:`.5px solid ${configured ? 'var(--red-border)' : 'var(--border)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color: configured ? 'var(--red)' : 'var(--text-faint)',flexShrink:0}}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-8 h-8 rounded-md border border-solid flex items-center justify-center text-xs font-bold shrink-0 ${configured ? 'bg-red-dim border-red-border text-red' : 'bg-surface border-border text-ink-faint'}`}>
             {pav.grupo || '?'}
           </div>
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:3}}>{pav.label}</div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-semibold text-ink mb-[3px]">{pav.label}</div>
             {configured ? (
-              <div style={{display:'flex',flexWrap:'wrap',gap:'3px 12px'}}>
+              <div className="flex flex-wrap gap-x-3 gap-y-[3px]">
                 {/* Principal */}
-                <span style={{fontSize:11,color:'var(--text-faint)'}}>
-                  <span style={{fontFamily:'monospace',color:'var(--red)',fontWeight:600,marginRight:4}}>{pav.divisao}</span>
+                <span className="text-[11px] text-ink-faint">
+                  <span className="font-mono text-red font-semibold mr-1">{pav.divisao}</span>
                   {divLabel}
                 </span>
                 {pav.cnae && (
-                  <span style={{fontSize:11,color:'var(--text-faint)'}}>
-                    CNAE <span style={{fontFamily:'monospace',color:'var(--text-muted)'}}>{pav.cnae}</span>
+                  <span className="text-[11px] text-ink-faint">
+                    CNAE <span className="font-mono text-ink-muted">{pav.cnae}</span>
                   </span>
                 )}
                 {pav.area && (
-                  <span style={{fontSize:11,color:'var(--text-faint)'}}>
+                  <span className="text-[11px] text-ink-faint">
                     {pav.area} m²
                   </span>
                 )}
               </div>
             ) : (
-              <div style={{fontSize:11,color:'var(--text-faint)'}}>Clique para classificar</div>
+              <div className="text-[11px] text-ink-faint">Clique para classificar</div>
             )}
             {/* Subsidiárias */}
             {pav.acess.length > 0 && (
-              <div style={{display:'flex',flexWrap:'wrap',gap:'3px 8px',marginTop:4}}>
+              <div className="flex flex-wrap gap-x-2 gap-y-[3px] mt-1">
                 {pav.acess.map((a, i) => {
                   const aLabel = (ocupacoes[a.divisao?.charAt(0)]?.divisoes || {})[a.divisao] || a.divisao
                   return (
-                    <span key={i} style={{fontSize:10,color:'var(--text-faint)'}}>
-                      <span style={{fontFamily:'monospace',color:'var(--text-muted)',fontWeight:600}}>{a.divisao}</span>
-                      {aLabel && aLabel !== a.divisao && <span style={{marginLeft:3}}>{aLabel}</span>}
-                      {a.area && <span style={{color:'var(--text-hint)',marginLeft:4}}>{a.area} m²</span>}
-                      {a.cnae && <span style={{fontFamily:'monospace',color:'var(--text-hint)',marginLeft:4}}>{a.cnae}</span>}
+                    <span key={i} className="text-[10px] text-ink-faint">
+                      <span className="font-mono text-ink-muted font-semibold">{a.divisao}</span>
+                      {aLabel && aLabel !== a.divisao && <span className="ml-[3px]">{aLabel}</span>}
+                      {a.area && <span className="text-ink-hint ml-1">{a.area} m²</span>}
+                      {a.cnae && <span className="font-mono text-ink-hint ml-1">{a.cnae}</span>}
                     </span>
                   )
                 })}
@@ -377,14 +363,14 @@ function PavCard({ pav, onOpen }) {
         </div>
 
         {/* Right: badges + seta */}
-        <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0,marginLeft:12}}>
+        <div className="flex items-center gap-1.5 shrink-0 ml-3">
           {pav.acess.length > 0 && (
-            <span style={{fontSize:10,padding:'2px 7px',borderRadius:20,background:'var(--surface)',border:'.5px solid var(--border)',color:'var(--text-faint)'}}>
+            <span className="text-[10px] py-0.5 px-[7px] rounded-[20px] bg-surface border border-solid border-border text-ink-faint">
               +{pav.acess.length} sub.
             </span>
           )}
-          <div style={{color:'var(--text-faint)'}}>
-            <Icon name="chevD" size={14} style={{transform:'rotate(-90deg)'}}/>
+          <div className="text-ink-faint">
+            <Icon name="chevD" size={14} className="-rotate-90"/>
           </div>
         </div>
       </div>
@@ -423,49 +409,49 @@ export default function Step5() {
   const openPav = state.pavimentos.find(p => p.id === openId)
 
   return (
-    <div style={{maxWidth:720,margin:'0 auto',padding:'34px 48px 96px'}}>
-      <div style={{marginBottom:26}}>
-        <div style={{fontSize:11,color:'var(--red)',textTransform:'uppercase',letterSpacing:'.08em',fontWeight:600,marginBottom:5}}>Etapa 5 de 8</div>
-        <h2 style={{fontSize:22,fontWeight:600,color:'var(--text)',marginBottom:5}}>Classificacao por pavimento</h2>
-        <p style={{fontSize:13,color:'var(--text-faint)',lineHeight:1.6}}>Clique em um pavimento para classificar sua ocupacao principal e ocupacoes subsidiarias.</p>
+    <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
+      <div className="mb-[26px]">
+        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 5 de 8</div>
+        <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Classificacao por pavimento</h2>
+        <p className="text-[13px] text-ink-faint leading-[1.6]">Clique em um pavimento para classificar sua ocupacao principal e ocupacoes subsidiarias.</p>
       </div>
 
       {/* Classificacao derivada */}
-      <div style={{marginBottom:26}}>
-        <div style={blockTitle}>Classificacao geral derivada</div>
-        <div style={{background:'var(--surface-2)',border:'.5px solid var(--border)',borderRadius:'var(--radius-lg)',padding:'16px 18px',display:'flex',flexDirection:'column',gap:12}}>
+      <div className="mb-[26px]">
+        <div className={blockTitle}>Classificacao geral derivada</div>
+        <div className="bg-surface-2 border border-solid border-border rounded-lg py-4 px-[18px] flex flex-col gap-3">
           {!temOcupacoes
-            ? <span style={{color:'var(--text-hint)',fontSize:13}}>Nenhuma ocupacao configurada</span>
+            ? <span className="text-ink-hint text-[13px]">Nenhuma ocupacao configurada</span>
             : <>
-                <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
-                  <span style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'.07em',color:edificacaoMista?'var(--amber)':'var(--red)',minWidth:140,flexShrink:0}}>
+                <div className="flex items-baseline gap-2.5 flex-wrap">
+                  <span className={`text-[10px] font-semibold uppercase tracking-[.07em] min-w-[140px] shrink-0 ${edificacaoMista ? 'text-amber' : 'text-red'}`}>
                     {edificacaoMista ? 'Ocupacao mista' : 'Ocupacao principal'}:
                   </span>
-                  <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+                  <div className="flex gap-1.5 flex-wrap items-center">
                     {(edificacaoMista ? mistaDivs : principaisDivs).map((div, i) => (
-                      <span key={div} style={{display:'inline-flex',alignItems:'center',gap:4}}>
-                        {i > 0 && <span style={{color:'var(--text-faint)',fontSize:12}}>/</span>}
-                        <span style={{padding:'3px 10px',borderRadius:4,fontWeight:700,fontSize:13,fontFamily:'monospace',background:edificacaoMista?'var(--amber-dim)':'var(--red-dim)',border:`.5px solid ${edificacaoMista?'var(--amber-border)':'var(--red-border)'}`,color:edificacaoMista?'var(--amber)':'var(--red)'}}>{div}</span>
+                      <span key={div} className="inline-flex items-center gap-1">
+                        {i > 0 && <span className="text-ink-faint text-xs">/</span>}
+                        <span className={`py-[3px] px-2.5 rounded font-bold text-[13px] font-mono border border-solid ${edificacaoMista ? 'bg-amber-dim border-amber-border text-amber' : 'bg-red-dim border-red-border text-red'}`}>{div}</span>
                       </span>
                     ))}
                   </div>
                 </div>
 
                 {subsidiarias.length > 0 && (
-                  <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
-                    <span style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'.07em',color:'var(--text-faint)',minWidth:140,flexShrink:0}}>
+                  <div className="flex items-baseline gap-2.5 flex-wrap">
+                    <span className="text-[10px] font-semibold uppercase tracking-[.07em] text-ink-faint min-w-[140px] shrink-0">
                       {subsidiarias.length === 1 ? 'Ocupacao subsidiaria' : 'Ocupacoes subsidiarias'}:
                     </span>
-                    <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+                    <div className="flex gap-[5px] flex-wrap">
                       {subsidiarias.map(div => (
-                        <span key={div} style={{padding:'3px 10px',borderRadius:4,fontWeight:600,fontSize:12,fontFamily:'monospace',background:'var(--surface)',border:'.5px solid var(--border)',color:'var(--text-muted)'}}>{div}</span>
+                        <span key={div} className="py-[3px] px-2.5 rounded font-semibold text-xs font-mono bg-surface border border-solid border-border text-ink-muted">{div}</span>
                       ))}
                     </div>
                   </div>
                 )}
 
                 {areaTotal === 0 && subsidiariasRaw.length > 0 && (
-                  <div style={{fontSize:11,color:'var(--amber)',paddingTop:4,borderTop:'.5px solid var(--border-2)'}}>
+                  <div className="text-[11px] text-amber pt-1 border-t border-solid border-border-2">
                     Informe a area total na Etapa 2 para identificar automaticamente ocupacoes mistas (acima de 10%).
                   </div>
                 )}
@@ -476,9 +462,9 @@ export default function Step5() {
 
       {/* Cards */}
       <div>
-        <div style={blockTitle}>Pavimentos</div>
+        <div className={blockTitle}>Pavimentos</div>
         {state.pavimentos.length === 0
-          ? <div className="ibox amber"><Icon name="warn" size={14} color="var(--amber)" style={{flexShrink:0}}/><span>Defina o numero de pavimentos na Etapa 2.</span></div>
+          ? <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span>Defina o numero de pavimentos na Etapa 2.</span></div>
           : state.pavimentos.map(pav => (
               <PavCard key={pav.id} pav={pav} onOpen={() => setOpenId(pav.id)}/>
             ))

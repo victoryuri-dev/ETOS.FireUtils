@@ -16,53 +16,43 @@ export default function Sidebar({ onCollapse, onGoDashboard }) {
     onCollapse?.(!col)
   }
 
-  const item = (active, disabled, onClick) => ({
-    padding:     col ? '9px 0' : '9px 20px',
-    fontSize:    13,
-    color:       active ? 'var(--text)' : 'var(--text-muted)',
-    cursor:      disabled ? 'default' : 'pointer',
-    display:     'flex',
-    alignItems:  'center',
-    gap:         10,
-    borderLeft:  active && !col ? '2px solid var(--red)' : '2px solid transparent',
-    borderRight: active &&  col ? '2px solid var(--red)' : 'none',
-    justifyContent: col ? 'center' : 'flex-start',
-    background:  active ? 'var(--red-dim)' : 'transparent',
-    fontWeight:  active ? 500 : 'normal',
-    opacity:     disabled ? 0.28 : 1,
-    pointerEvents: disabled ? 'none' : 'auto',
-    whiteSpace:  'nowrap',
-  })
+  const itemClass = (active, disabled) => [
+    'flex items-center gap-2.5 whitespace-nowrap transition-[background-color,color] duration-100 border-l-2 border-solid text-sm',
+    col ? 'py-2.5 px-0 justify-center' : 'py-2.5 px-5 justify-start',
+    active ? 'text-ink font-medium bg-red-dim border-l-red' : 'text-ink-muted font-normal bg-transparent border-l-transparent',
+    active && col ? 'border-r-2 border-r-solid border-r-red' : '',
+    disabled ? 'opacity-[.28] pointer-events-none cursor-default' : 'cursor-pointer',
+  ].filter(Boolean).join(' ')
 
-  const label = { opacity: col ? 0 : 1, width: col ? 0 : 'auto', overflow: 'hidden', transition: 'opacity .15s' }
+  const labelClass = `overflow-hidden transition-opacity duration-150 ${col ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`
 
   return (
-    <aside style={{ width: col ? 56 : 240, flexShrink:0, background:'var(--surface)', borderRight:'.5px solid var(--border)', display:'flex', flexDirection:'column', overflow:'hidden', transition:'width .2s' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:44, cursor:'pointer', color:'var(--text-faint)', borderBottom:'.5px solid var(--border)', flexShrink:0 }} onClick={toggle}>
+    <aside className={`shrink-0 bg-surface border-r border-solid border-border flex flex-col overflow-hidden transition-[width] duration-200 ${col ? 'w-14' : 'w-60'}`}>
+      <div className="flex items-center justify-center h-11 cursor-pointer text-ink-faint border-b border-solid border-border shrink-0" onClick={toggle}>
         <Icon name={col ? 'chevR' : 'chevL'} size={15}/>
       </div>
 
       {/* Resumo — navega pro dashboard */}
-      <div style={item(false, false)} onClick={onGoDashboard}>
+      <div className={itemClass(false, false)} onClick={onGoDashboard}>
         <Icon name="dash" size={15}/>
-        <span style={label}>Resumo do projeto</span>
+        <span className={labelClass}>Resumo do projeto</span>
       </div>
 
       {/* Configuracao — ativo */}
-      <div style={item(true, false)}>
+      <div className={itemClass(true, false)}>
         <Icon name="settings" size={15}/>
-        <span style={label}>Configuracao</span>
+        <span className={labelClass}>Configuracao</span>
       </div>
 
       {/* Medidas */}
-      <div style={{ fontSize:10, color:'var(--text-faint)', padding:'14px 20px 4px', letterSpacing:'.08em', textTransform:'uppercase', whiteSpace:'nowrap', opacity: col ? 0 : 1, transition:'opacity .15s' }}>
-        <span style={label}>Medidas de seguranca</span>
+      <div className={`text-[10px] text-ink-faint px-5 pt-3.5 pb-1 tracking-[.08em] uppercase whitespace-nowrap transition-opacity duration-150 ${col ? 'opacity-0' : 'opacity-100'}`}>
+        <span className={labelClass}>Medidas de seguranca</span>
       </div>
 
       {MEDIDAS.map(m => (
-        <div key={m.key} style={item(false, true)}>
+        <div key={m.key} className={itemClass(false, true)}>
           <Icon name={m.icon} size={15}/>
-          <span style={label}>{m.label}</span>
+          <span className={labelClass}>{m.label}</span>
         </div>
       ))}
     </aside>

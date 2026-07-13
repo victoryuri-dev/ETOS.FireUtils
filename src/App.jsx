@@ -10,16 +10,11 @@ import HidrantesPage          from './pages/medidas/HidrantesPage'
 import Icon           from './components/ui/Icon'
 
 // ── AppHeader ─────────────────────────────────────────────────────────
-function AppHeader({ isDark, onThemeToggle, onGoProjetos, isProjectPage }) {
+function AppHeader({ onGoProjetos, isProjectPage }) {
   return (
-    <header style={{
-      display:'flex', alignItems:'center', justifyContent:'space-between',
-      padding:'0 24px', height:52,
-      background:'var(--surface)', borderBottom:'.5px solid var(--border)',
-      flexShrink:0, zIndex:100,
-    }}>
+    <header className="flex items-center justify-between px-6 h-[52px] bg-surface border-b border-border border-solid shrink-0 z-100">
       {/* Logo */}
-      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+      <div className="flex items-center gap-2.5">
         <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
           <rect x="1" y="15" width="7" height="14" fill="#C0152A"/>
           <rect x="11" y="8" width="7" height="21" fill="#C0152A"/>
@@ -27,38 +22,25 @@ function AppHeader({ isDark, onThemeToggle, onGoProjetos, isProjectPage }) {
           <rect x="0" y="26" width="11" height="3" fill="#C0152A" opacity="0.35"/>
         </svg>
         <div>
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'.07em' }}>ETOS</div>
-          <div style={{ fontSize:9, color:'var(--text-faint)', letterSpacing:'.1em', textTransform:'uppercase', marginTop:1 }}>Fire Utils</div>
+          <div className="text-base font-bold text-ink tracking-[.07em]">ETOS</div>
+          <div className="text-[9px] text-ink-faint tracking-[.1em] uppercase mt-px">Fire Utils</div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav style={{ display:'flex', alignItems:'center', gap:4 }}>
+      <nav className="flex items-center gap-1">
         <button
           onClick={onGoProjetos}
-          className="btn-ghost"
-          style={{
-            fontWeight: !isProjectPage ? 500 : 400,
-            color: !isProjectPage ? 'var(--text)' : 'var(--text-muted)',
-          }}
+          className={`btn-ghost ${!isProjectPage ? 'font-medium text-ink' : 'font-normal text-ink-muted'}`}
         >
           <Icon name="file" size={12}/> Meus projetos
         </button>
       </nav>
 
       {/* Direita */}
-      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <button className="btn-ghost" onClick={onThemeToggle}>
-          <Icon name={isDark ? 'sun' : 'moon'} size={13}/>
-          {isDark ? 'Modo claro' : 'Modo escuro'}
-        </button>
+      <div className="flex items-center gap-2">
         {/* Conta — placeholder */}
-        <div style={{
-          width:30, height:30, borderRadius:'50%',
-          background:'var(--surface-2)', border:'.5px solid var(--border)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          cursor:'pointer', color:'var(--text-faint)',
-        }}>
+        <div className="w-[30px] h-[30px] rounded-full bg-surface-2 border border-border border-solid flex items-center justify-center cursor-pointer text-ink-faint">
           <Icon name="info" size={13}/>
         </div>
       </div>
@@ -69,10 +51,7 @@ function AppHeader({ isDark, onThemeToggle, onGoProjetos, isProjectPage }) {
 // ── AppInner ──────────────────────────────────────────────────────────
 function AppInner() {
   const [page,   setPage]   = useState('projetos')
-  const [isDark, setIsDark] = useState(true)
   const { dispatch } = useProjeto()
-
-  const toggle = () => setIsDark(d => !d)
 
   const handleOpenProject = (proj) => {
     dispatch({ type:'LOAD', payload: proj })
@@ -89,18 +68,13 @@ function AppInner() {
   const sistKey = page.startsWith('medida-') ? page.slice(7) : null
 
   return (
-    <div
-      className={isDark ? '' : 'light'}
-      style={{ width:'100vw', height:'100vh', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)', color:'var(--text)' }}
-    >
+    <div className="w-screen h-screen flex flex-col overflow-hidden bg-bg text-ink">
       <AppHeader
-        isDark={isDark}
-        onThemeToggle={toggle}
         onGoProjetos={() => setPage('projetos')}
         isProjectPage={isProjectPage}
       />
 
-      <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
+      <div className="flex flex-1 overflow-hidden">
 
         {/* Aside só aparece dentro de um projeto */}
         {isProjectPage && (
@@ -111,7 +85,7 @@ function AppInner() {
         )}
 
         {/* Conteúdo principal */}
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div className="flex-1 flex flex-col overflow-hidden">
           {page === 'projetos' && (
             <ProjetosPage
               onOpenProject={handleOpenProject}

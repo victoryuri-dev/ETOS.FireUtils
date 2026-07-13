@@ -29,10 +29,10 @@ export default function ConfiguracaoPage({ onGoDashboard }) {
   const ActiveStep = STEPS[step]
 
   return (
-    <div style={{ display:'flex', flex:1, flexDirection:'column', overflow:'hidden' }}>
+    <div className="flex flex-1 flex-col overflow-hidden">
 
       {/* StepsNav + conteúdo */}
-      <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
+      <div className="flex flex-1 overflow-hidden">
         <StepsNav
           steps={STEPS_CONFIG}
           current={step}
@@ -40,23 +40,18 @@ export default function ConfiguracaoPage({ onGoDashboard }) {
           getStatus={getStatus}
           onGo={goTo}
         />
-        <div style={{ flex:1, overflowY:'auto' }}>
+        <div className="flex-1 overflow-y-auto">
           {ActiveStep && <ActiveStep/>}
         </div>
       </div>
 
       {/* Footer inline — sem position:fixed */}
-      <div style={{
-        height:60, flexShrink:0,
-        background:'var(--surface)', borderTop:'.5px solid var(--border)',
-        display:'flex', alignItems:'center', justifyContent:'space-between',
-        padding:'0 48px', zIndex:10,
-      }}>
-        <div style={{ fontSize:12, color:'var(--text-faint)', display:'flex', alignItems:'center', gap:6 }}>
+      <div className="h-[60px] shrink-0 bg-surface border-t border-solid border-border flex items-center justify-between px-12 z-10">
+        <div className="text-xs text-ink-faint flex items-center gap-1.5">
           <Icon name="info" size={13}/>
           {step < totalSteps ? `Etapa ${step} de ${totalSteps}` : 'Projeto pronto — revise e confirme.'}
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div className="flex items-center gap-2.5">
           {step > 1 && (
             <button className="btn-ghost" onClick={prev}>
               <Icon name="left" size={13}/> Voltar
