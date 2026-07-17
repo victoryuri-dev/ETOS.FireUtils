@@ -4,16 +4,21 @@ import { useNorma } from '../hooks/useNorma'
 
 // ── helpers ───────────────────────────────────────────────────────────
 
+function totalArea(proj) {
+  return (proj.estruturas || []).reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
+}
+
 function calcCompletude(s) {
+  const area = totalArea(s)
   const checks = [
     !!(s.nome && s.endereco && s.cidade),
-    !!(s.areaTotal && s.altura),
+    !!(s.estruturas?.length && s.estruturas.every(e => e.areaTotal && e.altura)),
     !!s.propNome,
     !!(s.rtNome && s.artNumero),
     !!(s.pavimentos?.length > 0 && s.pavimentos.every(p => p.cnae)),
     !!(Object.keys(s.cargaState || {}).length > 0),
     true,
-    !!(s.nome && s.areaTotal && s.pavimentos?.length > 0),
+    !!(s.nome && area > 0 && s.pavimentos?.length > 0),
   ]
   return Math.round(checks.filter(Boolean).length / checks.length * 100)
 }
@@ -160,7 +165,7 @@ function ProjectCard({ proj, onOpen, onDelete }) {
       <div className="grid grid-cols-[1fr_auto_auto] gap-y-0 gap-x-[18px]">
         <InfoCol label="Grupo · Div" value={grupo ? `${grupo} · ${div || '—'}` : '—'}/>
         <InfoCol label="UF"   value={proj.uf || '—'}/>
-        <InfoCol label="Área" value={fmtArea(proj.areaTotal)} align="right"/>
+        <InfoCol label="Área" value={fmtArea(totalArea(proj))} align="right"/>
       </div>
 
       {/* Barra de completude */}
@@ -244,7 +249,7 @@ function ProjectRow({ proj, onOpen, onDelete }) {
 
       {/* Área */}
       <span className="text-xs text-ink text-right whitespace-nowrap">
-        {fmtArea(proj.areaTotal)}
+        {fmtArea(totalArea(proj))}
       </span>
 
       {/* Barra + % */}
@@ -426,7 +431,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
       if (sort === 'recent')  return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
       if (sort === 'oldest')  return new Date(a.updatedAt || 0) - new Date(b.updatedAt || 0)
       if (sort === 'name')    return (a.nome || '').localeCompare(b.nome || '', 'pt-BR')
-      if (sort === 'area')    return (parseFloat(b.areaTotal) || 0) - (parseFloat(a.areaTotal) || 0)
+      if (sort === 'area')    return totalArea(b) - totalArea(a)
       if (sort === 'pct')     return calcCompletude(b) - calcCompletude(a)
       return 0
     })

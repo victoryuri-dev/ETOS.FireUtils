@@ -225,9 +225,9 @@ function PavModal({ pav, onClose }) {
             <div className="text-[11px] text-ink-faint">Classificacao de ocupacao</div>
           </div>
           <div className="flex gap-2 items-center">
-            {pav.id === 'P1' && (
+            {pav.tipo === 'terreo' && (
               <button className="btn-ghost text-[11px] border-red-border text-red"
-                onClick={() => dispatch({ type:'REPLICATE_TERREO' })}>
+                onClick={() => dispatch({ type:'REPLICATE_TERREO', estruturaId: pav.estruturaId })}>
                 <Icon name="check" size={11}/> Repetir para todos
               </button>
             )}
@@ -384,7 +384,7 @@ export default function Step5() {
   const { grupos: gruposNomes } = useNorma()
   const [openId, setOpenId] = useState(null)
 
-  const areaTotal = parseFloat(state.areaTotal) || 0
+  const areaTotal = state.estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
   const threshold = areaTotal * 0.10
 
   const principaisDivs = [...new Set(state.pavimentos.map(p => p.divisao).filter(Boolean))]
@@ -465,9 +465,20 @@ export default function Step5() {
         <div className={blockTitle}>Pavimentos</div>
         {state.pavimentos.length === 0
           ? <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span>Defina o numero de pavimentos na Etapa 2.</span></div>
-          : state.pavimentos.map(pav => (
-              <PavCard key={pav.id} pav={pav} onOpen={() => setOpenId(pav.id)}/>
-            ))
+          : state.estruturas.map(est => {
+              const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
+              if (!pavsEst.length) return null
+              return (
+                <div key={est.id} className="mb-4">
+                  {state.estruturas.length > 1 && (
+                    <div className="text-xs font-semibold text-ink-muted mb-2">{est.nome}</div>
+                  )}
+                  {pavsEst.map(pav => (
+                    <PavCard key={pav.id} pav={pav} onOpen={() => setOpenId(pav.id)}/>
+                  ))}
+                </div>
+              )
+            })
         }
       </div>
 

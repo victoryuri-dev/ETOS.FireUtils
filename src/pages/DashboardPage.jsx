@@ -213,7 +213,14 @@ export default function DashboardPage({ onGoConfig }) {
   const gruposStr = Object.keys(grupos).sort().join(', ') || '—'
   const divisoesStr = Object.values(grupos).flat().join(', ') || '—'
 
-  const alturaNum  = parseFloat(state.altura) || 0
+  // Agregados das estruturas (torres/blocos)
+  const estruturas    = state.estruturas || []
+  const areaTotalSum  = estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
+  const alturaNum     = estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
+  const pavimentosSum = estruturas.reduce((s, e) => s + (parseInt(e.nPavimentos) || 0), 0)
+  const subsolosSum   = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
+  const estruturaTipos = [...new Set(estruturas.map(e => e.estrutura).filter(Boolean))].join(', ') || '—'
+  const estruturasNomes = estruturas.map(e => e.nome).join(', ')
   const alturaLbl  = alturaNum <= 6 ? 'Terrea' : alturaNum <= 12 ? 'Baixa altura' : alturaNum <= 23 ? 'Media altura' : 'Alta'
   const alturaColor= alturaNum <= 12 ? 'green' : alturaNum <= 23 ? 'amber' : 'red'
 
@@ -262,15 +269,15 @@ export default function DashboardPage({ onGoConfig }) {
           <div className="flex gap-3 mb-5">
             <StatCell
               label="Area construida"
-              value={fmtNum(state.areaTotal)}
+              value={fmtNum(areaTotalSum)}
               unit="m2"
-              sub={state.areaTerrero ? `Terreno: ${fmtNum(state.areaTerrero)} m2` : null}
+              sub={estruturasNomes || null}
             />
             <StatCell
               label="Altura da edificacao"
-              value={state.altura || '—'}
-              unit={state.altura ? 'm' : ''}
-              sub={state.nPavimentos ? `${state.nPavimentos} pavimentos` : null}
+              value={alturaNum || '—'}
+              unit={alturaNum ? 'm' : ''}
+              sub={pavimentosSum ? `${pavimentosSum} pavimentos` : null}
               subTag={alturaNum ? alturaLbl : null}
               subTagColor={alturaColor}
             />
@@ -301,11 +308,11 @@ export default function DashboardPage({ onGoConfig }) {
               icon="newbld"
               onEdit={onGoConfig}
               fields={[
-                { label:'Altura total', value: state.altura ? `${state.altura} m` : '—', big:true },
-                { label:'Pavimentos', value: state.nPavimentos || '—' },
-                { label:'Subsolos', value: state.nSubsolos || 0 },
-                { label:'Area construida', value: state.areaTotal ? `${fmtNum(state.areaTotal)} m2` : '—' },
-                { label:'Estrutura', value: state.estrutura || '—' },
+                { label:'Altura maxima', value: alturaNum ? `${alturaNum} m` : '—', big:true },
+                { label:'Pavimentos', value: pavimentosSum || '—' },
+                { label:'Subsolos', value: subsolosSum || 0 },
+                { label:'Area construida', value: areaTotalSum ? `${fmtNum(areaTotalSum)} m2` : '—' },
+                { label:'Sistema construtivo', value: estruturaTipos },
               ]}
             />
             <InfoPanel

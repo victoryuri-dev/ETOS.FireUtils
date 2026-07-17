@@ -23,24 +23,82 @@ const ALERTAS = (h, a, sub) => {
   return m
 }
 
-export default function Step2() {
-  const { state, dispatch } = useProjeto()
-  const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
+// ── Card de uma Estrutura (torre/bloco) ────────────────────────────────
+function EstruturaCard({ est, index, canRemove, dispatch }) {
+  const set = f => e => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field: f, value: e.target.value })
 
-  const h   = parseFloat(state.altura)    || 0
-  const a   = parseFloat(state.areaTotal) || 0
-  const sub = parseInt(state.nSubsolos)   || 0
+  const h   = parseFloat(est.altura)    || 0
+  const a   = parseFloat(est.areaTotal) || 0
+  const sub = parseInt(est.nSubsolos)   || 0
 
   const handleNPav = e => {
     const v = parseInt(e.target.value) || 1
-    dispatch({ type:'SET_FIELD', field:'nPavimentos', value:v })
-    dispatch({ type:'REBUILD_PAVIMENTOS', nPav:v, nSub:sub })
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nPavimentos', value:v })
+    dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav:v, nSub:sub })
   }
   const handleNSub = e => {
     const v = parseInt(e.target.value) || 0
-    dispatch({ type:'SET_FIELD', field:'nSubsolos', value:v })
-    dispatch({ type:'REBUILD_PAVIMENTOS', nPav:state.nPavimentos, nSub:v })
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nSubsolos', value:v })
+    dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav: est.nPavimentos, nSub:v })
   }
+
+  return (
+    <div className="border border-solid border-border rounded-lg p-4 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-3.5">
+        <input
+          value={est.nome}
+          onChange={e => dispatch({ type:'RENAME_ESTRUTURA', id: est.id, nome: e.target.value })}
+          placeholder={`Estrutura ${index + 1}`}
+          className="bg-transparent border-none outline-none text-[15px] font-semibold text-ink px-0 w-auto flex-1"
+        />
+        {canRemove && (
+          <button className="btn-del" onClick={() => dispatch({ type:'REMOVE_ESTRUTURA', id: est.id })} title="Remover estrutura">
+            <Icon name="trash" size={12}/>
+          </button>
+        )}
+      </div>
+
+      <div className="mb-3.5">
+        <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Dimensoes</div>
+        <div className="g2 mb-3">
+          <div className="fg"><label>Area construida total (m2) <span className="req">*</span></label><input type="number" value={est.areaTotal} onChange={set('areaTotal')}/></div>
+          <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={est.areaTerrero} onChange={set('areaTerrero')}/></div>
+        </div>
+        <div className="g3">
+          <div className="fg"><label>Altura total (m) <span className="req">*</span></label><input type="number" step="0.1" value={est.altura} onChange={set('altura')}/></div>
+          <div className="fg"><label>No de pavimentos acima do solo <span className="req">*</span></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
+          <div className="fg"><label>No de subsolos</label><input type="number" min="0" value={est.nSubsolos} onChange={handleNSub}/></div>
+        </div>
+      </div>
+
+      {ALERTAS(h, a, sub).map((m, i) => (
+        <div key={i} className={`ibox ${m.t} mb-2.5`}>
+          <Icon name={m.i} size={14} color={`var(--color-${m.t})`} className="shrink-0"/>
+          <span>{m.txt}</span>
+        </div>
+      ))}
+
+      <div>
+        <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Sistema construtivo</div>
+        <div className="g2">
+          <div className="fg"><label>Estrutura principal</label>
+            <select value={est.estrutura} onChange={set('estrutura')}>
+              <option>Concreto armado</option>
+              <option>Estrutura metalica</option>
+              <option>Alvenaria estrutural</option>
+              <option>Madeira</option>
+              <option>Misto</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Step2() {
+  const { state, dispatch } = useProjeto()
+  const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
 
   const optClass = (sel) =>
     `border border-solid ${sel ? 'border-red-border bg-red-dim' : 'border-border bg-transparent'} rounded-md py-3.5 px-4 cursor-pointer flex items-center gap-3`
@@ -50,7 +108,7 @@ export default function Step2() {
       <div className={S.header}>
         <div className={S.stepLbl}>Etapa 2 de 8</div>
         <h2 className={S.title}>Edificacao</h2>
-        <p className={S.desc}>Situacao e dados dimensionais da edificacao. O numero de pavimentos informado aqui gera automaticamente os cards de classificacao na etapa 5.</p>
+        <p className={S.desc}>Situacao da edificacao e as estruturas (torres/blocos) que a compoem. Cada estrutura tem suas proprias dimensoes e sistema construtivo — o numero de pavimentos de cada uma gera automaticamente os cards de classificacao na etapa 5.</p>
       </div>
 
       {/* Situacao: nova ou existente */}
@@ -110,42 +168,15 @@ export default function Step2() {
         )}
       </div>
 
-      {/* Dimensoes */}
+      {/* Estruturas */}
       <div className={S.block}>
-        <div className={S.blockTitle}>Dimensoes</div>
-        <div className="g2 mb-3">
-          <div className="fg"><label>Area construida total (m2) <span className="req">*</span></label><input type="number" value={state.areaTotal} onChange={set('areaTotal')}/></div>
-          <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerrero} onChange={set('areaTerrero')}/></div>
-        </div>
-        <div className="g3">
-          <div className="fg"><label>Altura total (m) <span className="req">*</span></label><input type="number" step="0.1" value={state.altura} onChange={set('altura')}/></div>
-          <div className="fg"><label>No de pavimentos acima do solo <span className="req">*</span></label><input type="number" min="1" max="50" value={state.nPavimentos} onChange={handleNPav}/></div>
-          <div className="fg"><label>No de subsolos</label><input type="number" min="0" value={state.nSubsolos} onChange={handleNSub}/></div>
-        </div>
-      </div>
-
-      {/* Alertas contextuais */}
-      {ALERTAS(h, a, sub).map((m, i) => (
-        <div key={i} className={`ibox ${m.t} mb-2.5`}>
-          <Icon name={m.i} size={14} color={`var(--color-${m.t})`} className="shrink-0"/>
-          <span>{m.txt}</span>
-        </div>
-      ))}
-
-      {/* Estrutura */}
-      <div className={S.block}>
-        <div className={S.blockTitle}>Sistema construtivo</div>
-        <div className="g2">
-          <div className="fg"><label>Estrutura principal</label>
-            <select value={state.estrutura} onChange={set('estrutura')}>
-              <option>Concreto armado</option>
-              <option>Estrutura metalica</option>
-              <option>Alvenaria estrutural</option>
-              <option>Madeira</option>
-              <option>Misto</option>
-            </select>
-          </div>
-        </div>
+        <div className={S.blockTitle}>Estruturas</div>
+        {state.estruturas.map((est, i) => (
+          <EstruturaCard key={est.id} est={est} index={i} canRemove={state.estruturas.length > 1} dispatch={dispatch}/>
+        ))}
+        <button className="btn-add" onClick={() => dispatch({ type:'ADD_ESTRUTURA' })}>
+          <Icon name="plus" size={11}/> Adicionar estrutura
+        </button>
       </div>
     </div>
   )

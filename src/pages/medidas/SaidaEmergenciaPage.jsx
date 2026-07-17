@@ -20,7 +20,7 @@ function pavimentosIniciais(projetoPavs) {
   if (!projetoPavs?.length) return []
   return projetoPavs.map(p => ({
     id: p.id, nome: p.label,
-    tipo: p.id === 'P1' ? 'descarga' : 'tipo',
+    tipo: p.tipo === 'terreo' ? 'descarga' : 'tipo',
     ambientes: [],
   }))
 }

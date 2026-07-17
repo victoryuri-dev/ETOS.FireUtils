@@ -9,8 +9,9 @@ function getStatus(n, state) {
       return 'empty'
     }
     case 2: {
-      const hasDims = state.areaTotal && state.altura
-      const hasAny  = state.areaTotal || state.altura || state.nPavimentos > 1
+      const estruturas = state.estruturas || []
+      const hasDims = estruturas.length > 0 && estruturas.every(e => e.areaTotal && e.altura)
+      const hasAny  = estruturas.some(e => e.areaTotal || e.altura || e.nPavimentos > 1)
       if (hasDims) return 'done'
       if (hasAny)  return 'partial'
       return 'empty'

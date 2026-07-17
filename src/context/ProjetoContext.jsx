@@ -11,6 +11,16 @@ export function newIds() {
   }
 }
 
+function novaEstrutura(nome) {
+  return {
+    id: `est-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+    nome,
+    areaTotal: '', areaTerrero: '', altura: '',
+    nPavimentos: 1, nSubsolos: 0,
+    estrutura: 'Concreto armado',
+  }
+}
+
 const INITIAL_STATE = {
   id: '', seqId: '', createdAt: '',
   nome: '', dataInicio: '', fase: 'Em desenvolvimento',
@@ -18,11 +28,11 @@ const INITIAL_STATE = {
   situacao: 'nova', anoAlvara: '', numeroAlvara: '',
   anoConstrucao: '', situacaoCBM: 'Sem AVCB anterior',
   numeroAVCB: '', validadeAVCB: '', condicoesAtuais: '',
-  areaTotal: '', areaMaiorPav: '', areaTerrero: '',
-  altura: '', nPavimentos: 1, peDireito: '',
-  nSubsolos: 0, usoSubsolo: '', coberturaHabitavel: 'Nao',
-  estrutura: 'Concreto armado', compartVertical: 'Sem compartimentacao',
+  areaMaiorPav: '', peDireito: '',
+  usoSubsolo: '', coberturaHabitavel: 'Nao',
+  compartVertical: 'Sem compartimentacao',
   fachada: 'Convencional', cobertura: 'Laje impermeabilizada',
+  estruturas: [{ id: 'est-1', nome: 'Estrutura 1', areaTotal: '', areaTerrero: '', altura: '', nPavimentos: 1, nSubsolos: 0, estrutura: 'Concreto armado' }],
   propNome: '', propDocumento: '', propTelefone: '', propEmail: '',
   respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '',
   rtNome: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
@@ -56,28 +66,51 @@ function reducer(state, action) {
   switch (action.type) {
     case 'SET_FIELD':
       return { ...state, [action.field]: action.value }
+    case 'ADD_ESTRUTURA':
+      return { ...state, estruturas: [...state.estruturas, novaEstrutura(`Estrutura ${state.estruturas.length + 1}`)] }
+    case 'REMOVE_ESTRUTURA': {
+      if (state.estruturas.length <= 1) return state
+      return {
+        ...state,
+        estruturas: state.estruturas.filter(e => e.id !== action.id),
+        pavimentos: state.pavimentos.filter(p => p.estruturaId !== action.id),
+      }
+    }
+    case 'RENAME_ESTRUTURA':
+      return { ...state, estruturas: state.estruturas.map(e => e.id === action.id ? { ...e, nome: action.nome } : e) }
+    case 'SET_ESTRUTURA_FIELD':
+      return { ...state, estruturas: state.estruturas.map(e => e.id === action.id ? { ...e, [action.field]: action.value } : e) }
     case 'REBUILD_PAVIMENTOS': {
-      const { nPav, nSub } = action
-      const find = (id) => state.pavimentos.find(p => p.id === id)
+      const { estruturaId, nPav, nSub } = action
+      const own    = state.pavimentos.filter(p => p.estruturaId === estruturaId)
+      const others = state.pavimentos.filter(p => p.estruturaId !== estruturaId)
+      const find = (id) => own.find(p => p.id === id)
       const list = []
       for (let s = nSub; s >= 1; s--) {
-        const id = `sub-${s}`
-        list.push(find(id) || { id, label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+        const id = `${estruturaId}-sub-${s}`
+        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
       }
-      const ter = find('P1')
-      list.push(ter || { id: 'P1', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+      const terId = `${estruturaId}-P1`
+      const ter = find(terId)
+      list.push(ter || { id: terId, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
       for (let p = 2; p <= nPav; p++) {
-        const id = `P${p}`
-        list.push(find(id) || { id, label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+        const id = `${estruturaId}-P${p}`
+        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
       }
-      return { ...state, pavimentos: list }
+      return { ...state, pavimentos: [...others, ...list] }
     }
     case 'UPDATE_PAV':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, ...action.changes } : p) }
     case 'REPLICATE_TERREO': {
-      const t = state.pavimentos.find(p => p.id === 'P1')
+      const { estruturaId } = action
+      const t = state.pavimentos.find(p => p.estruturaId === estruturaId && p.tipo === 'terreo')
       if (!t) return state
-      return { ...state, pavimentos: state.pavimentos.map(p => p.id === 'P1' ? p : { ...p, grupo: t.grupo, divisao: t.divisao, cnae: t.cnae, cnaeDesc: t.cnaeDesc, acess: t.acess.map(a => ({...a})) }) }
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => (p.estruturaId !== estruturaId || p.id === t.id)
+          ? p
+          : { ...p, grupo: t.grupo, divisao: t.divisao, cnae: t.cnae, cnaeDesc: t.cnaeDesc, acess: t.acess.map(a => ({...a})) }),
+      }
     }
     case 'ADD_ACESS':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, acess: [...p.acess, { divisao: 'C-1', cnae: '', cnaeDesc: '', area: '' }] } : p) }
@@ -97,7 +130,7 @@ function reducer(state, action) {
     case 'LOAD':
       return { ...INITIAL_STATE, ...action.payload }
     case 'NEW_PROJECT':
-      return { ...INITIAL_STATE, id: action.id, seqId: action.seqId, createdAt: action.createdAt }
+      return { ...INITIAL_STATE, id: action.id, seqId: action.seqId, createdAt: action.createdAt, estruturas: [novaEstrutura('Estrutura 1')] }
     default: return state
   }
 }
