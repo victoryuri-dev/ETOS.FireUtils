@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { classificarPavimentos } from '../../utils/classificacao'
 import Icon from '../ui/Icon'
 
 const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border flex items-center justify-between'
@@ -279,7 +280,7 @@ function PavModal({ pav, onClose }) {
           <SectionHead
             titulo="Ocupacao subsidiaria"
             descricao="Atividade ou uso de apoio ou suporte, vinculada a atividade ou uso principal da ocupacao predominante em edificacao ou area de risco."
-            aviso="Quando a ocupacao subsidiaria ultrapassa 10% da area total da edificacao, ela passa a ser tratada como ocupacao mista ou secundaria."
+            aviso="Quando a ocupacao subsidiaria ultrapassa 10% da area construida da estrutura, ela passa a ser tratada como ocupacao mista ou secundaria."
           />
 
           <div className="flex flex-col gap-2.5">
@@ -378,33 +379,58 @@ function PavCard({ pav, onOpen }) {
   )
 }
 
+// ── Box de classificacao geral derivada de uma estrutura ────────────────
+function ClassificacaoBox({ areaEstrutura, pavimentos }) {
+  const { principaisDivs, subsidiarias, edificacaoMista, mistaDivs, temOcupacoes, subsidiariasRaw } =
+    classificarPavimentos(pavimentos, areaEstrutura)
+
+  return (
+    <div className="bg-surface-2 border border-solid border-border rounded-lg py-4 px-[18px] flex flex-col gap-3">
+      {!temOcupacoes
+        ? <span className="text-ink-hint text-[13px]">Nenhuma ocupacao configurada</span>
+        : <>
+            <div className="flex items-baseline gap-2.5 flex-wrap">
+              <span className={`text-[10px] font-semibold uppercase tracking-[.07em] min-w-[140px] shrink-0 ${edificacaoMista ? 'text-amber' : 'text-red'}`}>
+                {edificacaoMista ? 'Ocupacao mista' : 'Ocupacao principal'}:
+              </span>
+              <div className="flex gap-1.5 flex-wrap items-center">
+                {(edificacaoMista ? mistaDivs : principaisDivs).map((div, i) => (
+                  <span key={div} className="inline-flex items-center gap-1">
+                    {i > 0 && <span className="text-ink-faint text-xs">/</span>}
+                    <span className={`py-[3px] px-2.5 rounded font-bold text-[13px] font-mono border border-solid ${edificacaoMista ? 'bg-amber-dim border-amber-border text-amber' : 'bg-red-dim border-red-border text-red'}`}>{div}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {subsidiarias.length > 0 && (
+              <div className="flex items-baseline gap-2.5 flex-wrap">
+                <span className="text-[10px] font-semibold uppercase tracking-[.07em] text-ink-faint min-w-[140px] shrink-0">
+                  {subsidiarias.length === 1 ? 'Ocupacao subsidiaria' : 'Ocupacoes subsidiarias'}:
+                </span>
+                <div className="flex gap-[5px] flex-wrap">
+                  {subsidiarias.map(div => (
+                    <span key={div} className="py-[3px] px-2.5 rounded font-semibold text-xs font-mono bg-surface border border-solid border-border text-ink-muted">{div}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {areaEstrutura === 0 && subsidiariasRaw.length > 0 && (
+              <div className="text-[11px] text-amber pt-1 border-t border-solid border-border-2">
+                Informe a area construida da estrutura na Etapa 2 para identificar automaticamente ocupacoes mistas (acima de 10%).
+              </div>
+            )}
+          </>
+      }
+    </div>
+  )
+}
+
 // ── Step 5 principal ──────────────────────────────────────────────────
 export default function Step5() {
   const { state }    = useProjeto()
-  const { grupos: gruposNomes } = useNorma()
   const [openId, setOpenId] = useState(null)
-
-  const areaTotal = state.estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
-  const threshold = areaTotal * 0.10
-
-  const principaisDivs = [...new Set(state.pavimentos.map(p => p.divisao).filter(Boolean))]
-
-  const subsidiariasRaw = []
-  state.pavimentos.forEach(p => {
-    p.acess.forEach(a => {
-      if (!a.divisao) return
-      const area    = parseFloat(a.area) || 0
-      const isMista = areaTotal > 0 && area > threshold
-      subsidiariasRaw.push({ divisao: a.divisao, isMista })
-    })
-  })
-
-  const principaisSet = new Set(principaisDivs)
-  const mistasExtra   = [...new Set(subsidiariasRaw.filter(s => s.isMista && !principaisSet.has(s.divisao)).map(s => s.divisao))]
-  const subsidiarias  = [...new Set(subsidiariasRaw.filter(s => !s.isMista && !principaisSet.has(s.divisao)).map(s => s.divisao))]
-  const edificacaoMista = principaisDivs.length > 1 || mistasExtra.length > 0
-  const mistaDivs     = [...principaisSet, ...mistasExtra]
-  const temOcupacoes  = principaisDivs.length > 0
 
   const openPav = state.pavimentos.find(p => p.id === openId)
 
@@ -416,71 +442,33 @@ export default function Step5() {
         <p className="text-[13px] text-ink-faint leading-[1.6]">Clique em um pavimento para classificar sua ocupacao principal e ocupacoes subsidiarias.</p>
       </div>
 
-      {/* Classificacao derivada */}
-      <div className="mb-[26px]">
-        <div className={blockTitle}>Classificacao geral derivada</div>
-        <div className="bg-surface-2 border border-solid border-border rounded-lg py-4 px-[18px] flex flex-col gap-3">
-          {!temOcupacoes
-            ? <span className="text-ink-hint text-[13px]">Nenhuma ocupacao configurada</span>
-            : <>
-                <div className="flex items-baseline gap-2.5 flex-wrap">
-                  <span className={`text-[10px] font-semibold uppercase tracking-[.07em] min-w-[140px] shrink-0 ${edificacaoMista ? 'text-amber' : 'text-red'}`}>
-                    {edificacaoMista ? 'Ocupacao mista' : 'Ocupacao principal'}:
-                  </span>
-                  <div className="flex gap-1.5 flex-wrap items-center">
-                    {(edificacaoMista ? mistaDivs : principaisDivs).map((div, i) => (
-                      <span key={div} className="inline-flex items-center gap-1">
-                        {i > 0 && <span className="text-ink-faint text-xs">/</span>}
-                        <span className={`py-[3px] px-2.5 rounded font-bold text-[13px] font-mono border border-solid ${edificacaoMista ? 'bg-amber-dim border-amber-border text-amber' : 'bg-red-dim border-red-border text-red'}`}>{div}</span>
-                      </span>
-                    ))}
-                  </div>
+      {state.pavimentos.length === 0
+        ? <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span>Defina o numero de pavimentos na Etapa 2.</span></div>
+        : state.estruturas.map(est => {
+            const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
+            if (!pavsEst.length) return null
+            const areaEstrutura = parseFloat(est.areaTotal) || 0
+            return (
+              <div key={est.id} className="mb-[26px]">
+                {state.estruturas.length > 1 && (
+                  <div className="text-sm font-semibold text-ink mb-3">{est.nome}</div>
+                )}
+
+                <div className="mb-4">
+                  <div className={blockTitle}>Classificacao geral derivada</div>
+                  <ClassificacaoBox areaEstrutura={areaEstrutura} pavimentos={pavsEst}/>
                 </div>
 
-                {subsidiarias.length > 0 && (
-                  <div className="flex items-baseline gap-2.5 flex-wrap">
-                    <span className="text-[10px] font-semibold uppercase tracking-[.07em] text-ink-faint min-w-[140px] shrink-0">
-                      {subsidiarias.length === 1 ? 'Ocupacao subsidiaria' : 'Ocupacoes subsidiarias'}:
-                    </span>
-                    <div className="flex gap-[5px] flex-wrap">
-                      {subsidiarias.map(div => (
-                        <span key={div} className="py-[3px] px-2.5 rounded font-semibold text-xs font-mono bg-surface border border-solid border-border text-ink-muted">{div}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {areaTotal === 0 && subsidiariasRaw.length > 0 && (
-                  <div className="text-[11px] text-amber pt-1 border-t border-solid border-border-2">
-                    Informe a area total na Etapa 2 para identificar automaticamente ocupacoes mistas (acima de 10%).
-                  </div>
-                )}
-              </>
-          }
-        </div>
-      </div>
-
-      {/* Cards */}
-      <div>
-        <div className={blockTitle}>Pavimentos</div>
-        {state.pavimentos.length === 0
-          ? <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span>Defina o numero de pavimentos na Etapa 2.</span></div>
-          : state.estruturas.map(est => {
-              const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
-              if (!pavsEst.length) return null
-              return (
-                <div key={est.id} className="mb-4">
-                  {state.estruturas.length > 1 && (
-                    <div className="text-xs font-semibold text-ink-muted mb-2">{est.nome}</div>
-                  )}
+                <div>
+                  <div className={blockTitle}>Pavimentos</div>
                   {pavsEst.map(pav => (
                     <PavCard key={pav.id} pav={pav} onOpen={() => setOpenId(pav.id)}/>
                   ))}
                 </div>
-              )
-            })
-        }
-      </div>
+              </div>
+            )
+          })
+      }
 
       {openPav && <PavModal pav={openPav} onClose={() => setOpenId(null)}/>}
     </div>

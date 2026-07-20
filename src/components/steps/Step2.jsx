@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import Icon from '../ui/Icon'
 
@@ -11,30 +12,33 @@ const S = {
   blockTitle: 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border',
 }
 
-const ALERTAS = (h, a, sub) => {
+const ALERTAS = (h, sub) => {
   const m = []
   if (h > 0  && h <= 6)  m.push({ t:'green', i:'check', txt:'Edificacao terrea — Classe: Terrea.' })
   if (h > 6  && h <= 12) m.push({ t:'green', i:'check', txt:'Altura 6-12 m — Classe: Baixa altura.' })
   if (h > 12 && h <= 23) m.push({ t:'amber', i:'warn',  txt:'Altura acima de 12 m — Classe: Media altura. Verifique exigencia de escada enclausurada.' })
   if (h > 23 && h <= 30) m.push({ t:'amber', i:'warn',  txt:'Altura acima de 23 m — Classe: Media-alta. Escada pressurizada geralmente exigida.' })
   if (h > 30)            m.push({ t:'red',   i:'warn',  txt:'Altura acima de 30 m — Classe: Alta. Exigencias maximas.' })
-  if (a > 750)           m.push({ t:'amber', i:'info',  txt:'Area construida maior que 750 m2 — Sistema de hidrantes obrigatorio.' })
   if (sub > 0)           m.push({ t:'amber', i:'warn',  txt:'Subsolo(s) declarado(s) — a classificacao de uso sera feita no Step 5.' })
   return m
 }
 
-// ── Card de uma Estrutura (torre/bloco) ────────────────────────────────
-function EstruturaCard({ est, index, canRemove, dispatch }) {
+// ── Modal de edicao de uma Estrutura (torre/bloco) ─────────────────────
+function EstruturaModal({ est, index, dispatch, onClose }) {
   const set = f => e => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field: f, value: e.target.value })
 
-  const h   = parseFloat(est.altura)    || 0
-  const a   = parseFloat(est.areaTotal) || 0
-  const sub = parseInt(est.nSubsolos)   || 0
+  const h   = parseFloat(est.alturaPisoPiso) || 0
+  const sub = parseInt(est.nSubsolos)        || 0
 
   const handleNPav = e => {
     const v = parseInt(e.target.value) || 1
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nPavimentos', value:v })
     dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav:v, nSub:sub })
+    if (v === 1) {
+      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value:0 })
+    } else if (parseInt(est.nPavimentos) === 1) {
+      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value:'' })
+    }
   }
   const handleNSub = e => {
     const v = parseInt(e.target.value) || 0
@@ -43,52 +47,125 @@ function EstruturaCard({ est, index, canRemove, dispatch }) {
   }
 
   return (
-    <div className="border border-solid border-border rounded-lg p-4 mb-3">
-      <div className="flex items-center justify-between gap-2 mb-3.5">
-        <input
-          value={est.nome}
-          onChange={e => dispatch({ type:'RENAME_ESTRUTURA', id: est.id, nome: e.target.value })}
-          placeholder={`Estrutura ${index + 1}`}
-          className="bg-transparent border-none outline-none text-[15px] font-semibold text-ink px-0 w-auto flex-1"
-        />
-        {canRemove && (
-          <button className="btn-del" onClick={() => dispatch({ type:'REMOVE_ESTRUTURA', id: est.id })} title="Remover estrutura">
-            <Icon name="trash" size={12}/>
+    <div
+      className="fixed inset-0 z-[500] bg-black/65 backdrop-blur-sm flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="bg-surface border border-solid border-border rounded-lg w-[560px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 py-[18px] px-[22px] border-b border-solid border-border shrink-0">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <input
+              value={est.nome}
+              onChange={e => dispatch({ type:'RENAME_ESTRUTURA', id: est.id, nome: e.target.value })}
+              placeholder={`Estrutura ${index + 1}`}
+              title="Clique para renomear a estrutura"
+              className="bg-transparent border-0 border-b border-dashed border-border-2 hover:border-ink-hint focus:border-red-border outline-none text-base font-bold text-ink px-0 py-0.5 w-auto min-w-0 flex-1 transition-colors"
+            />
+            <Icon name="edit" size={12} className="text-ink-hint shrink-0"/>
+          </div>
+          <button className="btn-ghost p-1.5 shrink-0" onClick={onClose}>
+            <Icon name="x" size={14}/>
           </button>
-        )}
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto py-5 px-[22px]">
+          <div className="mb-3.5">
+            <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Dimensoes</div>
+            <div className="g3 mb-3">
+              <div className="fg"><label>Area construida total (m2) <span className="req">*</span></label><input type="number" value={est.areaTotal} onChange={set('areaTotal')}/></div>
+              <div className="fg"><label>Altura total (m) <span className="req">*</span></label><input type="number" step="0.1" value={est.altura} onChange={set('altura')}/></div>
+              <div className="fg"><label>Altura piso a piso (m) <span className="req">*</span></label><input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} onChange={set('alturaPisoPiso')} readOnly={parseInt(est.nPavimentos) === 1}/></div>
+            </div>
+            <div className="g2">
+              <div className="fg"><label>No de pavimentos acima do solo <span className="req">*</span></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
+              <div className="fg"><label>No de subsolos</label><input type="number" min="0" value={est.nSubsolos} onChange={handleNSub}/></div>
+            </div>
+          </div>
+
+          {ALERTAS(h, sub).map((m, i) => (
+            <div key={i} className={`ibox ${m.t} mb-2.5`}>
+              <Icon name={m.i} size={14} color={`var(--color-${m.t})`} className="shrink-0"/>
+              <span>{m.txt}</span>
+            </div>
+          ))}
+
+          <div>
+            <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Sistema construtivo</div>
+            <div className="g2">
+              <div className="fg"><label>Estrutura principal</label>
+                <select value={est.estrutura} onChange={set('estrutura')}>
+                  <option>Concreto armado</option>
+                  <option>Estrutura metalica</option>
+                  <option>Alvenaria estrutural</option>
+                  <option>Madeira</option>
+                  <option>Misto</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="py-3.5 px-[22px] border-t border-solid border-border flex justify-end shrink-0">
+          <button className="btn-primary" onClick={onClose}>Concluir</button>
+        </div>
       </div>
+    </div>
+  )
+}
 
-      <div className="mb-3.5">
-        <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Dimensoes</div>
-        <div className="g2 mb-3">
-          <div className="fg"><label>Area construida total (m2) <span className="req">*</span></label><input type="number" value={est.areaTotal} onChange={set('areaTotal')}/></div>
-          <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={est.areaTerrero} onChange={set('areaTerrero')}/></div>
-        </div>
-        <div className="g3">
-          <div className="fg"><label>Altura total (m) <span className="req">*</span></label><input type="number" step="0.1" value={est.altura} onChange={set('altura')}/></div>
-          <div className="fg"><label>No de pavimentos acima do solo <span className="req">*</span></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
-          <div className="fg"><label>No de subsolos</label><input type="number" min="0" value={est.nSubsolos} onChange={handleNSub}/></div>
-        </div>
-      </div>
+// ── Card resumo de uma Estrutura ────────────────────────────────────────
+function EstruturaCard({ est, index, canRemove, dispatch, onOpen }) {
+  const a   = parseFloat(est.areaTotal) || 0
+  const sub = parseInt(est.nSubsolos)   || 0
+  const alturaPPPreenchida = est.alturaPisoPiso !== '' && est.alturaPisoPiso != null
+  const configured = !!(est.areaTotal && est.altura) && alturaPPPreenchida
 
-      {ALERTAS(h, a, sub).map((m, i) => (
-        <div key={i} className={`ibox ${m.t} mb-2.5`}>
-          <Icon name={m.i} size={14} color={`var(--color-${m.t})`} className="shrink-0"/>
-          <span>{m.txt}</span>
+  return (
+    <div
+      onClick={onOpen}
+      className={`bg-surface-2 rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-red-border ${configured ? 'border-[rgba(192,21,42,.25)]' : 'border-border'}`}
+    >
+      <div className="flex items-center justify-between py-3 px-4">
+        {/* Left: icone + nome + resumo */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-8 h-8 rounded-md border border-solid flex items-center justify-center shrink-0 ${configured ? 'bg-red-dim border-red-border text-red' : 'bg-surface border-border text-ink-faint'}`}>
+            <Icon name="newbld" size={15}/>
+          </div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-semibold text-ink mb-[3px]">{est.nome || `Estrutura ${index + 1}`}</div>
+            {configured ? (
+              <div className="flex flex-wrap gap-x-3 gap-y-[3px]">
+                <span className="text-[11px] text-ink-faint">{a} m² construida</span>
+                <span className="text-[11px] text-ink-faint">{parseInt(est.nPavimentos) === 1 ? 'Terrea' : `${est.nPavimentos} pavimentos`}</span>
+                {sub > 0 && (
+                  <span className="text-[11px] text-ink-faint">{sub} subsolo{sub > 1 ? 's' : ''}</span>
+                )}
+              </div>
+            ) : (
+              <div className="text-[11px] text-ink-faint">Clique para preencher</div>
+            )}
+          </div>
         </div>
-      ))}
 
-      <div>
-        <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Sistema construtivo</div>
-        <div className="g2">
-          <div className="fg"><label>Estrutura principal</label>
-            <select value={est.estrutura} onChange={set('estrutura')}>
-              <option>Concreto armado</option>
-              <option>Estrutura metalica</option>
-              <option>Alvenaria estrutural</option>
-              <option>Madeira</option>
-              <option>Misto</option>
-            </select>
+        {/* Right: remover + seta */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-3">
+          {canRemove && (
+            <button
+              className="btn-del"
+              onClick={e => { e.stopPropagation(); dispatch({ type:'REMOVE_ESTRUTURA', id: est.id }) }}
+              title="Remover estrutura"
+            >
+              <Icon name="trash" size={12}/>
+            </button>
+          )}
+          <div className="text-ink-faint">
+            <Icon name="chevD" size={14} className="-rotate-90"/>
           </div>
         </div>
       </div>
@@ -98,17 +175,21 @@ function EstruturaCard({ est, index, canRemove, dispatch }) {
 
 export default function Step2() {
   const { state, dispatch } = useProjeto()
+  const [openId, setOpenId] = useState(null)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
 
   const optClass = (sel) =>
     `border border-solid ${sel ? 'border-red-border bg-red-dim' : 'border-border bg-transparent'} rounded-md py-3.5 px-4 cursor-pointer flex items-center gap-3`
+
+  const openEst = state.estruturas.find(e => e.id === openId)
+  const openIndex = state.estruturas.findIndex(e => e.id === openId)
 
   return (
     <div className={S.section}>
       <div className={S.header}>
         <div className={S.stepLbl}>Etapa 2 de 8</div>
         <h2 className={S.title}>Edificacao</h2>
-        <p className={S.desc}>Situacao da edificacao e as estruturas (torres/blocos) que a compoem. Cada estrutura tem suas proprias dimensoes e sistema construtivo — o numero de pavimentos de cada uma gera automaticamente os cards de classificacao na etapa 5.</p>
+        <p className={S.desc}>Situacao da edificacao e as estruturas (torres/blocos) que a compoem. Clique em uma estrutura para editar suas dimensoes e sistema construtivo — o numero de pavimentos de cada uma gera automaticamente os cards de classificacao na etapa 5.</p>
       </div>
 
       {/* Situacao: nova ou existente */}
@@ -168,16 +249,27 @@ export default function Step2() {
         )}
       </div>
 
+      {/* Terreno e area construida (parametros globais do projeto) */}
+      <div className={S.block}>
+        <div className={S.blockTitle}>Terreno e area construida</div>
+        <div className="g2">
+          <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
+          <div className="fg"><label>Area construida total (m2)</label><input type="number" value={state.areaConstruidaTotal} onChange={set('areaConstruidaTotal')}/></div>
+        </div>
+      </div>
+
       {/* Estruturas */}
       <div className={S.block}>
         <div className={S.blockTitle}>Estruturas</div>
         {state.estruturas.map((est, i) => (
-          <EstruturaCard key={est.id} est={est} index={i} canRemove={state.estruturas.length > 1} dispatch={dispatch}/>
+          <EstruturaCard key={est.id} est={est} index={i} canRemove={state.estruturas.length > 1} dispatch={dispatch} onOpen={() => setOpenId(est.id)}/>
         ))}
         <button className="btn-add" onClick={() => dispatch({ type:'ADD_ESTRUTURA' })}>
           <Icon name="plus" size={11}/> Adicionar estrutura
         </button>
       </div>
+
+      {openEst && <EstruturaModal est={openEst} index={openIndex} dispatch={dispatch} onClose={() => setOpenId(null)}/>}
     </div>
   )
 }

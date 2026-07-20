@@ -81,6 +81,39 @@ export function getMedidasObrigatorias(uf, divisoes, altura, area) {
 }
 
 /**
+ * Retorna as letras de grupo (dentre `divisoes`) para as quais a norma
+ * ainda nao possui dados cadastrados na tabela aplicavel (simplificada ou
+ * normal, conforme altura/area). Usado para sinalizar quando o resultado de
+ * `getMedidasObrigatorias` esta incompleto e uma exigencia minima de
+ * referencia deve ser aplicada manualmente.
+ *
+ * @param {string}   uf
+ * @param {string[]} divisoes
+ * @param {number}   altura
+ * @param {number}   area
+ * @returns {string[]} letras de grupo sem dados (ex: ['G','K'])
+ */
+export function getGruposSemDados(uf, divisoes, altura, area) {
+  const norma = getMedidas(uf)
+  if (!norma) return [...new Set(divisoes.map(d => d.charAt(0)))]
+
+  const h = parseFloat(altura) || 0
+  const a = parseFloat(area)   || 0
+  const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = norma
+  const simplificado = a < LIMIARES.areaMin && h < LIMIARES.alturaMin
+
+  const faltantes = new Set()
+  divisoes.forEach(div => {
+    const grupo = div.charAt(0)
+    const temDado = simplificado
+      ? !!(TABELA_SIMPLIFICADA.divisoes?.[div] || TABELA_SIMPLIFICADA.grupos?.[grupo])
+      : !!_medidasDaDivisaoNormal(MEDIDAS, div)
+    if (!temDado) faltantes.add(grupo)
+  })
+  return [...faltantes]
+}
+
+/**
  * Retorna o texto da nota específica de uma medida para um grupo/divisão.
  * Prioridade: divisão exata → grupo (letra).
  *
@@ -120,18 +153,18 @@ function _resolverSimplificado(tabela, divisoes) {
 function _resolverNormal(MEDIDAS, divisoes, altura) {
   const todasMedidas = new Set()
   divisoes.forEach(div => {
-    const g = MEDIDAS[div.charAt(0)]
-    if (g) Object.keys(g.medidas).forEach(m => todasMedidas.add(m))
+    const medidas = _medidasDaDivisaoNormal(MEDIDAS, div)
+    if (medidas) Object.keys(medidas).forEach(m => todasMedidas.add(m))
   })
 
   const resultado = {}
   todasMedidas.forEach(m => { resultado[m] = { obrigatorio: false, notasGerais: [] } })
 
   divisoes.forEach(divisao => {
-    const g = MEDIDAS[divisao.charAt(0)]
-    if (!g) return
+    const medidas = _medidasDaDivisaoNormal(MEDIDAS, divisao)
+    if (!medidas) return
 
-    Object.entries(g.medidas).forEach(([medida, cond]) => {
+    Object.entries(medidas).forEach(([medida, cond]) => {
       const conditions = Array.isArray(cond) ? cond : [cond]
 
       for (const c of conditions) {
@@ -147,6 +180,31 @@ function _resolverNormal(MEDIDAS, divisoes, altura) {
   })
 
   return { simplificado: false, medidas: resultado }
+}
+
+// Retorna o mapa `medida -> condicao` (Tabela 6) aplicavel a uma divisao.
+//
+// A maioria dos grupos guarda isso diretamente em `MEDIDAS[grupo].medidas`
+// (mapa plano medida->condicao, valido para todas as divisoes do grupo,
+// com a propria condicao filtrando por `divisoes` quando necessario).
+//
+// Grupos com multiplas subtabelas por divisao (ex: Grupo F, que tem as
+// Tabelas 6F.1 a 6F.5) nao tem `.medidas` direto — em vez disso `MEDIDAS[grupo]`
+// e um dicionario de subtabelas, cada uma com seu proprio `.medidas` indexado
+// pela(s) divisao(oes) daquela linha (chave exata, ex: 'F-11', ou combinada
+// com '_', ex: 'F-3_F-9' para divisoes que compartilham a mesma linha).
+function _medidasDaDivisaoNormal(MEDIDAS, divisao) {
+  const grupo = MEDIDAS[divisao.charAt(0)]
+  if (!grupo) return null
+  if (grupo.medidas) return grupo.medidas
+
+  for (const subtabela of Object.values(grupo)) {
+    const porDivisao = subtabela?.medidas
+    if (!porDivisao) continue
+    const chave = Object.keys(porDivisao).find(k => k.split('_').includes(divisao))
+    if (chave) return porDivisao[chave]
+  }
+  return null
 }
 
 function _condSatisfeita(cond, divisao, altura) {

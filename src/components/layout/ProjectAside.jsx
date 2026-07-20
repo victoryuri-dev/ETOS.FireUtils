@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import Icon from '../ui/Icon'
 
 // Lista completa de sistemas — mesma ordem do Step7
@@ -25,10 +26,11 @@ const SISTEMAS = [
 
 export default function ProjectAside({ activePage, onNavigate }) {
   const { state }  = useProjeto()
+  const { sistemas } = useMedidasObrigatorias()
   const [col, setCol] = useState(false)
 
   const enabledSystems = SISTEMAS.filter(s =>
-    state.sistemas?.[s.key]?.ativo || state.sistemas?.[s.key]?.obrigatorio
+    sistemas[s.key]?.ativo || sistemas[s.key]?.obrigatorio
   )
 
   // Item de navegação genérico

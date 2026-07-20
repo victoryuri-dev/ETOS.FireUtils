@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useProjeto } from '../context/ProjetoContext'
 import { useNorma } from '../hooks/useNorma'
+import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
 import Icon from '../components/ui/Icon'
 
 // ── helpers ──────────────────────────────────────────────────────────
@@ -194,9 +195,7 @@ function Checklist() {
 export default function DashboardPage({ onGoConfig }) {
   const { state } = useProjeto()
   const { info, ocupacoes } = useNorma()
-
-  // Dados derivados do state
-  const sistemas   = state.sistemas || {}
+  const { sistemas } = useMedidasObrigatorias()
   const maxQ       = Object.values(state.cargaState || {}).reduce((acc, c) => {
     const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0
     return Math.max(acc, q)

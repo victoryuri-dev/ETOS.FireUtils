@@ -15,7 +15,7 @@ function novaEstrutura(nome) {
   return {
     id: `est-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
     nome,
-    areaTotal: '', areaTerrero: '', altura: '',
+    areaTotal: '', altura: '', alturaPisoPiso: 0,
     nPavimentos: 1, nSubsolos: 0,
     estrutura: 'Concreto armado',
   }
@@ -28,11 +28,12 @@ const INITIAL_STATE = {
   situacao: 'nova', anoAlvara: '', numeroAlvara: '',
   anoConstrucao: '', situacaoCBM: 'Sem AVCB anterior',
   numeroAVCB: '', validadeAVCB: '', condicoesAtuais: '',
+  areaTerreno: '', areaConstruidaTotal: '',
   areaMaiorPav: '', peDireito: '',
   usoSubsolo: '', coberturaHabitavel: 'Nao',
   compartVertical: 'Sem compartimentacao',
   fachada: 'Convencional', cobertura: 'Laje impermeabilizada',
-  estruturas: [{ id: 'est-1', nome: 'Estrutura 1', areaTotal: '', areaTerrero: '', altura: '', nPavimentos: 1, nSubsolos: 0, estrutura: 'Concreto armado' }],
+  estruturas: [{ id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0, nPavimentos: 1, nSubsolos: 0, estrutura: 'Concreto armado' }],
   propNome: '', propDocumento: '', propTelefone: '', propEmail: '',
   respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '',
   rtNome: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
