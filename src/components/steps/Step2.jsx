@@ -187,9 +187,9 @@ export default function Step2() {
   return (
     <div className={S.section}>
       <div className={S.header}>
-        <div className={S.stepLbl}>Etapa 2 de 8</div>
+        <div className={S.stepLbl}>Etapa 2 de 7</div>
         <h2 className={S.title}>Edificacao</h2>
-        <p className={S.desc}>Situacao da edificacao e as estruturas (torres/blocos) que a compoem. Clique em uma estrutura para editar suas dimensoes e sistema construtivo — o numero de pavimentos de cada uma gera automaticamente os cards de classificacao na etapa 5.</p>
+        <p className={S.desc}>Situacao da edificacao e as estruturas (torres/blocos) que a compoem. Clique em uma estrutura para editar suas dimensoes e sistema construtivo — o numero de pavimentos de cada uma gera automaticamente os cards de classificacao na etapa 4.</p>
       </div>
 
       {/* Situacao: nova ou existente */}

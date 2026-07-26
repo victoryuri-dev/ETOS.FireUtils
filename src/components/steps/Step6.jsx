@@ -1,175 +1,159 @@
-import { useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
-import { useNorma } from '../../hooks/useNorma'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import Icon from '../ui/Icon'
 
-const getCls = q => q <= 300 ? 'low' : q <= 1200 ? 'med' : 'high'
-const getLbl = q => q <= 300 ? 'Baixo — Classe I' : q <= 1200 ? 'Medio — Classe II' : 'Alto — Classe III/IV'
+const SIST_CONFIG = [
+  { key:'acesso_viatura',      icon:'exit',    label:'Acesso de Viatura em Edificacoes'   },
+  { key:'seg_estrutural',      icon:'newbld',  label:'Seg. Estrutural Contra Incendio'    },
+  { key:'compart_vertical',    icon:'stair',   label:'Compartimentacao Vertical'          },
+  { key:'controle_acabamento', icon:'sign',    label:'Controle de Materiais de Acabamento'},
+  { key:'saida_emergencia',    icon:'exit',    label:'Saida de Emergencia'                },
+  { key:'gerenciamento_risco', icon:'warn',    label:'Gerenciamento de Risco de Incendio' },
+  { key:'brigada',             icon:'drop',    label:'Brigada de Incendio'                },
+  { key:'iluminacao',          icon:'sun',     label:'Iluminacao de Emergencia'           },
+  { key:'sinalizacao',         icon:'sign',    label:'Sinalizacao de Emergencia'          },
+  { key:'extintores',          icon:'ext',     label:'Protecao por Extintores'            },
+  { key:'hidrantes',           icon:'drop',    label:'Hidrantes / Mangotinho'             },
+  { key:'alarme',              icon:'bell',    label:'Alarme de Incendio'                 },
+  { key:'deteccao',            icon:'sensor',  label:'Deteccao de Incendio'               },
+  { key:'sprinklers',          icon:'spray',   label:'Chuveiros Automaticos'              },
+  { key:'controle_fumaca',     icon:'flame',   label:'Controle de Fumaca'                 },
+  { key:'central_gas',         icon:'info',    label:'Central de Gas'                     },
+  { key:'spda',                icon:'warn',    label:'SPDA'                                },
+]
 
-function collectDivs(pavimentos) {
-  const map = {}
-  pavimentos.forEach(p => {
-    if (!map[p.divisao]) map[p.divisao] = { pavs:[], cnae: p.cnae, cnaeDesc: p.cnaeDesc }
-    if (!map[p.divisao].pavs.includes(p.label)) map[p.divisao].pavs.push(p.label)
-    if (p.cnae && !map[p.divisao].cnae) map[p.divisao].cnae = p.cnae
-    p.acess.forEach(a => {
-      if (!a.divisao) return
-      if (!map[a.divisao]) map[a.divisao] = { pavs:[], cnae: a.cnae || '', cnaeDesc: a.cnaeDesc || '' }
-      const tag = p.label + ' (subsidiaria)'
-      if (!map[a.divisao].pavs.includes(tag)) map[a.divisao].pavs.push(tag)
-      if (a.cnae && !map[a.divisao].cnae) { map[a.divisao].cnae = a.cnae; map[a.divisao].cnaeDesc = a.cnaeDesc || '' }
-    })
-  })
-  return map
-}
+const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border'
+const divTag = (mista) => `py-[3px] px-2.5 rounded font-bold text-[12px] font-mono border border-solid ${mista ? 'bg-amber-dim border-amber-border text-amber' : 'bg-red-dim border-red-border text-red'}`
 
-const S = {
-  section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
-  header: 'mb-[26px]',
-  stepLbl: 'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',
-  title: 'text-[22px] font-semibold text-ink mb-[5px]',
-  desc: 'text-[13px] text-ink-faint leading-[1.6]',
-  block: 'mb-[26px]',
-  blockTitle: 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border flex items-center justify-between',
+// ── Card com dados de uma estrutura usados na dosagem das medidas ───────
+function EstruturaResumo({ pe }) {
+  const { estrutura: est, areaEstrutura, alturaEstrutura, classificacao, gruposFaltantes } = pe
+  const { principaisDivs, subsidiarias, edificacaoMista, mistaDivs, temOcupacoes } = classificacao
+
+  return (
+    <div className="border border-solid border-border rounded-lg p-4 mb-3">
+      <div className="text-[13px] font-semibold text-ink mb-3">{est.nome}</div>
+
+      <div className="grid grid-cols-3 gap-3 mb-3">
+        <div>
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Area construida</div>
+          <div className="text-[13px] font-medium text-ink">{areaEstrutura ? `${areaEstrutura} m2` : '—'}</div>
+        </div>
+        <div>
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura piso a piso</div>
+          <div className="text-[13px] font-medium text-ink">{alturaEstrutura ? `${alturaEstrutura} m` : '—'}</div>
+        </div>
+        <div>
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">
+            {edificacaoMista ? 'Ocupacao mista' : 'Ocupacao principal'}
+          </div>
+          {temOcupacoes ? (
+            <div className="flex gap-1 flex-wrap">
+              {(edificacaoMista ? mistaDivs : principaisDivs).map(d => (
+                <span key={d} className={divTag(edificacaoMista)}>{d}</span>
+              ))}
+            </div>
+          ) : <div className="text-[13px] text-ink-hint">—</div>}
+        </div>
+      </div>
+
+      {subsidiarias.length > 0 && (
+        <div className="mb-1">
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">
+            {subsidiarias.length === 1 ? 'Ocupacao secundaria' : 'Ocupacoes secundarias'}
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {subsidiarias.map(d => (
+              <span key={d} className="py-[3px] px-2.5 rounded font-semibold text-xs font-mono bg-surface border border-solid border-border text-ink-muted">{d}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {gruposFaltantes.length > 0 && (
+        <div className="ibox amber mt-2 mb-0">
+          <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+          <span>
+            Dados normativos completos (processo normal) ainda nao cadastrados nesta versao para o(s) grupo(s) <strong>{gruposFaltantes.join(', ')}</strong> nesta estrutura.
+            Exigencias minimas de referencia foram aplicadas — confirme manualmente com o CBMMA.
+          </span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function Step6() {
-  const { state, dispatch } = useProjeto()
-  const { ocupacoes, cnaesDiv } = useNorma()
-  const divMap = collectDivs(state.pavimentos)
-  const keys = Object.keys(divMap)
-
-  useEffect(() => {
-    dispatch({ type:'INIT_CARGA', divisoes: keys })
-  }, [keys.join(',')])
-
-  const setMetodo = (code, metodo) => {
-    const changes = { metodo }
-    if (metodo === 'tabela') {
-      // Reseta para carga do CNAE configurado
-      const cnae = divMap[code]?.cnae
-      const cargaCNAE = cnae ? cnaesDiv(code)[cnae]?.cargaIncendio : null
-      changes.valorManual = ''
-      changes.cargaIncendio = cargaCNAE || null
-    }
-    dispatch({ type:'SET_CARGA', code, changes })
-  }
-
-  const setValor = (code, v) => {
-    dispatch({ type:'SET_CARGA', code, changes:{ valorManual: v } })
-  }
-
-  const getCarga = (code) => {
-    const st = state.cargaState[code]
-    if (!st) return null
-    if (st.metodo === 'levantamento') return parseFloat(st.valorManual) || null
-    const cnae = divMap[code]?.cnae
-    if (!cnae) return st.cargaIncendio
-    return cnaesDiv(code)[cnae]?.cargaIncendio || st.cargaIncendio
-  }
-
-  const maxQ = keys.reduce((acc, k) => Math.max(acc, getCarga(k) || 0), 0)
-  const maxCls = getCls(maxQ)
-
-  const getDivLabel = (code) => {
-    const g = code?.charAt(0)
-    return (ocupacoes[g]?.divisoes || {})[code] || code
-  }
+  const { dispatch } = useProjeto()
+  const { porEstrutura, sistemas } = useMedidasObrigatorias()
 
   return (
-    <div className={S.section}>
-      <div className={S.header}>
-        <div className={S.stepLbl}>Etapa 6 de 8</div>
-        <h2 className={S.title}>Carga de Incendio</h2>
-        <p className={S.desc}>A carga de incendio de cada divisao e determinada pelo CNAE configurado na etapa anterior. Por tabela: valor normativo automatico. Por levantamento: campo livre.</p>
+    <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
+      <div className="mb-[26px]">
+        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 6 de 7</div>
+        <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Medidas de Seguranca contra Incendio</h2>
+        <p className="text-[13px] text-ink-faint leading-[1.6]">Sistemas identificados com base na area construida, altura e ocupacao de cada estrutura. Obrigatorios nao podem ser removidos.</p>
       </div>
 
-      <div className="ibox blue">
-        <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
-        <span>Divisoes sem CNAE configurado nao terao carga automatica. Volte a etapa 5 para configurar o CNAE de cada pavimento.</span>
+      {/* Dados usados na dosagem, por estrutura */}
+      <div className="mb-[26px]">
+        <div className={blockTitle}>Estruturas consideradas</div>
+        {porEstrutura.map(pe => (
+          <EstruturaResumo key={pe.estrutura.id} pe={pe}/>
+        ))}
       </div>
 
-      {keys.length === 0 ? (
-        <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span>Nenhuma divisao configurada.</span></div>
-      ) : <>
-        <div className={S.block}>
-          <div className={S.blockTitle}>
-            <span>Carga por divisao</span>
-            <span className="text-[11px] text-ink-hint normal-case font-normal">gerado da classificacao</span>
-          </div>
-          {keys.map(code => {
-            const st = state.cargaState[code] || { metodo:'tabela', valorManual:'' }
-            const cnae = divMap[code]?.cnae
-            const q = getCarga(code)
-            const cls = q ? getCls(q) : null
-            const semCNAE = !cnae
+      <div className="ibox red">
+        <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
+        <span>Sistemas <strong className="text-red">obrigatorios</strong> sao definidos pela NT 42/2019 CBMMA para a ocupacao, altura e area de cada estrutura. Sistemas opcionais podem ser habilitados conforme necessidade tecnica.</span>
+      </div>
 
-            return (
-              <div key={code} className="py-3 border-b border-solid border-border-2">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex-1">
-                    <div className="text-[13px] text-ink font-medium">
-                      <span className="font-mono text-red mr-1.5">{code}</span>
-                      {getDivLabel(code)}
-                    </div>
-                    <div className="text-[11px] text-ink-faint mt-0.5">
-                      {cnae
-                        ? <><span className="font-mono text-red">{cnae}</span> — {divMap[code]?.cnaeDesc || cnaesDiv(code)[cnae]?.descricao || ''}</>
-                        : <span className="text-amber">Sem CNAE configurado — volte a etapa 5</span>
-                      }
-                    </div>
-                    <div className="text-[11px] text-ink-hint mt-0.5">{divMap[code]?.pavs?.join(', ')}</div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <select value={st.metodo} onChange={e => setMetodo(code, e.target.value)}
-                      className="bg-surface-2 border border-solid border-border text-ink text-[11px] py-1.5 px-2.5 rounded-md outline-none w-auto">
-                      <option value="tabela">Por tabela normativa</option>
-                      <option value="levantamento">Por levantamento</option>
-                    </select>
-                    {st.metodo === 'levantamento' ? (
-                      <div className="flex items-center gap-1.5">
-                        <input type="number" value={st.valorManual} onChange={e => setValor(code, e.target.value)}
-                          className="w-[90px] text-right" placeholder="0"/>
-                        <span className="text-xs text-ink-faint whitespace-nowrap">MJ/m2</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <div className={`w-[90px] text-right py-2.5 px-3 bg-surface-2 border border-solid border-border rounded-md text-[13px] ${semCNAE ? 'text-ink-faint opacity-50' : 'text-ink opacity-100'}`}>
-                          {q ?? '—'}
-                        </div>
-                        <span className="text-xs text-ink-faint whitespace-nowrap">MJ/m2</span>
-                      </div>
-                    )}
-                    {cls && <span className={`carga-class ${cls}`}>{getLbl(st.metodo === 'levantamento' ? (parseFloat(st.valorManual)||0) : (q||0))}</span>}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+      {/* Legenda */}
+      <div className="flex gap-4 mb-5 text-[11px] text-ink-faint">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-red"/>
+          Obrigatorio (NT 42/2019)
         </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-green"/>
+          Opcional habilitado
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-border border border-solid border-border"/>
+          Opcional desabilitado
+        </div>
+      </div>
 
-        {/* Resumo */}
-        {maxQ > 0 && (
-          <div className={S.block}>
-            <div className={S.blockTitle}>Carga representativa da edificacao</div>
-            <div className="bg-surface-2 border border-solid border-border rounded-lg py-4 px-5 flex items-center gap-5">
-              <div>
-                <div className={`text-[32px] font-bold leading-none ${maxCls === 'low' ? 'text-green' : maxCls === 'med' ? 'text-amber' : 'text-red'}`}>{maxQ}</div>
-                <div className="text-[13px] text-ink-faint mt-1">MJ/m2</div>
+      <div className="grid grid-cols-3 gap-2">
+        {SIST_CONFIG.map(s => {
+          const sist = sistemas[s.key] || { obrigatorio: false, ativo: false }
+          const on    = sist.ativo
+          const obrig = sist.obrigatorio
+
+          return (
+            <div key={s.key}
+              onClick={() => !obrig && dispatch({ type:'TOGGLE_SISTEMA', key:s.key })}
+              className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative transition-[border-color,background-color] duration-150 ${obrig ? 'cursor-default border-red-border bg-red-dim' : on ? 'cursor-pointer border-green-border bg-green-dim' : 'cursor-pointer border-border bg-transparent'}`}>
+              {/* Checkbox no canto */}
+              <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${obrig ? 'bg-red border-red' : on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
+                {(on || obrig) && <Icon name="check" size={9} color="#fff"/>}
               </div>
-              <div>
-                <div className={`text-sm font-semibold mb-[3px] ${maxCls === 'low' ? 'text-green' : maxCls === 'med' ? 'text-amber' : 'text-red'}`}>{getLbl(maxQ)}</div>
-                <div className="text-xs text-ink-muted leading-[1.5]">
-                  Maior carga entre as divisoes.{' '}
-                  {maxCls==='low'&&'Extintores e saidas obrigatorios.'}
-                  {maxCls==='med'&&'Hidrantes e sinalizacao obrigatorios. Avaliar sprinkler conforme altura.'}
-                  {maxCls==='high'&&'Sistemas ativos obrigatorios. Sprinkler e deteccao exigidos (NT 42/2019).'}
-                </div>
+              {/* Icone */}
+              <div className={`w-7 h-7 rounded-md flex items-center justify-center ${obrig ? 'bg-red-dim text-red' : on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
+                <Icon name={s.icon} size={14}/>
+              </div>
+              {/* Nome */}
+              <div className={`text-xs font-medium leading-[1.3] ${obrig ? 'text-red' : on ? 'text-green' : 'text-ink-muted'}`}>
+                {s.label}
+              </div>
+              {/* Status */}
+              <div className={`text-[10px] ${obrig ? 'text-[rgba(192,21,42,.6)]' : on ? 'text-[rgba(29,158,117,.65)]' : 'text-ink-hint'}`}>
+                {obrig ? 'Obrigatorio — NT 42/2019' : on ? 'Opcional — habilitado' : 'Opcional — desabilitado'}
               </div>
             </div>
-          </div>
-        )}
-      </>}
+          )
+        })}
+      </div>
     </div>
   )
 }

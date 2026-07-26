@@ -3,8 +3,9 @@ import { useProjeto } from '../context/ProjetoContext'
 function getStatus(n, state) {
   switch (n) {
     case 1: {
-      const filled = [state.nome, state.endereco, state.cidade].filter(Boolean).length
-      if (filled === 3) return 'done'
+      const campos = [state.nome, state.endereco, state.cidade, state.propNome, state.propDocumento, state.respRazaoSocial, state.respCNPJ]
+      const filled = campos.filter(Boolean).length
+      if (filled === campos.length) return 'done'
       if (filled > 0) return 'partial'
       return 'empty'
     }
@@ -17,22 +18,17 @@ function getStatus(n, state) {
       return 'empty'
     }
     case 3: {
-      if (state.propNome && state.propDocumento) return 'done'
-      if (state.propNome || state.propDocumento) return 'partial'
-      return 'empty'
-    }
-    case 4: {
       if (state.rtNome && state.artNumero) return 'done'
       if (state.rtNome || state.artNumero)  return 'partial'
       return 'empty'
     }
-    case 5: {
+    case 4: {
       const pavs = state.pavimentos
       if (!pavs.length) return 'empty'
       if (pavs.every(p => p.divisao && p.cnae)) return 'done'
       return 'partial'
     }
-    case 6: {
+    case 5: {
       const keys = Object.keys(state.cargaState)
       if (!keys.length) return 'empty'
       const allHave = keys.every(k => {
@@ -42,12 +38,12 @@ function getStatus(n, state) {
       if (allHave) return 'done'
       return 'partial'
     }
-    case 7: {
+    case 6: {
       const ativos = Object.values(state.sistemas).filter(s => s.ativo).length
       if (ativos > 0) return 'partial'
       return 'empty'
     }
-    case 8:
+    case 7:
       return 'empty'
     default:
       return 'empty'

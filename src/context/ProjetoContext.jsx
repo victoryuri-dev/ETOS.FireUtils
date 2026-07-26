@@ -36,6 +36,7 @@ const INITIAL_STATE = {
   estruturas: [{ id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0, nPavimentos: 1, nSubsolos: 0, estrutura: 'Concreto armado' }],
   propNome: '', propDocumento: '', propTelefone: '', propEmail: '',
   respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '',
+  cnaePrincipal: '', cnaePrincipalDesc: '',
   rtNome: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
   artNumero: '', artData: '', artTipoServico: 'Projeto', artValorObra: '',

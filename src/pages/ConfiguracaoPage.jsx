@@ -9,22 +9,20 @@ import Step4 from '../components/steps/Step4'
 import Step5 from '../components/steps/Step5'
 import Step6 from '../components/steps/Step6'
 import Step7 from '../components/steps/Step7'
-import Step8 from '../components/steps/Step8'
 
 const STEPS_CONFIG = [
-  { label:'Identificacao',       sub:'Nome, local, norma' },
+  { label:'Identificacao',       sub:'Local, norma, proprietario e empresa' },
   { label:'Edificacao',          sub:'Tipo, dimensoes, estrutura' },
-  { label:'Proprietario e uso',  sub:'Responsavel e empresa' },
   { label:'Responsavel tecnico', sub:'Projetista e ART' },
   { label:'Classificacao',       sub:'Ocupacao por pavimento' },
   { label:'Carga de Incendio',   sub:'CNAE e carga por divisao' },
   { label:'Medidas de seguranca',sub:'Sistemas exigidos' },
   { label:'Revisao final',       sub:'Confirmar e salvar' },
 ]
-const STEPS = { 1:Step1, 2:Step2, 3:Step3, 4:Step4, 5:Step5, 6:Step6, 7:Step7, 8:Step8 }
+const STEPS = { 1:Step1, 2:Step2, 3:Step3, 4:Step4, 5:Step5, 6:Step6, 7:Step7 }
 
 export default function ConfiguracaoPage({ onGoDashboard }) {
-  const { step, totalSteps, next, prev, goTo, isUnlocked } = useWizard(8)
+  const { step, totalSteps, next, prev, goTo, isUnlocked } = useWizard(7)
   const getStatus = useStepStatus()
   const ActiveStep = STEPS[step]
 

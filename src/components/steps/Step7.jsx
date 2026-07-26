@@ -1,155 +1,79 @@
 import { useProjeto } from '../../context/ProjetoContext'
-import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
+import { useNorma } from '../../hooks/useNorma'
 import Icon from '../ui/Icon'
-
-const SIST_CONFIG = [
-  { key:'acesso_viatura',      icon:'exit',    label:'Acesso de Viatura em Edificacoes'   },
-  { key:'seg_estrutural',      icon:'newbld',  label:'Seg. Estrutural Contra Incendio'    },
-  { key:'compart_vertical',    icon:'stair',   label:'Compartimentacao Vertical'          },
-  { key:'controle_acabamento', icon:'sign',    label:'Controle de Materiais de Acabamento'},
-  { key:'saida_emergencia',    icon:'exit',    label:'Saida de Emergencia'                },
-  { key:'gerenciamento_risco', icon:'warn',    label:'Gerenciamento de Risco de Incendio' },
-  { key:'brigada',             icon:'drop',    label:'Brigada de Incendio'                },
-  { key:'iluminacao',          icon:'sun',     label:'Iluminacao de Emergencia'           },
-  { key:'sinalizacao',         icon:'sign',    label:'Sinalizacao de Emergencia'          },
-  { key:'extintores',          icon:'ext',     label:'Protecao por Extintores'            },
-  { key:'hidrantes',           icon:'drop',    label:'Hidrantes / Mangotinho'             },
-  { key:'alarme',              icon:'bell',    label:'Alarme de Incendio'                 },
-  { key:'deteccao',            icon:'sensor',  label:'Deteccao de Incendio'               },
-  { key:'sprinklers',          icon:'spray',   label:'Chuveiros Automaticos'              },
-  { key:'controle_fumaca',     icon:'flame',   label:'Controle de Fumaca'                 },
-  { key:'central_gas',         icon:'info',    label:'Central de Gas'                     },
-  { key:'spda',                icon:'warn',    label:'SPDA'                                },
-]
-
-const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border'
-const divTag = (mista) => `py-[3px] px-2.5 rounded font-bold text-[12px] font-mono border border-solid ${mista ? 'bg-amber-dim border-amber-border text-amber' : 'bg-red-dim border-red-border text-red'}`
-
-// ── Card com dados de uma estrutura usados na dosagem das medidas ───────
-function EstruturaResumo({ pe }) {
-  const { estrutura: est, areaEstrutura, alturaEstrutura, classificacao, gruposFaltantes } = pe
-  const { principaisDivs, subsidiarias, edificacaoMista, mistaDivs, temOcupacoes } = classificacao
-
-  return (
-    <div className="border border-solid border-border rounded-lg p-4 mb-3">
-      <div className="text-[13px] font-semibold text-ink mb-3">{est.nome}</div>
-
-      <div className="grid grid-cols-3 gap-3 mb-3">
-        <div>
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Area construida</div>
-          <div className="text-[13px] font-medium text-ink">{areaEstrutura ? `${areaEstrutura} m2` : '—'}</div>
-        </div>
-        <div>
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura piso a piso</div>
-          <div className="text-[13px] font-medium text-ink">{alturaEstrutura ? `${alturaEstrutura} m` : '—'}</div>
-        </div>
-        <div>
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">
-            {edificacaoMista ? 'Ocupacao mista' : 'Ocupacao principal'}
-          </div>
-          {temOcupacoes ? (
-            <div className="flex gap-1 flex-wrap">
-              {(edificacaoMista ? mistaDivs : principaisDivs).map(d => (
-                <span key={d} className={divTag(edificacaoMista)}>{d}</span>
-              ))}
-            </div>
-          ) : <div className="text-[13px] text-ink-hint">—</div>}
-        </div>
-      </div>
-
-      {subsidiarias.length > 0 && (
-        <div className="mb-1">
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">
-            {subsidiarias.length === 1 ? 'Ocupacao secundaria' : 'Ocupacoes secundarias'}
-          </div>
-          <div className="flex gap-1.5 flex-wrap">
-            {subsidiarias.map(d => (
-              <span key={d} className="py-[3px] px-2.5 rounded font-semibold text-xs font-mono bg-surface border border-solid border-border text-ink-muted">{d}</span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {gruposFaltantes.length > 0 && (
-        <div className="ibox amber mt-2 mb-0">
-          <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-          <span>
-            Dados normativos completos (processo normal) ainda nao cadastrados nesta versao para o(s) grupo(s) <strong>{gruposFaltantes.join(', ')}</strong> nesta estrutura.
-            Exigencias minimas de referencia foram aplicadas — confirme manualmente com o CBMMA.
-          </span>
-        </div>
-      )}
-    </div>
-  )
-}
-
+const getLbl = q => q<=300?'Baixo — Classe I':q<=1200?'Medio — Classe II':'Alto — Classe III/IV'
 export default function Step7() {
-  const { dispatch } = useProjeto()
-  const { porEstrutura, sistemas } = useMedidasObrigatorias()
-
+  const {state}=useProjeto()
+  const {ocupacoes,cnaesDiv}=useNorma()
+  const maxQ=Object.values(state.cargaState).reduce((acc,c)=>{
+    const q = c?.metodo==='levantamento' ? parseFloat(c?.valorManual)||0 : c?.cargaIncendio||0
+    return Math.max(acc,q)
+  },0)
+  const getDivLabel = code => { const g=code?.charAt(0); return (ocupacoes[g]?.divisoes||{})[code]||code }
   return (
     <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
       <div className="mb-[26px]">
-        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 7 de 8</div>
-        <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Medidas de Seguranca contra Incendio</h2>
-        <p className="text-[13px] text-ink-faint leading-[1.6]">Sistemas identificados com base na area construida, altura e ocupacao de cada estrutura. Obrigatorios nao podem ser removidos.</p>
+        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 7 de 7</div>
+        <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Revisao e confirmacao</h2>
+        <p className="text-[13px] text-ink-faint leading-[1.6]">Verifique todos os dados antes de salvar.</p>
       </div>
+      <div className="ibox green"><Icon name="check" size={14} color="var(--color-green)" className="shrink-0"/><span>Confirme e salve para iniciar os dimensionamentos.</span></div>
+      {[
+        {t:'Identificacao', rows:[['Nome',state.nome||'—'],['Cidade',state.cidade||'—'],['Estado','Maranhao (MA)'],['Norma','NT 42/2019 CBMMA']]},
+        {t:'Edificacao', rows:[['Situacao',state.situacao==='nova'?'Edificacao nova':'Edificacao existente']]},
+        {t:'Risco',rows:[['Carga representativa',maxQ?maxQ+' MJ/m2 — '+getLbl(maxQ):'—']]},
+      ].map(({t,rows})=>(
+        <div key={t} className="mb-[26px]">
+          <div className="text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border">{t}</div>
+          <table className="w-full border-collapse">
+            <tbody>
+              {rows.map(([k,v])=>(
+                <tr key={k} className="border-b border-solid border-border-2">
+                  <td className="py-2.5 text-[13px] text-ink-faint w-[42%]">{k}</td>
+                  <td className="py-2.5 text-[13px] text-ink font-medium">{v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
 
-      {/* Dados usados na dosagem, por estrutura */}
       <div className="mb-[26px]">
-        <div className={blockTitle}>Estruturas consideradas</div>
-        {porEstrutura.map(pe => (
-          <EstruturaResumo key={pe.estrutura.id} pe={pe}/>
-        ))}
+        <div className="text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border">Estruturas</div>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-solid border-border-2">
+              <th className="py-2 text-[11px] text-ink-faint text-left font-medium">Estrutura</th>
+              <th className="py-2 text-[11px] text-ink-faint text-left font-medium">Area</th>
+              <th className="py-2 text-[11px] text-ink-faint text-left font-medium">Altura</th>
+              <th className="py-2 text-[11px] text-ink-faint text-left font-medium">Pavimentos</th>
+              <th className="py-2 text-[11px] text-ink-faint text-left font-medium">Sistema construtivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.estruturas.map(est => (
+              <tr key={est.id} className="border-b border-solid border-border-2">
+                <td className="py-2.5 text-[13px] text-ink font-medium">{est.nome}</td>
+                <td className="py-2.5 text-[13px] text-ink">{est.areaTotal ? est.areaTotal+' m2' : '—'}</td>
+                <td className="py-2.5 text-[13px] text-ink">{est.altura ? est.altura+' m' : '—'}</td>
+                <td className="py-2.5 text-[13px] text-ink">{est.nPavimentos} pav.{est.nSubsolos ? ` + ${est.nSubsolos} subsolo${est.nSubsolos!==1?'s':''}` : ''}</td>
+                <td className="py-2.5 text-[13px] text-ink">{est.estrutura}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <div className="ibox red">
-        <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
-        <span>Sistemas <strong className="text-red">obrigatorios</strong> sao definidos pela NT 42/2019 CBMMA para a ocupacao, altura e area de cada estrutura. Sistemas opcionais podem ser habilitados conforme necessidade tecnica.</span>
-      </div>
-
-      {/* Legenda */}
-      <div className="flex gap-4 mb-5 text-[11px] text-ink-faint">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red"/>
-          Obrigatorio (NT 42/2019)
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-green"/>
-          Opcional habilitado
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-border border border-solid border-border"/>
-          Opcional desabilitado
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        {SIST_CONFIG.map(s => {
-          const sist = sistemas[s.key] || { obrigatorio: false, ativo: false }
-          const on    = sist.ativo
-          const obrig = sist.obrigatorio
-
+      <div className="mb-[26px]">
+        <div className="text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border">Classificacao por pavimento</div>
+        {state.pavimentos.map(p=>{
+          const est = state.estruturas.find(e => e.id === p.estruturaId)
+          const label = state.estruturas.length > 1 && est ? `${est.nome} — ${p.label}` : p.label
           return (
-            <div key={s.key}
-              onClick={() => !obrig && dispatch({ type:'TOGGLE_SISTEMA', key:s.key })}
-              className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative transition-[border-color,background-color] duration-150 ${obrig ? 'cursor-default border-red-border bg-red-dim' : on ? 'cursor-pointer border-green-border bg-green-dim' : 'cursor-pointer border-border bg-transparent'}`}>
-              {/* Checkbox no canto */}
-              <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${obrig ? 'bg-red border-red' : on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
-                {(on || obrig) && <Icon name="check" size={9} color="#fff"/>}
-              </div>
-              {/* Icone */}
-              <div className={`w-7 h-7 rounded-md flex items-center justify-center ${obrig ? 'bg-red-dim text-red' : on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
-                <Icon name={s.icon} size={14}/>
-              </div>
-              {/* Nome */}
-              <div className={`text-xs font-medium leading-[1.3] ${obrig ? 'text-red' : on ? 'text-green' : 'text-ink-muted'}`}>
-                {s.label}
-              </div>
-              {/* Status */}
-              <div className={`text-[10px] ${obrig ? 'text-[rgba(192,21,42,.6)]' : on ? 'text-[rgba(29,158,117,.65)]' : 'text-ink-hint'}`}>
-                {obrig ? 'Obrigatorio — NT 42/2019' : on ? 'Opcional — habilitado' : 'Opcional — desabilitado'}
-              </div>
+            <div key={p.id} className="py-1 border-b border-solid border-border-2 text-[13px]">
+              <span className="text-ink-faint w-[140px] inline-block">{label}</span>
+              {getDivLabel(p.divisao)}
+              {p.cnae&&<span className="ml-2 font-mono text-[11px] text-red">{p.cnae}</span>}
             </div>
           )
         })}
