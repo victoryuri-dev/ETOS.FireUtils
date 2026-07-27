@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ProjetoProvider, useProjeto, newIds } from './context/ProjetoContext'
+import { criarProjetoExemplo } from './data/projetoExemplo'
 import ProjectAside   from './components/layout/ProjectAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
@@ -65,6 +66,11 @@ function AppInner() {
     setPage('config')
   }
 
+  const handleNovoProjetoExemplo = () => {
+    dispatch({ type:'LOAD', payload: criarProjetoExemplo() })
+    setPage('dashboard')
+  }
+
   const isProjectPage = page !== 'projetos'
   const sistKey = page.startsWith('medida-') ? page.slice(7) : null
 
@@ -91,6 +97,7 @@ function AppInner() {
             <ProjetosPage
               onOpenProject={handleOpenProject}
               onNewProject={handleNewProject}
+              onNovoProjetoExemplo={handleNovoProjetoExemplo}
             />
           )}
           {page === 'dashboard' && (

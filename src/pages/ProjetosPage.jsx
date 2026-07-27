@@ -359,7 +359,7 @@ function EmptyState({ hasFilter, onNew }) {
 
 // ── ProjetosPage ──────────────────────────────────────────────────────
 
-export default function ProjetosPage({ onOpenProject, onNewProject }) {
+export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjetoExemplo }) {
   const { grupos } = useNorma()
   const [view,        setView]        = useState('grid')
   const [tick,        setTick]        = useState(0)
@@ -456,9 +456,16 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
               <h1 className="text-2xl font-bold text-ink mb-1">Meus projetos</h1>
               <p className="text-[13px] text-ink-faint">Todos os memoriais descritivos e dimensionamentos</p>
             </div>
-            <button className="btn-primary" onClick={onNewProject}>
-              <Icon name="plus" size={13}/> Novo projeto
-            </button>
+            <div className="flex gap-2">
+              {onNovoProjetoExemplo && (
+                <button className="btn-ghost" onClick={onNovoProjetoExemplo} title="Cria um projeto com todos os campos preenchidos, para testes">
+                  <Icon name="file" size={13}/> Projeto de teste
+                </button>
+              )}
+              <button className="btn-primary" onClick={onNewProject}>
+                <Icon name="plus" size={13}/> Novo projeto
+              </button>
+            </div>
           </div>
 
           {/* ── Stats ── */}
