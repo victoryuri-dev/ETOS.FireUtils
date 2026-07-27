@@ -57,3 +57,10 @@
   .carga-class.med{background:var(--color-amber-dim);border:.5px solid var(--color-amber-border);color:var(--color-amber)}
   .carga-class.high{background:var(--color-red-dim);border:.5px solid var(--color-red-border);color:var(--color-red)}
 }
+
+@media print {
+  body *{visibility:hidden}
+  .print-area,.print-area *{visibility:visible}
+  .print-area{position:absolute;top:0;left:0;width:100%;margin:0;box-shadow:none;border-radius:0}
+  .no-print{display:none!important}
+}

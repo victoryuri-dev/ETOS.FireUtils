@@ -96,15 +96,21 @@ export default function ProjectAside({ activePage, onNavigate }) {
         <Item pageKey="config"    icon="settings" label="Configuração"/>
       </div>
 
-      {/* Medidas de segurança */}
-      {enabledSystems.length > 0 && (
-        <div className="flex-1 overflow-y-auto py-1.5">
-          <SectionLabel text="Medidas de segurança"/>
-          {enabledSystems.map(s => (
-            <Item key={s.key} pageKey={`medida-${s.key}`} icon={s.icon} label={s.label} indent/>
-          ))}
-        </div>
-      )}
+      {/* Medidas de segurança + Documentos */}
+      <div className="flex-1 overflow-y-auto py-1.5">
+        {enabledSystems.length > 0 && (
+          <>
+            <SectionLabel text="Medidas de segurança"/>
+            {enabledSystems.map(s => (
+              <Item key={s.key} pageKey={`medida-${s.key}`} icon={s.icon} label={s.label} indent/>
+            ))}
+          </>
+        )}
+
+        <div className="border-t border-solid border-border mt-1.5"/>
+        <SectionLabel text="Documentos"/>
+        <Item pageKey="documentos" icon="file" label="Documentos"/>
+      </div>
 
     </aside>
   )

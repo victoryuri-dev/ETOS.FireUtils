@@ -4,6 +4,7 @@ import ProjectAside   from './components/layout/ProjectAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
 import ProjetosPage   from './pages/ProjetosPage'
+import DocumentosPage from './pages/DocumentosPage'
 import MedidaPage            from './pages/MedidaPage'
 import SaidaEmergenciaPage   from './pages/medidas/SaidaEmergenciaPage'
 import HidrantesPage          from './pages/medidas/HidrantesPage'
@@ -98,6 +99,7 @@ function AppInner() {
           {page === 'config' && (
             <ConfiguracaoPage onGoDashboard={() => setPage('dashboard')}/>
           )}
+          {page === 'documentos' && <DocumentosPage/>}
           {sistKey === 'saida_emergencia' && <SaidaEmergenciaPage/>}
           {sistKey === 'hidrantes' && <HidrantesPage/>}
           {sistKey && sistKey !== 'saida_emergencia' && sistKey !== 'hidrantes' && <MedidaPage sistKey={sistKey}/>}
