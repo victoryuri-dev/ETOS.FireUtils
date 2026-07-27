@@ -13,12 +13,15 @@ export default function Step3() {
           <div className="fg"><label>CREA / CAU <span className="req">*</span></label><input value={state.rtConselho} onChange={set('rtConselho')} placeholder="CREA-MA MA00000000/D"/></div>
         </div>
         <div className="g2 mb-3">
+          <div className="fg"><label>CPF</label><input value={state.rtCpf} onChange={set('rtCpf')} placeholder="000.000.000-00"/></div>
           <div className="fg"><label>Especialidade</label>
             <select value={state.rtEspecialidade} onChange={set('rtEspecialidade')}>
               <option>Engenharia Civil</option><option>Engenharia Eletrica</option><option>Arquitetura</option><option>Engenharia de Seguranca</option>
             </select>
           </div>
-          <div className="fg"><label>Empresa / Escritorio</label><input value={state.rtEmpresa} onChange={set('rtEmpresa')}/></div>
+        </div>
+        <div className="fg mb-3">
+          <label>Empresa / Escritorio</label><input value={state.rtEmpresa} onChange={set('rtEmpresa')}/>
         </div>
         <div className="g2">
           <div className="fg"><label>E-mail</label><input type="email" value={state.rtEmail} onChange={set('rtEmail')}/></div>

@@ -25,12 +25,6 @@ function maskCNAE(raw) {
   return `${d.slice(0, 4)}-${d[4]}/${d.slice(5, 7)}`
 }
 
-function formatEndereco(d) {
-  const partes = [d.logradouro, d.numero].filter(Boolean).join(', ')
-  const resto = [d.complemento, d.bairro].filter(Boolean).join(' - ')
-  return [partes, resto].filter(Boolean).join(' - ')
-}
-
 // Consulta pública de CNPJ (BrasilAPI, dados da Receita Federal) — sem necessidade de backend.
 // Dados da empresa (razao social, CNAE...) sao aplicados direto. O endereco fica em
 // espera — e o endereco fiscal da empresa, que pode nao ser o endereco da obra — e so
@@ -73,7 +67,10 @@ export function useCnpjLookup() {
         setWarning(`Endereco fiscal em ${d.uf} — norma ainda nao disponivel para esse estado nesta versao.`)
       }
       setEnderecoFiscal({
-        endereco: formatEndereco(d),
+        logradouro: d.logradouro || '',
+        numero: d.numero || '',
+        complemento: d.complemento || '',
+        bairro: d.bairro || '',
         cidade: d.municipio || '',
         cep: maskCEP(d.cep),
         uf: d.uf || '',
@@ -88,7 +85,10 @@ export function useCnpjLookup() {
 
   function aplicarEndereco() {
     if (!enderecoFiscal) return
-    dispatch({ type: 'SET_FIELD', field: 'endereco', value: enderecoFiscal.endereco })
+    dispatch({ type: 'SET_FIELD', field: 'endereco', value: enderecoFiscal.logradouro })
+    dispatch({ type: 'SET_FIELD', field: 'numero', value: enderecoFiscal.numero })
+    dispatch({ type: 'SET_FIELD', field: 'complemento', value: enderecoFiscal.complemento })
+    dispatch({ type: 'SET_FIELD', field: 'bairro', value: enderecoFiscal.bairro })
     dispatch({ type: 'SET_FIELD', field: 'cidade', value: enderecoFiscal.cidade })
     dispatch({ type: 'SET_FIELD', field: 'cep', value: enderecoFiscal.cep })
     if (enderecoFiscal.ufSuportado) {

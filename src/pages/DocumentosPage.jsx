@@ -49,7 +49,7 @@ export default function DocumentosPage() {
 
           <div className="ibox amber mb-5">
             <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-            <span>Alguns campos (ex: quantidade de publico, riscos especiais) nao sao coletados pelo app ainda e ficam em branco no documento — complete-os manualmente antes de protocolar.</span>
+            <span>Os campos "Para uso do CBMMA" (protocolo, observacoes, No do CAP) sao de preenchimento exclusivo do Corpo de Bombeiros e ficam em branco no documento.</span>
           </div>
 
           <div className="flex flex-col gap-3">

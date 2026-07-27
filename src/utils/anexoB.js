@@ -1,7 +1,6 @@
 // Monta os dados do Anexo B (NT 01 — CBMMA) a partir do estado do projeto,
 // para exibicao na pagina de documentos do site. Campos sem fonte de dados
-// no app (ex: quantidade de publico, CPF do RT, riscos especiais) ficam em
-// branco — nunca inventamos valor.
+// no app ficam em branco — nunca inventamos valor.
 
 // Mesma lista/ordem do formulario oficial. `key` aponta para state.sistemas —
 // quando null, a medida ainda nao e rastreada pelo app.
@@ -33,14 +32,14 @@ export const MEDIDAS_ANEXO_B_COL2 = [
   { key: null,          label: 'Controle de fontes de ignição' },
 ]
 
-// Nao ha dado de riscos especiais no app ainda — lista exibida sempre em branco.
+// `key` aponta para state.riscosEspeciais
 export const RISCOS_ESPECIAIS = [
-  'Armazenamento de líquidos inflamáveis',
-  'Armazenamento ou revenda de fogos de artifícios',
-  'Uso de Gás Liquefeito de Petróleo',
-  'Vasos sob pressão (caldeiras)',
-  'Armazenamento de produtos perigosos',
-  'Outros (especificar)',
+  { key: 'liquidos_inflamaveis', label: 'Armazenamento de líquidos inflamáveis' },
+  { key: 'fogos_artificio',      label: 'Armazenamento ou revenda de fogos de artifícios' },
+  { key: 'glp',                  label: 'Uso de Gás Liquefeito de Petróleo' },
+  { key: 'vasos_pressao',        label: 'Vasos sob pressão (caldeiras)' },
+  { key: 'produtos_perigosos',   label: 'Armazenamento de produtos perigosos' },
+  { key: 'outros',               label: 'Outros (especificar)' },
 ]
 
 export function buildAnexoBData(state, sistemas) {
@@ -65,21 +64,18 @@ export function buildAnexoBData(state, sistemas) {
   const marcada = (key) => !!(sistemas?.[key]?.ativo || sistemas?.[key]?.obrigatorio)
 
   return {
-    // Identificacao da edificacao — numero/bairro/complemento nao sao
-    // coletados como campos separados pelo app (ficam embutidos em
-    // state.endereco), entao ficam em branco aqui para nao duplicar/adivinhar.
     endereco: state.endereco || '',
-    numero: '',
+    numero: state.numero || '',
     cep: state.cep || '',
-    bairro: '',
+    bairro: state.bairro || '',
     municipio: state.cidade || '',
-    complemento: '',
+    complemento: state.complemento || '',
     uf: state.uf || '',
     proprietario: state.propNome || '',
     proprietarioDocumento: state.propDocumento || '',
     responsavelUso: state.respRazaoSocial || '',
     responsavelDocumento: state.respCNPJ || '',
-    responsavelEmail: '',
+    responsavelEmail: state.respEmail || '',
     responsavelFone: state.respTelefone || '',
     razaoSocial: state.respRazaoSocial || '',
     cnpj: state.respCNPJ || '',
@@ -89,14 +85,14 @@ export function buildAnexoBData(state, sistemas) {
     areaTotalConstruida: areaTotalSum ? `${areaTotalSum} m²` : '',
     pavimentosSubsolo: subsolosSum ? String(subsolosSum) : '',
     areaTerreno: state.areaTerreno ? `${state.areaTerreno} m²` : '',
-    quantidadePublico: '',
-    areaComplementar: '',
+    quantidadePublico: state.quantidadePublico ? String(state.quantidadePublico) : '',
+    areaComplementar: state.areaComplementar ? `${state.areaComplementar} m²` : '',
     altura: alturaNum ? `${alturaNum} m` : '',
     cargaIncendio: maxQ ? `${maxQ} MJ/m²` : '',
     // "Forma de apresentacao" — o app so trata processo tecnico novo hoje.
     processoTecnico: true,
     responsavelTecnico: state.rtNome || '',
-    rtCpf: '',
+    rtCpf: state.rtCpf || '',
     rtConselho: state.rtConselho || '',
     rtEmail: state.rtEmail || '',
     rtFone: state.rtTelefone || '',
@@ -105,6 +101,9 @@ export function buildAnexoBData(state, sistemas) {
     vedacao: state.fachada || '',
     medidasCol1: MEDIDAS_ANEXO_B_COL1.map(m => ({ label: m.label, ativo: m.key ? marcada(m.key) : false })),
     medidasCol2: MEDIDAS_ANEXO_B_COL2.map(m => ({ label: m.label, ativo: m.key ? marcada(m.key) : false })),
-    riscosEspeciais: RISCOS_ESPECIAIS.map(label => ({ label, ativo: false })),
+    riscosEspeciais: RISCOS_ESPECIAIS.map(r => ({
+      label: r.key === 'outros' && state.riscosOutrosDesc ? `${r.label}: ${state.riscosOutrosDesc}` : r.label,
+      ativo: !!state.riscosEspeciais?.[r.key],
+    })),
   }
 }

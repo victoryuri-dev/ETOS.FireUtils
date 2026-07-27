@@ -24,24 +24,29 @@ function novaEstrutura(nome) {
 const INITIAL_STATE = {
   id: '', seqId: '', createdAt: '',
   nome: '', dataInicio: '', fase: 'Em desenvolvimento',
-  endereco: '', cidade: '', uf: 'MA', cep: '',
+  endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'MA', cep: '',
   situacao: 'nova', anoAlvara: '', numeroAlvara: '',
   anoConstrucao: '', situacaoCBM: 'Sem AVCB anterior',
   numeroAVCB: '', validadeAVCB: '', condicoesAtuais: '',
-  areaTerreno: '', areaConstruidaTotal: '',
+  areaTerreno: '', areaConstruidaTotal: '', quantidadePublico: '', areaComplementar: '',
   areaMaiorPav: '', peDireito: '',
   usoSubsolo: '', coberturaHabitavel: 'Nao',
   compartVertical: 'Sem compartimentacao',
   fachada: 'Convencional', cobertura: 'Laje impermeabilizada',
   estruturas: [{ id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0, nPavimentos: 1, nSubsolos: 0, estrutura: 'Concreto armado' }],
   propNome: '', propDocumento: '', propTelefone: '', propEmail: '',
-  respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '',
+  respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '', respEmail: '',
   cnaePrincipal: '', cnaePrincipalDesc: '',
-  rtNome: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
+  rtNome: '', rtCpf: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
   artNumero: '', artData: '', artTipoServico: 'Projeto', artValorObra: '',
   pavimentos: [],
   cargaState: {},
+  riscosEspeciais: {
+    liquidos_inflamaveis: false, fogos_artificio: false, glp: false,
+    vasos_pressao: false, produtos_perigosos: false, outros: false,
+  },
+  riscosOutrosDesc: '',
   sistemas: {
     acesso_viatura:      { obrigatorio: true,  ativo: true  },
     seg_estrutural:      { obrigatorio: true,  ativo: true  },
@@ -129,6 +134,8 @@ function reducer(state, action) {
     }
     case 'TOGGLE_SISTEMA':
       return { ...state, sistemas: { ...state.sistemas, [action.key]: { ...state.sistemas[action.key], ativo: !state.sistemas[action.key].ativo } } }
+    case 'TOGGLE_RISCO':
+      return { ...state, riscosEspeciais: { ...state.riscosEspeciais, [action.key]: !state.riscosEspeciais[action.key] } }
     case 'LOAD':
       return { ...INITIAL_STATE, ...action.payload }
     case 'NEW_PROJECT':

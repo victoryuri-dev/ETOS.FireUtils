@@ -252,9 +252,13 @@ export default function Step2() {
       {/* Terreno e area construida (parametros globais do projeto) */}
       <div className={S.block}>
         <div className={S.blockTitle}>Terreno e area construida</div>
-        <div className="g2">
+        <div className="g2 mb-3">
           <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
           <div className="fg"><label>Area construida total (m2)</label><input type="number" value={state.areaConstruidaTotal} onChange={set('areaConstruidaTotal')}/></div>
+        </div>
+        <div className="g2">
+          <div className="fg"><label>Quantidade de publico</label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
+          <div className="fg"><label>Area complementar (m2)</label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
         </div>
       </div>
 

@@ -190,7 +190,7 @@ export default function AnexoBPage({ onBack }) {
             </tbody>
           </table>
 
-          <p className="text-[10px] text-[#8a8a8c] mt-2 mb-0">Riscos especiais não são coletados pelo app ainda — marque manualmente se aplicável.</p>
+          <p className="text-[10px] text-[#8a8a8c] mt-2 mb-0">Campos "Para uso do CBMMA" (protocolo, observações, Nº do CAP) são de preenchimento exclusivo do Corpo de Bombeiros.</p>
 
           {/* Assinaturas */}
           <div className="grid grid-cols-2 gap-8 mt-10 pt-4">

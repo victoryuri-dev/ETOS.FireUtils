@@ -75,11 +75,11 @@ export default function Step1() {
         </div>
         <div className="g2 mb-3">
           <div className="fg"><label>Telefone</label><input type="tel" value={state.respTelefone} onChange={set('respTelefone')}/></div>
-          <div className="fg"><label>CNAE principal</label><input value={state.cnaePrincipal} onChange={setCNAE} placeholder="0000-0/00"/></div>
+          <div className="fg"><label>E-mail</label><input type="email" value={state.respEmail} onChange={set('respEmail')}/></div>
         </div>
-        <div className="fg">
-          <label>Descricao da atividade</label>
-          <input value={state.cnaePrincipalDesc} onChange={set('cnaePrincipalDesc')} placeholder="Preenchido automaticamente pela busca do CNPJ"/>
+        <div className="g2 mb-3">
+          <div className="fg"><label>CNAE principal</label><input value={state.cnaePrincipal} onChange={setCNAE} placeholder="0000-0/00"/></div>
+          <div className="fg"><label>Descricao da atividade</label><input value={state.cnaePrincipalDesc} onChange={set('cnaePrincipalDesc')} placeholder="Preenchido automaticamente pela busca do CNPJ"/></div>
         </div>
       </div>
 
@@ -102,7 +102,7 @@ export default function Step1() {
           <div className="ibox blue">
             <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
             <span>
-              Endereco fiscal encontrado: {enderecoFiscal.endereco}, {enderecoFiscal.cidade} — {enderecoFiscal.uf}, CEP {enderecoFiscal.cep}.
+              Endereco fiscal encontrado: {enderecoFiscal.logradouro}, {enderecoFiscal.numero} — {enderecoFiscal.bairro}, {enderecoFiscal.cidade} — {enderecoFiscal.uf}, CEP {enderecoFiscal.cep}.
               {' '}Pode ser diferente do endereco da obra — confirme antes de usar.{' '}
               <button type="button" className="btn-ghost" onClick={aplicarEndereco}>
                 <Icon name="check" size={11}/> Usar como endereco da obra
@@ -111,9 +111,14 @@ export default function Step1() {
           </div>
         )}
 
-        <div className="fg mb-3">
-          <label>Endereco completo <span className="req">*</span></label>
-          <input value={state.endereco} onChange={set('endereco')} placeholder="Rua, numero, complemento, bairro"/>
+        <div className="g3 mb-3">
+          <div className="fg col-span-2"><label>Logradouro (rua, avenida...) <span className="req">*</span></label><input value={state.endereco} onChange={set('endereco')} placeholder="Rua Grande"/></div>
+          <div className="fg"><label>Numero</label><input value={state.numero} onChange={set('numero')} placeholder="123"/></div>
+        </div>
+        <div className="g3 mb-3">
+          <div className="fg"><label>Complemento</label><input value={state.complemento} onChange={set('complemento')} placeholder="Sala, andar..."/></div>
+          <div className="fg"><label>Bairro</label><input value={state.bairro} onChange={set('bairro')} placeholder="Centro"/></div>
+          <div className="fg"><label>CEP</label><input value={state.cep} onChange={set('cep')} placeholder="65000-000"/></div>
         </div>
         <div className="g3">
           <div className="fg"><label>Cidade <span className="req">*</span></label><input value={state.cidade} onChange={set('cidade')} placeholder="Sao Luis"/></div>
@@ -127,7 +132,6 @@ export default function Step1() {
               ))}
             </select>
           </div>
-          <div className="fg"><label>CEP</label><input value={state.cep} onChange={set('cep')} placeholder="65000-000"/></div>
         </div>
       </div>
 

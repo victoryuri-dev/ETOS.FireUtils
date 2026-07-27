@@ -22,6 +22,15 @@ const SIST_CONFIG = [
   { key:'spda',                icon:'warn',    label:'SPDA'                                },
 ]
 
+const RISCOS_CONFIG = [
+  { key:'liquidos_inflamaveis', icon:'flame',    label:'Armazenamento de liquidos inflamaveis' },
+  { key:'fogos_artificio',      icon:'warn',     label:'Armazenamento ou revenda de fogos de artificio' },
+  { key:'glp',                  icon:'drop',     label:'Uso de Gas Liquefeito de Petroleo' },
+  { key:'vasos_pressao',        icon:'settings', label:'Vasos sob pressao (caldeiras)' },
+  { key:'produtos_perigosos',   icon:'warn',     label:'Armazenamento de produtos perigosos' },
+  { key:'outros',               icon:'info',     label:'Outros (especificar)' },
+]
+
 const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border'
 const divTag = (mista) => `py-[3px] px-2.5 rounded font-bold text-[12px] font-mono border border-solid ${mista ? 'bg-amber-dim border-amber-border text-amber' : 'bg-red-dim border-red-border text-red'}`
 
@@ -84,7 +93,7 @@ function EstruturaResumo({ pe }) {
 }
 
 export default function Step6() {
-  const { dispatch } = useProjeto()
+  const { state, dispatch } = useProjeto()
   const { porEstrutura, sistemas } = useMedidasObrigatorias()
 
   return (
@@ -153,6 +162,36 @@ export default function Step6() {
             </div>
           )
         })}
+      </div>
+
+      {/* Riscos especiais */}
+      <div className="mt-[26px]">
+        <div className={blockTitle}>Riscos especiais</div>
+        <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes na edificacao ou area de risco, conforme Anexo B da NT 01.</p>
+        <div className="grid grid-cols-3 gap-2">
+          {RISCOS_CONFIG.map(r => {
+            const on = !!state.riscosEspeciais?.[r.key]
+            return (
+              <div key={r.key}
+                onClick={() => dispatch({ type:'TOGGLE_RISCO', key:r.key })}
+                className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative cursor-pointer transition-[border-color,background-color] duration-150 ${on ? 'border-green-border bg-green-dim' : 'border-border bg-transparent'}`}>
+                <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
+                  {on && <Icon name="check" size={9} color="#fff"/>}
+                </div>
+                <div className={`w-7 h-7 rounded-md flex items-center justify-center ${on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
+                  <Icon name={r.icon} size={14}/>
+                </div>
+                <div className={`text-xs font-medium leading-[1.3] ${on ? 'text-green' : 'text-ink-muted'}`}>{r.label}</div>
+              </div>
+            )
+          })}
+        </div>
+        {state.riscosEspeciais?.outros && (
+          <div className="fg mt-3">
+            <label>Descreva o risco especial</label>
+            <input value={state.riscosOutrosDesc} onChange={e => dispatch({ type:'SET_FIELD', field:'riscosOutrosDesc', value:e.target.value })}/>
+          </div>
+        )}
       </div>
     </div>
   )
