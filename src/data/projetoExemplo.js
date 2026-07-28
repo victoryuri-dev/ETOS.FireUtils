@@ -1,11 +1,14 @@
 import { newIds } from '../context/ProjetoContext'
 
-// Projeto de exemplo com todos os campos preenchidos — usado para testes
-// manuais rapidos (Anexo B, revisao final, etc.) sem precisar passar pelo
-// wizard inteiro toda vez.
-export function criarProjetoExemplo() {
+// ID fixo do projeto de exemplo "fixado" — permite checar se ele existe e
+// recria-lo sempre que faltar (ex: apos ser excluido), sem duplicar.
+export const EXEMPLO_FIXO_ID = 'exemplo-fixo'
+
+// Dados-base do projeto de exemplo com todos os campos preenchidos — usado
+// para testes manuais rapidos (Anexo B, revisao final, etc.) sem precisar
+// passar pelo wizard inteiro toda vez.
+function dadosExemplo() {
   return {
-    ...newIds(),
     nome: 'Loja Comercial Centro (exemplo)', dataInicio: '2026-02-01', fase: 'Em desenvolvimento',
     endereco: 'Rua Grande', numero: '123', complemento: 'Sala 2', bairro: 'Centro', cidade: 'Sao Luis', uf: 'MA', cep: '65010-000',
     situacao: 'nova', anoAlvara: '2027', numeroAlvara: '',
@@ -60,5 +63,24 @@ export function criarProjetoExemplo() {
       central_gas:         { obrigatorio: false, ativo: false },
       spda:                { obrigatorio: false, ativo: false },
     },
+  }
+}
+
+// Copia avulsa do exemplo, com ID novo a cada clique em "Projeto de teste" —
+// varias podem coexistir, e cada uma pode ser excluida definitivamente.
+export function criarProjetoExemplo() {
+  return { ...newIds(), ...dadosExemplo() }
+}
+
+// Copia "fixada", com ID sempre igual (EXEMPLO_FIXO_ID) — usada para garantir
+// que sempre exista pelo menos um projeto de exemplo na lista. Se o usuario
+// excluir essa copia, ela reaparece no proximo carregamento da pagina.
+export function criarProjetoExemploFixo() {
+  return {
+    ...dadosExemplo(),
+    id: EXEMPLO_FIXO_ID,
+    seqId: 'PRJ-EXEMPLO',
+    createdAt: new Date().toISOString(),
+    exemploFixo: true,
   }
 }

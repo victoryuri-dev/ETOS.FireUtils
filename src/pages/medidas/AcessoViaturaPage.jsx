@@ -106,11 +106,11 @@ export default function AcessoViaturaPage() {
         <div className="mb-8">
           <SectionTitle n={1} label="Exigibilidade da Via de Acesso"/>
           <Card className="mb-3">
-            <div className="py-3.5 px-[18px] grid grid-cols-3 gap-3.5">
+            <div className="py-3.5 px-[28px] flex flex-col lg:flex-row lg:justify-between gap-4.5">
               <Field label="Altura da edificação">
                 <div className={`${inputClass} bg-surface-2 flex items-center font-bold text-ink`}>{fmt(altura)} m</div>
               </Field>
-              <Field label="Afastamento até o meio-fio da via pública">
+              <Field label="Afastamento da edificação até o meio-fio da via pública">
                 <NumberInput value={inputs.afastamentoMeioFio} onChange={v => set({ afastamentoMeioFio: v })} suffix="m" required/>
               </Field>
               <Field label="Condomínio de residências uni/multifamiliares?">

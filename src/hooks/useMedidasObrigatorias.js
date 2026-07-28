@@ -9,6 +9,11 @@ import { classificarPavimentos, divisoesDaEstrutura } from '../utils/classificac
 // independente do resultado do motor.
 const SEMPRE_OBRIGATORIO = ['acesso_viatura', 'seg_estrutural']
 
+// Inverso do acima: mesmo que a tabela da norma marque como obrigatoria pra
+// a ocupacao/altura, o usuario decide se instala (fica sempre habilitavel/
+// desabilitavel manualmente em Configuracao, nunca travada como "Obrigatorio").
+const SEMPRE_OPCIONAL = ['central_gas']
+
 // Conjunto minimo de referencia aplicado quando a norma ainda nao tem dados
 // cadastrados (Tabela 6 / processo normal) para algum grupo de ocupacao
 // presente na estrutura — evita que o motor "esconda" exigencias por falta
@@ -49,6 +54,9 @@ export function useMedidasObrigatorias() {
       if (gruposFaltantes.length > 0) {
         BASELINE_QUANDO_FALTA_DADO.forEach(k => { medidas[k] = true })
       }
+      // Vence por ultimo: nunca trava como obrigatoria, mesmo que a tabela
+      // da norma ou o baseline de grupo-sem-dados tenham marcado true acima.
+      SEMPRE_OPCIONAL.forEach(k => { medidas[k] = false })
 
       return {
         estrutura: est,

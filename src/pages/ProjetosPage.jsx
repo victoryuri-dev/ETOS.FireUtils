@@ -1,6 +1,20 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Icon from '../components/ui/Icon'
 import { useNorma } from '../hooks/useNorma'
+import { criarProjetoExemploFixo, EXEMPLO_FIXO_ID } from '../data/projetoExemplo'
+
+// Garante que o projeto de exemplo fixo sempre exista na lista — se foi
+// excluido em uma sessao anterior, recria-lo ao carregar a pagina.
+function garantirProjetoExemploFixo() {
+  try {
+    const raw = localStorage.getItem('etos-projetos')
+    const all = raw ? JSON.parse(raw) : {}
+    if (all[EXEMPLO_FIXO_ID]) return false
+    all[EXEMPLO_FIXO_ID] = { ...criarProjetoExemploFixo(), updatedAt: new Date().toISOString() }
+    localStorage.setItem('etos-projetos', JSON.stringify(all))
+    return true
+  } catch { return false }
+}
 
 // ── helpers ───────────────────────────────────────────────────────────
 
@@ -150,6 +164,9 @@ function ProjectCard({ proj, onOpen, onDelete }) {
       {/* Badges */}
       <div className="flex gap-1.5 flex-wrap">
         <Badge {...st}/>
+        {proj.exemploFixo && (
+          <Badge label="Exemplo" tone="amber"/>
+        )}
         {q > 1200 && (
           <Badge label="Risco especial" tone="red"/>
         )}
@@ -230,8 +247,9 @@ function ProjectRow({ proj, onOpen, onDelete }) {
       <div className={`w-[7px] h-[7px] rounded-full shrink-0 ${st.tone === 'green' ? 'bg-green' : st.tone === 'amber' ? 'bg-amber' : 'bg-ink-faint'}`}/>
 
       {/* Nome */}
-      <span className="text-[13px] font-medium text-ink overflow-hidden text-ellipsis whitespace-nowrap">
+      <span className="text-[13px] font-medium text-ink overflow-hidden text-ellipsis whitespace-nowrap flex items-center gap-1.5">
         {proj.nome || <span className="text-ink-faint italic">Sem nome</span>}
+        {proj.exemploFixo && <Badge label="Exemplo" tone="amber"/>}
       </span>
 
       {/* Status badge */}
@@ -368,6 +386,12 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
   const [sort,        setSort]        = useState('recent')
   const [filterUF,    setFilterUF]    = useState('')
   const [filterGrupo, setFilterGrupo] = useState('')
+
+  // Roda a cada vez que a pagina "Meus projetos" monta (inclui reload) —
+  // se o exemplo fixo foi excluido, recria-lo antes de ler a lista.
+  useEffect(() => {
+    if (garantirProjetoExemploFixo()) setTick(t => t + 1)
+  }, [])
 
   // Lê todos os projetos do localStorage
   const allProjects = useMemo(() => {

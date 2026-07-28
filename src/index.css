@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -11,6 +12,7 @@
   --color-ink-faint: rgba(255,255,255,.50); --color-ink-hint: rgba(255,255,255,.40);
   --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
   --font-sans: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-heading: 'Space Grotesk', -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
 
 @layer base {
@@ -62,6 +64,15 @@
   size: A4 portrait;
   margin: 6mm;
 }
+
+/* Memorial Descritivo: margens de encadernacao (topo/inferior maiores para
+   numero de pagina) — pagina nomeada so afeta quem usa `page: memorial`
+   (ver .print-area-memorial), sem alterar o Anexo B. */
+@page memorial {
+  size: A4 portrait;
+  margin: 3cm 2cm;
+}
+.print-area-memorial { page: memorial; }
 
 @media print {
   body *{visibility:hidden}
