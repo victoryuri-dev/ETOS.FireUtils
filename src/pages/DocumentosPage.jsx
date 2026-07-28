@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import AnexoBPage from './documentos/AnexoBPage'
+import MemorialDescritivoPage from './documentos/MemorialDescritivoPage'
 import Icon from '../components/ui/Icon'
 
 const DOCUMENTOS = [
@@ -7,6 +8,11 @@ const DOCUMENTOS = [
     id: 'anexo-b',
     titulo: 'Anexo B — NT 01',
     descricao: 'Formulario de Seguranca Contra Incendio para Processo Tecnico. Preenchido com os dados cadastrados nas etapas de configuracao do projeto.',
+  },
+  {
+    id: 'memorial-descritivo',
+    titulo: 'Memorial Descritivo',
+    descricao: 'Uma pagina por medida de seguranca dimensionada, com o texto tecnico gerado a partir dos dados de cada dimensionamento.',
   },
 ]
 
@@ -33,6 +39,9 @@ export default function DocumentosPage() {
 
   if (aberto === 'anexo-b') {
     return <AnexoBPage onBack={() => setAberto(null)}/>
+  }
+  if (aberto === 'memorial-descritivo') {
+    return <MemorialDescritivoPage onBack={() => setAberto(null)}/>
   }
 
   return (

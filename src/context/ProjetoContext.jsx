@@ -42,6 +42,16 @@ const INITIAL_STATE = {
   artNumero: '', artData: '', artTipoServico: 'Projeto', artValorObra: '',
   pavimentos: [],
   cargaState: {},
+  acessoViatura: {
+    afastamentoMeioFio: '', isCondominio: false,
+    larguraAdotada: '', alturaLivreAdotada: '',
+    cargaConfirmada: false,
+    desnivelLongAdotado: '', desnivelTransvAdotado: '',
+    temPortao: false, portaoLargura: '', portaoAltura: '',
+    extensaoVia: '', tipoRetorno: '',
+    semManobraRetorno: false, saidaIndepLargura: '', saidaIndepAltura: '',
+    distanciaAdotada: '',
+  },
   riscosEspeciais: {
     liquidos_inflamaveis: false, fogos_artificio: false, glp: false,
     vasos_pressao: false, produtos_perigosos: false, outros: false,
@@ -125,6 +135,8 @@ function reducer(state, action) {
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, acess: p.acess.filter((_, i) => i !== action.index) } : p) }
     case 'UPDATE_ACESS':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, acess: p.acess.map((a, i) => i === action.index ? { ...a, ...action.changes } : a) } : p) }
+    case 'SET_ACESSO_VIATURA':
+      return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
     case 'SET_CARGA':
       return { ...state, cargaState: { ...state.cargaState, [action.code]: { ...(state.cargaState[action.code] || {}), ...action.changes } } }
     case 'INIT_CARGA': {

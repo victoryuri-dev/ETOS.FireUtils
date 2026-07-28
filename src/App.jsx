@@ -9,6 +9,7 @@ import DocumentosPage from './pages/DocumentosPage'
 import MedidaPage            from './pages/MedidaPage'
 import SaidaEmergenciaPage   from './pages/medidas/SaidaEmergenciaPage'
 import HidrantesPage          from './pages/medidas/HidrantesPage'
+import AcessoViaturaPage      from './pages/medidas/AcessoViaturaPage'
 import Icon           from './components/ui/Icon'
 
 // ── AppHeader ─────────────────────────────────────────────────────────
@@ -109,7 +110,8 @@ function AppInner() {
           {page === 'documentos' && <DocumentosPage/>}
           {sistKey === 'saida_emergencia' && <SaidaEmergenciaPage/>}
           {sistKey === 'hidrantes' && <HidrantesPage/>}
-          {sistKey && sistKey !== 'saida_emergencia' && sistKey !== 'hidrantes' && <MedidaPage sistKey={sistKey}/>}
+          {sistKey === 'acesso_viatura' && <AcessoViaturaPage/>}
+          {sistKey && !['saida_emergencia', 'hidrantes', 'acesso_viatura'].includes(sistKey) && <MedidaPage sistKey={sistKey}/>}
         </div>
 
       </div>

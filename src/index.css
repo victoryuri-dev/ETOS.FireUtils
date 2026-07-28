@@ -68,4 +68,5 @@
   .print-area,.print-area *{visibility:visible}
   .print-area{position:absolute;top:0;left:0;width:100%;margin:0;box-shadow:none;border-radius:0}
   .no-print{display:none!important}
+  .memorial-secao:not(:last-child){page-break-after:always;break-after:page}
 }

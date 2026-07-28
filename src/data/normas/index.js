@@ -14,10 +14,12 @@ import * as PB from './PB/ocupacoes'
 
 import * as MA_SE  from './MA/saida_emergencia'
 import * as MA_MED from './MA/medidas'
+import * as MA_AV  from './MA/acesso_viatura'
 
 const NORMAS     = { MA, PE, PB }
 const NORMAS_SE  = { MA: MA_SE }
 const NORMAS_MED = { MA: MA_MED }
+const NORMAS_AV  = { MA: MA_AV }
 
 // Estados listados no seletor — ativo:false = aparece mas nao pode selecionar
 export const ESTADOS_DISPONIVEIS = [
@@ -28,6 +30,7 @@ export const ESTADOS_DISPONIVEIS = [
 
 export function getNorma(uf)       { return NORMAS[uf] ?? null }
 export function getSE(uf)          { return NORMAS_SE[uf] ?? NORMAS_SE['MA'] }
+export function getAV(uf)          { return NORMAS_AV[uf] ?? NORMAS_AV['MA'] }
 export function getOcupacoes(uf)   { return getNorma(uf)?.OCUPACOES ?? {} }
 export function getGrupos(uf)      {
   const oc = getOcupacoes(uf)
