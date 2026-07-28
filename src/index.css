@@ -58,6 +58,11 @@
   .carga-class.high{background:var(--color-red-dim);border:.5px solid var(--color-red-border);color:var(--color-red)}
 }
 
+@page {
+  size: A4 portrait;
+  margin: 6mm;
+}
+
 @media print {
   body *{visibility:hidden}
   .print-area,.print-area *{visibility:visible}

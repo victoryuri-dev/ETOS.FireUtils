@@ -8,9 +8,9 @@ import Icon from '../../components/ui/Icon'
 // (10 colunas na tabela original). Ver scripts/registros da conversa para a
 // extracao campo-a-campo do docx de referencia.
 
-const td = 'border border-solid border-[#c9c9cb] align-top py-1.5 px-2'
-const lbl = 'text-[10px] font-bold text-[#4D4D4F] uppercase tracking-[.01em]'
-const val = 'text-[12px] text-black'
+const td = 'border border-solid border-[#c9c9cb] align-top py-1.5 px-2 print:py-0.5 print:px-1 print:leading-tight'
+const lbl = 'text-[10px] font-bold text-[#4D4D4F] uppercase tracking-[.01em] print:text-[8px]'
+const val = 'text-[12px] text-black print:text-[9.5px]'
 
 function Campo({ label, value, accent }) {
   return (
@@ -24,7 +24,7 @@ function Campo({ label, value, accent }) {
 function SectionBar({ children }) {
   return (
     <tr>
-      <td colSpan={10} className="bg-[#BCBDC1] text-[#485479] text-[12px] font-bold uppercase tracking-[.03em] text-center py-1.5 border border-solid border-[#c9c9cb]">
+      <td colSpan={10} className="bg-[#BCBDC1] text-[#485479] text-[12px] print:text-[9px] font-bold uppercase tracking-[.03em] text-center py-1.5 print:py-0.5 print:leading-tight border border-solid border-[#c9c9cb]">
         {children}
       </td>
     </tr>
@@ -32,7 +32,7 @@ function SectionBar({ children }) {
 }
 
 function Check({ ativo }) {
-  return <td className={`${td} w-6 text-center`}>{ativo && <span className="font-bold">X</span>}</td>
+  return <td className={`${td} w-6 text-center text-[12px] print:text-[9.5px]`}>{ativo && <span className="font-bold">X</span>}</td>
 }
 
 function MedidaRow({ a, b }) {
@@ -72,10 +72,10 @@ export default function AnexoBPage({ onBack }) {
       </div>
 
       <div className="flex-1 overflow-y-auto py-8">
-        <div className="print-area max-w-[900px] mx-auto bg-white text-black rounded-lg shadow-[0_4px_24px_rgba(0,0,0,.35)] py-8 px-9">
+        <div className="print-area max-w-[900px] mx-auto bg-white text-black rounded-lg shadow-[0_4px_24px_rgba(0,0,0,.35)] py-8 px-9 print:py-0 print:px-0">
 
           {/* Cabecalho */}
-          <div className="text-center mb-4">
+          <div className="text-center mb-4 print:mb-2">
             <div className="text-[13px] font-bold text-[#485479]">ANEXO B</div>
             <div className="text-[11px] font-semibold text-[#4D4D4F] uppercase tracking-[.03em]">Formulário de Segurança Contra Incêndio para Processo Técnico</div>
           </div>
@@ -190,10 +190,10 @@ export default function AnexoBPage({ onBack }) {
             </tbody>
           </table>
 
-          <p className="text-[10px] text-[#8a8a8c] mt-2 mb-0">Campos "Para uso do CBMMA" (protocolo, observações, Nº do CAP) são de preenchimento exclusivo do Corpo de Bombeiros.</p>
+          <p className="text-[10px] text-[#8a8a8c] mt-2 print:mt-1 mb-0">Campos "Para uso do CBMMA" (protocolo, observações, Nº do CAP) são de preenchimento exclusivo do Corpo de Bombeiros.</p>
 
           {/* Assinaturas */}
-          <div className="grid grid-cols-2 gap-8 mt-10 pt-4">
+          <div className="grid grid-cols-2 gap-8 mt-10 pt-4 print:mt-4 print:pt-2">
             <div className="text-center">
               <div className="border-t border-solid border-black pt-1.5 text-[11px] text-[#4D4D4F]">Responsável Técnico</div>
             </div>
@@ -202,7 +202,7 @@ export default function AnexoBPage({ onBack }) {
             </div>
           </div>
 
-          <div className="text-center text-[9px] text-[#8a8a8c] mt-8 pt-2 border-t border-solid border-[#dcdcdc]">
+          <div className="text-center text-[9px] text-[#8a8a8c] mt-8 pt-2 print:mt-3 print:pt-1 border-t border-solid border-[#dcdcdc]">
             NT 01/2021 Procedimentos Administrativos e Medidas de Segurança — gerado pelo ETOS Fire Utils em {hoje}
           </div>
 
