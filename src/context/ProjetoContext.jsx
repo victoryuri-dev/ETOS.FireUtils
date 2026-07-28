@@ -48,8 +48,8 @@ const INITIAL_STATE = {
     cargaConfirmada: false,
     desnivelLongAdotado: '', desnivelTransvAdotado: '',
     temPortao: false, portaoLargura: '', portaoAltura: '',
-    extensaoVia: '', tipoRetorno: '',
-    semManobraRetorno: false, saidaIndepLargura: '', saidaIndepAltura: '',
+    extensaoVia: '', tipoRetorno: '', tipoRetornoOutroDesc: '',
+    manobraRetornoOk: true, saidaIndepLargura: '', saidaIndepAltura: '',
     distanciaAdotada: '',
   },
   riscosEspeciais: {
@@ -149,7 +149,14 @@ function reducer(state, action) {
     case 'TOGGLE_RISCO':
       return { ...state, riscosEspeciais: { ...state.riscosEspeciais, [action.key]: !state.riscosEspeciais[action.key] } }
     case 'LOAD':
-      return { ...INITIAL_STATE, ...action.payload }
+      // acessoViatura mesclado a parte: projetos salvos antes de um campo novo
+      // existir (ex.: manobraRetornoOk) não podem perder o valor padrão dele
+      // só porque o resto do objeto já foi salvo.
+      return {
+        ...INITIAL_STATE,
+        ...action.payload,
+        acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(action.payload.acessoViatura || {}) },
+      }
     case 'NEW_PROJECT':
       return { ...INITIAL_STATE, id: action.id, seqId: action.seqId, createdAt: action.createdAt, estruturas: [novaEstrutura('Estrutura 1')] }
     default: return state

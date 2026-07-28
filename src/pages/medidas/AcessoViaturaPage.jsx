@@ -8,18 +8,45 @@ const fmt = n => Number(n || 0).toFixed(2).replace('.', ',')
 
 // ── Shared UI ─────────────────────────────────────────────────────────
 const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'
+// Mesma aparência, mas em âmbar — usada em campos obrigatórios ainda vazios,
+// sem precisar de uma mensagem de alerta repetindo o que o campo já diz.
+const inputWarnClass = 'bg-amber-dim border border-solid border-amber-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'
 function Label({ children }) {
   return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">{children}</div>
 }
-function Field({ label, children }) {
-  return <div>{label && <Label>{label}</Label>}{children}</div>
+function Field({ label, hint, children }) {
+  return (
+    <div>
+      {label && (
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
+          {hint && <div className="text-[10px] text-ink-faint font-mono whitespace-nowrap">{hint}</div>}
+        </div>
+      )}
+      {children}
+    </div>
+  )
 }
-function NumberInput({ value, onChange, suffix, min = 0 }) {
+function NumberInput({ value, onChange, suffix, min = 0, defaultValue, limitMin, limitMax, required }) {
+  // Campo pré-preenchido com o valor limite normativo (defaultValue) até o
+  // usuário digitar algo diferente — evita ter que redigitar valores que já
+  // atendem. Ao perder o foco, valores fora do limite (limitMin/limitMax)
+  // são substituídos automaticamente pelo próprio limite.
+  const display = (value === '' || value == null) && defaultValue != null ? defaultValue : value
+  const isEmpty = required && (value === '' || value == null)
+  const handleBlur = () => {
+    if (value === '' || value == null) return
+    const n = parseFloat(value)
+    if (isNaN(n)) return
+    if (limitMin != null && n < limitMin) onChange(String(limitMin))
+    else if (limitMax != null && n > limitMax) onChange(String(limitMax))
+  }
   return (
     <div className="relative">
-      <input type="number" step="0.01" min={min} value={value}
+      <input type="number" step="0.01" min={min} value={display}
         onChange={e => onChange(e.target.value)}
-        className={inputClass + (suffix ? ' pr-8' : '')}/>
+        onBlur={handleBlur}
+        className={(isEmpty ? inputWarnClass : inputClass) + (suffix ? ' pr-8' : '')}/>
       {suffix && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">{suffix}</span>}
     </div>
   )
@@ -37,30 +64,13 @@ function Toggle({ checked, onChange, label }) {
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
 }
-function CardHeader({ children }) {
-  return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2">{children}</div>
-}
-function SectionTitle({ n, label, ref: refItem }) {
+function SectionTitle({ n, label }) {
   return (
     <div className="flex items-center gap-2.5 mb-3">
       <div className="w-6 h-6 rounded-md bg-red flex items-center justify-center text-[11px] font-bold text-white shrink-0">{n}</div>
       <h3 className="text-sm font-bold text-ink m-0">{label}</h3>
-      {refItem && <span className="text-[10px] text-ink-faint font-mono">{refItem}</span>}
     </div>
   )
-}
-function Table({ children }) {
-  return <div className="border border-solid border-border rounded-md overflow-hidden mb-1"><table className="w-full border-collapse">{children}</table></div>
-}
-function TH({ children, right, center }) {
-  return <th className={`text-[10px] text-ink-faint uppercase tracking-[.07em] font-medium py-[9px] px-3.5 border-b border-solid border-border bg-surface-2 whitespace-nowrap ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}>{children}</th>
-}
-function TD({ children, red, bold, muted, right, center }) {
-  const colorClass = red ? 'text-red' : muted ? 'text-ink-faint' : 'text-ink'
-  return <td className={`py-2.5 px-3.5 text-[13px] ${colorClass} ${bold ? 'font-bold' : 'font-normal'} border-b border-solid border-border-2 align-middle ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}>{children}</td>
-}
-function AtendeChip({ ok, texto }) {
-  return <span className={`inline-flex items-center gap-1 py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid ${ok ? 'bg-green-dim border-green-border text-green' : 'bg-red-dim border-red-border text-red'}`}>{texto || (ok ? 'ATENDE' : 'NÃO ATENDE')}</span>
 }
 
 // ── Página principal ────────────────────────────────────────────────────
@@ -68,7 +78,7 @@ export default function AcessoViaturaPage() {
   const { state, dispatch } = useProjeto()
   const { av } = useNorma()
   const { sistemas } = useMedidasObrigatorias()
-  const { GATILHO, VIA_ACESSO, NOTAS } = av
+  const { GATILHO, VIA_ACESSO } = av
   const inputs = state.acessoViatura
   const temHidrantes = !!sistemas.hidrantes?.ativo
 
@@ -88,20 +98,20 @@ export default function AcessoViaturaPage() {
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
           <h2 className="text-[22px] font-bold text-ink mb-1.5">Acesso de Viatura</h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
-            Dimensionamento conforme item 5.1 (Anexo A e Anexo B) da NT 01/2024 CBMMA.
+            Dimensionamento conforme item 5.1 (Anexo A e Anexo B) da NT 06/2021 CBMMA — Acesso de Viaturas nas Edificações e Áreas de Risco.
           </p>
         </div>
 
         {/* S1 — Exigibilidade */}
         <div className="mb-8">
-          <SectionTitle n={1} label="Exigibilidade da Via de Acesso" ref={NOTAS.gatilho}/>
+          <SectionTitle n={1} label="Exigibilidade da Via de Acesso"/>
           <Card className="mb-3">
             <div className="py-3.5 px-[18px] grid grid-cols-3 gap-3.5">
               <Field label="Altura da edificação">
                 <div className={`${inputClass} bg-surface-2 flex items-center font-bold text-ink`}>{fmt(altura)} m</div>
               </Field>
               <Field label="Afastamento até o meio-fio da via pública">
-                <NumberInput value={inputs.afastamentoMeioFio} onChange={v => set({ afastamentoMeioFio: v })} suffix="m"/>
+                <NumberInput value={inputs.afastamentoMeioFio} onChange={v => set({ afastamentoMeioFio: v })} suffix="m" required/>
               </Field>
               <Field label="Condomínio de residências uni/multifamiliares?">
                 <Toggle checked={inputs.isCondominio} onChange={v => set({ isCondominio: v })} label={inputs.isCondominio ? 'Sim' : 'Não'}/>
@@ -129,69 +139,52 @@ export default function AcessoViaturaPage() {
         {gat.exigido && (
           <div className="flex flex-col gap-8">
 
-            {/* Resumo */}
-            <Card>
-              <CardHeader>
-                <span className="text-[11px] font-bold text-ink-faint uppercase tracking-[.06em]">Resultado geral</span>
-              </CardHeader>
-              <div className="py-3.5 px-[18px] flex items-center justify-between">
-                <span className="text-xs text-ink-faint">Todos os itens de dimensionamento abaixo</span>
-                <AtendeChip ok={r.atendeGeral} texto={r.atendeGeral ? 'ATENDE À NT 01/2024' : 'PENDÊNCIAS'}/>
-              </div>
-            </Card>
-
             {/* S2 — Largura e altura livre */}
             <div>
-              <SectionTitle n={2} label="Largura e Altura Livre" ref={`${NOTAS.largura} / ${NOTAS.alturaLivre}`}/>
-              <Card className="mb-3">
+              <SectionTitle n={2} label="Largura e Altura Livre"/>
+              <Card>
                 <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
-                  <Field label="Largura adotada"><NumberInput value={inputs.larguraAdotada} onChange={v => set({ larguraAdotada: v })} suffix="m"/></Field>
-                  <Field label="Altura livre adotada"><NumberInput value={inputs.alturaLivreAdotada} onChange={v => set({ alturaLivreAdotada: v })} suffix="m"/></Field>
+                  <Field label="Largura adotada" hint={`mín. ${fmt(VIA_ACESSO.larguraMin)} m`}>
+                    <NumberInput value={inputs.larguraAdotada} onChange={v => set({ larguraAdotada: v })} suffix="m" defaultValue={VIA_ACESSO.larguraMin} limitMin={VIA_ACESSO.larguraMin}/>
+                  </Field>
+                  <Field label="Altura livre adotada" hint={`mín. ${fmt(VIA_ACESSO.alturaLivreMin)} m`}>
+                    <NumberInput value={inputs.alturaLivreAdotada} onChange={v => set({ alturaLivreAdotada: v })} suffix="m" defaultValue={VIA_ACESSO.alturaLivreMin} limitMin={VIA_ACESSO.alturaLivreMin}/>
+                  </Field>
                 </div>
               </Card>
-              <Table>
-                <thead><tr><TH>Item</TH><TH right>Adotado</TH><TH right>Mínimo</TH><TH center>Verificação</TH></tr></thead>
-                <tbody>
-                  <tr><TD muted>Largura da via</TD><TD right bold>{fmt(r.largura.adotada)} m</TD><TD right muted>{fmt(r.largura.minima)} m</TD><td className="py-2.5 px-3.5 text-center border-b border-solid border-border-2"><AtendeChip ok={r.largura.atende}/></td></tr>
-                  <tr><TD muted>Altura livre</TD><TD right bold>{fmt(r.alturaLivre.adotada)} m</TD><TD right muted>{fmt(r.alturaLivre.minima)} m</TD><td className="py-2.5 px-3.5 text-center border-b border-solid border-border-2"><AtendeChip ok={r.alturaLivre.atende}/></td></tr>
-                </tbody>
-              </Table>
             </div>
 
             {/* S3 — Capacidade de carga */}
             <div>
-              <SectionTitle n={3} label="Capacidade de Carga do Pavimento" ref={NOTAS.carga}/>
+              <SectionTitle n={3} label="Capacidade de Carga do Pavimento"/>
               <Card>
                 <div className="py-3.5 px-[18px] flex items-center justify-between gap-4">
                   <span className="text-xs text-ink-faint max-w-[560px] leading-[1.6]">
-                    A via de acesso deve suportar viaturas com peso de <strong className="text-ink">{VIA_ACESSO.cargaMinKg / 1000} t</strong> distribuídas em <strong className="text-ink">{VIA_ACESSO.cargaEixos} eixos</strong>, em toda a sua extensão. Item de responsabilidade do projeto estrutural.
+                    O pavimento da via de acesso suporta viaturas com peso de <strong className="text-ink">{VIA_ACESSO.cargaMinKg / 1000} t</strong> distribuídas em <strong className="text-ink">{VIA_ACESSO.cargaEixos} eixos</strong>, em toda a sua extensão?
                   </span>
-                  <Toggle checked={inputs.cargaConfirmada} onChange={v => set({ cargaConfirmada: v })} label={inputs.cargaConfirmada ? 'Confirmado' : 'Pendente'}/>
+                  <Toggle checked={inputs.cargaConfirmada} onChange={v => set({ cargaConfirmada: v })} label={inputs.cargaConfirmada ? 'Sim' : 'Não'}/>
                 </div>
               </Card>
             </div>
 
             {/* S4 — Desnível */}
             <div>
-              <SectionTitle n={4} label="Desnível da Via" ref={NOTAS.desnivel}/>
-              <Card className="mb-3">
+              <SectionTitle n={4} label="Desnível da Via"/>
+              <Card>
                 <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
-                  <Field label="Desnível longitudinal adotado"><NumberInput value={inputs.desnivelLongAdotado} onChange={v => set({ desnivelLongAdotado: v })} suffix="%"/></Field>
-                  <Field label="Desnível transversal adotado"><NumberInput value={inputs.desnivelTransvAdotado} onChange={v => set({ desnivelTransvAdotado: v })} suffix="%"/></Field>
+                  <Field label="Desnível longitudinal adotado" hint={`máx. ${VIA_ACESSO.desnivelMaxPct}%`}>
+                    <NumberInput value={inputs.desnivelLongAdotado} onChange={v => set({ desnivelLongAdotado: v })} suffix="%" defaultValue={VIA_ACESSO.desnivelMaxPct} limitMax={VIA_ACESSO.desnivelMaxPct}/>
+                  </Field>
+                  <Field label="Desnível transversal adotado" hint={`máx. ${VIA_ACESSO.desnivelMaxPct}%`}>
+                    <NumberInput value={inputs.desnivelTransvAdotado} onChange={v => set({ desnivelTransvAdotado: v })} suffix="%" defaultValue={VIA_ACESSO.desnivelMaxPct} limitMax={VIA_ACESSO.desnivelMaxPct}/>
+                  </Field>
                 </div>
               </Card>
-              <Table>
-                <thead><tr><TH>Item</TH><TH right>Adotado</TH><TH right>Máximo</TH><TH center>Verificação</TH></tr></thead>
-                <tbody>
-                  <tr><TD muted>Longitudinal</TD><TD right bold>{fmt(r.desnivel.longAdotado)}%</TD><TD right muted>{r.desnivel.maximo}%</TD><td className="py-2.5 px-3.5 text-center border-b border-solid border-border-2"><AtendeChip ok={r.desnivel.atendeLong}/></td></tr>
-                  <tr><TD muted>Transversal</TD><TD right bold>{fmt(r.desnivel.transvAdotado)}%</TD><TD right muted>{r.desnivel.maximo}%</TD><td className="py-2.5 px-3.5 text-center border-b border-solid border-border-2"><AtendeChip ok={r.desnivel.atendeTransv}/></td></tr>
-                </tbody>
-              </Table>
             </div>
 
             {/* S5 — Portão */}
             <div>
-              <SectionTitle n={5} label="Portão de Acesso" ref={NOTAS.portao}/>
+              <SectionTitle n={5} label="Portão de Acesso"/>
               <Card className={inputs.temPortao ? 'mb-3' : ''}>
                 <div className="py-3.5 px-[18px] flex items-center justify-between gap-4">
                   <span className="text-xs text-ink-faint">A edificação possui portão no acesso da via?</span>
@@ -199,27 +192,22 @@ export default function AcessoViaturaPage() {
                 </div>
               </Card>
               {inputs.temPortao && (
-                <>
-                  <Card className="mb-3">
-                    <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
-                      <Field label="Largura adotada"><NumberInput value={inputs.portaoLargura} onChange={v => set({ portaoLargura: v })} suffix="m"/></Field>
-                      <Field label="Altura adotada"><NumberInput value={inputs.portaoAltura} onChange={v => set({ portaoAltura: v })} suffix="m"/></Field>
-                    </div>
-                  </Card>
-                  <Table>
-                    <thead><tr><TH>Item</TH><TH right>Adotado</TH><TH right>Mínimo</TH><TH center>Verificação</TH></tr></thead>
-                    <tbody>
-                      <tr><TD muted>Largura do portão</TD><TD right bold>{fmt(r.portao.largura.adotada)} m</TD><TD right muted>{fmt(r.portao.largura.minima)} m</TD><td className="py-2.5 px-3.5 text-center border-b border-solid border-border-2"><AtendeChip ok={r.portao.largura.atende}/></td></tr>
-                      <tr><TD muted>Altura do portão</TD><TD right bold>{fmt(r.portao.altura.adotada)} m</TD><TD right muted>{fmt(r.portao.altura.minima)} m</TD><td className="py-2.5 px-3.5 text-center border-b border-solid border-border-2"><AtendeChip ok={r.portao.altura.atende}/></td></tr>
-                    </tbody>
-                  </Table>
-                </>
+                <Card>
+                  <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
+                    <Field label="Largura adotada" hint={`mín. ${fmt(VIA_ACESSO.portao.larguraMin)} m`}>
+                      <NumberInput value={inputs.portaoLargura} onChange={v => set({ portaoLargura: v })} suffix="m" defaultValue={VIA_ACESSO.portao.larguraMin} limitMin={VIA_ACESSO.portao.larguraMin}/>
+                    </Field>
+                    <Field label="Altura adotada" hint={`mín. ${fmt(VIA_ACESSO.portao.alturaMin)} m`}>
+                      <NumberInput value={inputs.portaoAltura} onChange={v => set({ portaoAltura: v })} suffix="m" defaultValue={VIA_ACESSO.portao.alturaMin} limitMin={VIA_ACESSO.portao.alturaMin}/>
+                    </Field>
+                  </div>
+                </Card>
               )}
             </div>
 
             {/* S6 — Retorno */}
             <div>
-              <SectionTitle n={6} label="Retorno de Viatura" ref={NOTAS.retorno}/>
+              <SectionTitle n={6} label="Retorno de Viatura"/>
               <Card className="mb-3">
                 <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5 items-end">
                   <Field label="Extensão da via de acesso"><NumberInput value={inputs.extensaoVia} onChange={v => set({ extensaoVia: v })} suffix="m"/></Field>
@@ -235,7 +223,7 @@ export default function AcessoViaturaPage() {
                 <Card className="mb-3">
                   <div className="py-3.5 px-[18px]">
                     <Label>Tipo de retorno adotado</Label>
-                    <div className="flex gap-2 mt-1">
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
                       {r.retorno.tipos.map(t => (
                         <button key={t} onClick={() => set({ tipoRetorno: t })}
                           className={`text-xs py-1.5 px-3 rounded-md border border-solid cursor-pointer capitalize ${inputs.tipoRetorno === t ? 'border-red-border bg-red-dim text-red font-semibold' : 'border-border bg-transparent text-ink-faint'}`}>
@@ -243,9 +231,15 @@ export default function AcessoViaturaPage() {
                         </button>
                       ))}
                       <button onClick={() => set({ tipoRetorno: 'outro' })}
-                        className={`text-xs py-1.5 px-3 rounded-md border border-solid cursor-pointer ${inputs.tipoRetorno === 'outro' ? 'border-red-border bg-red-dim text-red font-semibold' : 'border-border bg-transparent text-ink-faint'}`}>
-                        Outro (garante entrada/saída)
+                        className={`text-xs py-1.5 px-3 rounded-md border border-solid cursor-pointer shrink-0 ${inputs.tipoRetorno === 'outro' ? 'border-red-border bg-red-dim text-red font-semibold' : 'border-border bg-transparent text-ink-faint'}`}>
+                        Outro
                       </button>
+                      {inputs.tipoRetorno === 'outro' && (
+                        <input type="text" autoFocus placeholder="Especifique o tipo de retorno adotado"
+                          value={inputs.tipoRetornoOutroDesc}
+                          onChange={e => set({ tipoRetornoOutroDesc: e.target.value })}
+                          className={`${inputs.tipoRetornoOutroDesc ? inputClass : inputWarnClass} flex-1 min-w-[220px] w-auto`}/>
+                      )}
                     </div>
                     {!inputs.tipoRetorno && (
                       <div className="ibox amber mt-3 mb-0">
@@ -257,37 +251,32 @@ export default function AcessoViaturaPage() {
                 </Card>
               )}
 
-              <Card className={inputs.semManobraRetorno ? 'mb-3' : ''}>
+              <Card className={!inputs.manobraRetornoOk ? 'mb-3' : ''}>
                 <div className="py-3.5 px-[18px] flex items-center justify-between gap-4">
                   <span className="text-xs text-ink-faint max-w-[560px] leading-[1.6]">
-                    As ruas internas <strong className="text-ink">não</strong> possibilitam manobra de retorno da viatura para saída pelo portão de acesso? ({NOTAS.semManobra})
+                    As ruas internas possibilitam manobra de retorno da viatura para saída pelo portão de acesso? (5.1.1.6.2)
                   </span>
-                  <Toggle checked={inputs.semManobraRetorno} onChange={v => set({ semManobraRetorno: v })} label={inputs.semManobraRetorno ? 'Sim' : 'Não'}/>
+                  <Toggle checked={inputs.manobraRetornoOk} onChange={v => set({ manobraRetornoOk: v })} label={inputs.manobraRetornoOk ? 'Sim' : 'Não'}/>
                 </div>
               </Card>
 
-              {inputs.semManobraRetorno && (
-                <>
-                  <Card className="mb-3">
-                    <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
-                      <Field label="Saída independente — largura adotada"><NumberInput value={inputs.saidaIndepLargura} onChange={v => set({ saidaIndepLargura: v })} suffix="m"/></Field>
-                      <Field label="Saída independente — altura adotada"><NumberInput value={inputs.saidaIndepAltura} onChange={v => set({ saidaIndepAltura: v })} suffix="m"/></Field>
-                    </div>
-                  </Card>
-                  <Table>
-                    <thead><tr><TH>Item</TH><TH right>Adotado</TH><TH right>Mínimo</TH><TH center>Verificação</TH></tr></thead>
-                    <tbody>
-                      <tr><TD muted>Largura da saída independente</TD><TD right bold>{fmt(r.retorno.saidaIndependente.largura.adotada)} m</TD><TD right muted>{fmt(r.retorno.saidaIndependente.largura.minima)} m</TD><td className="py-2.5 px-3.5 text-center border-b border-solid border-border-2"><AtendeChip ok={r.retorno.saidaIndependente.largura.atende}/></td></tr>
-                      <tr><TD muted>Altura da saída independente</TD><TD right bold>{fmt(r.retorno.saidaIndependente.altura.adotada)} m</TD><TD right muted>{fmt(r.retorno.saidaIndependente.altura.minima)} m</TD><td className="py-2.5 px-3.5 text-center border-b border-solid border-border-2"><AtendeChip ok={r.retorno.saidaIndependente.altura.atende}/></td></tr>
-                    </tbody>
-                  </Table>
-                </>
+              {!inputs.manobraRetornoOk && (
+                <Card>
+                  <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
+                    <Field label="Saída independente — largura adotada" hint={`mín. ${fmt(VIA_ACESSO.portao.larguraMin)} m`}>
+                      <NumberInput value={inputs.saidaIndepLargura} onChange={v => set({ saidaIndepLargura: v })} suffix="m" defaultValue={VIA_ACESSO.portao.larguraMin} limitMin={VIA_ACESSO.portao.larguraMin}/>
+                    </Field>
+                    <Field label="Saída independente — altura adotada" hint={`mín. ${fmt(VIA_ACESSO.portao.alturaMin)} m`}>
+                      <NumberInput value={inputs.saidaIndepAltura} onChange={v => set({ saidaIndepAltura: v })} suffix="m" defaultValue={VIA_ACESSO.portao.alturaMin} limitMin={VIA_ACESSO.portao.alturaMin}/>
+                    </Field>
+                  </div>
+                </Card>
               )}
             </div>
 
             {/* S7 — Distância até a edificação */}
             <div>
-              <SectionTitle n={7} label="Distância até a Edificação" ref={NOTAS.distancia}/>
+              <SectionTitle n={7} label="Distância até a Edificação"/>
               <div className="ibox mb-3">
                 <Icon name="info" size={13} color="var(--color-ink-faint)" className="shrink-0"/>
                 <span className="text-xs">
@@ -296,19 +285,16 @@ export default function AcessoViaturaPage() {
                     : `Edificação sem sistema de hidrantes/mangotinhos — limite de ${VIA_ACESSO.distancia.semHidrante} m até a edificação.`}
                 </span>
               </div>
-              <Card className="mb-3">
+              <Card>
                 <div className="py-3.5 px-[18px]">
-                  <Field label={temHidrantes ? 'Distância adotada até o hidrante de recalque' : 'Distância adotada até a edificação'}>
-                    <NumberInput value={inputs.distanciaAdotada} onChange={v => set({ distanciaAdotada: v })} suffix="m"/>
+                  <Field
+                    label={temHidrantes ? 'Distância adotada até o hidrante de recalque' : 'Distância adotada até a edificação'}
+                    hint={`máx. ${r.distancia.maxima} m`}
+                  >
+                    <NumberInput value={inputs.distanciaAdotada} onChange={v => set({ distanciaAdotada: v })} suffix="m" limitMax={r.distancia.maxima} required/>
                   </Field>
                 </div>
               </Card>
-              <Table>
-                <thead><tr><TH>Item</TH><TH right>Adotado</TH><TH right>Máximo</TH><TH center>Verificação</TH></tr></thead>
-                <tbody>
-                  <tr><TD muted>Distância</TD><TD right bold>{fmt(r.distancia.adotada)} m</TD><TD right muted>{r.distancia.maxima} m</TD><td className="py-2.5 px-3.5 text-center border-b border-solid border-border-2"><AtendeChip ok={r.distancia.atende}/></td></tr>
-                </tbody>
-              </Table>
             </div>
 
           </div>

@@ -6,6 +6,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const num = v => parseFloat(v) || 0
+// Campo vazio (ainda não editado pelo usuário) assume o valor mínimo/limite
+// normativo — o usuário só precisa digitar algo se o projeto for diferente.
+const numOr = (v, def) => {
+  if (v === '' || v == null) return def
+  const n = parseFloat(v)
+  return isNaN(n) ? def : n
+}
 
 /** Anexo A — a via de acesso dedicada é exigida, ou a via pública já resolve? */
 export function calcGatilho(altura, afastamento, isCondominio, gatilho) {
@@ -24,24 +31,25 @@ export function calcAcessoViatura(inputs, params, ctx) {
   const { larguraMin, alturaLivreMin, cargaMinKg, cargaEixos, desnivelMaxPct, portao, retorno, distancia } = params
   const { temHidrantes } = ctx
 
-  const larguraAdotada    = num(inputs.larguraAdotada)
-  const alturaLivreAdotada = num(inputs.alturaLivreAdotada)
-  const desnivelLong      = num(inputs.desnivelLongAdotado)
-  const desnivelTransv    = num(inputs.desnivelTransvAdotado)
-  const extensaoVia       = num(inputs.extensaoVia)
-  const distanciaAdotada  = num(inputs.distanciaAdotada)
+  const larguraAdotada     = numOr(inputs.larguraAdotada, larguraMin)
+  const alturaLivreAdotada = numOr(inputs.alturaLivreAdotada, alturaLivreMin)
+  const desnivelLong       = numOr(inputs.desnivelLongAdotado, desnivelMaxPct)
+  const desnivelTransv     = numOr(inputs.desnivelTransvAdotado, desnivelMaxPct)
+  const extensaoVia        = num(inputs.extensaoVia)
+  const distanciaAdotada   = num(inputs.distanciaAdotada)
 
   const exigeRetorno = extensaoVia > retorno.extensaoGatilho
   const distanciaMaxima = temHidrantes ? distancia.comHidrante : distancia.semHidrante
+  const exigeSaidaIndependente = !inputs.manobraRetornoOk
 
   const portaoRes = inputs.temPortao ? {
-    largura: { adotada: num(inputs.portaoLargura), minima: portao.larguraMin, atende: num(inputs.portaoLargura) >= portao.larguraMin },
-    altura:  { adotada: num(inputs.portaoAltura),  minima: portao.alturaMin,  atende: num(inputs.portaoAltura)  >= portao.alturaMin },
+    largura: { adotada: numOr(inputs.portaoLargura, portao.larguraMin), minima: portao.larguraMin, atende: numOr(inputs.portaoLargura, portao.larguraMin) >= portao.larguraMin },
+    altura:  { adotada: numOr(inputs.portaoAltura, portao.alturaMin),   minima: portao.alturaMin,  atende: numOr(inputs.portaoAltura, portao.alturaMin) >= portao.alturaMin },
   } : null
 
-  const saidaIndepRes = inputs.semManobraRetorno ? {
-    largura: { adotada: num(inputs.saidaIndepLargura), minima: portao.larguraMin, atende: num(inputs.saidaIndepLargura) >= portao.larguraMin },
-    altura:  { adotada: num(inputs.saidaIndepAltura),  minima: portao.alturaMin,  atende: num(inputs.saidaIndepAltura)  >= portao.alturaMin },
+  const saidaIndepRes = exigeSaidaIndependente ? {
+    largura: { adotada: numOr(inputs.saidaIndepLargura, portao.larguraMin), minima: portao.larguraMin, atende: numOr(inputs.saidaIndepLargura, portao.larguraMin) >= portao.larguraMin },
+    altura:  { adotada: numOr(inputs.saidaIndepAltura, portao.alturaMin),   minima: portao.alturaMin,  atende: numOr(inputs.saidaIndepAltura, portao.alturaMin) >= portao.alturaMin },
   } : null
 
   const resultado = {
@@ -55,8 +63,8 @@ export function calcAcessoViatura(inputs, params, ctx) {
     portao: portaoRes,
     retorno: {
       extensaoVia, gatilho: retorno.extensaoGatilho, exigeRetorno,
-      tipoRetorno: inputs.tipoRetorno || '', tipos: retorno.tipos,
-      semManobra: !!inputs.semManobraRetorno,
+      tipoRetorno: inputs.tipoRetorno || '', outroDesc: inputs.tipoRetornoOutroDesc || '', tipos: retorno.tipos,
+      manobraOk: !!inputs.manobraRetornoOk,
       saidaIndependente: saidaIndepRes,
     },
     distancia: {
@@ -73,7 +81,7 @@ export function calcAcessoViatura(inputs, params, ctx) {
     resultado.desnivel.atendeLong,
     resultado.desnivel.atendeTransv,
     portaoRes ? (portaoRes.largura.atende && portaoRes.altura.atende) : true,
-    exigeRetorno ? !!resultado.retorno.tipoRetorno : true,
+    exigeRetorno ? (!!resultado.retorno.tipoRetorno && (resultado.retorno.tipoRetorno !== 'outro' || !!resultado.retorno.outroDesc)) : true,
     saidaIndepRes ? (saidaIndepRes.largura.atende && saidaIndepRes.altura.atende) : true,
     resultado.distancia.atende,
   ]

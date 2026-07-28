@@ -1,4 +1,5 @@
-// normas/MA/acesso_viatura.js — NT 01/2024 CBMMA, item 5.1 (Anexo A e Anexo B)
+// normas/MA/acesso_viatura.js — NT 06/2021 CBMMA (Acesso de Viaturas nas
+// Edificações e Áreas de Risco), item 5.1 (Anexo A e Anexo B)
 //
 // Duas partes:
 //  1. GATILHO — Anexo A: define SE a edificação precisa de via de acesso
@@ -37,7 +38,7 @@ export const VIA_ACESSO = {
 }
 
 export const NOTAS = {
-  gatilho:   'Anexo A, NT 01/2024 CBMMA — Tabela para dimensionamento de Via de Acesso.',
+  gatilho:   'Anexo A, NT 06/2021 CBMMA — Tabela para dimensionamento de Via de Acesso.',
   largura:   '5.1.1.1',
   alturaLivre: '5.1.1.2',
   carga:     '5.1.1.3',

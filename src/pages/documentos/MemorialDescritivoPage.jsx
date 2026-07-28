@@ -57,8 +57,8 @@ export default function MemorialDescritivoPage({ onBack }) {
   const secoes = buildMemorial(state, sistemas)
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-bg">
-      <div className="no-print shrink-0 flex items-center justify-between py-3 px-8 border-b border-solid border-border bg-surface">
+    <div className="flex flex-col flex-1 overflow-hidden bg-none">
+      <div className="no-print shrink-0 flex items-center justify-between py-3 px-8 border-b border-solid border-border bg-none">
         <button className="btn-ghost" onClick={onBack}>
           <Icon name="left" size={13}/> Voltar
         </button>
