@@ -23,6 +23,7 @@ function novaEstrutura(nome) {
 
 const INITIAL_STATE = {
   id: '', seqId: '', createdAt: '',
+  configStep: 1, configUnlocked: 1,
   nome: '', dataInicio: '', fase: 'Em desenvolvimento',
   endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'MA', cep: '',
   situacao: 'nova', anoAlvara: '', numeroAlvara: '',
@@ -137,6 +138,8 @@ function reducer(state, action) {
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, acess: p.acess.map((a, i) => i === action.index ? { ...a, ...action.changes } : a) } : p) }
     case 'SET_ACESSO_VIATURA':
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
+    case 'SET_WIZARD':
+      return { ...state, configStep: action.step, configUnlocked: action.unlocked }
     case 'SET_CARGA':
       return { ...state, cargaState: { ...state.cargaState, [action.code]: { ...(state.cargaState[action.code] || {}), ...action.changes } } }
     case 'INIT_CARGA': {

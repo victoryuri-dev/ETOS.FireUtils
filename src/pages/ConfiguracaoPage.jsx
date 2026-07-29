@@ -22,7 +22,7 @@ const STEPS_CONFIG = [
 const STEPS = { 1:Step1, 2:Step2, 3:Step3, 4:Step4, 5:Step5, 6:Step6, 7:Step7 }
 
 export default function ConfiguracaoPage({ onGoDashboard }) {
-  const { step, totalSteps, next, prev, goTo, isUnlocked } = useWizard(7)
+  const { step, totalSteps, unlocked, next, prev, goTo, isUnlocked } = useWizard(7)
   const getStatus = useStepStatus()
   const ActiveStep = STEPS[step]
 
@@ -32,7 +32,7 @@ export default function ConfiguracaoPage({ onGoDashboard }) {
       {/* StepsNav + conteúdo */}
       <div className="flex flex-1 overflow-hidden">
         <StepsNav
-          steps={STEPS_CONFIG}
+          steps={STEPS_CONFIG.slice(0, unlocked)}
           current={step}
           isUnlocked={isUnlocked}
           getStatus={getStatus}
