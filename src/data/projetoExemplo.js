@@ -14,16 +14,23 @@ function dadosExemplo() {
     situacao: 'nova', anoAlvara: '2027', numeroAlvara: '',
     anoConstrucao: '', situacaoCBM: 'Sem AVCB anterior',
     numeroAVCB: '', validadeAVCB: '', condicoesAtuais: '',
-    areaTerreno: '300', areaConstruidaTotal: '250', quantidadePublico: '80', areaComplementar: '20',
+    areaTerreno: '500', areaConstruidaTotal: '650', quantidadePublico: '80', areaComplementar: '20',
     areaMaiorPav: '', peDireito: '',
     usoSubsolo: '', coberturaHabitavel: 'Nao',
     compartVertical: 'Sem compartimentacao',
     fachada: 'Alvenaria com revestimento ceramico', cobertura: 'Telha metalica',
-    estruturas: [{
-      id: 'est-exemplo-1', nome: 'Estrutura 1',
-      areaTotal: '250', altura: '6', alturaPisoPiso: 0,
-      nPavimentos: 1, nSubsolos: 0, estrutura: 'Concreto armado',
-    }],
+    estruturas: [
+      {
+        id: 'est-exemplo-1', nome: 'Estrutura 1',
+        areaTotal: '250', altura: '6', alturaPisoPiso: 0,
+        nPavimentos: 1, nSubsolos: 0, estrutura: 'Concreto armado',
+      },
+      {
+        id: 'est-exemplo-2', nome: 'Estrutura 2',
+        areaTotal: '400', altura: '12', alturaPisoPiso: 3,
+        nPavimentos: 3, nSubsolos: 1, estrutura: 'Estrutura metalica',
+      },
+    ],
     propNome: 'Joao da Silva', propDocumento: '123.456.789-00', propTelefone: '(98) 98888-7777', propEmail: 'joao@exemplo.com',
     respRazaoSocial: 'Loja Comercio Exemplo LTDA', respFantasia: 'Loja Exemplo', respCNPJ: '12.345.678/0001-90',
     respTelefone: '(98) 3222-1111', respEmail: 'contato@lojaexemplo.com',
@@ -31,12 +38,32 @@ function dadosExemplo() {
     rtNome: 'Maria Engenheira', rtCpf: '987.654.321-00', rtConselho: 'CREA-MA 123456/D', rtEspecialidade: 'Engenharia Civil',
     rtEmpresa: 'Maria Projetos', rtEmail: 'maria@projetos.com', rtTelefone: '(98) 99999-0000',
     artNumero: 'MA20260012345', artData: '2026-01-05', artTipoServico: 'Projeto', artValorObra: 'R$ 150.000,00',
-    pavimentos: [{
-      id: 'est-exemplo-1-P1', estruturaId: 'est-exemplo-1', tipo: 'terreo', label: 'Terreo',
-      grupo: 'C', divisao: 'C-1', cnae: '4712-1/00', cnaeDesc: 'Comercio varejista', area: '250', acess: [],
-    }],
+    pavimentos: [
+      {
+        id: 'est-exemplo-1-P1', estruturaId: 'est-exemplo-1', tipo: 'terreo', label: 'Terreo',
+        grupo: 'C', divisao: 'C-1', cnae: '4712-1/00', cnaeDesc: 'Comercio varejista', area: '250', acess: [],
+      },
+      {
+        id: 'est-exemplo-2-sub-1', estruturaId: 'est-exemplo-2', tipo: 'subsolo', label: 'Subsolo 1',
+        grupo: 'G', divisao: 'G-1', cnae: '5223-1/00', cnaeDesc: 'Estacionamento de veiculos', area: '100', acess: [],
+      },
+      {
+        id: 'est-exemplo-2-P1', estruturaId: 'est-exemplo-2', tipo: 'terreo', label: 'Terreo',
+        grupo: 'A', divisao: 'A-1', cnae: '5590-6/03', cnaeDesc: 'Pensionatos', area: '150', acess: [],
+      },
+      {
+        id: 'est-exemplo-2-P2', estruturaId: 'est-exemplo-2', tipo: 'pav', label: 'Pavimento 2',
+        grupo: 'A', divisao: 'A-1', cnae: '5590-6/03', cnaeDesc: 'Pensionatos', area: '125', acess: [],
+      },
+      {
+        id: 'est-exemplo-2-P3', estruturaId: 'est-exemplo-2', tipo: 'pav', label: 'Pavimento 3',
+        grupo: 'A', divisao: 'A-1', cnae: '5590-6/03', cnaeDesc: 'Pensionatos', area: '125', acess: [],
+      },
+    ],
     cargaState: {
       'C-1': { cnae: '4712-1/00', descricao: 'Comercio varejista', cargaIncendio: 300, metodo: 'tabela', valorManual: '' },
+      'A-1': { cnae: '5590-6/03', descricao: 'Pensionatos', cargaIncendio: 300, metodo: 'tabela', valorManual: '' },
+      'G-1': { cnae: '5223-1/00', descricao: 'Estacionamento de veiculos', cargaIncendio: 200, metodo: 'tabela', valorManual: '' },
     },
     riscosEspeciais: {
       liquidos_inflamaveis: false, fogos_artificio: false, glp: true,
