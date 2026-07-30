@@ -11,6 +11,7 @@ import SaidaEmergenciaPage   from './pages/medidas/SaidaEmergenciaPage'
 import HidrantesPage          from './pages/medidas/HidrantesPage'
 import AcessoViaturaPage      from './pages/medidas/AcessoViaturaPage'
 import SegurancaEstruturalPage from './pages/medidas/SegurancaEstruturalPage'
+import ExtintoresPage         from './pages/medidas/ExtintoresPage'
 import Icon           from './components/ui/Icon'
 
 // ── AppHeader ─────────────────────────────────────────────────────────
@@ -113,7 +114,8 @@ function AppInner() {
           {sistKey === 'hidrantes' && <HidrantesPage/>}
           {sistKey === 'acesso_viatura' && <AcessoViaturaPage/>}
           {sistKey === 'seg_estrutural' && <SegurancaEstruturalPage/>}
-          {sistKey && !['saida_emergencia', 'hidrantes', 'acesso_viatura', 'seg_estrutural'].includes(sistKey) && <MedidaPage sistKey={sistKey}/>}
+          {sistKey === 'extintores' && <ExtintoresPage/>}
+          {sistKey && !['saida_emergencia', 'hidrantes', 'acesso_viatura', 'seg_estrutural', 'extintores'].includes(sistKey) && <MedidaPage sistKey={sistKey}/>}
         </div>
 
       </div>

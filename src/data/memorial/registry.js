@@ -5,10 +5,12 @@
 
 import { textoMemorialAcessoViatura } from './acesso_viatura'
 import { textoMemorialSegEstrutural } from './seg_estrutural'
+import { textoMemorialExtintores } from './extintores'
 
 export const MEMORIAL_BUILDERS = {
   acesso_viatura: textoMemorialAcessoViatura,
   seg_estrutural: textoMemorialSegEstrutural,
+  extintores:     textoMemorialExtintores,
   // saida_emergencia, hidrantes, ... entram aqui conforme forem implementadas
 }
 

@@ -11,6 +11,17 @@ export function newIds() {
   }
 }
 
+function novoExtintor(estruturaId, pavimentoId, ambiente) {
+  return {
+    id: `ext-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+    estruturaId, pavimentoId, ambiente: ambiente || '',
+    // Capacidade extintora do agente escolhido no projeto — livre para o
+    // projetista aumentar, mas sempre nasce preenchida com o mínimo
+    // normativo do tipo padrão (pó ABC portátil, item 5.1.1 NT 21 CBMMA).
+    tipo: 'po_abc', sobreRodas: false, capacidade: '2-A:20-B:C', quantidade: 1,
+  }
+}
+
 function novaEstrutura(nome) {
   return {
     id: `est-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
@@ -44,6 +55,7 @@ const INITIAL_STATE = {
   artNumero: '', artData: '', artTipoServico: 'Projeto', artValorObra: '',
   pavimentos: [],
   cargaState: {},
+  extintores: [],
   acessoViatura: {
     afastamentoMeioFio: '', isCondominio: false,
     larguraAdotada: '', alturaLivreAdotada: '',
@@ -93,6 +105,7 @@ function reducer(state, action) {
         ...state,
         estruturas: state.estruturas.filter(e => e.id !== action.id),
         pavimentos: state.pavimentos.filter(p => p.estruturaId !== action.id),
+        extintores: state.extintores.filter(e => e.estruturaId !== action.id),
       }
     }
     case 'RENAME_ESTRUTURA':
@@ -116,7 +129,12 @@ function reducer(state, action) {
         const id = `${estruturaId}-P${p}`
         list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
       }
-      return { ...state, pavimentos: [...others, ...list] }
+      const idsValidos = new Set(list.map(p => p.id))
+      return {
+        ...state,
+        pavimentos: [...others, ...list],
+        extintores: state.extintores.filter(e => e.estruturaId !== estruturaId || idsValidos.has(e.pavimentoId)),
+      }
     }
     case 'UPDATE_PAV':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, ...action.changes } : p) }
@@ -137,6 +155,25 @@ function reducer(state, action) {
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, acess: p.acess.filter((_, i) => i !== action.index) } : p) }
     case 'UPDATE_ACESS':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, acess: p.acess.map((a, i) => i === action.index ? { ...a, ...action.changes } : a) } : p) }
+    case 'ADD_EXTINTOR':
+      return { ...state, extintores: [...state.extintores, novoExtintor(action.estruturaId, action.pavimentoId, action.ambiente)] }
+    case 'UPDATE_EXTINTOR':
+      return { ...state, extintores: state.extintores.map(e => e.id === action.id ? { ...e, ...action.changes } : e) }
+    case 'REMOVE_EXTINTOR':
+      return { ...state, extintores: state.extintores.filter(e => e.id !== action.id) }
+    case 'RENAME_AMBIENTE_EXTINTOR':
+      return {
+        ...state,
+        extintores: state.extintores.map(e =>
+          (e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId && e.ambiente === action.ambienteAntigo)
+            ? { ...e, ambiente: action.ambienteNovo } : e),
+      }
+    case 'REMOVE_AMBIENTE_EXTINTOR':
+      return {
+        ...state,
+        extintores: state.extintores.filter(e =>
+          !(e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId && e.ambiente === action.ambiente)),
+      }
     case 'SET_ACESSO_VIATURA':
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
     case 'SET_WIZARD':
