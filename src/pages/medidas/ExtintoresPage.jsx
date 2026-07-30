@@ -1,8 +1,54 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica } from '../../data/extintores_calc'
 import Icon from '../../components/ui/Icon'
+
+// ── Importação do firedata.json (plugin Revit) ───────────────────────
+// Formato esperado (ver comentário completo no final do arquivo):
+//   { "extintores": { "_timestamp": "...", "itens": [
+//       { "estrutura": "Estrutura 1", "pavimento": "Térreo", "ambiente": "Cozinha",
+//         "tipo": "po_abc", "sobreRodas": false, "capacidade": "4-A:40-B:C", "quantidade": 2 },
+//       ...
+//   ] } }
+//
+// "estrutura" e "pavimento" são casados por nome/label contra o que já
+// está cadastrado no projeto (Etapa 2) — o plugin não precisa (e não
+// consegue) conhecer os IDs internos gerados pelo app.
+function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSobreRodas) {
+  const dados = json?.extintores
+  if (!dados?.itens) throw new Error('Chave "extintores.itens" não encontrada no arquivo.')
+
+  const norm = s => (s || '').trim().toLowerCase()
+  const resolvidos = []
+  const erros = []
+
+  dados.itens.forEach((it, i) => {
+    const linha = `Item ${i + 1}`
+    const est = estruturas.find(e => norm(e.nome) === norm(it.estrutura))
+    if (!est) { erros.push(`${linha}: estrutura "${it.estrutura}" não encontrada no projeto.`); return }
+
+    const pav = pavimentos.find(p => p.estruturaId === est.id && norm(p.label) === norm(it.pavimento))
+    if (!pav) { erros.push(`${linha}: pavimento "${it.pavimento}" não encontrado em ${est.nome}.`); return }
+
+    const sobreRodas = it.sobreRodas === true || it.sobreRodas === 'true' || it.sobreRodas === 'True'
+    const catalogo = sobreRodas ? tiposSobreRodas : tiposPortatil
+    const tipoInfo = catalogo.find(t => t.key === it.tipo)
+    if (!tipoInfo) { erros.push(`${linha}: tipo "${it.tipo}" inválido para extintor ${sobreRodas ? 'sobre rodas' : 'portátil'}.`); return }
+
+    resolvidos.push({
+      estruturaId: est.id,
+      pavimentoId: pav.id,
+      ambiente:    it.ambiente || 'Sem ambiente',
+      tipo:        it.tipo,
+      sobreRodas,
+      capacidade:  it.capacidade || tipoInfo.capacidadeMinima,
+      quantidade:  parseInt(it.quantidade) || 1,
+    })
+  })
+
+  return { resolvidos, erros, timestamp: dados._timestamp || null }
+}
 
 // ── Shared UI ─────────────────────────────────────────────────────────
 function Card({ children, className = '' }) {
@@ -322,18 +368,71 @@ function ReferenciaNormativa({ extNorma }) {
 export default function ExtintoresPage() {
   const { state, dispatch } = useProjeto()
   const { extintores: extNorma } = useNorma()
+  const [importInfo, setImportInfo] = useState(null)
+  const [importErros, setImportErros] = useState([])
+  const fileInputRef = useRef(null)
+
+  const handleImport = e => {
+    const file = e.target.files[0]
+    if (!file) return
+    e.target.value = ''
+    const reader = new FileReader()
+    reader.onload = ev => {
+      try {
+        const json = JSON.parse(ev.target.result)
+        const { resolvidos, erros, timestamp } = resolverImportacao(
+          json, state.estruturas, state.pavimentos, extNorma.TIPOS_PORTATIL, extNorma.TIPOS_SOBRE_RODAS
+        )
+        if (resolvidos.length > 0) dispatch({ type: 'IMPORT_EXTINTORES', itens: resolvidos })
+        setImportInfo({ timestamp, total: resolvidos.length })
+        setImportErros(erros)
+      } catch (err) {
+        setImportInfo(null)
+        setImportErros([err.message || 'Arquivo inválido.'])
+      }
+    }
+    reader.readAsText(file, 'utf-8')
+  }
 
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
 
-        <div className="mb-7">
-          <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="text-[22px] font-bold text-ink mb-1.5">Sistema de Proteção por Extintores de Incêndio</h2>
-          <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
-            Distribuição de extintores por estrutura, pavimento e ambiente conforme a NT 21 CBMMA. Cadastre os ambientes de cada pavimento e os extintores instalados neles — o risco predominante (que define a área-limite para unidade única) vem da carga de incêndio classificada na Etapa 5.
-          </p>
+        <div className="flex items-start justify-between gap-4 mb-7">
+          <div>
+            <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
+            <h2 className="text-[22px] font-bold text-ink mb-1.5">Sistema de Proteção por Extintores de Incêndio</h2>
+            <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+              Distribuição de extintores por estrutura, pavimento e ambiente conforme a NT 21 CBMMA. Cadastre manualmente ou importe do plugin Revit — o risco predominante (que define a área-limite para unidade única) vem da carga de incêndio classificada na Etapa 5.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
+            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>
+              <Icon name="upload" size={13}/>
+              Importar do Revit
+            </button>
+            <div className="text-[10px] text-ink-faint mt-[5px] text-right">firedata.json</div>
+          </div>
         </div>
+
+        {importErros.length > 0 && (
+          <div className="ibox red mb-6">
+            <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
+            <span className="text-xs">
+              {importErros.length === 1 ? 'Um item não pôde ser importado' : `${importErros.length} itens não puderam ser importados`}: {importErros.join(' ')}
+            </span>
+          </div>
+        )}
+
+        {importInfo && (
+          <div className="ibox green mb-6">
+            <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+            <span className="text-xs">
+              {importInfo.total} extintor{importInfo.total !== 1 ? 'es' : ''} importado{importInfo.total !== 1 ? 's' : ''} do Revit{importInfo.timestamp ? ` — exportação: ${importInfo.timestamp}` : ''}. Esta importação substituiu o cadastro anterior.
+            </span>
+          </div>
+        )}
 
         <ReferenciaNormativa extNorma={extNorma}/>
 

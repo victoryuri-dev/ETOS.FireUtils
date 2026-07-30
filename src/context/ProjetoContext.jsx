@@ -11,9 +11,17 @@ export function newIds() {
   }
 }
 
+// Contador em memória — evita colisão de ID quando várias unidades são
+// criadas no mesmo milissegundo (ex.: importação em lote do firedata.json).
+let extintorSeq = 0
+function idExtintor() {
+  extintorSeq += 1
+  return `ext-${Date.now().toString(36)}-${extintorSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
 function novoExtintor(estruturaId, pavimentoId, ambiente) {
   return {
-    id: `ext-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+    id: idExtintor(),
     estruturaId, pavimentoId, ambiente: ambiente || '',
     // Capacidade extintora do agente escolhido no projeto — livre para o
     // projetista aumentar, mas sempre nasce preenchida com o mínimo
@@ -174,6 +182,12 @@ function reducer(state, action) {
         extintores: state.extintores.filter(e =>
           !(e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId && e.ambiente === action.ambiente)),
       }
+    // Substitui todo o cadastro de extintores pelo lote importado do
+    // firedata.json (ver resolverImportacao em ExtintoresPage.jsx) — os
+    // itens já chegam com estruturaId/pavimentoId resolvidos contra o
+    // projeto atual.
+    case 'IMPORT_EXTINTORES':
+      return { ...state, extintores: action.itens.map(it => ({ id: idExtintor(), ...it })) }
     case 'SET_ACESSO_VIATURA':
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
     case 'SET_WIZARD':
