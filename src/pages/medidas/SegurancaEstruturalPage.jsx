@@ -33,9 +33,9 @@ function LinhaPavimento({ linha }) {
   )
 }
 
-function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo, materiaisMapa, dispatch }) {
+function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao, materiaisMapa, dispatch }) {
   const sub = parseInt(est.nSubsolos) || 0
-  const resultado = calcularTRRF(pavimentos, est, tabela, classesAltura, classesSubsolo)
+  const resultado = calcularTRRF(pavimentos, est, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao)
   const metodologias = metodologiaDosMateriais(est.estrutura, materiaisMapa)
 
   const setObs = (v) => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'obsSegEstrutural', value: v })
@@ -47,10 +47,15 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
       <Card className="mb-3">
         <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
           <div>
-            <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura da edificação</div>
+            <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura da edificação (piso de descarga ao último pavimento)</div>
             <div className="text-xs text-ink font-semibold">
-              {est.altura ? `${est.altura} m` : '—'} {resultado.classeAltura ? `— Classe ${resultado.classeAltura}` : ''}
+              {est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '—' : `${est.alturaPisoPiso} m`} {resultado.classeAltura ? `— Classe ${resultado.classeAltura}` : ''}
             </div>
+            {resultado.subsoloSomado && (
+              <div className="text-[10px] text-amber mt-1">
+                + {est.profundidadeSubsolo} m de subsolo ocupado = {resultado.alturaEfetiva} m para a classificação (item 4.31, NT 03 CBMMA)
+              </div>
+            )}
           </div>
           <div>
             <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Profundidade do subsolo</div>
@@ -140,7 +145,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
 export default function SegurancaEstruturalPage() {
   const { state, dispatch } = useProjeto()
   const { trrf } = useNorma()
-  const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, METODOLOGIA_POR_MATERIAL } = trrf
+  const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO, METODOLOGIA_POR_MATERIAL } = trrf
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -162,6 +167,7 @@ export default function SegurancaEstruturalPage() {
             tabela={TABELA_TRRF}
             classesAltura={CLASSES_ALTURA}
             classesSubsolo={CLASSES_SUBSOLO}
+            divisoesSemOcupacao={DIVISOES_SEM_OCUPACAO_SUBSOLO}
             materiaisMapa={METODOLOGIA_POR_MATERIAL}
             dispatch={dispatch}
           />

@@ -115,7 +115,16 @@ export const NOTAS_ANEXO_B = {
   naoEnquadrado:      'Nota 1, Anexo B da NT 01 CBMMA — casos não enquadrados na tabela serão definidos pelo SSCI do Corpo de Bombeiros.',
   naoRegressao:        'Item 5.12 da NT 01 CBMMA — o TRRF dos subsolos e sobressolos não pode ser inferior ao TRRF dos pavimentos situados acima do solo.',
   industriaDeposito:  'Nota 3, Anexo B — para indústria ou depósito com inflamáveis, considerar as divisões I-3 e J-4, respectivamente.',
+  alturaEdificacao:   'Item 4.31, NT 03 CBMMA (Terminologia) — altura da edificação: do piso de descarga ao piso do último pavimento habitado, excluindo áticos, casas de máquinas, barrilete e reservatórios. Quando o subsolo tiver ocupação diferente de estacionamento de veículos, vestiário ou instalação sanitária sem uso ou permanência humana, a medição passa a partir do piso do subsolo mais baixo ocupado.',
 }
+
+// ── Exceção de altura por subsolo ocupado (item 4.31, NT 03 CBMMA) ─────────
+// Divisões de subsolo que a norma considera "sem aproveitamento para
+// quaisquer atividades ou permanência humana" — estacionamento de veículos.
+// Qualquer outra divisão num pavimento de subsolo aciona a exceção: a altura
+// da edificação usada para classificar o TRRF acima do solo passa a somar a
+// profundidade do subsolo (ver `alturaParaClassificacao` em trrf_calc.js).
+export const DIVISOES_SEM_OCUPACAO_SUBSOLO = ['G-1']
 
 // ── Metodologia normativa por material estrutural ──────────────────────────
 // Usado só para decidir qual metodologia de comprovação citar no memorial —

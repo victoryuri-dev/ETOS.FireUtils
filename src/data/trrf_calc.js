@@ -7,14 +7,21 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const num = v => parseFloat(v) || 0
+const vazio = v => v === '' || v == null
 
-/** Classe de altura (P1-P8) a partir da altura total da edificação. Retorna
+/** Classe de altura (P1-P8) a partir da altura da edificação (item 4.31,
+ *  NT 03 CBMMA — do piso de descarga ao piso do último pavimento habitado;
+ *  ver `alturaParaClassificacao` para a exceção do subsolo ocupado). Retorna
  *  null quando a altura está fora da faixa coberta pelo Anexo B (>250 m) ou
- *  ainda não foi informada. */
+ *  ainda não foi informada. Classes ordenadas por limite superior — a
+ *  primeira cujo `max` alcança a altura é a classe (equivalente a "h ≤ Xm"
+ *  na primeira faixa e "Xm < h ≤ Ym" nas seguintes, sem tratar 0 como faixa
+ *  inválida — edificação térrea tem altura igual ou próxima de zero). */
 export function classificarAltura(altura, classes) {
+  if (vazio(altura)) return null
   const h = num(altura)
-  if (h <= 0) return null
-  const classe = classes.find(c => h > c.min && h <= c.max)
+  if (h < 0) return null
+  const classe = classes.find(c => h <= c.max)
   return classe ? classe.classe : null
 }
 
@@ -22,10 +29,34 @@ export function classificarAltura(altura, classes) {
  *  null quando a edificação não tem subsolo ou a profundidade ainda não foi
  *  informada. */
 export function classificarSubsolo(profundidade, classes) {
+  if (vazio(profundidade)) return null
   const p = num(profundidade)
   if (p <= 0) return null
-  const classe = classes.find(c => p > c.min && p <= c.max)
+  const classe = classes.find(c => p <= c.max)
   return classe ? classe.classe : null
+}
+
+/** Verifica se algum pavimento de subsolo tem ocupação que conta como
+ *  "ocupada" para fins do item 4.31 da NT 03 CBMMA — ou seja, qualquer uso
+ *  diferente de estacionamento de veículos, vestiário ou instalação
+ *  sanitária sem aproveitamento para atividades ou permanência humana
+ *  (`divisoesSemOcupacao`, ver trrf.js). */
+export function subsoloConsideradoOcupado(pavimentosOrdenados, divisoesSemOcupacao) {
+  return pavimentosOrdenados.some(p => p.tipo === 'subsolo' && p.divisao && !divisoesSemOcupacao.includes(p.divisao))
+}
+
+/** Altura da edificação a usar na classificação (item 4.31, NT 03 CBMMA):
+ *  do piso de descarga ao piso do último pavimento habitado — `alturaPisoPiso`
+ *  no modelo do projeto, apesar do nome do campo. Quando o subsolo tem
+ *  ocupação (ver `subsoloConsideradoOcupado`), a medição passa a começar no
+ *  piso do subsolo mais baixo ocupado, somando a profundidade do subsolo à
+ *  altura acima do solo. */
+export function alturaParaClassificacao(estrutura, pavimentosOrdenados, divisoesSemOcupacao) {
+  if (vazio(estrutura.alturaPisoPiso)) return { altura: '', subsoloSomado: false }
+  const base = num(estrutura.alturaPisoPiso)
+  const ocupado = subsoloConsideradoOcupado(pavimentosOrdenados, divisoesSemOcupacao)
+  if (!ocupado) return { altura: base, subsoloSomado: false }
+  return { altura: base + num(estrutura.profundidadeSubsolo), subsoloSomado: true }
 }
 
 /** Busca o TRRF de uma divisão numa classe (ex: 'P3', 'S1') na tabela do
@@ -50,9 +81,11 @@ export function buscarTRRF(tabela, divisao, classe) {
  *
  *  `pavimentosOrdenados` deve vir do subsolo mais profundo até o pavimento
  *  mais alto (mesma ordem produzida por REBUILD_PAVIMENTOS em ProjetoContext).
+ *  `divisoesSemOcupacao` vem de trrf.js (ver `alturaParaClassificacao`).
  */
-export function calcularTRRF(pavimentosOrdenados, estrutura, tabela, classesAltura, classesSubsolo) {
-  const classeAltura  = classificarAltura(estrutura.altura, classesAltura)
+export function calcularTRRF(pavimentosOrdenados, estrutura, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao) {
+  const { altura: alturaEfetiva, subsoloSomado } = alturaParaClassificacao(estrutura, pavimentosOrdenados, divisoesSemOcupacao)
+  const classeAltura  = classificarAltura(alturaEfetiva, classesAltura)
   const classeSubsolo = classificarSubsolo(estrutura.profundidadeSubsolo, classesSubsolo)
 
   const linhas = pavimentosOrdenados.map(p => {
@@ -79,7 +112,7 @@ export function calcularTRRF(pavimentosOrdenados, estrutura, tabela, classesAltu
   const avisos = linhas.filter(l => l.pavimento.divisao && (!l.classe || !l.encontrado || l.referencia || (l.encontrado && l.valor == null)))
 
   return {
-    classeAltura, classeSubsolo, linhas, pendenciasNaoRegressao, avisos,
+    alturaEfetiva, subsoloSomado, classeAltura, classeSubsolo, linhas, pendenciasNaoRegressao, avisos,
     resumoAcimaSolo: _resumoPorPosicao(linhas, 'acima do solo'),
     resumoSubsolo:   _resumoPorPosicao(linhas, 'subsolo'),
   }

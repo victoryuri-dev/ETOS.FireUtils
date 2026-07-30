@@ -26,9 +26,9 @@ function textoAviso(l) {
   return `${id}: combinação não enquadrada no Anexo B — casos não enquadrados são definidos pelo SSCI do CBMMA (nota 1).`
 }
 
-function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, materiaisMapa) {
+function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao, materiaisMapa) {
   const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
-  const r = calcularTRRF(pavimentos, est, tabela, classesAltura, classesSubsolo)
+  const r = calcularTRRF(pavimentos, est, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao)
   const nomeEst = est.nome || 'Estrutura'
   const blocos = [{ tipo: 'titulo2', texto: nomeEst }]
 
@@ -37,7 +37,10 @@ function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, ma
     return blocos
   }
 
-  blocos.push({ tipo: 'campo', label: 'Classe de altura (Anexo B, NT 01 CBMMA)', valor: `${r.classeAltura} — altura total de ${est.altura} m` })
+  const valorAltura = r.subsoloSomado
+    ? `${r.classeAltura} — altura de ${est.alturaPisoPiso} m + ${est.profundidadeSubsolo} m de subsolo ocupado = ${r.alturaEfetiva} m (item 4.31, NT 03 CBMMA — subsolo com ocupação diferente de estacionamento)`
+    : `${r.classeAltura} — altura de ${est.alturaPisoPiso} m, do piso de descarga ao último pavimento habitado (item 4.31, NT 03 CBMMA)`
+  blocos.push({ tipo: 'campo', label: 'Classe de altura (Anexo B, NT 01 CBMMA)', valor: valorAltura })
   if (r.classeSubsolo) {
     blocos.push({ tipo: 'campo', label: 'Classe de subsolo (Anexo B, NT 01 CBMMA)', valor: `${r.classeSubsolo} — profundidade de ${est.profundidadeSubsolo} m` })
   } else if ((parseInt(est.nSubsolos) || 0) > 0) {
@@ -84,10 +87,10 @@ function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, ma
 }
 
 export function textoMemorialSegEstrutural(state) {
-  const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, METODOLOGIA_POR_MATERIAL } = getTRRF(state.uf)
+  const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO, METODOLOGIA_POR_MATERIAL } = getTRRF(state.uf)
 
   const blocos = (state.estruturas || []).flatMap(est =>
-    blocosDaEstrutura(state, est, TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, METODOLOGIA_POR_MATERIAL)
+    blocosDaEstrutura(state, est, TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO, METODOLOGIA_POR_MATERIAL)
   )
 
   if (blocos.length === 0) {
