@@ -23,12 +23,21 @@ const ALERTAS = (h, sub) => {
   return m
 }
 
+const MATERIAIS_ESTRUTURA = ['Concreto armado', 'Estrutura metalica', 'Alvenaria estrutural', 'Madeira']
+
 // ── Modal de edicao de uma Estrutura (torre/bloco) ─────────────────────
 function EstruturaModal({ est, index, dispatch, onClose }) {
   const set = f => e => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field: f, value: e.target.value })
 
   const h   = parseFloat(est.alturaPisoPiso) || 0
   const sub = parseInt(est.nSubsolos)        || 0
+
+  // Normaliza dado antigo (string unica) salvo antes do campo virar multi-selecao.
+  const materiais = Array.isArray(est.estrutura) ? est.estrutura : [est.estrutura].filter(Boolean)
+  const toggleMaterial = (m) => {
+    const next = materiais.includes(m) ? materiais.filter(x => x !== m) : [...materiais, m]
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'estrutura', value: next })
+  }
 
   const handleNPav = e => {
     const v = parseInt(e.target.value) || 1
@@ -85,6 +94,14 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
               <div className="fg"><label>No de pavimentos acima do solo <span className="req">*</span></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
               <div className="fg"><label>No de subsolos</label><input type="number" min="0" value={est.nSubsolos} onChange={handleNSub}/></div>
             </div>
+            {sub > 0 && (
+              <div className="g2 mt-3">
+                <div className="fg">
+                  <label>Profundidade do subsolo (m) <span className="req">*</span></label>
+                  <input type="number" step="0.1" min="0" value={est.profundidadeSubsolo ?? ''} onChange={set('profundidadeSubsolo')}/>
+                </div>
+              </div>
+            )}
           </div>
 
           {ALERTAS(h, sub).map((m, i) => (
@@ -96,16 +113,22 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
 
           <div>
             <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Sistema construtivo</div>
-            <div className="g2">
-              <div className="fg"><label>Estrutura principal</label>
-                <select value={est.estrutura} onChange={set('estrutura')}>
-                  <option>Concreto armado</option>
-                  <option>Estrutura metalica</option>
-                  <option>Alvenaria estrutural</option>
-                  <option>Madeira</option>
-                  <option>Misto</option>
-                </select>
+            <div className="fg">
+              <label>Estrutura principal <span className="req">*</span></label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {MATERIAIS_ESTRUTURA.map(m => (
+                  <button key={m} type="button" onClick={() => toggleMaterial(m)}
+                    className={`text-xs py-1.5 px-3 rounded-md border border-solid cursor-pointer ${materiais.includes(m) ? 'border-red-border bg-red-dim text-red font-semibold' : 'border-border bg-transparent text-ink-faint'}`}>
+                    {m}
+                  </button>
+                ))}
               </div>
+              {materiais.length > 1 && (
+                <div className="text-[11px] text-ink-faint mt-1.5">Estrutura mista — a metodologia de cada material sera citada no memorial.</div>
+              )}
+              {materiais.length === 0 && (
+                <div className="text-[11px] text-amber mt-1.5">Selecione ao menos um material estrutural.</div>
+              )}
             </div>
           </div>
         </div>

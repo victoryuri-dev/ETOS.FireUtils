@@ -54,7 +54,7 @@ export function buildAnexoBData(state, sistemas) {
   const areaTotalSum   = estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
   const alturaNum      = estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
   const subsolosSum    = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
-  const estruturaTipos = [...new Set(estruturas.map(e => e.estrutura).filter(Boolean))].join(', ')
+  const estruturaTipos = [...new Set(estruturas.flatMap(e => Array.isArray(e.estrutura) ? e.estrutura : [e.estrutura]).filter(Boolean))].join(', ')
 
   const maxQ = Object.values(state.cargaState || {}).reduce((acc, c) => {
     const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0

@@ -23,12 +23,14 @@ function dadosExemplo() {
       {
         id: 'est-exemplo-1', nome: 'Estrutura 1',
         areaTotal: '250', altura: '6', alturaPisoPiso: 0,
-        nPavimentos: 1, nSubsolos: 0, estrutura: 'Concreto armado',
+        nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '',
+        estrutura: ['Concreto armado'], obsSegEstrutural: '',
       },
       {
         id: 'est-exemplo-2', nome: 'Estrutura 2',
         areaTotal: '400', altura: '12', alturaPisoPiso: 3,
-        nPavimentos: 3, nSubsolos: 1, estrutura: 'Estrutura metalica',
+        nPavimentos: 3, nSubsolos: 1, profundidadeSubsolo: '3',
+        estrutura: ['Estrutura metalica'], obsSegEstrutural: '',
       },
     ],
     propNome: 'Joao da Silva', propDocumento: '123.456.789-00', propTelefone: '(98) 98888-7777', propEmail: 'joao@exemplo.com',

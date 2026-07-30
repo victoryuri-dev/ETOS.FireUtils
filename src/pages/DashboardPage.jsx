@@ -218,7 +218,7 @@ export default function DashboardPage({ onGoConfig }) {
   const alturaNum     = estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
   const pavimentosSum = estruturas.reduce((s, e) => s + (parseInt(e.nPavimentos) || 0), 0)
   const subsolosSum   = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
-  const estruturaTipos = [...new Set(estruturas.map(e => e.estrutura).filter(Boolean))].join(', ') || '—'
+  const estruturaTipos = [...new Set(estruturas.flatMap(e => Array.isArray(e.estrutura) ? e.estrutura : [e.estrutura]).filter(Boolean))].join(', ') || '—'
   const estruturasNomes = estruturas.map(e => e.nome).join(', ')
   const alturaLbl  = alturaNum <= 6 ? 'Terrea' : alturaNum <= 12 ? 'Baixa altura' : alturaNum <= 23 ? 'Media altura' : 'Alta'
   const alturaColor= alturaNum <= 12 ? 'green' : alturaNum <= 23 ? 'amber' : 'red'

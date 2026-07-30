@@ -57,7 +57,7 @@ export default function Step7() {
                 <td className="py-2.5 text-[13px] text-ink">{est.areaTotal ? est.areaTotal+' m2' : '—'}</td>
                 <td className="py-2.5 text-[13px] text-ink">{est.altura ? est.altura+' m' : '—'}</td>
                 <td className="py-2.5 text-[13px] text-ink">{est.nPavimentos} pav.{est.nSubsolos ? ` + ${est.nSubsolos} subsolo${est.nSubsolos!==1?'s':''}` : ''}</td>
-                <td className="py-2.5 text-[13px] text-ink">{est.estrutura}</td>
+                <td className="py-2.5 text-[13px] text-ink">{(Array.isArray(est.estrutura) ? est.estrutura : [est.estrutura]).filter(Boolean).join(', ')}</td>
               </tr>
             ))}
           </tbody>

@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial } from '../../data/memorial/registry'
@@ -327,26 +326,60 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
   )
 }
 
-// Pagina de abertura de cada medida: so o titulo, centralizado — antecede a
-// pagina de texto tecnico da mesma medida (ver SecaoMedida).
-function DivisorMedida({ titulo, pagina, totalPaginas }) {
-  return (
-    <div className={FOLHA}>
-      <div className="flex-1 flex items-center justify-center">
-        <h1 className="font-heading text-[24px] font-bold text-black uppercase tracking-[.03em] text-center">{titulo}</h1>
-      </div>
-
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(pagina, totalPaginas)}</div>
-    </div>
-  )
+// Blocos de conteudo (opcionais, ver memorial/seg_estrutural.js) — permitem
+// que uma secao troque paragrafo corrido por tabela/lista/campo quando isso
+// deixa os valores mais faceis de achar (ex.: TRRF por pavimento). Secoes
+// que so retornam `paragrafos` (ex.: acesso_viatura.js) continuam iguais.
+function BlocoMedida({ bloco }) {
+  switch (bloco.tipo) {
+    case 'titulo2':
+      return <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mt-5 mb-2 first:mt-0">{bloco.texto}</h2>
+    case 'paragrafo':
+      return <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{bloco.texto}</p>
+    case 'campo':
+      return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:</strong> {bloco.valor}</div>
+    case 'tabela':
+      return (
+        <table className="w-full border-collapse text-[11px] text-black mb-4">
+          <thead>
+            <tr>
+              {bloco.colunas.map((c, i) => <th key={i} className="border border-solid border-[#c9c9cb] px-2 py-1 text-left">{c}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {bloco.linhas.map((linha, i) => (
+              <tr key={i}>
+                {linha.map((cel, j) => <td key={j} className="border border-solid border-[#c9c9cb] px-2 py-1">{cel}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    case 'lista':
+      return (
+        <ul className="list-none mb-4">
+          {bloco.itens.map((item, i) => (
+            <li key={i} className={`text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 ${bloco.estilo === 'alerta' ? 'border-l-2 border-solid border-black font-medium' : 'border-l border-solid border-[#c9c9cb]'}`}>
+              {item}
+            </li>
+          ))}
+        </ul>
+      )
+    default:
+      return null
+  }
 }
 
 function SecaoMedida({ secao, pagina, totalPaginas }) {
   return (
     <div className={FOLHA}>
-      {secao.paragrafos.map((p, i) => (
-        <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{p}</p>
-      ))}
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6">{secao.titulo}</h1>
+
+      {secao.blocos
+        ? secao.blocos.map((b, i) => <BlocoMedida key={i} bloco={b}/>)
+        : secao.paragrafos.map((p, i) => (
+            <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{p}</p>
+          ))}
 
       <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">
         {numeroPagina(pagina, totalPaginas)}
@@ -359,15 +392,14 @@ export default function MemorialDescritivoPage({ onBack }) {
   const { state }    = useProjeto()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const secoes = buildMemorial(state, sistemas)
-  // Cada medida ocupa 2 paginas: divisor (so o titulo) + texto tecnico.
-  const totalPaginas = PRIMEIRA_PAGINA_MEDIDA - 1 + secoes.length * 2
+  const totalPaginas = PRIMEIRA_PAGINA_MEDIDA - 1 + secoes.length
   const topicos = [
     { titulo: 'Objetivo', pagina: PAGINA_INTRODUCAO },
     { titulo: 'Sobre a Legislação', pagina: PAGINA_INTRODUCAO },
     { titulo: 'Sobre a Edificação', pagina: PAGINA_SOBRE_EDIFICACAO },
     { titulo: 'Caracterização da Edificação e do Risco', pagina: PAGINA_CARACTERIZACAO },
     { titulo: 'Medidas de Segurança Aplicadas', pagina: PAGINA_MEDIDAS_APLICADAS },
-    ...secoes.map((secao, i) => ({ titulo: secao.titulo, pagina: PRIMEIRA_PAGINA_MEDIDA + i * 2 })),
+    ...secoes.map((secao, i) => ({ titulo: secao.titulo, pagina: PRIMEIRA_PAGINA_MEDIDA + i })),
   ]
 
   return (
@@ -395,10 +427,7 @@ export default function MemorialDescritivoPage({ onBack }) {
             <Caracterizacao state={state} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
             <MedidasAplicadas state={state} sistemas={sistemas} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
             {secoes.map((secao, i) => (
-              <Fragment key={i}>
-                <DivisorMedida titulo={secao.titulo} pagina={PRIMEIRA_PAGINA_MEDIDA + i * 2} totalPaginas={totalPaginas}/>
-                <SecaoMedida secao={secao} pagina={PRIMEIRA_PAGINA_MEDIDA + i * 2 + 1} totalPaginas={totalPaginas}/>
-              </Fragment>
+              <SecaoMedida key={i} secao={secao} pagina={PRIMEIRA_PAGINA_MEDIDA + i} totalPaginas={totalPaginas}/>
             ))}
           </div>
         )}

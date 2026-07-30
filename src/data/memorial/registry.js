@@ -4,9 +4,11 @@
 // se não há builder para uma medida ativa, a seção é simplesmente omitida.
 
 import { textoMemorialAcessoViatura } from './acesso_viatura'
+import { textoMemorialSegEstrutural } from './seg_estrutural'
 
 export const MEMORIAL_BUILDERS = {
   acesso_viatura: textoMemorialAcessoViatura,
+  seg_estrutural: textoMemorialSegEstrutural,
   // saida_emergencia, hidrantes, ... entram aqui conforme forem implementadas
 }
 
