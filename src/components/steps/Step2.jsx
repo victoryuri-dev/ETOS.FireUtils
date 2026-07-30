@@ -107,9 +107,6 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
               <div className="fg">
                 <label>Altura piso a piso (m) <span className="req">*</span></label>
                 <input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} onChange={set('alturaPisoPiso')} readOnly={parseInt(est.nPavimentos) === 1}/>
-                {parseInt(est.nPavimentos) === 1 && sub > 0 && (
-                  <div className="text-[10px] text-ink-faint mt-1">Igual a profundidade do subsolo (terreo — item 4.31, NT 03 CBMMA)</div>
-                )}
               </div>
             </div>
             <div className="g2">
