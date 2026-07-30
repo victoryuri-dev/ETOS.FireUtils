@@ -39,12 +39,18 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'estrutura', value: next })
   }
 
+  // Predio terreo (1 pavimento acima do solo): a altura piso a piso (piso de
+  // descarga ao ultimo pavimento habitado) e 0 sem subsolo, ou igual a
+  // profundidade do subsolo quando ele existe — o "ultimo pavimento" e o
+  // proprio terreo, entao a medida parte do subsolo (item 4.31, NT 03 CBMMA).
+  const alturaTerrea = (novoSub, novaProfundidade) => novoSub > 0 ? novaProfundidade : 0
+
   const handleNPav = e => {
     const v = parseInt(e.target.value) || 1
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nPavimentos', value:v })
     dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav:v, nSub:sub })
     if (v === 1) {
-      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value:0 })
+      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaTerrea(sub, est.profundidadeSubsolo) })
     } else if (parseInt(est.nPavimentos) === 1) {
       dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value:'' })
     }
@@ -53,6 +59,16 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
     const v = parseInt(e.target.value) || 0
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nSubsolos', value:v })
     dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav: est.nPavimentos, nSub:v })
+    if (parseInt(est.nPavimentos) === 1) {
+      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaTerrea(v, est.profundidadeSubsolo) })
+    }
+  }
+  const handleProfundidade = e => {
+    const v = e.target.value
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'profundidadeSubsolo', value:v })
+    if (parseInt(est.nPavimentos) === 1) {
+      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaTerrea(sub, v) })
+    }
   }
 
   return (
@@ -88,7 +104,13 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
             <div className="g3 mb-3">
               <div className="fg"><label>Area construida total (m2) <span className="req">*</span></label><input type="number" value={est.areaTotal} onChange={set('areaTotal')}/></div>
               <div className="fg"><label>Altura total (m) <span className="req">*</span></label><input type="number" step="0.1" value={est.altura} onChange={set('altura')}/></div>
-              <div className="fg"><label>Altura piso a piso (m) <span className="req">*</span></label><input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} onChange={set('alturaPisoPiso')} readOnly={parseInt(est.nPavimentos) === 1}/></div>
+              <div className="fg">
+                <label>Altura piso a piso (m) <span className="req">*</span></label>
+                <input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} onChange={set('alturaPisoPiso')} readOnly={parseInt(est.nPavimentos) === 1}/>
+                {parseInt(est.nPavimentos) === 1 && sub > 0 && (
+                  <div className="text-[10px] text-ink-faint mt-1">Igual a profundidade do subsolo (terreo — item 4.31, NT 03 CBMMA)</div>
+                )}
+              </div>
             </div>
             <div className="g2">
               <div className="fg"><label>No de pavimentos acima do solo <span className="req">*</span></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
@@ -98,7 +120,7 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
               <div className="g2 mt-3">
                 <div className="fg">
                   <label>Profundidade do subsolo (m) <span className="req">*</span></label>
-                  <input type="number" step="0.1" min="0" value={est.profundidadeSubsolo ?? ''} onChange={set('profundidadeSubsolo')}/>
+                  <input type="number" step="0.1" min="0" value={est.profundidadeSubsolo ?? ''} onChange={handleProfundidade}/>
                 </div>
               </div>
             )}
