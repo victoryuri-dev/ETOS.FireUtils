@@ -1,4 +1,8 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
+import {
+  Routes, Route, Navigate, Outlet,
+  useNavigate, useParams, useLocation,
+} from 'react-router-dom'
 import { ProjetoProvider, useProjeto, newIds } from './context/ProjetoContext'
 import { criarProjetoExemplo } from './data/projetoExemplo'
 import ProjectAside   from './components/layout/ProjectAside'
@@ -59,71 +63,141 @@ function AppFooter() {
   )
 }
 
-// ── AppInner ──────────────────────────────────────────────────────────
-function AppInner() {
-  const [page,   setPage]   = useState('projetos')
+function MedidaRoute() {
+  const { sistKey } = useParams()
+  if (sistKey === 'saida_emergencia')  return <SaidaEmergenciaPage/>
+  if (sistKey === 'hidrantes')         return <HidrantesPage/>
+  if (sistKey === 'acesso_viatura')    return <AcessoViaturaPage/>
+  if (sistKey === 'seg_estrutural')    return <SegurancaEstruturalPage/>
+  if (sistKey === 'extintores')        return <ExtintoresPage/>
+  return <MedidaPage sistKey={sistKey}/>
+}
+
+function DashboardRoute() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  return <DashboardPage onGoConfig={() => navigate(`/projeto/${id}/config`)}/>
+}
+
+function ConfigRoute() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  return <ConfiguracaoPage onGoDashboard={() => navigate(`/projeto/${id}/dashboard`)}/>
+}
+
+// ── ProjetosRoute ─────────────────────────────────────────────────────
+// Página "Meus projetos" — fora do contexto de um projeto aberto.
+function ProjetosRoute() {
+  const navigate = useNavigate()
   const { dispatch } = useProjeto()
 
   const handleOpenProject = (proj) => {
-    dispatch({ type:'LOAD', payload: proj })
-    setPage('dashboard')
+    dispatch({ type: 'LOAD', payload: proj })
+    navigate(`/projeto/${proj.id}/dashboard`)
   }
 
   const handleNewProject = () => {
     const ids = newIds()
-    dispatch({ type:'NEW_PROJECT', ...ids })
-    setPage('config')
+    dispatch({ type: 'NEW_PROJECT', ...ids })
+    navigate(`/projeto/${ids.id}/config`)
   }
 
   const handleNovoProjetoExemplo = () => {
-    dispatch({ type:'LOAD', payload: criarProjetoExemplo() })
-    setPage('dashboard')
+    const proj = criarProjetoExemplo()
+    dispatch({ type: 'LOAD', payload: proj })
+    navigate(`/projeto/${proj.id}/dashboard`)
   }
 
-  const isProjectPage = page !== 'projetos'
-  const sistKey = page.startsWith('medida-') ? page.slice(7) : null
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <ProjetosPage
+        onOpenProject={handleOpenProject}
+        onNewProject={handleNewProject}
+        onNovoProjetoExemplo={handleNovoProjetoExemplo}
+      />
+    </div>
+  )
+}
+
+// ── ProjectLayout ─────────────────────────────────────────────────────
+// Envolve as rotas de um projeto aberto (/projeto/:id/*). Garante que o
+// projeto correto esteja carregado no contexto antes de renderizar — isso
+// é o que permite recarregar a página (F5) sem cair de volta na lista de
+// projetos: o :id na URL é a fonte da verdade, não o estado em memória.
+function ProjectLayout() {
+  const { id } = useParams()
+  const { state, dispatch } = useProjeto()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const carregado = state.id === id
+
+  useEffect(() => {
+    if (state.id === id) return
+    try {
+      const raw = localStorage.getItem('etos-projetos')
+      const all = raw ? JSON.parse(raw) : {}
+      const proj = all[id]
+      if (proj) {
+        dispatch({ type: 'LOAD', payload: proj })
+      } else {
+        navigate('/projetos', { replace: true })
+      }
+    } catch {
+      navigate('/projetos', { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, state.id])
+
+  const rest = location.pathname.split(`/projeto/${id}/`)[1]?.split('/') || []
+  const activePage = rest[0] === 'medida' ? `medida-${rest[1]}` : (rest[0] || 'dashboard')
+
+  const handleNavigate = (pageKey) => {
+    navigate(pageKey.startsWith('medida-')
+      ? `/projeto/${id}/medida/${pageKey.slice(7)}`
+      : `/projeto/${id}/${pageKey}`)
+  }
+
+  if (!carregado) return null
+
+  return (
+    <>
+      <ProjectAside activePage={activePage} onNavigate={handleNavigate}/>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Outlet/>
+      </div>
+    </>
+  )
+}
+
+// ── AppInner ──────────────────────────────────────────────────────────
+function AppInner() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isProjectPage = location.pathname.startsWith('/projeto/')
 
   return (
     <div className="w-screen h-screen flex flex-col overflow-hidden bg-bg text-ink">
       <AppHeader
-        onGoProjetos={() => setPage('projetos')}
+        onGoProjetos={() => navigate('/projetos')}
         isProjectPage={isProjectPage}
       />
 
       <div className="flex flex-1 overflow-hidden">
+        <Routes>
+          <Route path="/" element={<Navigate to="/projetos" replace/>}/>
+          <Route path="/projetos" element={<ProjetosRoute/>}/>
 
-        {/* Aside só aparece dentro de um projeto */}
-        {isProjectPage && (
-          <ProjectAside
-            activePage={page}
-            onNavigate={setPage}
-          />
-        )}
+          <Route path="/projeto/:id" element={<ProjectLayout/>}>
+            <Route index element={<Navigate to="dashboard" replace/>}/>
+            <Route path="dashboard" element={<DashboardRoute/>}/>
+            <Route path="config" element={<ConfigRoute/>}/>
+            <Route path="documentos" element={<DocumentosPage/>}/>
+            <Route path="medida/:sistKey" element={<MedidaRoute/>}/>
+          </Route>
 
-        {/* Conteúdo principal */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {page === 'projetos' && (
-            <ProjetosPage
-              onOpenProject={handleOpenProject}
-              onNewProject={handleNewProject}
-              onNovoProjetoExemplo={handleNovoProjetoExemplo}
-            />
-          )}
-          {page === 'dashboard' && (
-            <DashboardPage onGoConfig={() => setPage('config')}/>
-          )}
-          {page === 'config' && (
-            <ConfiguracaoPage onGoDashboard={() => setPage('dashboard')}/>
-          )}
-          {page === 'documentos' && <DocumentosPage/>}
-          {sistKey === 'saida_emergencia' && <SaidaEmergenciaPage/>}
-          {sistKey === 'hidrantes' && <HidrantesPage/>}
-          {sistKey === 'acesso_viatura' && <AcessoViaturaPage/>}
-          {sistKey === 'seg_estrutural' && <SegurancaEstruturalPage/>}
-          {sistKey === 'extintores' && <ExtintoresPage/>}
-          {sistKey && !['saida_emergencia', 'hidrantes', 'acesso_viatura', 'seg_estrutural', 'extintores'].includes(sistKey) && <MedidaPage sistKey={sistKey}/>}
-        </div>
-
+          <Route path="*" element={<Navigate to="/projetos" replace/>}/>
+        </Routes>
       </div>
 
       <AppFooter/>
