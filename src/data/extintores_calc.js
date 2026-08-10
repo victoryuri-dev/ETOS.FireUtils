@@ -73,7 +73,16 @@ export function calcularPavimento(extintores, risco, areaPavimento, config) {
   const area               = num(areaPavimento)
   const permiteUnidadeUnica = limiteAreaUnica != null && area > 0 && area <= limiteAreaUnica
 
-  const minimoAtendido = totalUnidades > 0 && ((temA && temBC) || (permiteUnidadeUnica && (temA || temBC)))
+  // Regra geral (item 5.2.1.4): duas unidades — uma para classe A, outra
+  // para classes B/C. Um único extintor multi-classe (ex.: pó ABC) só
+  // conta como UMA unidade, então não basta cobrir as duas classes; é
+  // preciso ter ao menos 2 unidades no total.
+  const minimoGeral        = totalUnidades >= 2 && temA && temBC
+  // Exceção de unidade única (item 5.2.1.4.2): pavimento pequeno (área
+  // dentro do limite do risco predominante) pode ter só 1 unidade.
+  const minimoUnidadeUnica = permiteUnidadeUnica && totalUnidades >= 1 && (temA || temBC)
+  const minimoAtendido     = minimoGeral || minimoUnidadeUnica
+  const viaUnidadeUnica    = minimoUnidadeUnica && !minimoGeral
 
-  return { classes, temA, temBC, totalUnidades, limiteAreaUnica, permiteUnidadeUnica, minimoAtendido }
+  return { classes, temA, temBC, totalUnidades, limiteAreaUnica, permiteUnidadeUnica, minimoAtendido, viaUnidadeUnica }
 }

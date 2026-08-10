@@ -68,7 +68,7 @@ function RiscoBadge({ risco }) {
 }
 function Chip({ ok, children }) {
   return (
-    <span className={`inline-flex items-center gap-1 py-[3px] px-2 rounded font-medium text-[11px] border border-solid ${ok ? 'bg-green-dim border-green-border text-green' : 'bg-red-dim border-red-border text-red'}`}>
+    <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-md font-semibold text-xs border border-solid ${ok ? 'bg-green-dim border-green-border text-green' : 'bg-red-dim border-red-border text-red'}`}>
       {ok ? '✓' : '✗'} {children}
     </span>
   )
@@ -160,15 +160,19 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
     }
   }
 
+  const totalQtd = itens.reduce((s, e) => s + (parseInt(e.quantidade) || 0), 0)
+
   return (
-    <div className="mb-3">
-      <div className="flex items-center gap-2 mb-1.5">
+    <div className="mb-3 border border-solid border-border rounded-md overflow-hidden">
+      <div className="flex items-center gap-2.5 py-2 px-2.5 bg-surface-2 border-b border-solid border-border">
+        <span className="text-[9px] text-ink-faint uppercase tracking-[.06em] font-semibold shrink-0">Ambiente</span>
         <input
           value={nome}
           onChange={e => setNome(e.target.value)}
           onBlur={commitRename}
-          className="flex-1 text-xs font-semibold"
+          className="flex-1 text-[13px] font-semibold bg-transparent border-none p-0 rounded px-1 -mx-1 hover:bg-white/5 focus:bg-white/5"
         />
+        <span className="text-[10px] text-ink-faint whitespace-nowrap">{totalQtd} extintor{totalQtd !== 1 ? 'es' : ''}</span>
         <button
           className="btn-add"
           onClick={() => dispatch({ type: 'ADD_EXTINTOR', estruturaId, pavimentoId, ambiente })}
@@ -183,24 +187,22 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
           <Icon name="trash" size={13}/>
         </button>
       </div>
-      <div className="border border-solid border-border rounded-md overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-surface-2">
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Tipo</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border">Sobre rodas</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border">Capacidade</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Qtd.</th>
-              <th className="w-9 border-b border-solid border-border"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {itens.map(ext => (
-              <LinhaExtintor key={ext.id} ext={ext} tiposPortatil={tiposPortatil} tiposSobreRodas={tiposSobreRodas} dispatch={dispatch}/>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr>
+            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Tipo</th>
+            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border-2">Sobre rodas</th>
+            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border-2">Capacidade</th>
+            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Qtd.</th>
+            <th className="w-9 border-b border-solid border-border-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {itens.map(ext => (
+            <LinhaExtintor key={ext.id} ext={ext} tiposPortatil={tiposPortatil} tiposSobreRodas={tiposSobreRodas} dispatch={dispatch}/>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -208,7 +210,7 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
 // ── Card de um pavimento ──────────────────────────────────────────────
 function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, extNorma, dispatch }) {
   const [novoAmbiente, setNovoAmbiente] = useState('')
-  const { LIMIARES_RISCO, AREA_LIMITE_UNIDADE_UNICA, TIPOS_PORTATIL, TIPOS_SOBRE_RODAS, NOTAS } = extNorma
+  const { LIMIARES_RISCO, AREA_LIMITE_UNIDADE_UNICA, TIPOS_PORTATIL, TIPOS_SOBRE_RODAS, DISTANCIA_MAXIMA, NOTAS } = extNorma
 
   const risco = riscoDoPavimento(pavimento, cargaState, LIMIARES_RISCO)
   const grupos = agruparPorAmbiente(extintoresDoPav)
@@ -226,6 +228,8 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
     setNovoAmbiente('')
   }
 
+  const conforme = resultado.temA && resultado.temBC && resultado.minimoAtendido
+
   return (
     <Card className="mb-4">
       <CardHeader>
@@ -233,6 +237,38 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
         <RiscoBadge risco={risco}/>
         {pavimento.area && <span className="text-[11px] text-ink-faint ml-auto">{pavimento.area} m²</span>}
       </CardHeader>
+
+      {/* Resultado — o que importa, em primeiro lugar */}
+      <div className={`py-3.5 px-[18px] border-b border-solid border-border ${conforme ? 'bg-green-dim' : 'bg-amber-dim'}`}>
+        <div className="flex items-center gap-6 flex-wrap">
+          <div className="shrink-0 text-center">
+            <div className="text-2xl font-bold text-ink leading-none">{resultado.totalUnidades}</div>
+            <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mt-1 whitespace-nowrap">unidade{resultado.totalUnidades !== 1 ? 's' : ''} extintora{resultado.totalUnidades !== 1 ? 's' : ''}</div>
+          </div>
+
+          {risco && (
+            <div className="shrink-0 text-center border-l border-solid border-border pl-6">
+              <div className="text-sm font-bold text-ink leading-none whitespace-nowrap">
+                {DISTANCIA_MAXIMA.portatil[risco]} m <span className="font-normal text-ink-faint">/</span> {DISTANCIA_MAXIMA.sobreRodas[risco]} m
+              </div>
+              <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mt-1 whitespace-nowrap">dist. máx. portátil / sobre rodas</div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap border-l border-solid border-border pl-6">
+            <Chip ok={resultado.temA}>Classe A</Chip>
+            <Chip ok={resultado.temBC}>Classes B/C</Chip>
+            <Chip ok={resultado.minimoAtendido}>Mínimo do pavimento</Chip>
+          </div>
+        </div>
+
+        {(!resultado.minimoAtendido || resultado.viaUnidadeUnica) && (
+          <div className="text-[11px] text-ink-faint leading-[1.6] mt-3 pt-3 border-t border-solid border-border-2">
+            {!resultado.minimoAtendido && NOTAS.minimoPorPavimento}
+            {resultado.viaUnidadeUnica && `Atendido pela exceção de unidade única — ${NOTAS.unidadeUnica} (área do pavimento ≤ ${limiteArea} m² para o risco ${risco}).`}
+          </div>
+        )}
+      </div>
 
       <div className="py-3.5 px-[18px]">
         {!risco && (
@@ -257,7 +293,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
           />
         ))}
 
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2">
           <input
             value={novoAmbiente}
             onChange={e => setNovoAmbiente(e.target.value)}
@@ -269,24 +305,6 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
             <Icon name="plus" size={11}/> Ambiente
           </button>
         </div>
-
-        {/* Resumo de conformidade */}
-        <div className="bg-bg border border-solid border-border rounded-md py-3 px-3.5 flex flex-col gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Chip ok={resultado.temA}>Classe A</Chip>
-            <Chip ok={resultado.temBC}>Classes B/C</Chip>
-            <Chip ok={resultado.minimoAtendido}>Mínimo do pavimento</Chip>
-            <span className="text-[11px] text-ink-faint">{resultado.totalUnidades} unidade{resultado.totalUnidades !== 1 ? 's' : ''} extintora{resultado.totalUnidades !== 1 ? 's' : ''}</span>
-          </div>
-          {!resultado.minimoAtendido && (
-            <div className="text-[11px] text-ink-faint leading-[1.6]">{NOTAS.minimoPorPavimento}</div>
-          )}
-          {resultado.permiteUnidadeUnica && (resultado.temA !== resultado.temBC) && (
-            <div className="text-[11px] text-ink-faint leading-[1.6]">
-              {NOTAS.unidadeUnica} (área do pavimento ≤ {limiteArea} m² para o risco {risco}).
-            </div>
-          )}
-        </div>
       </div>
     </Card>
   )
@@ -294,72 +312,113 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
 
 // ── Referência normativa (topo da página) ────────────────────────────
 const RISCO_ROWS = [
-  { key: 'baixo', label: 'A. Risco baixo' },
-  { key: 'medio', label: 'B. Risco médio' },
-  { key: 'alto',  label: 'C. Risco alto' },
+  { key: 'baixo', label: 'Risco baixo' },
+  { key: 'medio', label: 'Risco médio' },
+  { key: 'alto',  label: 'Risco alto' },
 ]
 
+function RefLabel({ children }) {
+  return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">{children}</div>
+}
+
 function ReferenciaNormativa({ extNorma }) {
-  const { TIPOS_PORTATIL, TIPOS_SOBRE_RODAS, DISTANCIA_MAXIMA, ALTURA_INSTALACAO, LOCAIS_RISCO_ESPECIAL, NOTAS } = extNorma
+  const { TIPOS_PORTATIL, TIPOS_SOBRE_RODAS, DISTANCIA_MAXIMA, ALTURA_INSTALACAO, LOCAIS_RISCO_ESPECIAL, DISTANCIA_ENTRADA_ESCADA } = extNorma
+  const [open, setOpen] = useState(false)
 
   return (
     <Card className="mb-8">
-      <CardHeader><span className="text-[13px] font-semibold text-ink">Parâmetros gerais (NT 21 CBMMA)</span></CardHeader>
-      <div className="py-3.5 px-[18px]">
-        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Distância máxima a percorrer (itens 5.1.2 e 5.1.5)</div>
-        <div className="border border-solid border-border rounded-md overflow-hidden mb-4">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-surface-2">
-                <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Risco</th>
-                <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border">Portátil</th>
-                <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border">Sobre rodas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {RISCO_ROWS.map(r => (
-                <tr key={r.key}>
-                  <td className="py-1.5 px-2.5 text-xs text-ink border-b border-solid border-border-2">{r.label}</td>
-                  <td className="py-1.5 px-2.5 text-xs text-ink font-mono text-right border-b border-solid border-border-2">{DISTANCIA_MAXIMA.portatil[r.key]} m</td>
-                  <td className="py-1.5 px-2.5 text-xs text-ink font-mono text-right border-b border-solid border-border-2">{DISTANCIA_MAXIMA.sobreRodas[r.key]} m</td>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 text-left"
+      >
+        <span className="text-[13px] font-semibold text-ink">Parâmetros normativos (NT 21 CBMMA)</span>
+        <span className="text-[11px] text-ink-faint">distâncias, capacidades mínimas e alturas de instalação</span>
+        <Icon name="chevD" size={14} className={`ml-auto text-ink-faint transition-transform ${open ? 'rotate-180' : ''}`}/>
+      </button>
+      {open && <div className="py-3.5 px-[18px] flex flex-col gap-4">
+        <div>
+          <RefLabel>Distância máxima a percorrer</RefLabel>
+          <div className="border border-solid border-border rounded-md overflow-hidden">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-surface-2">
+                  <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Risco</th>
+                  <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border">Portátil</th>
+                  <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border">Sobre rodas</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {RISCO_ROWS.map(r => (
+                  <tr key={r.key}>
+                    <td className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2">{r.label}</td>
+                    <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{DISTANCIA_MAXIMA.portatil[r.key]} m</td>
+                    <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{DISTANCIA_MAXIMA.sobreRodas[r.key]} m</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2">Classe D (metais)</td>
+                  <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2" colSpan={2}>{DISTANCIA_MAXIMA.classeD} m</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="text-[11px] text-ink-faint leading-[1.6] mb-4">{NOTAS.classeD} Distância máxima a percorrer: {DISTANCIA_MAXIMA.classeD} m (item 5.1.3.1).</div>
 
-        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Capacidade extintora mínima por tipo (itens 5.1.1 e 5.1.4)</div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Portátil (item 5.1.1)</div>
-            <ul className="flex flex-col gap-1">
-              {TIPOS_PORTATIL.map(t => (
-                <li key={t.key} className="text-xs text-ink-faint flex justify-between gap-2">
-                  <span>{t.label}</span><span className="font-mono text-ink">{t.capacidadeMinima}</span>
-                </li>
-              ))}
-            </ul>
+        <div>
+          <RefLabel>Capacidade extintora mínima por tipo</RefLabel>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Portátil</div>
+              <ul className="flex flex-col gap-1">
+                {TIPOS_PORTATIL.map(t => (
+                  <li key={t.key} className="text-[13px] text-ink-muted flex justify-between gap-2">
+                    <span>{t.label}</span><span className="font-mono font-semibold text-ink">{t.capacidadeMinima}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Sobre rodas</div>
+              <ul className="flex flex-col gap-1">
+                {TIPOS_SOBRE_RODAS.map(t => (
+                  <li key={t.key} className="text-[13px] text-ink-muted flex justify-between gap-2">
+                    <span>{t.label}</span><span className="font-mono font-semibold text-ink">{t.capacidadeMinima}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <div>
-            <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Sobre rodas (item 5.1.4)</div>
-            <ul className="flex flex-col gap-1">
-              {TIPOS_SOBRE_RODAS.map(t => (
-                <li key={t.key} className="text-xs text-ink-faint flex justify-between gap-2">
-                  <span>{t.label}</span><span className="font-mono text-ink">{t.capacidadeMinima}</span>
-                </li>
-              ))}
-            </ul>
+        </div>
+
+        <div>
+          <RefLabel>Altura de instalação</RefLabel>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex justify-between gap-2 text-[13px]">
+              <span className="text-ink-muted">Suporte de parede</span>
+              <span className="font-mono font-semibold text-ink">{ALTURA_INSTALACAO.suporteParede.alturaMinimaBase}–{ALTURA_INSTALACAO.suporteParede.alturaMaxima} m</span>
+            </div>
+            <div className="flex justify-between gap-2 text-[13px]">
+              <span className="text-ink-muted">Apoiado no piso</span>
+              <span className="font-mono font-semibold text-ink">{ALTURA_INSTALACAO.apoiadoPiso.min}–{ALTURA_INSTALACAO.apoiadoPiso.max} m</span>
+            </div>
           </div>
         </div>
-        <div className="text-[11px] text-ink-faint leading-[1.6] mb-2">
-          Altura de fixação do suporte de parede: entre {ALTURA_INSTALACAO.suporteParede.alturaMinimaBase} m e {ALTURA_INSTALACAO.suporteParede.alturaMaxima} m do piso (item 5.2.1.1). Apoiado sobre suporte no piso: entre {ALTURA_INSTALACAO.apoiadoPiso.min} m e {ALTURA_INSTALACAO.apoiadoPiso.max} m (item 5.2.1.3).
+
+        <div>
+          <RefLabel>Entrada e escadas</RefLabel>
+          <div className="text-[13px] text-ink-muted leading-[1.6]">Pelo menos um extintor a até {DISTANCIA_ENTRADA_ESCADA} m da entrada principal da edificação e das escadas nos demais pavimentos.</div>
         </div>
-        <div className="text-[11px] text-ink-faint leading-[1.6] mb-2">{NOTAS.entradaEscada}</div>
-        <div className="text-[11px] text-ink-faint leading-[1.6]">
-          <strong className="text-ink-muted">Locais de risco especial</strong> que exigem extintor próprio independente da proteção geral (item 5.2.1.9): {LOCAIS_RISCO_ESPECIAL.join(', ')}.
+
+        <div>
+          <RefLabel>Locais de risco especial (exigem extintor próprio)</RefLabel>
+          <div className="flex flex-wrap gap-1.5">
+            {LOCAIS_RISCO_ESPECIAL.map(local => (
+              <span key={local} className="text-[11px] text-ink-muted bg-surface-2 border border-solid border-border-2 rounded py-1 px-2">{local}</span>
+            ))}
+          </div>
         </div>
-      </div>
+      </div>}
     </Card>
   )
 }
