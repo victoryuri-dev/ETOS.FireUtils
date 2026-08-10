@@ -3,23 +3,20 @@ import { useProjeto } from '../context/ProjetoContext'
 import { getMedidasObrigatorias, getGruposSemDados } from '../data/normas/index'
 import { classificarPavimentos, divisoesDaEstrutura } from '../utils/classificacao'
 
-// Exigidas por regra geral da norma (nao condicionadas a ocupacao) — nao
-// aparecem nas tabelas de medidas por divisao/grupo (nem na simplificada
-// nem na normal), entao o motor nunca as encontraria. Sempre obrigatorias,
-// independente do resultado do motor.
-const SEMPRE_OBRIGATORIO = ['acesso_viatura', 'seg_estrutural']
-
-// Inverso do acima: mesmo que a tabela da norma marque como obrigatoria pra
+// Inverso do abaixo: mesmo que a tabela da norma marque como obrigatoria pra
 // a ocupacao/altura, o usuario decide se instala (fica sempre habilitavel/
 // desabilitavel manualmente em Configuracao, nunca travada como "Obrigatorio").
 const SEMPRE_OPCIONAL = ['central_gas']
 
 // Conjunto minimo de referencia aplicado quando a norma ainda nao tem dados
-// cadastrados (Tabela 6 / processo normal) para algum grupo de ocupacao
-// presente na estrutura — evita que o motor "esconda" exigencias por falta
-// de dado. Deve ser confirmado manualmente com o CBMMA nesses casos.
+// cadastrados (Tabela 5 simplificada ou Tabela 6 normal) para algum grupo de
+// ocupacao presente na estrutura — evita que o motor "esconda" exigencias por
+// falta de dado. Deve ser confirmado manualmente com o CBMMA nesses casos.
+// acesso_viatura/seg_estrutural entram aqui so como fallback: quando ha dado
+// cadastrado (Tabela 5 ou 6), a propria tabela decide (ex: Tabela 5 nao exige
+// nenhuma das duas; Tabela 6 do F-7 nao exige seg_estrutural).
 const BASELINE_QUANDO_FALTA_DADO = [
-  'saida_emergencia', 'brigada', 'iluminacao', 'sinalizacao', 'extintores',
+  'acesso_viatura', 'seg_estrutural', 'saida_emergencia', 'brigada', 'iluminacao', 'sinalizacao', 'extintores',
 ]
 
 /**
@@ -48,9 +45,6 @@ export function useMedidasObrigatorias() {
 
       const medidas = {}
       Object.entries(resultado?.medidas || {}).forEach(([k, v]) => { medidas[k] = !!v.obrigatorio })
-      if (divisoes.length > 0) {
-        SEMPRE_OBRIGATORIO.forEach(k => { medidas[k] = true })
-      }
       if (gruposFaltantes.length > 0) {
         BASELINE_QUANDO_FALTA_DADO.forEach(k => { medidas[k] = true })
       }
