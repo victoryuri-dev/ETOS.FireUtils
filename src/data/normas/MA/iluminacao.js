@@ -60,6 +60,43 @@ export const CAMPOS_EQUIPAMENTO = [
   { key: 'vidaUtilH',       label: 'Vida útil do elemento gerador de luz' },
 ]
 
+// ── Presets de especificação por equipamento ────────────────────────────────
+// Valores de catálogo de fabricante, transcritos das fichas técnicas
+// informadas pelo usuário — ponto de partida para o formulário; o
+// projetista pode editar livremente após escolher um preset. Campos não
+// informados na ficha (ex.: ângulo de dispersão da luminária de 30 LEDs,
+// vida útil do LED em nenhum dos modelos) ficam em branco — não foram
+// inventados. `potenciaW`/`tensaoV`/`anguloDispersao`/`vidaUtilH` são texto
+// livre (não entram em cálculo); só `fluxoLuminosoLm` precisa ser numérico
+// (usado no dimensionamento por área).
+export const PRESETS_EQUIPAMENTO = [
+  {
+    key: 'luminaria_30leds_100lm', tipoBase: 'luminaria_30leds', label: '30 LEDs SMD — 100 lm',
+    tipoLampada: '30 LEDs SMD', potenciaW: '6', tensaoV: '100-240',
+    fluxoLuminosoLm: '100', anguloDispersao: '', vidaUtilH: '',
+  },
+  {
+    key: 'bloco_2200lm', tipoBase: 'bloco_emergencia', label: '2200 lm',
+    tipoLampada: '2 × 70 LEDs autobrilho', potenciaW: '2× 7,65', tensaoV: '100-240',
+    fluxoLuminosoLm: '2200', anguloDispersao: '120°', vidaUtilH: '',
+  },
+  {
+    key: 'bloco_1200lm', tipoBase: 'bloco_emergencia', label: '1200 lm',
+    tipoLampada: '2 × 35 LEDs autobrilho', potenciaW: '2× 4,4', tensaoV: '100-240',
+    fluxoLuminosoLm: '1200', anguloDispersao: '120°', vidaUtilH: '',
+  },
+  {
+    key: 'bloco_600lm', tipoBase: 'bloco_emergencia', label: '600 lm',
+    tipoLampada: '2 × 40 LEDs autobrilho', potenciaW: '2× 2', tensaoV: '100-240',
+    fluxoLuminosoLm: '600', anguloDispersao: '120°', vidaUtilH: '',
+  },
+  {
+    key: 'bloco_400lm', tipoBase: 'bloco_emergencia', label: '400 lm',
+    tipoLampada: '2 × 40 LEDs autobrilho', potenciaW: '2× 1,4', tensaoV: '100-240',
+    fluxoLuminosoLm: '400', anguloDispersao: '120°', vidaUtilH: '',
+  },
+]
+
 // ── Pontos de balizamento obrigatórios (checklist por pavimento) ───────────
 // Cada ponto existente no pavimento deve ter luminária de balizamento própria.
 export const PONTOS_BALIZAMENTO = [

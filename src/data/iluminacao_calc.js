@@ -9,6 +9,16 @@
 
 const num = v => parseFloat(v) || 0
 
+/** Nome de exibição de uma especificação de equipamento — usa a
+ *  identificação informada pelo projetista quando houver; caso contrário
+ *  cai no padrão "{label do tipo base} — {fluxo} lm" (ou só o label, se o
+ *  fluxo ainda não foi preenchido). Mesma função usada na tela e no
+ *  memorial — nunca dois textos diferentes para a mesma especificação. */
+export function nomeEspecificacao(spec, baseLabel) {
+  if (spec.identificacao) return spec.identificacao
+  return spec.fluxoLuminosoLm ? `${baseLabel} — ${spec.fluxoLuminosoLm} lm` : baseLabel
+}
+
 /** Área máxima coberta (m²) por uma luminária de aclaramento de determinado
  *  fluxo luminoso, pelo método simplificado (fluxo × fator de utilização ÷
  *  iluminância mínima exigida). */

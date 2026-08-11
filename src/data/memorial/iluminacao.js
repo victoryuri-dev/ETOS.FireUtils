@@ -7,7 +7,7 @@
 // mesmo padrão do memorial de Extintores.
 
 import { getIluminacao } from '../normas/index'
-import { calcularAclaramento, calcularBalizamento } from '../iluminacao_calc'
+import { calcularAclaramento, calcularBalizamento, nomeEspecificacao } from '../iluminacao_calc'
 
 function blocosDoPavimento(pav, itensPav, balizamentoAplicado, equipamentosUsados, equipamentosSpec, norma) {
   const { ILUMINANCIA_MINIMA, FATOR_UTILIZACAO_ACLARAMENTO, PONTOS_BALIZAMENTO } = norma
@@ -64,8 +64,16 @@ export function textoMemorialIluminacao(state) {
   const norma = getIluminacao(state.uf)
   const { ILUMINANCIA_MINIMA, RAZAO_UNIFORMIDADE_MAX, AUTONOMIA_MINIMA_HORAS, TEMPO_RESPOSTA_MAX_S, TIPOS_SISTEMA, EQUIPAMENTOS_ACLARAMENTO, CAMPOS_EQUIPAMENTO } = norma
   const sistema = state.iluminacaoSistema || {}
-  const equipamentosSpec  = sistema.equipamentos || {}
-  const equipamentosUsados = EQUIPAMENTOS_ACLARAMENTO.filter(eq => equipamentosSpec[eq.key]?.usado)
+  const especificacoes = sistema.especificacoes || []
+
+  // Uma opção por especificação cadastrada (não por tipo base) — rotulada
+  // com o fluxo luminoso para diferenciar variantes do mesmo equipamento,
+  // mesmo critério usado em IluminacaoPage.jsx.
+  const equipamentosUsados = especificacoes.map(spec => {
+    const base = EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
+    return { key: spec.id, label: nomeEspecificacao(spec, base?.label || spec.tipoBase) }
+  })
+  const equipamentosSpec = Object.fromEntries(especificacoes.map(spec => [spec.id, spec]))
 
   const blocos = [{
     tipo: 'paragrafo',

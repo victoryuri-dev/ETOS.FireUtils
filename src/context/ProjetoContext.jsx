@@ -46,6 +46,37 @@ function novoItemIluminacao(estruturaId, pavimentoId, categoria, overrides = {})
   return { id: idIluminacao(), estruturaId, pavimentoId, categoria, quantidade: 1, ...overrides }
 }
 
+// Mesma lógica de idIluminacao — evita colisão entre especificações
+// cadastradas no mesmo milissegundo.
+let especEquipSeq = 0
+function idEspecEquip() {
+  especEquipSeq += 1
+  return `spec-${Date.now().toString(36)}-${especEquipSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Especificação técnica de um equipamento de aclaramento (item 5.2, NBR
+// 10898) — um mesmo tipo base (ex.: "Luminária de Emergência 30 LEDs") pode
+// ter várias especificações cadastradas (ex.: variantes com fluxo luminoso
+// diferente), cada uma virando uma opção própria nos quantitativos por
+// pavimento (ver IluminacaoPage.jsx). `preset`, quando informado (ver
+// PRESETS_EQUIPAMENTO em normas/MA/iluminacao.js), pré-preenche os campos
+// técnicos — sempre editável depois. `identificacao` é livre; quando vazia,
+// a tela/memorial mostram um nome padrão calculado (ver nomeEspecificacao
+// em iluminacao_calc.js). `id`, quando informado, vem de quem despachou a
+// ação (IluminacaoPage.jsx gera o id antes de despachar para poder abrir a
+// linha nova já expandida assim que ela aparecer) — sem isso, gera um novo.
+function novaEspecificacaoEquipamento(tipoBase, preset, id) {
+  return {
+    id: id || idEspecEquip(), tipoBase, identificacao: '',
+    tipoLampada: preset?.tipoLampada || '',
+    potenciaW: preset?.potenciaW || '',
+    tensaoV: preset?.tensaoV || '',
+    fluxoLuminosoLm: preset?.fluxoLuminosoLm || '',
+    anguloDispersao: preset?.anguloDispersao || '',
+    vidaUtilH: preset?.vidaUtilH || '',
+  }
+}
+
 // Mesma lógica de idExtintor/idIluminacao — evita colisão entre placas
 // cadastradas no mesmo milissegundo.
 let sinalizacaoSeq = 0
@@ -59,6 +90,23 @@ function idSinalizacao() {
 // chave do catálogo em normas/MA/sinalizacao.js (TIPOS_PLACA).
 function novoItemSinalizacao(estruturaId, pavimentoId, tipoPlaca, quantidade) {
   return { id: idSinalizacao(), estruturaId, pavimentoId, tipoPlaca, quantidade }
+}
+
+// Normaliza um estado salvo (localStorage ou payload de LOAD) contra
+// INITIAL_STATE — protege objetos aninhados que ganharam campos novos desde
+// que o projeto foi salvo (ex.: manobraRetornoOk, iluminacaoSistema.especi-
+// ficacoes) de sumirem só porque o resto do objeto salvo já existia. Usada
+// tanto na hidratação inicial (boot/F5) quanto na ação 'LOAD' — as duas
+// precisam da mesma proteção, senão um estado salvo com o formato antigo
+// quebra o reducer (ex.: `especificacoes` inexistente vira `undefined`,
+// não iterável).
+function hydrateState(saved) {
+  return {
+    ...INITIAL_STATE,
+    ...saved,
+    acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
+    iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
+  }
 }
 
 function novaEstrutura(nome) {
@@ -100,16 +148,15 @@ const INITIAL_STATE = {
   // Sistema de iluminação de emergência escolhido para o projeto todo (não
   // varia por pavimento) — perguntado antes de liberar as quantidades por
   // pavimento em IluminacaoPage.jsx. `localizacaoFonte` só se aplica a
-  // 'central'/'motogerador'. `equipamentos` guarda os dados técnicos (item
-  // 5.2, NBR 10898) de cada um dos dois tipos de equipamento de aclaramento
-  // aceitos — ver EQUIPAMENTOS_ACLARAMENTO em normas/MA/iluminacao.js.
+  // 'central'/'motogerador'. `especificacoes` guarda as especificações
+  // técnicas (item 5.2, NBR 10898) cadastradas para os equipamentos de
+  // aclaramento — uma lista, pois um mesmo tipo base (ver
+  // EQUIPAMENTOS_ACLARAMENTO em normas/MA/iluminacao.js) pode ter mais de
+  // uma variante (ex.: fluxos luminosos diferentes).
   iluminacaoSistema: {
     tipo: '', // '' | 'bloco_autonomo' | 'central' | 'motogerador'
     localizacaoFonte: '',
-    equipamentos: {
-      luminaria_30leds: { usado: false, tipoLampada: '', potenciaW: '', tensaoV: '', fluxoLuminosoLm: '', anguloDispersao: '', vidaUtilH: '' },
-      bloco_emergencia: { usado: false, tipoLampada: '', potenciaW: '', tensaoV: '', fluxoLuminosoLm: '', anguloDispersao: '', vidaUtilH: '' },
-    },
+    especificacoes: [],
   },
   // Resposta por pavimento à pergunta "foram aplicadas luminárias de
   // balizamento neste pavimento?" — chave = pavimentoId, valor true/false.
@@ -257,16 +304,59 @@ function reducer(state, action) {
       return { ...state, iluminacao: state.iluminacao.filter(i => i.id !== action.id) }
     case 'SET_ILUMINACAO_SISTEMA':
       return { ...state, iluminacaoSistema: { ...state.iluminacaoSistema, ...action.changes } }
-    case 'SET_ILUMINACAO_EQUIPAMENTO':
+    // Switch liga/desliga de um tipo base de equipamento — ligar cria uma
+    // especificação default (se ainda não houver nenhuma desse tipo);
+    // desligar remove todas as especificações desse tipo e os quantitativos
+    // de aclaramento que já as referenciavam em algum pavimento.
+    case 'SET_EQUIPAMENTO_USADO': {
+      const { tipoBase, usado, preset, id } = action
+      const especIds = new Set(state.iluminacaoSistema.especificacoes.filter(s => s.tipoBase === tipoBase).map(s => s.id))
+      if (usado) {
+        if (especIds.size > 0) return state
+        return {
+          ...state,
+          iluminacaoSistema: {
+            ...state.iluminacaoSistema,
+            especificacoes: [...state.iluminacaoSistema.especificacoes, novaEspecificacaoEquipamento(tipoBase, preset, id)],
+          },
+        }
+      }
       return {
         ...state,
         iluminacaoSistema: {
           ...state.iluminacaoSistema,
-          equipamentos: {
-            ...state.iluminacaoSistema.equipamentos,
-            [action.key]: { ...state.iluminacaoSistema.equipamentos[action.key], ...action.changes },
-          },
+          especificacoes: state.iluminacaoSistema.especificacoes.filter(s => s.tipoBase !== tipoBase),
         },
+        iluminacao: state.iluminacao.filter(i => !(i.categoria === 'aclaramento' && especIds.has(i.tipoEquipamento))),
+      }
+    }
+    case 'ADD_ESPECIFICACAO_EQUIPAMENTO':
+      return {
+        ...state,
+        iluminacaoSistema: {
+          ...state.iluminacaoSistema,
+          especificacoes: [...state.iluminacaoSistema.especificacoes, novaEspecificacaoEquipamento(action.tipoBase, action.preset, action.id)],
+        },
+      }
+    case 'UPDATE_ESPECIFICACAO_EQUIPAMENTO':
+      return {
+        ...state,
+        iluminacaoSistema: {
+          ...state.iluminacaoSistema,
+          especificacoes: state.iluminacaoSistema.especificacoes.map(s => s.id === action.id ? { ...s, ...action.changes } : s),
+        },
+      }
+    // Remove a especificação e também os quantitativos de aclaramento que já
+    // referenciavam ela em algum pavimento — evita item órfão apontando para
+    // uma especificação inexistente.
+    case 'REMOVE_ESPECIFICACAO_EQUIPAMENTO':
+      return {
+        ...state,
+        iluminacaoSistema: {
+          ...state.iluminacaoSistema,
+          especificacoes: state.iluminacaoSistema.especificacoes.filter(s => s.id !== action.id),
+        },
+        iluminacao: state.iluminacao.filter(i => !(i.categoria === 'aclaramento' && i.tipoEquipamento === action.id)),
       }
     case 'ADD_SINALIZACAO':
       return { ...state, sinalizacao: [...state.sinalizacao, novoItemSinalizacao(action.estruturaId, action.pavimentoId, action.tipoPlaca, action.quantidade)] }
@@ -298,23 +388,7 @@ function reducer(state, action) {
     case 'TOGGLE_RISCO':
       return { ...state, riscosEspeciais: { ...state.riscosEspeciais, [action.key]: !state.riscosEspeciais[action.key] } }
     case 'LOAD':
-      // acessoViatura/iluminacaoSistema mesclados a parte: projetos salvos
-      // antes de um campo novo existir (ex.: manobraRetornoOk, ou um novo
-      // equipamento de aclaramento) não podem perder o valor padrão dele só
-      // porque o resto do objeto já foi salvo.
-      return {
-        ...INITIAL_STATE,
-        ...action.payload,
-        acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(action.payload.acessoViatura || {}) },
-        iluminacaoSistema: {
-          ...INITIAL_STATE.iluminacaoSistema,
-          ...(action.payload.iluminacaoSistema || {}),
-          equipamentos: {
-            ...INITIAL_STATE.iluminacaoSistema.equipamentos,
-            ...(action.payload.iluminacaoSistema?.equipamentos || {}),
-          },
-        },
-      }
+      return hydrateState(action.payload)
     case 'NEW_PROJECT':
       return { ...INITIAL_STATE, id: action.id, seqId: action.seqId, createdAt: action.createdAt, estruturas: [novaEstrutura('Estrutura 1')] }
     default: return state
@@ -331,7 +405,7 @@ export function ProjetoProvider({ children }) {
         const saved = JSON.parse(s)
         // Migração: projetos salvos antes de ter id recebem um novo
         if (!saved.id) Object.assign(saved, newIds())
-        return { ...init, ...saved }
+        return hydrateState(saved)
       }
     } catch {}
     return { ...init, ...newIds() }
