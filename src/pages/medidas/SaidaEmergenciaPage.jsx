@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { getSE } from '../../data/normas/index'
@@ -16,12 +16,13 @@ const uid  = () => `se-${Date.now()}-${++_seq}`
 const fmt  = n  => Number(n).toFixed(2).replace('.', ',')
 const fmtM = n  => `${fmt(n)} m`
 
-function pavimentosIniciais(projetoPavs) {
+function syncPavimentos(projetoPavs, prev = []) {
   if (!projetoPavs?.length) return []
+  const anteriores = new Map(prev.map(p => [p.id, p]))
   return projetoPavs.map(p => ({
     id: p.id, nome: p.label,
     tipo: p.tipo === 'terreo' ? 'descarga' : 'tipo',
-    ambientes: [],
+    ambientes: anteriores.get(p.id)?.ambientes || [],
   }))
 }
 
@@ -351,7 +352,7 @@ function importarFiredata(json) {
 }
 
 // ── Page principal ────────────────────────────────────────────────────
-const MAIN_COL = 'grid-cols-[1fr_80px_130px_1fr_28px]'
+const MAIN_COL = 'grid-cols-[1fr_80px_130px_1fr]'
 
 export default function SaidaEmergenciaPage() {
   const { state }       = useProjeto()
@@ -359,10 +360,8 @@ export default function SaidaEmergenciaPage() {
   const seNorma         = getSE(uf)
   const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS: _, LARGURAS_MINIMAS, BLOCOS_DISTANCIA } = seNorma
 
-  const [pavimentos,   setPavimentos]   = useState(() => pavimentosIniciais(state.pavimentos))
+  const [pavimentos,   setPavimentos]   = useState(() => syncPavimentos(state.pavimentos))
   const [openId,       setOpenId]       = useState(null)
-  const [addForm,      setAddForm]      = useState(false)
-  const [newPav,       setNewPav]       = useState({ nome:'', tipo:'tipo' })
   const [temChuveiros, setTemChuveiros] = useState(false)
   const [temDeteccao,  setTemDeteccao]  = useState(false)
   const [largAdotada,  setLargAdotada]  = useState({})
@@ -370,6 +369,10 @@ export default function SaidaEmergenciaPage() {
   const [importErro,   setImportErro]   = useState(null)
   const [saidaUnica,   setSaidaUnica]   = useState({})
   const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    setPavimentos(prev => syncPavimentos(state.pavimentos, prev))
+  }, [state.pavimentos])
 
   const getSaidaUnica = (pavId, adN) => saidaUnica[pavId] ?? (adN <= 1)
   const toggleSaidaUnica = (pavId, val) => setSaidaUnica(prev => ({ ...prev, [pavId]: val }))
@@ -402,13 +405,6 @@ export default function SaidaEmergenciaPage() {
 
   const openPav = pavimentos.find(p => p.id === openId)
   const govPav  = pavMaisPopuloso(pavimentos, TAXA_POPULACIONAL)
-
-  const addPavimento = () => {
-    if (!newPav.nome.trim()) return
-    setPavimentos(prev => [...prev, { id:uid(), nome:newPav.nome.trim(), tipo:newPav.tipo, ambientes:[] }])
-    setNewPav({ nome:'', tipo:'tipo' })
-    setAddForm(false)
-  }
 
   const savePav = updated => {
     setPavimentos(prev => prev.map(p => p.id===updated.id ? updated : p))
@@ -454,7 +450,7 @@ export default function SaidaEmergenciaPage() {
               <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Saídas de Emergência</div>
               <h2 className="text-[22px] font-bold text-ink mb-1.5">Dimensionamento</h2>
               <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-                Adicione pavimentos e configure os ambientes de cada um. Resultados calculados automaticamente conforme {info?.nome || 'NT vigente'} / NBR 9077.
+                Configure os ambientes de cada pavimento do projeto. Resultados calculados automaticamente conforme {info?.nome || 'NT vigente'} / NBR 9077.
               </p>
             </div>
             <div className="shrink-0">
@@ -490,12 +486,11 @@ export default function SaidaEmergenciaPage() {
               Pavimentos
               {govPav && <span className="text-[11px] font-normal text-ink-faint">— Mais populoso: <span className="text-red font-semibold">{govPav.nome} ({calcPopPav(govPav, TAXA_POPULACIONAL)} pess.)</span></span>}
             </div>
-            {!addForm && <button className="btn-ghost" onClick={() => setAddForm(true)}><Icon name="plus" size={12}/> Adicionar pavimento</button>}
           </div>
 
           {temPavimentos && (
             <div className={`grid ${MAIN_COL} gap-3.5 py-2 px-5 bg-surface-2 border-b border-solid border-border text-[10px] text-ink-faint uppercase tracking-[.06em]`}>
-              <span>Pavimento</span><span className="text-center">Amb.</span><span className="text-center">Pop.</span><span>Divisões</span><span/>
+              <span>Pavimento</span><span className="text-center">Amb.</span><span className="text-center">Pop.</span><span>Divisões</span>
             </div>
           )}
 
@@ -520,36 +515,13 @@ export default function SaidaEmergenciaPage() {
                 <div className={`text-center text-[15px] font-bold ${p.ambientes.length ? 'text-red' : 'text-ink-faint'}`}>{p.ambientes.length}</div>
                 <div className={`text-center text-sm font-bold ${pop>0 ? 'text-red' : 'text-ink-faint'}`}>{pop>0 ? `${pop} pess.` : <span className="text-[11px] font-normal">—</span>}</div>
                 <div className="flex gap-1 flex-wrap">{divs.map(d=><DivBadge key={d} label={d}/>)}{!divs.length && <span className="text-[11px] text-ink-faint">—</span>}</div>
-                <div onClick={e => { e.stopPropagation(); setPavimentos(prev=>prev.filter(x=>x.id!==p.id)) }}
-                  className="text-ink-faint cursor-pointer flex hover:text-red"><Icon name="trash" size={13}/></div>
               </div>
             )
           })}
 
-          {!temPavimentos && !addForm && <div className="p-9 text-center text-ink-faint text-[13px]">Nenhum pavimento adicionado.</div>}
-
-          {addForm && (
-            <div className={`py-4 px-5 bg-[rgba(192,21,42,.05)] ${temPavimentos ? 'border-t border-solid border-red-border' : ''}`}>
-              <div className="text-[10px] text-red font-semibold uppercase tracking-[.07em] mb-3">Novo pavimento</div>
-              <div className="flex gap-2.5 items-end">
-                <div className="flex-1">
-                  <Label>Nome</Label>
-                  <input className={inputClass} autoFocus placeholder="ex.: Térreo, 1º Pavimento..."
-                    value={newPav.nome} onChange={e => setNewPav(f=>({...f,nome:e.target.value}))} onKeyDown={e => e.key==='Enter' && addPavimento()}/>
-                </div>
-                <div>
-                  <Label>Tipo de pavimento</Label>
-                  <select className={`${inputClass} w-auto`} value={newPav.tipo} onChange={e => setNewPav(f=>({...f,tipo:e.target.value}))}>
-                    <option value="tipo">Pavimento tipo</option>
-                    <option value="descarga">Piso de descarga (Térreo)</option>
-                  </select>
-                </div>
-                <button className="btn-primary" onClick={addPavimento}>Adicionar</button>
-                <button className="btn-ghost" onClick={() => setAddForm(false)}>Cancelar</button>
-              </div>
-              <div className="mt-2.5 text-[11px] text-ink-faint leading-[1.5]">
-                <strong>Piso de descarga</strong>: pavimento de saída da edificação (térreo). Conta para AD e PT, mas não para ER.
-              </div>
+          {!temPavimentos && (
+            <div className="p-9 text-center text-ink-faint text-[13px]">
+              Nenhum pavimento configurado. Cadastre os pavimentos da edificação na Etapa 2 (Edificação).
             </div>
           )}
         </div>
@@ -557,7 +529,7 @@ export default function SaidaEmergenciaPage() {
         {temPavimentos && !pavimentos.some(p => p.tipo==='descarga') && (
           <div className="ibox amber mb-6">
             <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-            <span className="text-xs">Nenhum piso de descarga definido. Identifique o térreo como "Piso de descarga" para o cálculo correto das distâncias máximas.</span>
+            <span className="text-xs">Nenhum piso de descarga definido. Marque o pavimento térreo na Etapa 2 (Edificação) para o cálculo correto das distâncias máximas.</span>
           </div>
         )}
 
