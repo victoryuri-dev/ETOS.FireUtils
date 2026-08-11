@@ -26,7 +26,7 @@ function novoExtintor(estruturaId, pavimentoId, ambiente) {
     // Capacidade extintora do agente escolhido no projeto — livre para o
     // projetista aumentar, mas sempre nasce preenchida com o mínimo
     // normativo do tipo padrão (pó ABC portátil, item 5.1.1 NT 21 CBMMA).
-    tipo: 'po_abc', sobreRodas: false, capacidade: '2-A:20-B:C', quantidade: 1,
+    tipo: 'po_abc', sobreRodas: false, capacidade: '2-A:20-B:C', quantidade: 1, peso: '',
   }
 }
 

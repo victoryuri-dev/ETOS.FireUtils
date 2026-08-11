@@ -8,7 +8,7 @@ import Icon from '../../components/ui/Icon'
 // Formato esperado (ver comentário completo no final do arquivo):
 //   { "extintores": { "_timestamp": "...", "itens": [
 //       { "estrutura": "Estrutura 1", "pavimento": "Térreo", "ambiente": "Cozinha",
-//         "tipo": "po_abc", "sobreRodas": false, "capacidade": "4-A:40-B:C", "quantidade": 2 },
+//         "tipo": "po_abc", "sobreRodas": false, "capacidade": "4-A:40-B:C", "peso": 6, "quantidade": 2 },
 //       ...
 //   ] } }
 //
@@ -43,6 +43,7 @@ function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSo
       tipo:        it.tipo,
       sobreRodas,
       capacidade:  it.capacidade || tipoInfo.capacidadeMinima,
+      peso:        it.peso != null ? String(it.peso) : '',
       quantidade:  parseInt(it.quantidade) || 1,
     })
   })
@@ -109,26 +110,36 @@ function LinhaExtintor({ ext, tiposPortatil, tiposSobreRodas, dispatch }) {
           {catalogo.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
         </select>
       </td>
-      <td className="py-1.5 px-2.5 border-b border-solid border-border-2 text-center">
-        <input
-          type="checkbox"
-          checked={ext.sobreRodas}
+      <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
+        <select
+          value={ext.sobreRodas ? 'sobreRodas' : 'portatil'}
           onChange={e => {
-            const sobreRodas = e.target.checked
+            const sobreRodas = e.target.value === 'sobreRodas'
             const novoCatalogo = sobreRodas ? tiposSobreRodas : tiposPortatil
             const aindaExiste = novoCatalogo.some(t => t.key === ext.tipo)
             const tipo = aindaExiste ? ext.tipo : 'po_abc'
             const tipoInfo = novoCatalogo.find(t => t.key === tipo)
             update({ sobreRodas, tipo, capacidade: tipoInfo?.capacidadeMinima || '' })
           }}
-          className="w-auto"
-        />
+          className="text-xs py-1.5 px-2"
+        >
+          <option value="portatil">Portátil</option>
+          <option value="sobreRodas">Sobre rodas</option>
+        </select>
       </td>
       <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
         <input
           value={ext.capacidade}
           onChange={e => update({ capacidade: e.target.value })}
           className="w-[130px] text-center font-mono text-xs"
+        />
+      </td>
+      <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
+        <input
+          type="number" min="0" step="0.1" value={ext.peso}
+          onChange={e => update({ peso: e.target.value })}
+          className="w-[72px] text-right"
+          placeholder="kg"
         />
       </td>
       <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
@@ -191,8 +202,9 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
         <thead>
           <tr>
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Tipo</th>
-            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border-2">Sobre rodas</th>
+            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Formato</th>
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border-2">Capacidade</th>
+            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border-2">Peso (kg)</th>
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Qtd.</th>
             <th className="w-9 border-b border-solid border-border-2"></th>
           </tr>
