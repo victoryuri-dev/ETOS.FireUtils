@@ -67,6 +67,17 @@ function SectionTitle({ label, desc }) {
     </div>
   )
 }
+function StepHeader({ n, label, desc }) {
+  return (
+    <div className="flex items-start gap-3 mb-4">
+      <div className="w-6 h-6 rounded-full bg-red text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">{n}</div>
+      <div>
+        <h3 className="text-[15px] font-bold text-ink m-0 mb-1">{label}</h3>
+        {desc && <p className="text-[12px] text-ink-faint leading-[1.6] m-0 max-w-[620px]">{desc}</p>}
+      </div>
+    </div>
+  )
+}
 function LargAdotadaInput({ laMin, value, onChange }) {
   const [err, setErr] = useState(false)
   const display = value != null ? value : laMin
@@ -438,6 +449,7 @@ export default function SaidaEmergenciaPage() {
   })() : null
 
   const temPavimentos = pavimentos.length > 0
+  const temPopulacao  = dadosPav.some(d => d.pop > 0)
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -447,10 +459,10 @@ export default function SaidaEmergenciaPage() {
         <div className="mb-8">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
-              <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Saídas de Emergência</div>
-              <h2 className="text-[22px] font-bold text-ink mb-1.5">Dimensionamento</h2>
+              <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
+              <h2 className="text-[22px] font-bold text-ink mb-1.5">Saídas de Emergência</h2>
               <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-                Configure os ambientes de cada pavimento do projeto. Resultados calculados automaticamente conforme {info?.nome || 'NT vigente'} / NBR 9077.
+                Cadastre os ambientes de cada pavimento (1) para calcular a população e dimensionar as saídas (2), conforme {info?.nome || 'NT vigente'} / NBR 9077.
               </p>
             </div>
             <div className="shrink-0">
@@ -479,62 +491,85 @@ export default function SaidaEmergenciaPage() {
           )}
         </div>
 
-        {/* Pavimentos */}
-        <div className="bg-surface border border-solid border-border rounded-lg overflow-hidden mb-7">
-          <div className="py-3.5 px-5 border-b border-solid border-border flex items-center justify-between">
-            <div className="text-sm font-semibold text-ink flex items-center gap-2">
-              Pavimentos
-              {govPav && <span className="text-[11px] font-normal text-ink-faint">— Mais populoso: <span className="text-red font-semibold">{govPav.nome} ({calcPopPav(govPav, TAXA_POPULACIONAL)} pess.)</span></span>}
+        {/* Etapa 1 — Ambientes e população */}
+        <div className="mb-10">
+          <StepHeader n={1} label="Ambientes e população"
+            desc="Cadastre os ambientes de cada pavimento e sua divisão de ocupação — a população é calculada automaticamente pela taxa normativa da divisão."/>
+
+          <div className="bg-surface border border-solid border-border rounded-lg overflow-hidden">
+            <div className="py-3.5 px-5 border-b border-solid border-border flex items-center justify-between">
+              <div className="text-sm font-semibold text-ink flex items-center gap-2">
+                Pavimentos
+                {govPav && <span className="text-[11px] font-normal text-ink-faint">— Mais populoso: <span className="text-red font-semibold">{govPav.nome} ({calcPopPav(govPav, TAXA_POPULACIONAL)} pess.)</span></span>}
+              </div>
             </div>
+
+            {temPavimentos && (
+              <div className={`grid ${MAIN_COL} gap-3.5 py-2 px-5 bg-surface-2 border-b border-solid border-border text-[10px] text-ink-faint uppercase tracking-[.06em]`}>
+                <span>Pavimento</span><span className="text-center">Amb.</span><span className="text-center">Pop.</span><span>Divisões</span>
+              </div>
+            )}
+
+            {pavimentos.map(p => {
+              const pop  = calcPopPav(p, TAXA_POPULACIONAL)
+              const divs = [...new Set(p.ambientes.map(a => a.divisao).filter(Boolean))]
+              const isGov = govPav?.id === p.id
+              const pendente = p.ambientes.length === 0
+              return (
+                <div key={p.id}
+                  onClick={() => setOpenId(p.id)}
+                  className={`grid ${MAIN_COL} gap-3.5 items-center py-[13px] px-5 border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.025] ${pendente ? 'border-l-2 border-l-amber-border' : 'border-l-2 border-l-green-border'}`}
+                >
+                  <div>
+                    <div className="flex items-center gap-[7px]">
+                      <span className="text-[13px] font-semibold text-ink">{p.nome}</span>
+                      {p.tipo==='descarga'
+                        ? <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>
+                        : <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-surface-2 border border-solid border-border text-ink-faint">TIPO</span>}
+                    </div>
+                    {isGov ? (
+                      <div className="text-[10px] text-red font-medium mt-0.5">Mais populoso · referência para ER</div>
+                    ) : pendente ? (
+                      <div className="text-[10px] text-amber font-medium mt-0.5">Pendente — clique para cadastrar ambientes</div>
+                    ) : null}
+                  </div>
+                  <div className={`text-center text-[15px] font-bold ${p.ambientes.length ? 'text-red' : 'text-ink-faint'}`}>{p.ambientes.length}</div>
+                  <div className={`text-center text-sm font-bold ${pop>0 ? 'text-red' : 'text-ink-faint'}`}>{pop>0 ? `${pop} pess.` : <span className="text-[11px] font-normal">—</span>}</div>
+                  <div className="flex gap-1 flex-wrap">{divs.map(d=><DivBadge key={d} label={d}/>)}{!divs.length && <span className="text-[11px] text-ink-faint">—</span>}</div>
+                </div>
+              )
+            })}
+
+            {!temPavimentos && (
+              <div className="p-9 text-center text-ink-faint text-[13px]">
+                Nenhum pavimento configurado. Cadastre os pavimentos da edificação na Etapa 2 (Edificação).
+              </div>
+            )}
           </div>
 
-          {temPavimentos && (
-            <div className={`grid ${MAIN_COL} gap-3.5 py-2 px-5 bg-surface-2 border-b border-solid border-border text-[10px] text-ink-faint uppercase tracking-[.06em]`}>
-              <span>Pavimento</span><span className="text-center">Amb.</span><span className="text-center">Pop.</span><span>Divisões</span>
-            </div>
-          )}
-
-          {pavimentos.map(p => {
-            const pop  = calcPopPav(p, TAXA_POPULACIONAL)
-            const divs = [...new Set(p.ambientes.map(a => a.divisao).filter(Boolean))]
-            const isGov = govPav?.id === p.id
-            return (
-              <div key={p.id}
-                onClick={() => setOpenId(p.id)}
-                className={`grid ${MAIN_COL} gap-3.5 items-center py-[13px] px-5 border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.025]`}
-              >
-                <div>
-                  <div className="flex items-center gap-[7px]">
-                    <span className="text-[13px] font-semibold text-ink">{p.nome}</span>
-                    {p.tipo==='descarga'
-                      ? <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>
-                      : <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-surface-2 border border-solid border-border text-ink-faint">TIPO</span>}
-                  </div>
-                  {isGov && <div className="text-[10px] text-red font-medium mt-0.5">Mais populoso · referência para ER</div>}
-                </div>
-                <div className={`text-center text-[15px] font-bold ${p.ambientes.length ? 'text-red' : 'text-ink-faint'}`}>{p.ambientes.length}</div>
-                <div className={`text-center text-sm font-bold ${pop>0 ? 'text-red' : 'text-ink-faint'}`}>{pop>0 ? `${pop} pess.` : <span className="text-[11px] font-normal">—</span>}</div>
-                <div className="flex gap-1 flex-wrap">{divs.map(d=><DivBadge key={d} label={d}/>)}{!divs.length && <span className="text-[11px] text-ink-faint">—</span>}</div>
-              </div>
-            )
-          })}
-
-          {!temPavimentos && (
-            <div className="p-9 text-center text-ink-faint text-[13px]">
-              Nenhum pavimento configurado. Cadastre os pavimentos da edificação na Etapa 2 (Edificação).
+          {temPavimentos && !pavimentos.some(p => p.tipo==='descarga') && (
+            <div className="ibox amber mb-0 mt-4">
+              <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+              <span className="text-xs">Nenhum piso de descarga definido. Marque o pavimento térreo na Etapa 2 (Edificação) para o cálculo correto das distâncias máximas.</span>
             </div>
           )}
         </div>
 
-        {temPavimentos && !pavimentos.some(p => p.tipo==='descarga') && (
-          <div className="ibox amber mb-6">
-            <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-            <span className="text-xs">Nenhum piso de descarga definido. Marque o pavimento térreo na Etapa 2 (Edificação) para o cálculo correto das distâncias máximas.</span>
-          </div>
-        )}
-
-        {/* Resultados */}
+        {/* Etapa 2 — Dimensionamento das saídas */}
         {temPavimentos && (
+          <div>
+            <StepHeader n={2} label="Dimensionamento das saídas"
+              desc="Larguras de acessos, escadas e portas, e distâncias máximas a percorrer — calculados automaticamente a partir da população de cada pavimento."/>
+
+            {!temPopulacao ? (
+              <div className="border border-solid border-border rounded-lg py-12 px-6 text-center bg-surface">
+                <Icon name="stair" size={28} className="mx-auto mb-3 block text-ink-faint opacity-40"/>
+                <div className="text-[13px] font-medium text-ink-muted mb-1">Aguardando dados da Etapa 1</div>
+                <div className="text-[12px] text-ink-faint leading-[1.6] max-w-[380px] mx-auto">
+                  Cadastre pelo menos um ambiente com população em algum pavimento para ver o dimensionamento das saídas aqui.
+                </div>
+              </div>
+            ) : (
           <div className="flex flex-col gap-7">
 
             <div>
@@ -627,6 +662,8 @@ export default function SaidaEmergenciaPage() {
               </DimTable>
               <div className="text-[11px] text-ink-faint leading-[1.6] mt-1.5">Fonte: NBR 9077 — Saídas de Emergência em Edifícios, Tabelas 1 e 2.</div>
             </div>
+          </div>
+            )}
           </div>
         )}
       </div>

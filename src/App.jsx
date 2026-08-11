@@ -16,6 +16,8 @@ import HidrantesPage          from './pages/medidas/HidrantesPage'
 import AcessoViaturaPage      from './pages/medidas/AcessoViaturaPage'
 import SegurancaEstruturalPage from './pages/medidas/SegurancaEstruturalPage'
 import ExtintoresPage         from './pages/medidas/ExtintoresPage'
+import IluminacaoPage         from './pages/medidas/IluminacaoPage'
+import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
 import Icon           from './components/ui/Icon'
 import logo           from './assets/fireutils-logo.png'
 import etosLogo       from './assets/etos-logo.png'
@@ -70,6 +72,8 @@ function MedidaRoute() {
   if (sistKey === 'acesso_viatura')    return <AcessoViaturaPage/>
   if (sistKey === 'seg_estrutural')    return <SegurancaEstruturalPage/>
   if (sistKey === 'extintores')        return <ExtintoresPage/>
+  if (sistKey === 'iluminacao')        return <IluminacaoPage/>
+  if (sistKey === 'sinalizacao')       return <SinalizacaoPage/>
   return <MedidaPage sistKey={sistKey}/>
 }
 

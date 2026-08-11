@@ -17,6 +17,8 @@ import * as MA_MED  from './MA/medidas'
 import * as MA_AV   from './MA/acesso_viatura'
 import * as MA_TRRF from './MA/trrf'
 import * as MA_EXT  from './MA/extintores'
+import * as MA_ILU  from './MA/iluminacao'
+import * as MA_SIN  from './MA/sinalizacao'
 
 const NORMAS      = { MA, PE, PB }
 const NORMAS_SE   = { MA: MA_SE }
@@ -24,6 +26,8 @@ const NORMAS_MED  = { MA: MA_MED }
 const NORMAS_AV   = { MA: MA_AV }
 const NORMAS_TRRF = { MA: MA_TRRF }
 const NORMAS_EXT  = { MA: MA_EXT }
+const NORMAS_ILU  = { MA: MA_ILU }
+const NORMAS_SIN  = { MA: MA_SIN }
 
 // Estados listados no seletor — ativo:false = aparece mas nao pode selecionar
 export const ESTADOS_DISPONIVEIS = [
@@ -37,6 +41,8 @@ export function getSE(uf)          { return NORMAS_SE[uf] ?? NORMAS_SE['MA'] }
 export function getAV(uf)          { return NORMAS_AV[uf] ?? NORMAS_AV['MA'] }
 export function getTRRF(uf)        { return NORMAS_TRRF[uf] ?? NORMAS_TRRF['MA'] }
 export function getExtintores(uf)  { return NORMAS_EXT[uf] ?? NORMAS_EXT['MA'] }
+export function getIluminacao(uf)  { return NORMAS_ILU[uf] ?? NORMAS_ILU['MA'] }
+export function getSinalizacao(uf) { return NORMAS_SIN[uf] ?? NORMAS_SIN['MA'] }
 export function getOcupacoes(uf)   { return getNorma(uf)?.OCUPACOES ?? {} }
 export function getGrupos(uf)      {
   const oc = getOcupacoes(uf)

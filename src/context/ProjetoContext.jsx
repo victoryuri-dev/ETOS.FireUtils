@@ -30,6 +30,37 @@ function novoExtintor(estruturaId, pavimentoId, ambiente) {
   }
 }
 
+// Mesma lógica de idExtintor — evita colisão entre itens criados no mesmo
+// milissegundo (aclaramento e balizamento são adicionados em sequência).
+let iluminacaoSeq = 0
+function idIluminacao() {
+  iluminacaoSeq += 1
+  return `ilu-${Date.now().toString(36)}-${iluminacaoSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Item de iluminação de emergência — granularidade só até pavimento (sem
+// ambiente), conforme NT 18 CBMMA / NBR 10898. `categoria` decide o campo
+// discriminador ('aclaramento' → tipoEquipamento, 'balizamento' → pontoTipo),
+// sempre enviado em `overrides` por quem despacha a ação.
+function novoItemIluminacao(estruturaId, pavimentoId, categoria, overrides = {}) {
+  return { id: idIluminacao(), estruturaId, pavimentoId, categoria, quantidade: 1, ...overrides }
+}
+
+// Mesma lógica de idExtintor/idIluminacao — evita colisão entre placas
+// cadastradas no mesmo milissegundo.
+let sinalizacaoSeq = 0
+function idSinalizacao() {
+  sinalizacaoSeq += 1
+  return `sin-${Date.now().toString(36)}-${sinalizacaoSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Item de sinalização de emergência — granularidade só até pavimento (sem
+// ambiente), conforme NT 20 CBMMA / NBR 13434. `tipoPlaca` referencia a
+// chave do catálogo em normas/MA/sinalizacao.js (TIPOS_PLACA).
+function novoItemSinalizacao(estruturaId, pavimentoId, tipoPlaca, quantidade) {
+  return { id: idSinalizacao(), estruturaId, pavimentoId, tipoPlaca, quantidade }
+}
+
 function novaEstrutura(nome) {
   return {
     id: `est-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
@@ -64,6 +95,27 @@ const INITIAL_STATE = {
   pavimentos: [],
   cargaState: {},
   extintores: [],
+  iluminacao: [],
+  sinalizacao: [],
+  // Sistema de iluminação de emergência escolhido para o projeto todo (não
+  // varia por pavimento) — perguntado antes de liberar as quantidades por
+  // pavimento em IluminacaoPage.jsx. `localizacaoFonte` só se aplica a
+  // 'central'/'motogerador'. `equipamentos` guarda os dados técnicos (item
+  // 5.2, NBR 10898) de cada um dos dois tipos de equipamento de aclaramento
+  // aceitos — ver EQUIPAMENTOS_ACLARAMENTO em normas/MA/iluminacao.js.
+  iluminacaoSistema: {
+    tipo: '', // '' | 'bloco_autonomo' | 'central' | 'motogerador'
+    localizacaoFonte: '',
+    equipamentos: {
+      luminaria_30leds: { usado: false, tipoLampada: '', potenciaW: '', tensaoV: '', fluxoLuminosoLm: '', anguloDispersao: '', vidaUtilH: '' },
+      bloco_emergencia: { usado: false, tipoLampada: '', potenciaW: '', tensaoV: '', fluxoLuminosoLm: '', anguloDispersao: '', vidaUtilH: '' },
+    },
+  },
+  // Resposta por pavimento à pergunta "foram aplicadas luminárias de
+  // balizamento neste pavimento?" — chave = pavimentoId, valor true/false.
+  // Ausente = ainda não respondida (a tela pergunta antes de liberar o
+  // checklist de quantidades).
+  iluminacaoBalizamentoAplicado: {},
   acessoViatura: {
     afastamentoMeioFio: '', isCondominio: false,
     larguraAdotada: '', alturaLivreAdotada: '',
@@ -114,6 +166,8 @@ function reducer(state, action) {
         estruturas: state.estruturas.filter(e => e.id !== action.id),
         pavimentos: state.pavimentos.filter(p => p.estruturaId !== action.id),
         extintores: state.extintores.filter(e => e.estruturaId !== action.id),
+        iluminacao: state.iluminacao.filter(i => i.estruturaId !== action.id),
+        sinalizacao: state.sinalizacao.filter(s => s.estruturaId !== action.id),
       }
     }
     case 'RENAME_ESTRUTURA':
@@ -142,6 +196,8 @@ function reducer(state, action) {
         ...state,
         pavimentos: [...others, ...list],
         extintores: state.extintores.filter(e => e.estruturaId !== estruturaId || idsValidos.has(e.pavimentoId)),
+        iluminacao: state.iluminacao.filter(i => i.estruturaId !== estruturaId || idsValidos.has(i.pavimentoId)),
+        sinalizacao: state.sinalizacao.filter(s => s.estruturaId !== estruturaId || idsValidos.has(s.pavimentoId)),
       }
     }
     case 'UPDATE_PAV':
@@ -188,6 +244,39 @@ function reducer(state, action) {
     // projeto atual.
     case 'IMPORT_EXTINTORES':
       return { ...state, extintores: action.itens.map(it => ({ id: idExtintor(), ...it })) }
+    case 'ADD_ILUMINACAO':
+      return { ...state, iluminacao: [...state.iluminacao, novoItemIluminacao(action.estruturaId, action.pavimentoId, action.categoria, action.overrides)] }
+    case 'UPDATE_ILUMINACAO':
+      return { ...state, iluminacao: state.iluminacao.map(i => i.id === action.id ? { ...i, ...action.changes } : i) }
+    case 'REMOVE_ILUMINACAO':
+      return { ...state, iluminacao: state.iluminacao.filter(i => i.id !== action.id) }
+    case 'SET_ILUMINACAO_SISTEMA':
+      return { ...state, iluminacaoSistema: { ...state.iluminacaoSistema, ...action.changes } }
+    case 'SET_ILUMINACAO_EQUIPAMENTO':
+      return {
+        ...state,
+        iluminacaoSistema: {
+          ...state.iluminacaoSistema,
+          equipamentos: {
+            ...state.iluminacaoSistema.equipamentos,
+            [action.key]: { ...state.iluminacaoSistema.equipamentos[action.key], ...action.changes },
+          },
+        },
+      }
+    case 'ADD_SINALIZACAO':
+      return { ...state, sinalizacao: [...state.sinalizacao, novoItemSinalizacao(action.estruturaId, action.pavimentoId, action.tipoPlaca, action.quantidade)] }
+    case 'UPDATE_SINALIZACAO':
+      return { ...state, sinalizacao: state.sinalizacao.map(s => s.id === action.id ? { ...s, ...action.changes } : s) }
+    case 'REMOVE_SINALIZACAO':
+      return { ...state, sinalizacao: state.sinalizacao.filter(s => s.id !== action.id) }
+    // Substitui todo o cadastro de sinalização pelo lote importado do
+    // firedata.json (ver resolverImportacaoSinalizacao em SinalizacaoPage.jsx) —
+    // os itens já chegam com estruturaId/pavimentoId resolvidos contra o
+    // projeto atual.
+    case 'IMPORT_SINALIZACAO':
+      return { ...state, sinalizacao: action.itens.map(it => ({ id: idSinalizacao(), ...it })) }
+    case 'SET_BALIZAMENTO_APLICADO':
+      return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
     case 'SET_WIZARD':
@@ -204,13 +293,22 @@ function reducer(state, action) {
     case 'TOGGLE_RISCO':
       return { ...state, riscosEspeciais: { ...state.riscosEspeciais, [action.key]: !state.riscosEspeciais[action.key] } }
     case 'LOAD':
-      // acessoViatura mesclado a parte: projetos salvos antes de um campo novo
-      // existir (ex.: manobraRetornoOk) não podem perder o valor padrão dele
-      // só porque o resto do objeto já foi salvo.
+      // acessoViatura/iluminacaoSistema mesclados a parte: projetos salvos
+      // antes de um campo novo existir (ex.: manobraRetornoOk, ou um novo
+      // equipamento de aclaramento) não podem perder o valor padrão dele só
+      // porque o resto do objeto já foi salvo.
       return {
         ...INITIAL_STATE,
         ...action.payload,
         acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(action.payload.acessoViatura || {}) },
+        iluminacaoSistema: {
+          ...INITIAL_STATE.iluminacaoSistema,
+          ...(action.payload.iluminacaoSistema || {}),
+          equipamentos: {
+            ...INITIAL_STATE.iluminacaoSistema.equipamentos,
+            ...(action.payload.iluminacaoSistema?.equipamentos || {}),
+          },
+        },
       }
     case 'NEW_PROJECT':
       return { ...INITIAL_STATE, id: action.id, seqId: action.seqId, createdAt: action.createdAt, estruturas: [novaEstrutura('Estrutura 1')] }
