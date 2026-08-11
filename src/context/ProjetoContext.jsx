@@ -132,14 +132,19 @@ const INITIAL_STATE = {
   },
   riscosOutrosDesc: '',
   sistemas: {
-    acesso_viatura:      { obrigatorio: true,  ativo: true  },
-    seg_estrutural:      { obrigatorio: true,  ativo: true  },
+    // acesso_viatura, seg_estrutural e brigada NAO sao universais: a Tabela 5
+    // (simplificado) nunca exige as duas primeiras, e brigada so e exigida
+    // para alguns grupos/divisoes (ex: nao exigida para A/B/C/D no
+    // simplificado). Por isso partem desmarcadas — quem decide se sao
+    // obrigatorias e o motor de normas (useMedidasObrigatorias), nao o seed.
+    acesso_viatura:      { obrigatorio: false, ativo: false },
+    seg_estrutural:      { obrigatorio: false, ativo: false },
     compart_horizontal:  { obrigatorio: false, ativo: false },
     compart_vertical:    { obrigatorio: false, ativo: false },
     controle_acabamento: { obrigatorio: false, ativo: false },
     saida_emergencia:    { obrigatorio: true,  ativo: true  },
     gerenciamento_risco: { obrigatorio: false, ativo: false },
-    brigada:             { obrigatorio: true,  ativo: true  },
+    brigada:             { obrigatorio: false, ativo: false },
     iluminacao:          { obrigatorio: true,  ativo: true  },
     sinalizacao:         { obrigatorio: true,  ativo: true  },
     extintores:          { obrigatorio: true,  ativo: true  },
