@@ -17,7 +17,10 @@ import QuantityStepper from '../../components/ui/QuantityStepper'
 //
 // "estrutura" é casada por nome contra o que já está cadastrado no projeto
 // (Etapa 2); quando vier vazia, o item entra na primeira estrutura do
-// projeto. "pavimento" é casado por label dentro da estrutura resolvida.
+// projeto. "pavimento" é casado por label dentro da estrutura resolvida; se
+// não bater com nenhum label, tenta como "Nível N" do Revit (ver
+// pavimentoPorNivelRevit — não cobre subsolo); se ainda assim não achar
+// (nível vazio, subsolo não reconhecido etc.), cai no Térreo da estrutura.
 // "ambiente" vazio vira "Geral".
 //
 // "tipo" é o rótulo livre do produto no Revit (não corresponde às chaves
@@ -26,7 +29,7 @@ import QuantityStepper from '../../components/ui/QuantityStepper'
 // inferirTipoKey). Quando "tipo" já bater com uma chave interna válida
 // (agua|espuma|co2|po_bc|po_abc|halogenado), ela é usada diretamente.
 // "formato" é "Portátil" ou "Sobre rodas" (aceito sem acento/maiúsculas).
-// "carga" é o peso da carga extintora em kg.
+// "carga" é a carga (peso) do agente extintor em kg.
 function normFormato(s) {
   return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/\s+/g, '')
 }
@@ -45,11 +48,33 @@ function inferirTipoKey(capacidade, catalogo) {
   return catalogo.some(t => t.key === key) ? key : null
 }
 
+// Compara nomes/labels ignorando acento, caixa e espaços redundantes — o
+// nome do nível no Revit e o label do pavimento cadastrado no site raramente
+// são digitados de forma idêntica byte-a-byte.
+function norm(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+// O Revit não sabe se um pavimento é térreo, subsolo ou andar superior — só
+// enumera "níveis" (Nível 1, Nível 2, ...) na ordem em que foram criados no
+// projeto. Quando o nome não bate com nenhum pavimento cadastrado, tenta
+// casar "Nível N" pela mesma numeração que o site já usa internamente para
+// os pavimentos acima do solo (id termina em "-P{n}": P1 é sempre o Térreo,
+// P2 é o "Pavimento 2" etc. — estável mesmo se o label for renomeado). Não
+// tenta adivinhar subsolo: a numeração de nível do Revit para subsolo varia
+// por escritório (pode ser negativa, pode reiniciar em 1...), então para
+// esses o nome ainda precisa bater (ex.: nível chamado literalmente "Subsolo 1").
+function pavimentoPorNivelRevit(nomePavimento, estruturaId, pavimentos) {
+  const m = norm(nomePavimento).match(/^(?:n[ií]vel|piso|level)\s*(\d+)$/)
+  if (!m) return null
+  const n = parseInt(m[1], 10)
+  return pavimentos.find(p => p.estruturaId === estruturaId && p.id === `${estruturaId}-P${n}`) || null
+}
+
 function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSobreRodas) {
   const dados = json?.extintores
   if (!dados?.itens) throw new Error('Chave "extintores.itens" não encontrada no arquivo.')
 
-  const norm = s => (s || '').trim().toLowerCase()
   const grupos = new Map()
   const erros = []
 
@@ -59,14 +84,16 @@ function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSo
     let est
     if (norm(it.estrutura)) {
       est = estruturas.find(e => norm(e.nome) === norm(it.estrutura))
-      if (!est) { erros.push(`${linha}: estrutura "${it.estrutura}" não encontrada no projeto.`); return }
+      if (!est) { erros.push(`${linha}: estrutura "${it.estrutura}" não encontrada no projeto (cadastradas: ${estruturas.map(e => e.nome).join(', ') || 'nenhuma'}).`); return }
     } else {
       est = estruturas[0]
       if (!est) { erros.push(`${linha}: nenhuma estrutura cadastrada no projeto para receber o extintor.`); return }
     }
 
     const pav = pavimentos.find(p => p.estruturaId === est.id && norm(p.label) === norm(it.pavimento))
-    if (!pav) { erros.push(`${linha}: pavimento "${it.pavimento}" não encontrado em ${est.nome}.`); return }
+      || pavimentoPorNivelRevit(it.pavimento, est.id, pavimentos)
+      || pavimentos.find(p => p.estruturaId === est.id && p.tipo === 'terreo')
+    if (!pav) { erros.push(`${linha}: ${est.nome} não tem nenhum pavimento cadastrado para receber o extintor.`); return }
 
     const formato = normFormato(it.formato)
     if (formato !== 'portatil' && formato !== 'sobrerodas') {
@@ -79,20 +106,20 @@ function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSo
     const tipoInfo = catalogo.find(t => t.key === tipoKey)
     if (!tipoInfo) { erros.push(`${linha}: não foi possível determinar o agente extintor a partir de tipo "${it.tipo}" / capacidade "${it.capacidade}".`); return }
 
-    let peso = ''
+    let carga = ''
     if (it.carga != null && it.carga !== '') {
       const n = Number(it.carga)
       if (Number.isNaN(n)) { erros.push(`${linha}: carga "${it.carga}" inválida.`); return }
-      peso = String(n)
+      carga = String(n)
     }
 
     const ambiente   = norm(it.ambiente) ? it.ambiente : 'Geral'
     const capacidade = (it.capacidade || tipoInfo.capacidadeMinima).trim()
-    const chave = [est.id, pav.id, ambiente, tipoKey, sobreRodas, capacidade, peso].join('|')
+    const chave = [est.id, pav.id, ambiente, tipoKey, sobreRodas, capacidade, carga].join('|')
 
     const existente = grupos.get(chave)
     if (existente) existente.quantidade += 1
-    else grupos.set(chave, { estruturaId: est.id, pavimentoId: pav.id, ambiente, tipo: tipoKey, sobreRodas, capacidade, peso, quantidade: 1 })
+    else grupos.set(chave, { estruturaId: est.id, pavimentoId: pav.id, ambiente, tipo: tipoKey, sobreRodas, capacidade, carga, quantidade: 1 })
   })
 
   return { resolvidos: [...grupos.values()], erros, timestamp: dados._timestamp || null }
@@ -183,8 +210,8 @@ function LinhaExtintor({ ext, tiposPortatil, tiposSobreRodas, dispatch }) {
       </td>
       <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
         <input
-          type="number" min="0" step="0.1" value={ext.peso}
-          onChange={e => update({ peso: e.target.value })}
+          type="number" min="0" step="0.1" value={ext.carga}
+          onChange={e => update({ carga: e.target.value })}
           className="w-[72px] text-right"
           placeholder="kg"
         />
@@ -264,7 +291,7 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Tipo</th>
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Formato</th>
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border-2">Capacidade</th>
-            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border-2">Peso (kg)</th>
+            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border-2">Carga (kg)</th>
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Qtd.</th>
             <th className="w-9 border-b border-solid border-border-2"></th>
           </tr>

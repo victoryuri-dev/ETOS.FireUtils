@@ -20,7 +20,7 @@ function linhaTabela(ext, catalogoPortatil, catalogoSobreRodas) {
     tipo?.label || ext.tipo,
     ext.sobreRodas ? 'Sobre rodas' : 'Portátil',
     ext.capacidade || '—',
-    ext.peso ? `${ext.peso} kg` : '—',
+    ext.carga ? `${ext.carga} kg` : '—',
     String(ext.quantidade || 0),
   ]
 }
@@ -43,7 +43,7 @@ function blocosDoPavimento(pav, extintoresDoPav, state, norma) {
 
   blocos.push({
     tipo: 'tabela',
-    colunas: ['Ambiente', 'Tipo', 'Formato', 'Capacidade', 'Peso', 'Qtd.'],
+    colunas: ['Ambiente', 'Tipo', 'Formato', 'Capacidade', 'Carga', 'Qtd.'],
     linhas: extintoresDoPav.map(e => linhaTabela(e, TIPOS_PORTATIL, TIPOS_SOBRE_RODAS)),
   })
 
