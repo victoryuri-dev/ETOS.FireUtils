@@ -340,7 +340,12 @@ function BlocoMedida({ bloco }) {
       return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:</strong> {bloco.valor}</div>
     case 'tabela':
       return (
-        <table className="w-full border-collapse text-[11px] text-black mb-4">
+        <table className="w-full border-collapse text-[11px] text-black mb-4" style={bloco.larguras ? { tableLayout: 'fixed' } : undefined}>
+          {bloco.larguras && (
+            <colgroup>
+              {bloco.larguras.map((w, i) => <col key={i} style={{ width: w }}/>)}
+            </colgroup>
+          )}
           <thead>
             <tr>
               {bloco.colunas.map((c, i) => <th key={i} className="border border-solid border-[#c9c9cb] px-2 py-1 text-left">{c}</th>)}
@@ -349,7 +354,13 @@ function BlocoMedida({ bloco }) {
           <tbody>
             {bloco.linhas.map((linha, i) => (
               <tr key={i}>
-                {linha.map((cel, j) => <td key={j} className="border border-solid border-[#c9c9cb] px-2 py-1">{cel}</td>)}
+                {linha.map((cel, j) => (
+                  <td key={j} className="border border-solid border-[#c9c9cb] px-2 py-1">
+                    {cel && typeof cel === 'object' && cel.tipo === 'imagem'
+                      ? <img src={cel.src} alt={cel.alt || ''} className="w-9 h-9 object-contain block"/>
+                      : cel}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>

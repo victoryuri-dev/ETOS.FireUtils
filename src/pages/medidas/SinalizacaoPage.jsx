@@ -186,7 +186,7 @@ function PavimentoCard({ pavimento, estruturaId, itens, tiposPlaca, categorias, 
         )}
       </CardHeader>
       <div className="py-3.5 px-[18px]">
-        {categorias.map((cat, idx) => (
+        {categorias.map(cat => (
           <CategoriaAccordion
             key={cat.key}
             categoria={cat}
@@ -194,7 +194,6 @@ function PavimentoCard({ pavimento, estruturaId, itens, tiposPlaca, categorias, 
             itens={itens.filter(i => tiposPlaca.find(t => t.key === i.tipoPlaca)?.categoria === cat.key)}
             estruturaId={estruturaId} pavimentoId={pavimento.id}
             dispatch={dispatch}
-            defaultOpen={idx === 2}
           />
         ))}
       </div>

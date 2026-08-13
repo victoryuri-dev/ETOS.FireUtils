@@ -7,20 +7,15 @@
 // mesmo padrão do memorial de Extintores.
 
 import { getIluminacao } from '../normas/index'
-import { calcularAclaramento, calcularBalizamento, nomeEspecificacao } from '../iluminacao_calc'
+import { calcularBalizamento, nomeEspecificacao } from '../iluminacao_calc'
 
-function blocosDoPavimento(pav, itensPav, balizamentoAplicado, equipamentosUsados, equipamentosSpec, norma) {
-  const { ILUMINANCIA_MINIMA, FATOR_UTILIZACAO_ACLARAMENTO, PONTOS_BALIZAMENTO } = norma
+function blocosDoPavimento(pav, itensPav, balizamentoAplicado, equipamentosUsados, norma) {
+  const { PONTOS_BALIZAMENTO } = norma
   const itensAclaramento = itensPav.filter(i => i.categoria === 'aclaramento')
   const itensBalizamento = itensPav.filter(i => i.categoria === 'balizamento')
   const blocos = [{ tipo: 'titulo2', texto: pav.label }]
 
   if (itensAclaramento.length > 0) {
-    const aclar = calcularAclaramento(itensAclaramento, pav.area, {
-      equipamentos: equipamentosSpec,
-      iluminanciaMinima: ILUMINANCIA_MINIMA.aclaramento_normal,
-      fatorUtilizacao: FATOR_UTILIZACAO_ACLARAMENTO,
-    })
     blocos.push({
       tipo: 'tabela',
       colunas: ['Equipamento', 'Qtd.'],
@@ -29,10 +24,6 @@ function blocosDoPavimento(pav, itensPav, balizamentoAplicado, equipamentosUsado
         return [eq?.label || i.tipoEquipamento, String(i.quantidade || 0)]
       }),
     })
-    blocos.push({ tipo: 'campo', label: 'Aclaramento', valor: `${aclar.areaCobertaTotal.toFixed(1)} m² cobertos / ${aclar.area.toFixed(1)} m² do pavimento` })
-    if (!aclar.minimoAtendido) {
-      blocos.push({ tipo: 'lista', estilo: 'alerta', itens: [`${pav.label}: a área coberta pelas luminárias de aclaramento cadastradas é inferior à área do pavimento.`] })
-    }
   } else {
     blocos.push({ tipo: 'paragrafo', texto: `Nenhuma luminária de aclaramento cadastrada em ${pav.label}.` })
   }
@@ -116,7 +107,7 @@ export function textoMemorialIluminacao(state) {
         pav,
         (state.iluminacao || []).filter(i => i.pavimentoId === pav.id),
         balizamentoAplicadoMap[pav.id],
-        equipamentosUsados, equipamentosSpec, norma,
+        equipamentosUsados, norma,
       )),
     ]
   })

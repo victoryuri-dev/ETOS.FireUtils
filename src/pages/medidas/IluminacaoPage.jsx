@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
-import { calcularAclaramento, calcularBalizamento, nomeEspecificacao } from '../../data/iluminacao_calc'
+import { calcularBalizamento, nomeEspecificacao } from '../../data/iluminacao_calc'
 import Icon from '../../components/ui/Icon'
+import QuantityStepper from '../../components/ui/QuantityStepper'
 import luminaria30ledsImg from '../../assets/luminaria 30 leds.png'
 import blocoIluminacaoImg from '../../assets/bloco de iluminacao.png'
 
@@ -168,10 +169,14 @@ function SwitchToggle({ checked, onChange }) {
 // via portal em document.body e posicionado por coordenadas fixas — os
 // cartões desta tela ficam dentro de vários containers com overflow-hidden
 // (para os cantos arredondados), que cortariam um menu posicionado como
-// filho normal.
+// filho normal. Fecha ao clicar fora ou ao rolar a página — sem overlay de
+// tela cheia (isso bloqueava o scroll: o shell do app rola por uma div
+// interna, e um overlay via portal fica fora dela na árvore do DOM, então
+// a roda do mouse sobre o overlay não achava nada pra rolar).
 function AdicionarEspecificacaoMenu({ presetsDoTipo, onAdicionar }) {
   const [pos, setPos] = useState(null)
   const btnRef = useRef(null)
+  const menuRef = useRef(null)
 
   const abrir = () => {
     const r = btnRef.current.getBoundingClientRect()
@@ -180,28 +185,41 @@ function AdicionarEspecificacaoMenu({ presetsDoTipo, onAdicionar }) {
   const fechar = () => setPos(null)
   const escolher = preset => { onAdicionar(preset); fechar() }
 
+  useEffect(() => {
+    if (!pos) return
+    const aoClicarFora = e => {
+      if (btnRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return
+      fechar()
+    }
+    document.addEventListener('mousedown', aoClicarFora)
+    // capture:true — scroll não borbulha, só assim pega o scroll da div
+    // interna do app (não é a window que rola aqui).
+    document.addEventListener('scroll', fechar, true)
+    return () => {
+      document.removeEventListener('mousedown', aoClicarFora)
+      document.removeEventListener('scroll', fechar, true)
+    }
+  }, [pos])
+
   return (
     <>
       <button ref={btnRef} type="button" className="btn-add w-full justify-center py-2" onClick={() => (pos ? fechar() : abrir())}>
         <Icon name="plus" size={11}/> Adicionar especificação
       </button>
       {pos && createPortal(
-        <>
-          <div className="fixed inset-0 z-[999]" onClick={fechar}/>
-          <div
-            style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
-            className="z-[1000] bg-surface border border-solid border-border rounded-md shadow-[0_8px_24px_rgba(0,0,0,.4)] overflow-hidden max-h-[240px] overflow-y-auto"
-          >
-            {presetsDoTipo.map(p => (
-              <button key={p.key} type="button" onClick={() => escolher(p)}
-                className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
-              >{p.label}</button>
-            ))}
-            <button type="button" onClick={() => escolher(undefined)}
-              className="w-full text-left py-2 px-3 text-[12px] text-ink-faint italic cursor-pointer bg-transparent border-none hover:bg-white/[.05] hover:text-ink"
-            >Personalizado (em branco)</button>
-          </div>
-        </>,
+        <div ref={menuRef}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
+          className="z-[1000] bg-surface border border-solid border-border rounded-md shadow-[0_8px_24px_rgba(0,0,0,.4)] overflow-hidden max-h-[240px] overflow-y-auto"
+        >
+          {presetsDoTipo.map(p => (
+            <button key={p.key} type="button" onClick={() => escolher(p)}
+              className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
+            >{p.label}</button>
+          ))}
+          <button type="button" onClick={() => escolher(undefined)}
+            className="w-full text-left py-2 px-3 text-[12px] text-ink-faint italic cursor-pointer bg-transparent border-none hover:bg-white/[.05] hover:text-ink"
+          >Personalizado (em branco)</button>
+        </div>,
         document.body,
       )}
     </>
@@ -272,23 +290,6 @@ function EquipamentosAclaramento({ equipamentosDef, especificacoes, presets, cam
   )
 }
 
-// ── Stepper de quantidade (− valor +) ─────────────────────────────────
-function QuantityStepper({ value, onChange }) {
-  const dec = () => onChange(Math.max(0, (value || 0) - 1))
-  const inc = () => onChange((value || 0) + 1)
-  return (
-    <div className="inline-flex items-center gap-1.5">
-      <button type="button" onClick={dec}
-        className="w-6 h-6 flex items-center justify-center rounded-md border border-solid border-border bg-transparent text-ink-faint text-sm leading-none cursor-pointer hover:bg-white/[.05] hover:text-ink"
-      >−</button>
-      <span className="w-7 text-center text-[13px] font-bold text-red font-mono">{value || 0}</span>
-      <button type="button" onClick={inc}
-        className="w-6 h-6 flex items-center justify-center rounded-md border border-solid border-border bg-transparent text-ink-faint text-sm leading-none cursor-pointer hover:bg-white/[.05] hover:text-ink"
-      >+</button>
-    </div>
-  )
-}
-
 // ── Checklist de quantidades por pavimento (usado por aclaramento e balizamento) ──
 function ChecklistQuantidades({ estruturaId, pavimentoId, categoria, campoTipo, opcoes, itens, dispatch }) {
   const setQuantidade = (opcaoKey, valor) => {
@@ -323,14 +324,7 @@ function ChecklistQuantidades({ estruturaId, pavimentoId, categoria, campoTipo, 
 }
 
 // ── Bloco de Aclaramento de um pavimento ─────────────────────────────
-function BlocoAclaramento({ estruturaId, pavimentoId, itens, areaPavimento, equipamentosUsados, equipamentosSpec, iluNorma, dispatch }) {
-  const { ILUMINANCIA_MINIMA, FATOR_UTILIZACAO_ACLARAMENTO } = iluNorma
-  const resultado = calcularAclaramento(itens, areaPavimento, {
-    equipamentos: equipamentosSpec,
-    iluminanciaMinima: ILUMINANCIA_MINIMA.aclaramento_normal,
-    fatorUtilizacao: FATOR_UTILIZACAO_ACLARAMENTO,
-  })
-
+function BlocoAclaramento({ estruturaId, pavimentoId, itens, equipamentosUsados, dispatch }) {
   return (
     <div className="mb-4">
       <div className="text-[13px] font-semibold text-ink mb-2">Aclaramento</div>
@@ -339,11 +333,6 @@ function BlocoAclaramento({ estruturaId, pavimentoId, itens, areaPavimento, equi
         categoria="aclaramento" campoTipo="tipoEquipamento"
         opcoes={equipamentosUsados} itens={itens} dispatch={dispatch}
       />
-      <div className="mt-2">
-        <Chip ok={resultado.minimoAtendido}>
-          {resultado.areaCobertaTotal.toFixed(1)} m² cobertos / {resultado.area.toFixed(1)} m² do pavimento
-        </Chip>
-      </div>
     </div>
   )
 }
@@ -386,7 +375,7 @@ function BlocoBalizamento({ estruturaId, pavimentoId, itens, aplicado, dispatch,
 }
 
 // ── Card de um pavimento ──────────────────────────────────────────────
-function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclaramento, itensBalizamento, balizamentoAplicado, equipamentosUsados, equipamentosSpec, iluNorma, dispatch }) {
+function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclaramento, itensBalizamento, balizamentoAplicado, equipamentosUsados, iluNorma, dispatch }) {
   return (
     <Card className="mb-4">
       <CardHeader>
@@ -397,9 +386,8 @@ function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclarament
       <div className="py-3.5 px-[18px] grid grid-cols-2 gap-6">
         <BlocoAclaramento
           estruturaId={estruturaId} pavimentoId={pavimento.id}
-          itens={itensAclaramento} areaPavimento={pavimento.area}
-          equipamentosUsados={equipamentosUsados} equipamentosSpec={equipamentosSpec}
-          iluNorma={iluNorma} dispatch={dispatch}
+          itens={itensAclaramento}
+          equipamentosUsados={equipamentosUsados} dispatch={dispatch}
         />
         <BlocoBalizamento
           estruturaId={estruturaId} pavimentoId={pavimento.id}
@@ -470,14 +458,11 @@ export default function IluminacaoPage() {
 
   // Opções do checklist de aclaramento por pavimento — uma por especificação
   // cadastrada (não por tipo base), rotuladas com o fluxo luminoso para
-  // diferenciar variantes do mesmo tipo. `equipamentosSpecById` é o mapa
-  // usado pelo cálculo de área coberta (iluminacao_calc.js espera o fluxo
-  // luminoso indexado pela mesma chave de item.tipoEquipamento).
+  // diferenciar variantes do mesmo tipo.
   const opcoesAclaramento = especificacoes.map(spec => {
     const base = EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
     return { key: spec.id, label: nomeEspecificacao(spec, base?.label || spec.tipoBase) }
   })
-  const equipamentosSpecById = Object.fromEntries(especificacoes.map(spec => [spec.id, spec]))
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -524,7 +509,6 @@ export default function IluminacaoPage() {
                         itensBalizamento={state.iluminacao.filter(i => i.pavimentoId === pav.id && i.categoria === 'balizamento')}
                         balizamentoAplicado={state.iluminacaoBalizamentoAplicado[pav.id]}
                         equipamentosUsados={opcoesAclaramento}
-                        equipamentosSpec={equipamentosSpecById}
                         iluNorma={iluNorma}
                         dispatch={dispatch}
                       />

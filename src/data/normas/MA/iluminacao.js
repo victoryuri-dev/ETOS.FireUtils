@@ -31,13 +31,6 @@ export const AUTONOMIA_MINIMA_HORAS = 1
 // Tempo máximo para o sistema entrar em plena operação após a falta de energia
 export const TEMPO_RESPOSTA_MAX_S = 5
 
-// ── Método simplificado de dimensionamento do aclaramento ──────────────────
-// área coberta (m²) por luminária ≈ fluxo luminoso (lm) × fator de
-// utilização ÷ iluminância mínima exigida (lux). Fator de referência —
-// ajustar quando houver dado fotométrico do fabricante ou tabela específica
-// da NT vigente (Anexo B da NBR 10898).
-export const FATOR_UTILIZACAO_ACLARAMENTO = 0.5
-
 // ── Equipamentos de aclaramento aceitos ─────────────────────────────────────
 // Apenas dois tipos de equipamento — os dados técnicos de cada um (lâmpada,
 // potência, tensão, fluxo luminoso, ângulo de dispersão, vida útil) variam
@@ -53,47 +46,43 @@ export const EQUIPAMENTOS_ACLARAMENTO = [
 // nunca duas fontes de verdade para os rótulos.
 export const CAMPOS_EQUIPAMENTO = [
   { key: 'tipoLampada',     label: 'Tipo de lâmpada' },
-  { key: 'potenciaW',       label: 'Potência',                          unidade: 'W'  },
-  { key: 'tensaoV',         label: 'Tensão',                            unidade: 'V'  },
-  { key: 'fluxoLuminosoLm', label: 'Fluxo luminoso nominal',            unidade: 'lm' },
-  { key: 'anguloDispersao', label: 'Ângulo de dispersão da luz' },
-  { key: 'vidaUtilH',       label: 'Vida útil do elemento gerador de luz' },
+  { key: 'potenciaW',       label: 'Potência',               unidade: 'W'  },
+  { key: 'tensaoV',         label: 'Tensão',                 unidade: 'V'  },
+  { key: 'fluxoLuminosoLm', label: 'Fluxo luminoso nominal', unidade: 'lm' },
+  { key: 'autonomia',       label: 'Autonomia' },
 ]
 
 // ── Presets de especificação por equipamento ────────────────────────────────
 // Valores de catálogo de fabricante, transcritos das fichas técnicas
 // informadas pelo usuário — ponto de partida para o formulário; o
-// projetista pode editar livremente após escolher um preset. Campos não
-// informados na ficha (ex.: ângulo de dispersão da luminária de 30 LEDs,
-// vida útil do LED em nenhum dos modelos) ficam em branco — não foram
-// inventados. `potenciaW`/`tensaoV`/`anguloDispersao`/`vidaUtilH` são texto
-// livre (não entram em cálculo); só `fluxoLuminosoLm` precisa ser numérico
-// (usado no dimensionamento por área).
+// projetista pode editar livremente após escolher um preset. `potenciaW`/
+// `tensaoV`/`autonomia` são texto livre (não entram em cálculo); só
+// `fluxoLuminosoLm` precisa ser numérico (usado no dimensionamento por área).
 export const PRESETS_EQUIPAMENTO = [
   {
     key: 'luminaria_30leds_100lm', tipoBase: 'luminaria_30leds', label: '30 LEDs SMD — 100 lm',
     tipoLampada: '30 LEDs SMD', potenciaW: '6', tensaoV: '100-240',
-    fluxoLuminosoLm: '100', anguloDispersao: '', vidaUtilH: '',
+    fluxoLuminosoLm: '100', autonomia: '3h fluxo máximo / 6h fluxo mínimo',
   },
   {
     key: 'bloco_2200lm', tipoBase: 'bloco_emergencia', label: '2200 lm',
     tipoLampada: '2 × 70 LEDs autobrilho', potenciaW: '2× 7,65', tensaoV: '100-240',
-    fluxoLuminosoLm: '2200', anguloDispersao: '120°', vidaUtilH: '',
+    fluxoLuminosoLm: '2200', autonomia: '>2 horas',
   },
   {
     key: 'bloco_1200lm', tipoBase: 'bloco_emergencia', label: '1200 lm',
     tipoLampada: '2 × 35 LEDs autobrilho', potenciaW: '2× 4,4', tensaoV: '100-240',
-    fluxoLuminosoLm: '1200', anguloDispersao: '120°', vidaUtilH: '',
+    fluxoLuminosoLm: '1200', autonomia: '>2 horas',
   },
   {
     key: 'bloco_600lm', tipoBase: 'bloco_emergencia', label: '600 lm',
     tipoLampada: '2 × 40 LEDs autobrilho', potenciaW: '2× 2', tensaoV: '100-240',
-    fluxoLuminosoLm: '600', anguloDispersao: '120°', vidaUtilH: '',
+    fluxoLuminosoLm: '600', autonomia: '>2 horas',
   },
   {
     key: 'bloco_400lm', tipoBase: 'bloco_emergencia', label: '400 lm',
     tipoLampada: '2 × 40 LEDs autobrilho', potenciaW: '2× 1,4', tensaoV: '100-240',
-    fluxoLuminosoLm: '400', anguloDispersao: '120°', vidaUtilH: '',
+    fluxoLuminosoLm: '400', autonomia: '>3 horas',
   },
 ]
 

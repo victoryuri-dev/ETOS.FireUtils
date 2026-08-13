@@ -72,8 +72,7 @@ function novaEspecificacaoEquipamento(tipoBase, preset, id) {
     potenciaW: preset?.potenciaW || '',
     tensaoV: preset?.tensaoV || '',
     fluxoLuminosoLm: preset?.fluxoLuminosoLm || '',
-    anguloDispersao: preset?.anguloDispersao || '',
-    vidaUtilH: preset?.vidaUtilH || '',
+    autonomia: preset?.autonomia || '',
   }
 }
 
