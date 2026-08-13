@@ -3,52 +3,99 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica } from '../../data/extintores_calc'
 import Icon from '../../components/ui/Icon'
+import QuantityStepper from '../../components/ui/QuantityStepper'
 
 // ── Importação do firedata.json (plugin Revit) ───────────────────────
-// Formato esperado (ver comentário completo no final do arquivo):
+// Formato esperado — um item por extintor físico (cada família do Revit
+// vira um item; o site agrupa os itens idênticos de um mesmo ambiente e
+// deduz a quantidade a partir da contagem):
 //   { "extintores": { "_timestamp": "...", "itens": [
 //       { "estrutura": "Estrutura 1", "pavimento": "Térreo", "ambiente": "Cozinha",
-//         "tipo": "po_abc", "sobreRodas": false, "capacidade": "4-A:40-B:C", "peso": 6, "quantidade": 2 },
+//         "tipo": "2A-20BC - 4 kg", "formato": "Portátil", "capacidade": "2-A:20-B:C", "carga": 4 },
 //       ...
 //   ] } }
 //
-// "estrutura" e "pavimento" são casados por nome/label contra o que já
-// está cadastrado no projeto (Etapa 2) — o plugin não precisa (e não
-// consegue) conhecer os IDs internos gerados pelo app.
+// "estrutura" é casada por nome contra o que já está cadastrado no projeto
+// (Etapa 2); quando vier vazia, o item entra na primeira estrutura do
+// projeto. "pavimento" é casado por label dentro da estrutura resolvida.
+// "ambiente" vazio vira "Geral".
+//
+// "tipo" é o rótulo livre do produto no Revit (não corresponde às chaves
+// internas do catálogo normativo) — o agente extintor (água/espuma/CO2/pó
+// BC/pó ABC) é inferido a partir das classes da "capacidade" (ver
+// inferirTipoKey). Quando "tipo" já bater com uma chave interna válida
+// (agua|espuma|co2|po_bc|po_abc|halogenado), ela é usada diretamente.
+// "formato" é "Portátil" ou "Sobre rodas" (aceito sem acento/maiúsculas).
+// "carga" é o peso da carga extintora em kg.
+function normFormato(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/\s+/g, '')
+}
+
+// Deduz o agente extintor a partir das classes de fogo da capacidade
+// (única informação confiável do agente que o Revit exporta hoje). Não
+// distingue CO2/pó BC/halogenado — todos cobrem só B/C — então usa pó
+// químico BC como padrão nesse caso, por ser o agente mais comum.
+function inferirTipoKey(capacidade, catalogo) {
+  const classes = new Set((capacidade || '').match(/[ABC]/g) || [])
+  let key = null
+  if (classes.has('A') && classes.has('B') && classes.has('C')) key = 'po_abc'
+  else if (classes.has('A') && classes.has('B')) key = 'espuma'
+  else if (classes.has('A')) key = 'agua'
+  else if (classes.has('B') || classes.has('C')) key = 'po_bc'
+  return catalogo.some(t => t.key === key) ? key : null
+}
+
 function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSobreRodas) {
   const dados = json?.extintores
   if (!dados?.itens) throw new Error('Chave "extintores.itens" não encontrada no arquivo.')
 
   const norm = s => (s || '').trim().toLowerCase()
-  const resolvidos = []
+  const grupos = new Map()
   const erros = []
 
   dados.itens.forEach((it, i) => {
     const linha = `Item ${i + 1}`
-    const est = estruturas.find(e => norm(e.nome) === norm(it.estrutura))
-    if (!est) { erros.push(`${linha}: estrutura "${it.estrutura}" não encontrada no projeto.`); return }
+
+    let est
+    if (norm(it.estrutura)) {
+      est = estruturas.find(e => norm(e.nome) === norm(it.estrutura))
+      if (!est) { erros.push(`${linha}: estrutura "${it.estrutura}" não encontrada no projeto.`); return }
+    } else {
+      est = estruturas[0]
+      if (!est) { erros.push(`${linha}: nenhuma estrutura cadastrada no projeto para receber o extintor.`); return }
+    }
 
     const pav = pavimentos.find(p => p.estruturaId === est.id && norm(p.label) === norm(it.pavimento))
     if (!pav) { erros.push(`${linha}: pavimento "${it.pavimento}" não encontrado em ${est.nome}.`); return }
 
-    const sobreRodas = it.sobreRodas === true || it.sobreRodas === 'true' || it.sobreRodas === 'True'
+    const formato = normFormato(it.formato)
+    if (formato !== 'portatil' && formato !== 'sobrerodas') {
+      erros.push(`${linha}: formato "${it.formato}" inválido (use "portatil" ou "sobreRodas").`); return
+    }
+    const sobreRodas = formato === 'sobrerodas'
     const catalogo = sobreRodas ? tiposSobreRodas : tiposPortatil
-    const tipoInfo = catalogo.find(t => t.key === it.tipo)
-    if (!tipoInfo) { erros.push(`${linha}: tipo "${it.tipo}" inválido para extintor ${sobreRodas ? 'sobre rodas' : 'portátil'}.`); return }
 
-    resolvidos.push({
-      estruturaId: est.id,
-      pavimentoId: pav.id,
-      ambiente:    it.ambiente || 'Sem ambiente',
-      tipo:        it.tipo,
-      sobreRodas,
-      capacidade:  it.capacidade || tipoInfo.capacidadeMinima,
-      peso:        it.peso != null ? String(it.peso) : '',
-      quantidade:  parseInt(it.quantidade) || 1,
-    })
+    let tipoKey = catalogo.some(t => t.key === it.tipo) ? it.tipo : inferirTipoKey(it.capacidade, catalogo)
+    const tipoInfo = catalogo.find(t => t.key === tipoKey)
+    if (!tipoInfo) { erros.push(`${linha}: não foi possível determinar o agente extintor a partir de tipo "${it.tipo}" / capacidade "${it.capacidade}".`); return }
+
+    let peso = ''
+    if (it.carga != null && it.carga !== '') {
+      const n = Number(it.carga)
+      if (Number.isNaN(n)) { erros.push(`${linha}: carga "${it.carga}" inválida.`); return }
+      peso = String(n)
+    }
+
+    const ambiente   = norm(it.ambiente) ? it.ambiente : 'Geral'
+    const capacidade = (it.capacidade || tipoInfo.capacidadeMinima).trim()
+    const chave = [est.id, pav.id, ambiente, tipoKey, sobreRodas, capacidade, peso].join('|')
+
+    const existente = grupos.get(chave)
+    if (existente) existente.quantidade += 1
+    else grupos.set(chave, { estruturaId: est.id, pavimentoId: pav.id, ambiente, tipo: tipoKey, sobreRodas, capacidade, peso, quantidade: 1 })
   })
 
-  return { resolvidos, erros, timestamp: dados._timestamp || null }
+  return { resolvidos: [...grupos.values()], erros, timestamp: dados._timestamp || null }
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────
@@ -143,11 +190,7 @@ function LinhaExtintor({ ext, tiposPortatil, tiposSobreRodas, dispatch }) {
         />
       </td>
       <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
-        <input
-          type="number" min="1" value={ext.quantidade}
-          onChange={e => update({ quantidade: e.target.value })}
-          className="w-[64px] text-right"
-        />
+        <QuantityStepper value={ext.quantidade} min={1} onChange={v => update({ quantidade: v })}/>
       </td>
       <td className="py-1.5 px-2.5 border-b border-solid border-border-2 text-center">
         <button className="btn-del" onClick={() => dispatch({ type: 'REMOVE_EXTINTOR', id: ext.id })}>
@@ -160,6 +203,7 @@ function LinhaExtintor({ ext, tiposPortatil, tiposSobreRodas, dispatch }) {
 
 // ── Bloco de um ambiente (grupo de extintores com o mesmo nome) ──────
 function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil, tiposSobreRodas, dispatch }) {
+  const [editing, setEditing] = useState(false)
   const [nome, setNome] = useState(ambiente)
 
   const commitRename = () => {
@@ -176,13 +220,29 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
   return (
     <div className="mb-3 border border-solid border-border rounded-md overflow-hidden">
       <div className="flex items-center gap-2.5 py-2 px-2.5 bg-surface-2 border-b border-solid border-border">
-        <span className="text-[9px] text-ink-faint uppercase tracking-[.06em] font-semibold shrink-0">Ambiente</span>
-        <input
-          value={nome}
-          onChange={e => setNome(e.target.value)}
-          onBlur={commitRename}
-          className="flex-1 text-[13px] font-semibold bg-transparent border-none p-0 rounded px-1 -mx-1 hover:bg-white/5 focus:bg-white/5"
-        />
+        {editing ? (
+          <input
+            autoFocus
+            value={nome}
+            onChange={e => setNome(e.target.value)}
+            onBlur={() => { commitRename(); setEditing(false) }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { commitRename(); setEditing(false) }
+              if (e.key === 'Escape') { setNome(ambiente); setEditing(false) }
+            }}
+            className="flex-1 text-[13px] font-semibold bg-transparent border-none p-0 outline-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="group flex-1 flex items-center gap-1.5 min-w-0 text-left bg-transparent"
+          >
+            <span className="text-[13px] font-semibold text-ink truncate">{nome}</span>
+            <Icon name="edit" size={11} className="text-ink-hint group-hover:text-ink-muted transition-colors shrink-0"/>
+          </button>
+        )}
+
         <span className="text-[10px] text-ink-faint whitespace-nowrap">{totalQtd} extintor{totalQtd !== 1 ? 'es' : ''}</span>
         <button
           className="btn-add"
@@ -221,7 +281,6 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
 
 // ── Card de um pavimento ──────────────────────────────────────────────
 function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, extNorma, dispatch }) {
-  const [novoAmbiente, setNovoAmbiente] = useState('')
   const { LIMIARES_RISCO, AREA_LIMITE_UNIDADE_UNICA, TIPOS_PORTATIL, TIPOS_SOBRE_RODAS, DISTANCIA_MAXIMA, NOTAS } = extNorma
 
   const risco = riscoDoPavimento(pavimento, cargaState, LIMIARES_RISCO)
@@ -234,10 +293,10 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
   const limiteArea = risco ? areaLimiteUnidadeUnica(risco, AREA_LIMITE_UNIDADE_UNICA) : null
 
   const adicionarAmbiente = () => {
-    const nome = novoAmbiente.trim()
-    if (!nome) return
-    dispatch({ type: 'ADD_EXTINTOR', estruturaId, pavimentoId: pavimento.id, ambiente: nome })
-    setNovoAmbiente('')
+    const nomesExistentes = new Set(grupos.map(g => g.ambiente))
+    let n = grupos.length + 1
+    while (nomesExistentes.has(`Ambiente ${n}`)) n++
+    dispatch({ type: 'ADD_EXTINTOR', estruturaId, pavimentoId: pavimento.id, ambiente: `Ambiente ${n}` })
   }
 
   const conforme = resultado.temA && resultado.temBC && resultado.minimoAtendido
@@ -291,7 +350,9 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
         )}
 
         {grupos.length === 0 ? (
-          <div className="text-xs text-ink-faint mb-3">Nenhum ambiente cadastrado neste pavimento ainda.</div>
+          <div className="py-8 text-center text-ink-faint text-[13px] mb-3">
+            Nenhum ambiente adicionado. Clique em "Adicionar ambiente".
+          </div>
         ) : grupos.map(g => (
           <AmbienteBloco
             key={g.ambiente}
@@ -305,18 +366,9 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
           />
         ))}
 
-        <div className="flex items-center gap-2">
-          <input
-            value={novoAmbiente}
-            onChange={e => setNovoAmbiente(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && adicionarAmbiente()}
-            placeholder="Nome do ambiente (ex.: Cozinha, Depósito, Casa de bombas)"
-            className="flex-1 text-xs"
-          />
-          <button className="btn-add" onClick={adicionarAmbiente}>
-            <Icon name="plus" size={11}/> Ambiente
-          </button>
-        </div>
+        <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={adicionarAmbiente}>
+          <Icon name="plus" size={12}/> Adicionar ambiente
+        </button>
       </div>
     </Card>
   )
