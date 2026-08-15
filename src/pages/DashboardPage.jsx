@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useProjeto } from '../context/ProjetoContext'
+import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 import { useNorma } from '../hooks/useNorma'
 import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
 import Icon from '../components/ui/Icon'
@@ -128,6 +130,69 @@ function SistemasGrid({ sistemas, onNavigate }) {
   )
 }
 
+// ── Integração Revit ─────────────────────────────────────────────────
+// Mostra o sync_token do projeto (Supabase, tabela `projetos`) — token que
+// o plugin do Revit usa pra enviar dados sem precisar de firedata.json.
+function IntegracaoRevit({ projetoId, userId }) {
+  const [token, setToken]     = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy]       = useState(false)
+  const [copiado, setCopiado] = useState(false)
+
+  useEffect(() => {
+    if (!projetoId || !userId) return
+    let cancelado = false
+    setLoading(true)
+    supabase.from('projetos').select('sync_token').eq('id', projetoId).eq('user_id', userId).maybeSingle()
+      .then(({ data }) => { if (!cancelado) { setToken(data?.sync_token || null); setLoading(false) } })
+    return () => { cancelado = true }
+  }, [projetoId, userId])
+
+  const copiar = () => {
+    if (!token) return
+    navigator.clipboard.writeText(token)
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 1500)
+  }
+
+  const gerarNovo = async () => {
+    if (!window.confirm(
+      'Gerar um novo token invalida o atual — se o plugin do Revit já estiver configurado com ele, para de sincronizar até você colar o novo lá. Continuar?'
+    )) return
+    setBusy(true)
+    const novo = crypto.randomUUID()
+    const { error } = await supabase.from('projetos').update({ sync_token: novo }).eq('id', projetoId).eq('user_id', userId)
+    if (!error) setToken(novo)
+    setBusy(false)
+  }
+
+  return (
+    <div className="bg-surface-2 border border-solid border-border rounded-lg overflow-hidden mb-5">
+      <div className="flex items-center justify-between py-3 px-4 border-b border-solid border-border">
+        <span className="text-xs font-medium text-ink-muted flex items-center gap-1.5">
+          <Icon name="upload" size={13}/> Integração Revit
+        </span>
+      </div>
+      <div className="p-4">
+        <div className="text-[11px] text-ink-faint mb-2.5">
+          Cole este token nas configurações do plugin Fire Utils no Revit para sincronizar os dados sem precisar exportar arquivo.
+        </div>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 bg-surface border border-solid border-border rounded-md px-3 py-2 text-[12px] text-ink-muted font-mono overflow-x-auto whitespace-nowrap">
+            {loading ? 'Carregando…' : (token || 'Token indisponível')}
+          </code>
+          <button className="btn-ghost" onClick={copiar} disabled={loading || !token}>
+            <Icon name={copiado ? 'check' : 'file'} size={12}/> {copiado ? 'Copiado' : 'Copiar'}
+          </button>
+          <button className="btn-ghost" onClick={gerarNovo} disabled={loading || busy}>
+            <Icon name="settings" size={12}/> Gerar novo
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ProgressBar({ sistemas }) {
   const ativos  = SIST_DISPLAY.filter(s => sistemas[s.key]?.ativo || sistemas[s.key]?.obrigatorio)
   const feitos  = 0 // dimensionamentos concluidos (sera populado quando o plugin integrar)
@@ -194,6 +259,7 @@ function Checklist() {
 
 export default function DashboardPage({ onGoConfig }) {
   const { state } = useProjeto()
+  const { user } = useAuth()
   const { info, ocupacoes } = useNorma()
   const { sistemas } = useMedidasObrigatorias()
   const maxQ       = Object.values(state.cargaState || {}).reduce((acc, c) => {
@@ -326,6 +392,9 @@ export default function DashboardPage({ onGoConfig }) {
               ]}
             />
           </div>
+
+          {/* Integração Revit */}
+          {state.id && user && <IntegracaoRevit projetoId={state.id} userId={user.id}/>}
 
           {/* Sistemas de seguranca */}
           <div className="mb-5">

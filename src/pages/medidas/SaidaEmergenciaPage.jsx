@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { supabase } from '../../lib/supabase'
 import { getSE } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
 import {
@@ -379,6 +380,7 @@ export default function SaidaEmergenciaPage() {
   const [importInfo,   setImportInfo]   = useState(null)
   const [importErro,   setImportErro]   = useState(null)
   const [saidaUnica,   setSaidaUnica]   = useState({})
+  const [buscando,     setBuscando]     = useState(false)
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -388,6 +390,20 @@ export default function SaidaEmergenciaPage() {
   const getSaidaUnica = (pavId, adN) => saidaUnica[pavId] ?? (adN <= 1)
   const toggleSaidaUnica = (pavId, val) => setSaidaUnica(prev => ({ ...prev, [pavId]: val }))
 
+  const aplicarSaidas = payloadSE => {
+    try {
+      const result = importarFiredata({ saidas_emergencia: payloadSE })
+      setPavimentos(result.pavimentos)
+      setTemChuveiros(result.temChuveiros)
+      setTemDeteccao(result.temDeteccao)
+      setLargAdotada({})
+      setImportErro(null)
+      setImportInfo(result.timestamp)
+    } catch (err) {
+      setImportErro(err.message || 'Dados inválidos.')
+    }
+  }
+
   const handleImport = e => {
     const file = e.target.files[0]
     if (!file) return
@@ -395,19 +411,25 @@ export default function SaidaEmergenciaPage() {
     const reader = new FileReader()
     reader.onload = ev => {
       try {
-        const json   = JSON.parse(ev.target.result)
-        const result = importarFiredata(json)
-        setPavimentos(result.pavimentos)
-        setTemChuveiros(result.temChuveiros)
-        setTemDeteccao(result.temDeteccao)
-        setLargAdotada({})
-        setImportErro(null)
-        setImportInfo(result.timestamp)
+        const json = JSON.parse(ev.target.result)
+        aplicarSaidas(json?.saidas_emergencia ?? json?.se_import)
       } catch (err) {
         setImportErro(err.message || 'Arquivo inválido.')
       }
     }
     reader.readAsText(file, 'utf-8')
+  }
+
+  const handleBuscarRevit = async () => {
+    setBuscando(true)
+    const { data, error } = await supabase
+      .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id).eq('medida', 'saidas_emergencia').maybeSingle()
+    setBuscando(false)
+    if (error || !data) {
+      setImportErro('Nenhum dado de saídas de emergência sincronizado do Revit ainda para este projeto.')
+      return
+    }
+    aplicarSaidas(data.payload)
   }
 
   const setLarg = useCallback((pavId, tipo, val) => {
@@ -465,15 +487,15 @@ export default function SaidaEmergenciaPage() {
                 Cadastre os ambientes de cada pavimento (1) para calcular a população e dimensionar as saídas (2), conforme {info?.nome || 'NT vigente'} / NBR 9077.
               </p>
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 flex flex-col items-end gap-1.5">
               <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
-              <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>
+              <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
                 <Icon name="upload" size={13}/>
-                Importar do Revit
+                {buscando ? 'Buscando…' : 'Buscar do Revit'}
               </button>
-              <div className="text-[10px] text-ink-faint mt-[5px] text-right">
-                firedata.json
-              </div>
+              <button type="button" className="text-[10px] text-ink-faint hover:text-ink underline bg-transparent border-none cursor-pointer p-0" onClick={() => fileInputRef.current?.click()}>
+                ou importar de um arquivo .json
+              </button>
             </div>
           </div>
 

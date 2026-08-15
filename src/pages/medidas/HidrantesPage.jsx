@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react'
+import { useProjeto } from '../../context/ProjetoContext'
+import { supabase } from '../../lib/supabase'
 import Icon from '../../components/ui/Icon'
 
 // ── Formatação ────────────────────────────────────────────────────────
@@ -437,10 +439,18 @@ function Bomba({ d }) {
 
 // ── Page Principal ────────────────────────────────────────────────────
 export default function HidrantesPage() {
+  const { state } = useProjeto()
   const [dados,      setDados]      = useState(null)
   const [importErro, setImportErro] = useState(null)
   const [importTs,   setImportTs]   = useState(null)
+  const [buscando,   setBuscando]   = useState(false)
   const fileInputRef = useRef(null)
+
+  const aplicarHidrantes = payload => {
+    setDados(payload)
+    setImportTs(payload?._timestamp || null)
+    setImportErro(null)
+  }
 
   const handleImport = e => {
     const file = e.target.files[0]
@@ -451,15 +461,26 @@ export default function HidrantesPage() {
       try {
         const json = JSON.parse(ev.target.result)
         if (!json.hidrantes) throw new Error('Chave "hidrantes" não encontrada no arquivo.')
-        setDados(json.hidrantes)
-        setImportTs(json.hidrantes._timestamp || null)
-        setImportErro(null)
+        aplicarHidrantes(json.hidrantes)
       } catch (err) {
         setImportErro(err.message || 'Arquivo inválido.')
         setDados(null)
       }
     }
     reader.readAsText(file, 'utf-8')
+  }
+
+  const handleBuscarRevit = async () => {
+    setBuscando(true)
+    const { data, error } = await supabase
+      .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id).eq('medida', 'hidrantes').maybeSingle()
+    setBuscando(false)
+    if (error || !data) {
+      setImportErro('Nenhum dado de hidrantes sincronizado do Revit ainda para este projeto.')
+      setDados(null)
+      return
+    }
+    aplicarHidrantes(data.payload)
   }
 
   const sections = dados ? [
@@ -484,13 +505,15 @@ export default function HidrantesPage() {
               Resultados gerados pelo plugin Revit e apresentados conforme NT 22 CBMMA / NBR 13714.
             </p>
           </div>
-          <div className="shrink-0">
+          <div className="shrink-0 flex flex-col items-end gap-1.5">
             <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
-            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>
+            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
               <Icon name="upload" size={13}/>
-              Importar do Revit
+              {buscando ? 'Buscando…' : 'Buscar do Revit'}
             </button>
-            <div className="text-[10px] text-ink-faint mt-[5px] text-right">firedata.json</div>
+            <button type="button" className="text-[10px] text-ink-faint hover:text-ink underline bg-transparent border-none cursor-pointer p-0" onClick={() => fileInputRef.current?.click()}>
+              ou importar de um arquivo .json
+            </button>
           </div>
         </div>
 

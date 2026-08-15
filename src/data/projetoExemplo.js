@@ -108,7 +108,6 @@ export function criarProjetoExemploFixo() {
   return {
     ...dadosExemplo(),
     id: EXEMPLO_FIXO_ID,
-    seqId: 'PRJ-EXEMPLO',
     createdAt: new Date().toISOString(),
     exemploFixo: true,
   }

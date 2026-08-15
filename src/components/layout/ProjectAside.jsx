@@ -77,7 +77,7 @@ export default function ProjectAside({ activePage, onNavigate }) {
       {!col && (
         <div className="px-5 py-3.5 border-b border-solid border-border shrink-0">
           <div className="text-[10px] text-ink-faint uppercase tracking-[.08em] mb-[3px]">
-            {state.seqId || 'Projeto'}
+            Projeto
           </div>
           <div className="text-[13px] font-semibold text-ink leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
             {state.nome || 'Sem nome'}

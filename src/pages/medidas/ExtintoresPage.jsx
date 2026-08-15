@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { supabase } from '../../lib/supabase'
 import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica } from '../../data/extintores_calc'
 import Icon from '../../components/ui/Icon'
 import QuantityStepper from '../../components/ui/QuantityStepper'
@@ -520,7 +521,24 @@ export default function ExtintoresPage() {
   const { extintores: extNorma } = useNorma()
   const [importInfo, setImportInfo] = useState(null)
   const [importErros, setImportErros] = useState([])
+  const [buscando, setBuscando] = useState(false)
   const fileInputRef = useRef(null)
+
+  // Aplica o payload da chave "extintores" (vindo de um arquivo ou do
+  // Supabase) — mesmo parser de sempre, só muda a origem do JSON.
+  const aplicarExtintores = payloadExtintores => {
+    try {
+      const { resolvidos, erros, timestamp } = resolverImportacao(
+        { extintores: payloadExtintores }, state.estruturas, state.pavimentos, extNorma.TIPOS_PORTATIL, extNorma.TIPOS_SOBRE_RODAS
+      )
+      if (resolvidos.length > 0) dispatch({ type: 'IMPORT_EXTINTORES', itens: resolvidos })
+      setImportInfo({ timestamp, total: resolvidos.length })
+      setImportErros(erros)
+    } catch (err) {
+      setImportInfo(null)
+      setImportErros([err.message || 'Dados inválidos.'])
+    }
+  }
 
   const handleImport = e => {
     const file = e.target.files[0]
@@ -530,18 +548,26 @@ export default function ExtintoresPage() {
     reader.onload = ev => {
       try {
         const json = JSON.parse(ev.target.result)
-        const { resolvidos, erros, timestamp } = resolverImportacao(
-          json, state.estruturas, state.pavimentos, extNorma.TIPOS_PORTATIL, extNorma.TIPOS_SOBRE_RODAS
-        )
-        if (resolvidos.length > 0) dispatch({ type: 'IMPORT_EXTINTORES', itens: resolvidos })
-        setImportInfo({ timestamp, total: resolvidos.length })
-        setImportErros(erros)
+        aplicarExtintores(json.extintores)
       } catch (err) {
         setImportInfo(null)
         setImportErros([err.message || 'Arquivo inválido.'])
       }
     }
     reader.readAsText(file, 'utf-8')
+  }
+
+  const handleBuscarRevit = async () => {
+    setBuscando(true)
+    const { data, error } = await supabase
+      .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id).eq('medida', 'extintores').maybeSingle()
+    setBuscando(false)
+    if (error || !data) {
+      setImportInfo(null)
+      setImportErros(['Nenhum dado de extintores sincronizado do Revit ainda para este projeto.'])
+      return
+    }
+    aplicarExtintores(data.payload)
   }
 
   return (
@@ -556,13 +582,15 @@ export default function ExtintoresPage() {
               Distribuição de extintores por estrutura, pavimento e ambiente conforme a NT 21 CBMMA. Cadastre manualmente ou importe do plugin Revit — o risco predominante (que define a área-limite para unidade única) vem da carga de incêndio classificada na Etapa 5.
             </p>
           </div>
-          <div className="shrink-0">
+          <div className="shrink-0 flex flex-col items-end gap-1.5">
             <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
-            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>
+            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
               <Icon name="upload" size={13}/>
-              Importar do Revit
+              {buscando ? 'Buscando…' : 'Buscar do Revit'}
             </button>
-            <div className="text-[10px] text-ink-faint mt-[5px] text-right">firedata.json</div>
+            <button type="button" className="text-[10px] text-ink-faint hover:text-ink underline bg-transparent border-none cursor-pointer p-0" onClick={() => fileInputRef.current?.click()}>
+              ou importar de um arquivo .json
+            </button>
           </div>
         </div>
 

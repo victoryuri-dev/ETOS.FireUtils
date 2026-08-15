@@ -1,10 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Routes, Route, Navigate, Outlet,
   useNavigate, useParams, useLocation,
 } from 'react-router-dom'
 import { ProjetoProvider, useProjeto, newIds } from './context/ProjetoContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { supabase } from './lib/supabase'
 import { criarProjetoExemplo } from './data/projetoExemplo'
+import LoginPage      from './pages/LoginPage'
 import ProjectAside   from './components/layout/ProjectAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
@@ -24,6 +27,9 @@ import etosLogo       from './assets/etos-logo.png'
 
 // ── AppHeader ─────────────────────────────────────────────────────────
 function AppHeader({ onGoProjetos, isProjectPage }) {
+  const { user, signOut } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
     <header className="flex items-center justify-between px-6 h-16 bg-surface border-b border-border border-solid shrink-0 z-100">
       {/* Logo */}
@@ -41,12 +47,31 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
         </button>
       </nav>
 
-      {/* Direita */}
-      <div className="flex items-center gap-2">
-        {/* Conta — placeholder */}
-        <div className="w-[30px] h-[30px] rounded-full bg-surface-2 border border-border border-solid flex items-center justify-center cursor-pointer text-ink-faint">
-          <Icon name="info" size={13}/>
-        </div>
+      {/* Direita — conta */}
+      <div className="flex items-center gap-2 relative">
+        <button
+          onClick={() => setMenuOpen(o => !o)}
+          title={user?.email}
+          className="w-[30px] h-[30px] rounded-full bg-surface-2 border border-border border-solid flex items-center justify-center cursor-pointer text-ink-faint hover:text-ink"
+        >
+          <Icon name="user" size={13}/>
+        </button>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}/>
+            <div className="absolute right-0 top-[42px] bg-surface border border-border border-solid rounded-lg shadow-lg py-1 min-w-[200px] z-50">
+              <div className="px-3 py-2 text-[11px] text-ink-faint border-b border-border border-solid truncate">
+                {user?.email}
+              </div>
+              <button
+                onClick={() => { setMenuOpen(false); signOut() }}
+                className="w-full text-left px-3 py-2 text-[12px] text-ink-muted hover:text-ink hover:bg-surface-2 flex items-center gap-2"
+              >
+                <Icon name="exit" size={13}/> Sair
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </header>
   )
@@ -131,6 +156,7 @@ function ProjetosRoute() {
 function ProjectLayout() {
   const { id } = useParams()
   const { state, dispatch } = useProjeto()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -138,20 +164,41 @@ function ProjectLayout() {
 
   useEffect(() => {
     if (state.id === id) return
-    try {
-      const raw = localStorage.getItem('etos-projetos')
-      const all = raw ? JSON.parse(raw) : {}
-      const proj = all[id]
-      if (proj) {
-        dispatch({ type: 'LOAD', payload: proj })
-      } else {
+
+    let cancelado = false
+
+    function carregarDoCacheLocal() {
+      try {
+        const raw = localStorage.getItem('etos-projetos')
+        const all = raw ? JSON.parse(raw) : {}
+        const proj = all[id]
+        if (proj) dispatch({ type: 'LOAD', payload: proj })
+        else navigate('/projetos', { replace: true })
+      } catch {
         navigate('/projetos', { replace: true })
       }
-    } catch {
-      navigate('/projetos', { replace: true })
     }
+
+    async function carregar() {
+      if (!user) return carregarDoCacheLocal()
+      const { data, error } = await supabase
+        .from('projetos').select('dados').eq('id', id).eq('user_id', user.id).maybeSingle()
+      if (cancelado) return
+      if (data) {
+        dispatch({ type: 'LOAD', payload: data.dados })
+      } else if (!error) {
+        // Não achou no Postgres (não existe ou não pertence a este usuário)
+        navigate('/projetos', { replace: true })
+      } else {
+        // Erro de rede (ex.: offline) — cai pro cache local como fallback
+        carregarDoCacheLocal()
+      }
+    }
+    carregar()
+
+    return () => { cancelado = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, state.id])
+  }, [id, state.id, user])
 
   const rest = location.pathname.split(`/projeto/${id}/`)[1]?.split('/') || []
   const activePage = rest[0] === 'medida' ? `medida-${rest[1]}` : (rest[0] || 'dashboard')
@@ -176,9 +223,26 @@ function ProjectLayout() {
 
 // ── AppInner ──────────────────────────────────────────────────────────
 function AppInner() {
+  const { user, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const isProjectPage = location.pathname.startsWith('/projeto/')
+
+  if (loading) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-bg text-ink-faint text-[13px]">
+        Carregando…
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="*" element={<LoginPage/>}/>
+      </Routes>
+    )
+  }
 
   return (
     <div className="w-screen h-screen flex flex-col overflow-hidden bg-bg text-ink">
@@ -190,6 +254,7 @@ function AppInner() {
       <div className="flex flex-1 overflow-hidden">
         <Routes>
           <Route path="/" element={<Navigate to="/projetos" replace/>}/>
+          <Route path="/login" element={<Navigate to="/projetos" replace/>}/>
           <Route path="/projetos" element={<ProjetosRoute/>}/>
 
           <Route path="/projeto/:id" element={<ProjectLayout/>}>
@@ -211,8 +276,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <ProjetoProvider>
-      <AppInner/>
-    </ProjetoProvider>
+    <AuthProvider>
+      <ProjetoProvider>
+        <AppInner/>
+      </ProjetoProvider>
+    </AuthProvider>
   )
 }

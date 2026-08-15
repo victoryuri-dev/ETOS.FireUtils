@@ -1,19 +1,26 @@
 import { useState, useMemo, useEffect } from 'react'
 import Icon from '../components/ui/Icon'
 import { useNorma } from '../hooks/useNorma'
+import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 import { criarProjetoExemploFixo, EXEMPLO_FIXO_ID } from '../data/projetoExemplo'
 
-// Garante que o projeto de exemplo fixo sempre exista na lista — se foi
-// excluido em uma sessao anterior, recria-lo ao carregar a pagina.
-function garantirProjetoExemploFixo() {
-  try {
-    const raw = localStorage.getItem('etos-projetos')
-    const all = raw ? JSON.parse(raw) : {}
-    if (all[EXEMPLO_FIXO_ID]) return false
-    all[EXEMPLO_FIXO_ID] = { ...criarProjetoExemploFixo(), updatedAt: new Date().toISOString() }
-    localStorage.setItem('etos-projetos', JSON.stringify(all))
-    return true
-  } catch { return false }
+// Garante que o projeto de exemplo fixo sempre exista pra este usuário — se
+// foi excluido em uma sessao anterior, recria-lo ao carregar a pagina. O id
+// leva o user_id porque a tabela `projetos` é compartilhada entre contas
+// (id sozinho é a chave primária), então o id fixo original colidiria entre
+// usuários diferentes.
+async function garantirProjetoExemploFixo(userId) {
+  const idExemplo = `${EXEMPLO_FIXO_ID}-${userId}`
+  const { data } = await supabase.from('projetos').select('id').eq('id', idExemplo).maybeSingle()
+  if (data) return
+  const dados = { ...criarProjetoExemploFixo(), id: idExemplo, updatedAt: new Date().toISOString() }
+  await supabase.from('projetos').insert({
+    id: idExemplo,
+    user_id: userId,
+    nome: dados.nome || 'Projeto de exemplo',
+    dados,
+  })
 }
 
 // ── helpers ───────────────────────────────────────────────────────────
@@ -379,6 +386,7 @@ function EmptyState({ hasFilter, onNew }) {
 
 export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjetoExemplo }) {
   const { grupos } = useNorma()
+  const { user } = useAuth()
   const [view,        setView]        = useState('grid')
   const [tick,        setTick]        = useState(0)
   const [toDelete,    setToDelete]    = useState(null)
@@ -386,29 +394,29 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
   const [sort,        setSort]        = useState('recent')
   const [filterUF,    setFilterUF]    = useState('')
   const [filterGrupo, setFilterGrupo] = useState('')
+  const [allProjects, setAllProjects] = useState([])
+  const [loading,     setLoading]     = useState(true)
 
-  // Roda a cada vez que a pagina "Meus projetos" monta (inclui reload) —
-  // se o exemplo fixo foi excluido, recria-lo antes de ler a lista.
+  // Roda a cada vez que a pagina "Meus projetos" monta (ou apos delete/recarga) —
+  // garante o exemplo fixo e busca a lista de projetos do usuário no Postgres.
   useEffect(() => {
-    if (garantirProjetoExemploFixo()) setTick(t => t + 1)
-  }, [])
+    if (!user) return
+    let cancelado = false
+    setLoading(true)
+    ;(async () => {
+      await garantirProjetoExemploFixo(user.id)
+      const { data, error } = await supabase
+        .from('projetos').select('dados').eq('user_id', user.id)
+      if (cancelado) return
+      setAllProjects(error ? [] : (data || []).map(row => row.dados))
+      setLoading(false)
+    })()
+    return () => { cancelado = true }
+  }, [user, tick])
 
-  // Lê todos os projetos do localStorage
-  const allProjects = useMemo(() => {
-    try {
-      const raw = localStorage.getItem('etos-projetos')
-      return raw ? Object.values(JSON.parse(raw)) : []
-    } catch { return [] }
-  }, [tick]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!toDelete) return
-    try {
-      const raw = localStorage.getItem('etos-projetos')
-      const all = raw ? JSON.parse(raw) : {}
-      delete all[toDelete.id]
-      localStorage.setItem('etos-projetos', JSON.stringify(all))
-    } catch {}
+    await supabase.from('projetos').delete().eq('id', toDelete.id)
     setToDelete(null)
     setTick(t => t + 1)
   }
@@ -444,8 +452,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
       list = list.filter(p =>
         p.nome?.toLowerCase().includes(q) ||
         p.cidade?.toLowerCase().includes(q) ||
-        p.endereco?.toLowerCase().includes(q) ||
-        p.seqId?.toLowerCase().includes(q)
+        p.endereco?.toLowerCase().includes(q)
       )
     }
     if (filterUF)    list = list.filter(p => p.uf === filterUF)
@@ -586,7 +593,9 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
           </div>
 
           {/* ── Conteúdo ── */}
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="py-16 text-center text-[12px] text-ink-faint">Carregando projetos…</div>
+          ) : filtered.length === 0 ? (
             <EmptyState hasFilter={hasFilter} onNew={onNewProject}/>
           ) : view === 'grid' ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-3">

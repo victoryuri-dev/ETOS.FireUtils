@@ -1,12 +1,11 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef } from 'react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from './AuthContext'
 
-// Gera um ID interno único + ID de exibição sequencial
+// Gera um ID interno único
 export function newIds() {
-  const seq = (parseInt(localStorage.getItem('etos-seq') || '0')) + 1
-  localStorage.setItem('etos-seq', String(seq))
   return {
-    id:       `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
-    seqId:    `PRJ-${new Date().getFullYear()}-${String(seq).padStart(3, '0')}`,
+    id:        `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
     createdAt: new Date().toISOString(),
   }
 }
@@ -120,7 +119,7 @@ function novaEstrutura(nome) {
 }
 
 const INITIAL_STATE = {
-  id: '', seqId: '', createdAt: '',
+  id: '', createdAt: '',
   configStep: 1, configUnlocked: 1,
   nome: '', dataInicio: '', fase: 'Em desenvolvimento',
   endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'MA', cep: '',
@@ -389,7 +388,7 @@ function reducer(state, action) {
     case 'LOAD':
       return hydrateState(action.payload)
     case 'NEW_PROJECT':
-      return { ...INITIAL_STATE, id: action.id, seqId: action.seqId, createdAt: action.createdAt, estruturas: [novaEstrutura('Estrutura 1')] }
+      return { ...INITIAL_STATE, id: action.id, createdAt: action.createdAt, estruturas: [novaEstrutura('Estrutura 1')] }
     default: return state
   }
 }
@@ -397,6 +396,9 @@ function reducer(state, action) {
 const Ctx = createContext(null)
 
 export function ProjetoProvider({ children }) {
+  const { user } = useAuth()
+  const saveTimer = useRef(null)
+
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (init) => {
     try {
       const s = localStorage.getItem('etos-projeto')
@@ -410,6 +412,9 @@ export function ProjetoProvider({ children }) {
     return { ...init, ...newIds() }
   })
 
+  // Autosave: grava instantâneo no localStorage (cache local/offline) e, se
+  // houver usuário logado, sincroniza com o Postgres em background — debounced
+  // pra não disparar uma escrita remota a cada tecla digitada.
   useEffect(() => {
     const toSave = { ...state, updatedAt: new Date().toISOString() }
     localStorage.setItem('etos-projeto', JSON.stringify(toSave))
@@ -421,7 +426,23 @@ export function ProjetoProvider({ children }) {
         localStorage.setItem('etos-projetos', JSON.stringify(list))
       } catch {}
     }
-  }, [state])
+
+    if (!user || !state.id) return
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      supabase.from('projetos').upsert({
+        id: state.id,
+        user_id: user.id,
+        nome: state.nome || 'Projeto sem nome',
+        dados: toSave,
+        updated_at: toSave.updatedAt,
+      }).then(({ error }) => {
+        if (error) console.error('Falha ao sincronizar projeto com o Supabase:', error.message)
+      })
+    }, 800)
+    return () => clearTimeout(saveTimer.current)
+  }, [state, user])
+
   return <Ctx.Provider value={{ state, dispatch }}>{children}</Ctx.Provider>
 }
 
