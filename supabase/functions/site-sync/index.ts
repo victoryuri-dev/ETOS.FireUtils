@@ -10,8 +10,9 @@
 //   1. listar_estruturas — lista as estruturas do projeto, pro plugin
 //      mostrar um seletor e o usuário escolher qual delas aquele arquivo
 //      Revit representa (vínculo salvo localmente no plugin).
-//   2. ocupacao_area — dados de ocupação (divisão/grupo/CNAE por pavimento)
-//      e área construída de UMA estrutura específica (a vinculada).
+//   2. ocupacao_area — nome/UF do projeto, dados de ocupação (divisão/grupo/
+//      CNAE por pavimento) e área construída de UMA estrutura específica
+//      (a vinculada).
 //
 // Só devolve o recorte necessário — nunca o projeto inteiro, que tem dados
 // sensíveis (CPF, dados de proprietário/responsável) que o token não deveria
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
   )
 
   const { data: projeto } = await supabase
-    .from('projetos').select('dados').eq('sync_token', token).maybeSingle()
+    .from('projetos').select('nome, dados').eq('sync_token', token).maybeSingle()
 
   if (!projeto) return json({ error: 'token invalido' }, 401)
 
@@ -80,6 +81,10 @@ Deno.serve(async (req) => {
     .map(p => ({ id: p.id, label: p.label, divisao: p.divisao, grupo: p.grupo, cnae: p.cnae }))
 
   return json({
+    projeto: {
+      nome: projeto.nome,
+      uf: dados.uf,
+    },
     estrutura: {
       id: estrutura.id,
       nome: estrutura.nome,
