@@ -221,9 +221,48 @@ function ProjectLayout() {
   )
 }
 
+// ── AuthedLayout ──────────────────────────────────────────────────────
+// Rota-layout das páginas autenticadas: navegação de verdade pro /login
+// (preservando a página de origem em state.from) em vez de só trocar o
+// que é renderizado — assim o back/forward do navegador e o retorno pós
+// -login funcionam como esperado.
+function AuthedLayout({ onGoProjetos, isProjectPage }) {
+  const { user } = useAuth()
+  const location = useLocation()
+
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace/>
+
+  return (
+    <div className="w-screen h-screen flex flex-col overflow-hidden bg-bg text-ink">
+      <AppHeader onGoProjetos={onGoProjetos} isProjectPage={isProjectPage}/>
+
+      <div className="flex flex-1 overflow-hidden">
+        <Outlet/>
+      </div>
+
+      <AppFooter/>
+    </div>
+  )
+}
+
+// ── LoginRoute ────────────────────────────────────────────────────────
+// Única fonte de verdade pro redirecionamento pós-login: quando `user`
+// muda de null pra autenticado, este componente re-renderiza e navega —
+// LoginPage não precisa (e não deve) chamar navigate() ela mesma, senão
+// as duas navegações competem e a que preserva `from` pode perder a corrida.
+function LoginRoute() {
+  const { user } = useAuth()
+  const location = useLocation()
+  if (user) {
+    const from = location.state?.from?.pathname || '/projetos'
+    return <Navigate to={from} replace/>
+  }
+  return <LoginPage/>
+}
+
 // ── AppInner ──────────────────────────────────────────────────────────
 function AppInner() {
-  const { user, loading } = useAuth()
+  const { loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const isProjectPage = location.pathname.startsWith('/projeto/')
@@ -236,41 +275,25 @@ function AppInner() {
     )
   }
 
-  if (!user) {
-    return (
-      <Routes>
-        <Route path="*" element={<LoginPage/>}/>
-      </Routes>
-    )
-  }
-
   return (
-    <div className="w-screen h-screen flex flex-col overflow-hidden bg-bg text-ink">
-      <AppHeader
-        onGoProjetos={() => navigate('/projetos')}
-        isProjectPage={isProjectPage}
-      />
+    <Routes>
+      <Route path="/login" element={<LoginRoute/>}/>
 
-      <div className="flex flex-1 overflow-hidden">
-        <Routes>
-          <Route path="/" element={<Navigate to="/projetos" replace/>}/>
-          <Route path="/login" element={<Navigate to="/projetos" replace/>}/>
-          <Route path="/projetos" element={<ProjetosRoute/>}/>
+      <Route element={<AuthedLayout onGoProjetos={() => navigate('/projetos')} isProjectPage={isProjectPage}/>}>
+        <Route path="/" element={<Navigate to="/projetos" replace/>}/>
+        <Route path="/projetos" element={<ProjetosRoute/>}/>
 
-          <Route path="/projeto/:id" element={<ProjectLayout/>}>
-            <Route index element={<Navigate to="dashboard" replace/>}/>
-            <Route path="dashboard" element={<DashboardRoute/>}/>
-            <Route path="config" element={<ConfigRoute/>}/>
-            <Route path="documentos" element={<DocumentosPage/>}/>
-            <Route path="medida/:sistKey" element={<MedidaRoute/>}/>
-          </Route>
+        <Route path="/projeto/:id" element={<ProjectLayout/>}>
+          <Route index element={<Navigate to="dashboard" replace/>}/>
+          <Route path="dashboard" element={<DashboardRoute/>}/>
+          <Route path="config" element={<ConfigRoute/>}/>
+          <Route path="documentos" element={<DocumentosPage/>}/>
+          <Route path="medida/:sistKey" element={<MedidaRoute/>}/>
+        </Route>
 
-          <Route path="*" element={<Navigate to="/projetos" replace/>}/>
-        </Routes>
-      </div>
-
-      <AppFooter/>
-    </div>
+        <Route path="*" element={<Navigate to="/projetos" replace/>}/>
+      </Route>
+    </Routes>
   )
 }
 

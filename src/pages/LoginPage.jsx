@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logo from '../assets/fireutils-logo.png'
 
+// Não navega sozinho após o login — quando `user` muda, o LoginRoute (em
+// App.jsx) que envolve esta página re-renderiza e faz o redirect, já
+// preservando a página de origem. Navegar aqui também criaria uma segunda
+// navegação concorrente com a do LoginRoute.
 export default function LoginPage() {
   const { signIn, signUp } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
 
   const [mode, setMode] = useState('entrar') // 'entrar' | 'cadastro'
   const [email, setEmail] = useState('')
@@ -14,8 +15,6 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
-
-  const from = location.state?.from?.pathname || '/projetos'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -25,13 +24,11 @@ export default function LoginPage() {
     try {
       if (mode === 'entrar') {
         const { ok, error: err } = await signIn(email, password)
-        if (ok) navigate(from, { replace: true })
-        else setError(err)
+        if (!ok) setError(err)
       } else {
         const { ok, needsConfirmation, error: err } = await signUp(email, password)
         if (!ok) { setError(err); return }
         if (needsConfirmation) setInfo('Conta criada! Verifique seu e-mail para confirmar antes de entrar.')
-        else navigate(from, { replace: true })
       }
     } catch {
       setError('Não foi possível conectar. Tente novamente em instantes.')

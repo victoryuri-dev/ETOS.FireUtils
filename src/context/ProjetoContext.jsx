@@ -119,7 +119,7 @@ function novaEstrutura(nome) {
 }
 
 const INITIAL_STATE = {
-  id: '', createdAt: '',
+  id: '', createdAt: '', saveReady: false,
   configStep: 1, configUnlocked: 1,
   nome: '', dataInicio: '', fase: 'Em desenvolvimento',
   endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'MA', cep: '',
@@ -386,9 +386,9 @@ function reducer(state, action) {
     case 'TOGGLE_RISCO':
       return { ...state, riscosEspeciais: { ...state.riscosEspeciais, [action.key]: !state.riscosEspeciais[action.key] } }
     case 'LOAD':
-      return hydrateState(action.payload)
+      return { ...hydrateState(action.payload), saveReady: true }
     case 'NEW_PROJECT':
-      return { ...INITIAL_STATE, id: action.id, createdAt: action.createdAt, estruturas: [novaEstrutura('Estrutura 1')] }
+      return { ...INITIAL_STATE, id: action.id, createdAt: action.createdAt, estruturas: [novaEstrutura('Estrutura 1')], saveReady: true }
     default: return state
   }
 }
@@ -406,9 +406,14 @@ export function ProjetoProvider({ children }) {
         const saved = JSON.parse(s)
         // Migração: projetos salvos antes de ter id recebem um novo
         if (!saved.id) Object.assign(saved, newIds())
-        return hydrateState(saved)
+        return { ...hydrateState(saved), saveReady: true }
       }
     } catch {}
+    // Placeholder em branco — sem cache local nenhum ainda pra confirmar
+    // que este é de fato o projeto certo. `saveReady` fica false até um
+    // LOAD ou NEW_PROJECT confirmar a identidade, pra nunca autosalvar
+    // (e sujar o Postgres com) um "projeto fantasma" antes da hora — ver
+    // Regra no autosave effect abaixo.
     return { ...init, ...newIds() }
   })
 
@@ -427,7 +432,7 @@ export function ProjetoProvider({ children }) {
       } catch {}
     }
 
-    if (!user || !state.id) return
+    if (!user || !state.id || !state.saveReady) return
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       supabase.from('projetos').upsert({
