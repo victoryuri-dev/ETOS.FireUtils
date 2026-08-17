@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useRef } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
@@ -345,12 +345,16 @@ function reducer(state, action) {
         extintores: state.extintores.filter(e =>
           !(e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId && e.ambiente === action.ambiente)),
       }
-    // Substitui todo o cadastro de extintores pelo lote importado do
-    // firedata.json (ver resolverImportacao em ExtintoresPage.jsx) — os
+    // Substitui só o cadastro de extintores das estruturas presentes no
+    // lote importado (ver resolverImportacao em ExtintoresPage.jsx) — os
     // itens já chegam com estruturaId/pavimentoId resolvidos contra o
-    // projeto atual.
-    case 'IMPORT_EXTINTORES':
-      return { ...state, extintores: action.itens.map(it => ({ id: idExtintor(), ...it })) }
+    // projeto atual. Preserva o cadastro das demais estruturas, já que
+    // cada arquivo Revit sincroniza uma estrutura por vez.
+    case 'IMPORT_EXTINTORES': {
+      const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
+      const preservados = state.extintores.filter(e => !estruturasDoLote.has(e.estruturaId))
+      return { ...state, extintores: [...preservados, ...action.itens.map(it => ({ id: idExtintor(), ...it }))] }
+    }
     case 'ADD_ILUMINACAO':
       return { ...state, iluminacao: [...state.iluminacao, novoItemIluminacao(action.estruturaId, action.pavimentoId, action.categoria, action.overrides)] }
     case 'UPDATE_ILUMINACAO':
@@ -485,6 +489,13 @@ const Ctx = createContext(null)
 export function ProjetoProvider({ children }) {
   const { user } = useAuth()
   const saveTimer = useRef(null)
+  // Versão conhecida da linha no Postgres — fica FORA do state de propósito.
+  // Se fosse parte do state, atualizá-la depois de cada save disparmissão
+  // este próprio efeito de novo (state muda → efeito roda → salva de novo,
+  // em loop). Quem carrega o projeto (ProjectLayout) informa a versão via
+  // `definirVersaoConhecida`; enquanto for null, autosave fica pausado.
+  const versaoRef = useRef(null)
+  const [conflito, setConflito] = useState(false)
 
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (init) => {
     try {
@@ -504,9 +515,17 @@ export function ProjetoProvider({ children }) {
     return { ...init, ...newIds() }
   })
 
+  const definirVersaoConhecida = v => { versaoRef.current = v; setConflito(false) }
+
   // Autosave: grava instantâneo no localStorage (cache local/offline) e, se
   // houver usuário logado, sincroniza com o Postgres em background — debounced
   // pra não disparar uma escrita remota a cada tecla digitada.
+  //
+  // A escrita é condicional à versão (compare-and-swap): só grava se a
+  // versão que esta aba conhece ainda bate com a do banco. Se não bater,
+  // outra sessão salvou por cima enquanto esta editava — em vez de
+  // sobrescrever silenciosamente (perdendo a mudança da outra sessão),
+  // marca `conflito` e para de tentar salvar até o usuário recarregar.
   useEffect(() => {
     const toSave = { ...state, updatedAt: new Date().toISOString() }
     localStorage.setItem('etos-projeto', JSON.stringify(toSave))
@@ -519,23 +538,40 @@ export function ProjetoProvider({ children }) {
       } catch {}
     }
 
-    if (!user || !state.id || !state.saveReady) return
+    if (!user || !state.id || !state.saveReady || conflito || versaoRef.current == null) return
     clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => {
-      supabase.from('projetos').upsert({
-        id: state.id,
-        user_id: user.id,
-        nome: state.nome || 'Projeto sem nome',
-        dados: toSave,
-        updated_at: toSave.updatedAt,
-      }).then(({ error }) => {
-        if (error) console.error('Falha ao sincronizar projeto com o Supabase:', error.message)
-      })
+    saveTimer.current = setTimeout(async () => {
+      const versaoLocal = versaoRef.current
+      const { data, error } = await supabase
+        .from('projetos')
+        .update({ dados: toSave, nome: state.nome || 'Projeto sem nome', version: versaoLocal + 1, updated_at: toSave.updatedAt })
+        .eq('id', state.id).eq('user_id', user.id).eq('version', versaoLocal)
+        .select('version')
+
+      if (error) { console.error('Falha ao sincronizar projeto com o Supabase:', error.message); return }
+
+      if (!data || data.length === 0) {
+        // Nenhuma linha afetada: ou a versão mudou (conflito) ou o projeto
+        // ainda não existe no Postgres (primeiro save de um projeto novo).
+        const { data: existente } = await supabase.from('projetos').select('id').eq('id', state.id).maybeSingle()
+        if (existente) { setConflito(true); return }
+        const { error: insertErr } = await supabase.from('projetos').insert({
+          id: state.id, user_id: user.id, nome: state.nome || 'Projeto sem nome', dados: toSave, version: 1,
+        })
+        if (insertErr) console.error('Falha ao criar projeto no Supabase:', insertErr.message)
+        else versaoRef.current = 1
+        return
+      }
+      versaoRef.current = data[0].version
     }, 800)
     return () => clearTimeout(saveTimer.current)
-  }, [state, user])
+  }, [state, user, conflito])
 
-  return <Ctx.Provider value={{ state, dispatch }}>{children}</Ctx.Provider>
+  return (
+    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida }}>
+      {children}
+    </Ctx.Provider>
+  )
 }
 
 export function useProjeto() {

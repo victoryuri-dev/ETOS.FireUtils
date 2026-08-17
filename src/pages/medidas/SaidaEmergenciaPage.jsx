@@ -338,28 +338,61 @@ function PavimentoModal({ pav, onClose, onSave, seNorma, ocupacoes }) {
 }
 
 // ── Importação do firedata.json (plugin Revit) ────────────────────────
-function importarFiredata(json) {
-  const se = json?.saidas_emergencia ?? json?.se_import
-  if (!se?.pavimentos) throw new Error('Chave "saidas_emergencia" não encontrada no arquivo.')
-  const pavimentos = se.pavimentos.map((p, pi) => ({
-    id:        p.id   || `P${pi + 1}`,
-    nome:      p.nome || `Pavimento ${pi + 1}`,
-    tipo:      p.tipo || 'normal',
-    ambientes: (p.ambientes || []).map((a, ai) => ({
-      id:        uid(),
-      nome:      a.nome      || `Ambiente ${ai + 1}`,
-      divisao:   a.divisao   || '',
-      area:      a.area      ?? 0,
-      popTipo:   a.popTipo   || 'area',
-      assentos:  a.assentos  ?? 0,
-      popManual: a.popManual ?? 0,
-    })),
-  }))
+function norm(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+// Acha o pavimento "de verdade" do site (id estável, ex.: est-1-P2) a
+// partir do nome que vem do Revit — mesma lógica de casamento usada em
+// ExtintoresPage.jsx. Com `estruturaId`, restringe a busca aos pavimentos
+// dela (pull do Supabase, uma estrutura por vez); sem ele (upload manual
+// de arquivo), busca entre todos.
+function resolverPavimentoSite(nomeImportado, estruturaId, projetoPavimentos) {
+  const candidatos = estruturaId ? projetoPavimentos.filter(p => p.estruturaId === estruturaId) : projetoPavimentos
+  const porLabel = candidatos.find(p => norm(p.label) === norm(nomeImportado))
+  if (porLabel) return porLabel
+  const m = norm(nomeImportado).match(/^(?:n[ií]vel|piso|level)\s*(\d+)$/)
+  if (m) {
+    const porNivel = candidatos.find(p => p.id.endsWith(`-P${parseInt(m[1], 10)}`))
+    if (porNivel) return porNivel
+  }
+  return candidatos.find(p => p.tipo === 'terreo') || null
+}
+
+// Ao contrário da versão antiga (que substituía a lista inteira de
+// pavimentos por objetos novos, com ids sintéticos desconectados do
+// projeto), resolve cada pavimento importado contra o cadastro real do
+// site e devolve só as atualizações — quem chama decide como aplicar
+// (mesclar, não substituir), preservando pavimentos de outras estruturas.
+function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPavimentos) {
+  if (!payloadSE?.pavimentos) throw new Error('Chave "pavimentos" não encontrada nos dados.')
+
+  const erros = []
+  const atualizacoes = new Map()
+
+  payloadSE.pavimentos.forEach((p, pi) => {
+    const nomeImportado = p.nome || `Pavimento ${pi + 1}`
+    const pavSite = resolverPavimentoSite(nomeImportado, estruturaIdForcado, projetoPavimentos)
+    if (!pavSite) { erros.push(`"${nomeImportado}": nenhum pavimento correspondente encontrado no projeto.`); return }
+    atualizacoes.set(pavSite.id, {
+      tipo: p.tipo || 'normal',
+      ambientes: (p.ambientes || []).map((a, ai) => ({
+        id:        uid(),
+        nome:      a.nome      || `Ambiente ${ai + 1}`,
+        divisao:   a.divisao   || '',
+        area:      a.area      ?? 0,
+        popTipo:   a.popTipo   || 'area',
+        assentos:  a.assentos  ?? 0,
+        popManual: a.popManual ?? 0,
+      })),
+    })
+  })
+
   return {
-    pavimentos,
-    temChuveiros: se.temChuveiros === true || se.temChuveiros === 'true' || se.temChuveiros === 'True',
-    temDeteccao:  se.temDeteccao  === true || se.temDeteccao  === 'true' || se.temDeteccao  === 'True',
-    timestamp:    se._timestamp   || null,
+    atualizacoes, erros,
+    temChuveiros: payloadSE.temChuveiros === true || payloadSE.temChuveiros === 'true' || payloadSE.temChuveiros === 'True',
+    temDeteccao:  payloadSE.temDeteccao  === true || payloadSE.temDeteccao  === 'true' || payloadSE.temDeteccao  === 'True',
+    timestamp:    payloadSE._timestamp   || null,
   }
 }
 
@@ -390,17 +423,27 @@ export default function SaidaEmergenciaPage() {
   const getSaidaUnica = (pavId, adN) => saidaUnica[pavId] ?? (adN <= 1)
   const toggleSaidaUnica = (pavId, val) => setSaidaUnica(prev => ({ ...prev, [pavId]: val }))
 
-  const aplicarSaidas = payloadSE => {
+  // Aplica um lote (arquivo ou linha do Supabase) — mescla nos pavimentos
+  // já existentes, mexendo só nos que foram resolvidos, preservando o
+  // resto (inclusive de outras estruturas). `estruturaId` é null no upload
+  // manual de arquivo.
+  const aplicarSaidas = (payloadSE, estruturaId) => {
     try {
-      const result = importarFiredata({ saidas_emergencia: payloadSE })
-      setPavimentos(result.pavimentos)
-      setTemChuveiros(result.temChuveiros)
-      setTemDeteccao(result.temDeteccao)
-      setLargAdotada({})
-      setImportErro(null)
-      setImportInfo(result.timestamp)
+      const { atualizacoes, erros, temChuveiros: tc, temDeteccao: td, timestamp } =
+        resolverImportacaoSaidas(payloadSE, estruturaId, state.pavimentos)
+      if (atualizacoes.size > 0) {
+        setPavimentos(prev => prev.map(pav => atualizacoes.has(pav.id) ? { ...pav, ...atualizacoes.get(pav.id) } : pav))
+        setLargAdotada(prev => {
+          const next = { ...prev }
+          atualizacoes.forEach((_, pavId) => { delete next[pavId] })
+          return next
+        })
+      }
+      setTemChuveiros(tc)
+      setTemDeteccao(td)
+      return { erros, timestamp }
     } catch (err) {
-      setImportErro(err.message || 'Dados inválidos.')
+      return { erros: [err.message || 'Dados inválidos.'], timestamp: null }
     }
   }
 
@@ -412,7 +455,9 @@ export default function SaidaEmergenciaPage() {
     reader.onload = ev => {
       try {
         const json = JSON.parse(ev.target.result)
-        aplicarSaidas(json?.saidas_emergencia ?? json?.se_import)
+        const { erros, timestamp } = aplicarSaidas(json?.saidas_emergencia ?? json?.se_import, null)
+        setImportErro(erros.length ? erros.join(' ') : null)
+        setImportInfo(timestamp)
       } catch (err) {
         setImportErro(err.message || 'Arquivo inválido.')
       }
@@ -420,16 +465,26 @@ export default function SaidaEmergenciaPage() {
     reader.readAsText(file, 'utf-8')
   }
 
+  // Busca uma linha por estrutura (cada arquivo Revit sincroniza a sua) e
+  // aplica cada uma escopada.
   const handleBuscarRevit = async () => {
     setBuscando(true)
     const { data, error } = await supabase
-      .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id).eq('medida', 'saidas_emergencia').maybeSingle()
+      .from('revit_syncs_latest').select('estrutura_id, payload').eq('projeto_id', state.id).eq('medida', 'saidas_emergencia')
     setBuscando(false)
-    if (error || !data) {
+    if (error || !data || data.length === 0) {
       setImportErro('Nenhum dado de saídas de emergência sincronizado do Revit ainda para este projeto.')
       return
     }
-    aplicarSaidas(data.payload)
+    const errosGeral = []
+    let timestampMaisRecente = null
+    for (const row of data) {
+      const { erros, timestamp } = aplicarSaidas(row.payload, row.estrutura_id)
+      errosGeral.push(...erros)
+      if (timestamp && (!timestampMaisRecente || timestamp > timestampMaisRecente)) timestampMaisRecente = timestamp
+    }
+    setImportErro(errosGeral.length ? errosGeral.join(' ') : null)
+    setImportInfo(timestampMaisRecente)
   }
 
   const setLarg = useCallback((pavId, tipo, val) => {

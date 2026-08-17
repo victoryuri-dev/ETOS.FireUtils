@@ -74,18 +74,30 @@ function pavimentoPorNivelRevit(nomePavimento, estruturaId, pavimentos) {
   return pavimentos.find(p => p.estruturaId === estruturaId && p.id === `${estruturaId}-P${n}`) || null
 }
 
-function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSobreRodas) {
+// `estruturaIdForcado`: quando o lote vem do Supabase (uma linha por
+// estrutura, já resolvida no envio — ver revit-sync), a estrutura de
+// destino já é conhecida e não depende de casar o nome digitado no Revit
+// (`it.estrutura`) contra o cadastro. Passado só na importação por arquivo
+// manual (fallback), onde essa informação não existe fora do próprio JSON.
+function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSobreRodas, estruturaIdForcado) {
   const dados = json?.extintores
   if (!dados?.itens) throw new Error('Chave "extintores.itens" não encontrada no arquivo.')
 
   const grupos = new Map()
   const erros = []
 
+  const estruturaForcada = estruturaIdForcado ? estruturas.find(e => e.id === estruturaIdForcado) : null
+  if (estruturaIdForcado && !estruturaForcada) {
+    throw new Error('Estrutura vinculada não encontrada no projeto — reconfigure o vínculo no plugin.')
+  }
+
   dados.itens.forEach((it, i) => {
     const linha = `Item ${i + 1}`
 
     let est
-    if (norm(it.estrutura)) {
+    if (estruturaForcada) {
+      est = estruturaForcada
+    } else if (norm(it.estrutura)) {
       est = estruturas.find(e => norm(e.nome) === norm(it.estrutura))
       if (!est) { erros.push(`${linha}: estrutura "${it.estrutura}" não encontrada no projeto (cadastradas: ${estruturas.map(e => e.nome).join(', ') || 'nenhuma'}).`); return }
     } else {
@@ -525,17 +537,18 @@ export default function ExtintoresPage() {
 
   // Aplica o payload da chave "extintores" (vindo de um arquivo ou do
   // Supabase) — mesmo parser de sempre, só muda a origem do JSON.
-  const aplicarExtintores = payloadExtintores => {
+  // `estruturaIdForcado`: presente no pull do Supabase (uma linha por
+  // estrutura), ausente no upload manual de arquivo.
+  const aplicarExtintores = (payloadExtintores, estruturaIdForcado) => {
     try {
       const { resolvidos, erros, timestamp } = resolverImportacao(
-        { extintores: payloadExtintores }, state.estruturas, state.pavimentos, extNorma.TIPOS_PORTATIL, extNorma.TIPOS_SOBRE_RODAS
+        { extintores: payloadExtintores }, state.estruturas, state.pavimentos,
+        extNorma.TIPOS_PORTATIL, extNorma.TIPOS_SOBRE_RODAS, estruturaIdForcado
       )
       if (resolvidos.length > 0) dispatch({ type: 'IMPORT_EXTINTORES', itens: resolvidos })
-      setImportInfo({ timestamp, total: resolvidos.length })
-      setImportErros(erros)
+      return { total: resolvidos.length, erros, timestamp }
     } catch (err) {
-      setImportInfo(null)
-      setImportErros([err.message || 'Dados inválidos.'])
+      return { total: 0, erros: [err.message || 'Dados inválidos.'], timestamp: null }
     }
   }
 
@@ -547,7 +560,9 @@ export default function ExtintoresPage() {
     reader.onload = ev => {
       try {
         const json = JSON.parse(ev.target.result)
-        aplicarExtintores(json.extintores)
+        const { total, erros, timestamp } = aplicarExtintores(json.extintores)
+        setImportInfo({ timestamp, total })
+        setImportErros(erros)
       } catch (err) {
         setImportInfo(null)
         setImportErros([err.message || 'Arquivo inválido.'])
@@ -556,17 +571,30 @@ export default function ExtintoresPage() {
     reader.readAsText(file, 'utf-8')
   }
 
+  // Busca uma linha por estrutura (cada arquivo Revit sincroniza a sua) e
+  // aplica cada uma escopada — a importação de uma estrutura não mexe no
+  // cadastro das demais (ver IMPORT_EXTINTORES em ProjetoContext.jsx).
   const handleBuscarRevit = async () => {
     setBuscando(true)
     const { data, error } = await supabase
-      .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id).eq('medida', 'extintores').maybeSingle()
+      .from('revit_syncs_latest').select('estrutura_id, payload').eq('projeto_id', state.id).eq('medida', 'extintores')
     setBuscando(false)
-    if (error || !data) {
+    if (error || !data || data.length === 0) {
       setImportInfo(null)
       setImportErros(['Nenhum dado de extintores sincronizado do Revit ainda para este projeto.'])
       return
     }
-    aplicarExtintores(data.payload)
+    let totalGeral = 0
+    const errosGeral = []
+    let timestampMaisRecente = null
+    for (const row of data) {
+      const { total, erros, timestamp } = aplicarExtintores(row.payload, row.estrutura_id)
+      totalGeral += total
+      errosGeral.push(...erros)
+      if (timestamp && (!timestampMaisRecente || timestamp > timestampMaisRecente)) timestampMaisRecente = timestamp
+    }
+    setImportInfo({ timestamp: timestampMaisRecente, total: totalGeral })
+    setImportErros(errosGeral)
   }
 
   return (

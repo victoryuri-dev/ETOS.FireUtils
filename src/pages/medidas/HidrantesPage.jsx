@@ -470,7 +470,13 @@ export default function HidrantesPage() {
     reader.readAsText(file, 'utf-8')
   }
 
+  // Hidrantes é a única medida que fica geral (compartilhada entre todas
+  // as estruturas do projeto, sem escopo) — se mais de um arquivo Revit
+  // sincronizar hidrantes, o último a enviar substitui o anterior sem
+  // aviso. Por isso confirma antes de puxar, já que é sempre uma troca
+  // completa do dimensionamento atual.
   const handleBuscarRevit = async () => {
+    if (dados && !window.confirm('Isso substitui o dimensionamento de hidrantes atual pelo mais recente sincronizado do Revit. Continuar?')) return
     setBuscando(true)
     const { data, error } = await supabase
       .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id).eq('medida', 'hidrantes').maybeSingle()

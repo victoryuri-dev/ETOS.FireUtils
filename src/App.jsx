@@ -141,16 +141,20 @@ function ProjetosRoute() {
 // projetos: o :id na URL é a fonte da verdade, não o estado em memória.
 function ProjectLayout() {
   const { id } = useParams()
-  const { state, dispatch } = useProjeto()
+  const { state, dispatch, conflito, definirVersaoConhecida } = useProjeto()
   const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
   const carregado = state.id === id
 
+  // Roda a cada entrada no projeto (troca de :id ou de sessão) — sempre
+  // busca a versão atual do Postgres, mesmo se o projeto já estiver em
+  // memória (cache local ou navegação anterior), pra manter a versão
+  // conhecida em dia e o controle de concorrência (ver ProjetoContext.jsx)
+  // funcionando. Não depende de `state.id` — LOAD mudaria `state.id` e
+  // re-disparia este efeito, criando um loop de refetch.
   useEffect(() => {
-    if (state.id === id) return
-
     let cancelado = false
 
     function carregarDoCacheLocal() {
@@ -159,22 +163,28 @@ function ProjectLayout() {
         const all = raw ? JSON.parse(raw) : {}
         const proj = all[id]
         if (proj) dispatch({ type: 'LOAD', payload: proj })
-        else navigate('/projetos', { replace: true })
+        else if (state.id !== id) navigate('/projetos', { replace: true })
       } catch {
-        navigate('/projetos', { replace: true })
+        if (state.id !== id) navigate('/projetos', { replace: true })
       }
     }
 
     async function carregar() {
       if (!user) return carregarDoCacheLocal()
       const { data, error } = await supabase
-        .from('projetos').select('dados').eq('id', id).eq('user_id', user.id).maybeSingle()
+        .from('projetos').select('dados, version').eq('id', id).eq('user_id', user.id).maybeSingle()
       if (cancelado) return
       if (data) {
         dispatch({ type: 'LOAD', payload: data.dados })
+        definirVersaoConhecida(data.version)
       } else if (!error) {
-        // Não achou no Postgres (não existe ou não pertence a este usuário)
-        navigate('/projetos', { replace: true })
+        if (state.id === id) {
+          // Projeto novo (NEW_PROJECT), ainda não existe no Postgres — o
+          // primeiro autosave cria a linha. Não é "não encontrado".
+          definirVersaoConhecida(0)
+        } else {
+          navigate('/projetos', { replace: true })
+        }
       } else {
         // Erro de rede (ex.: offline) — cai pro cache local como fallback
         carregarDoCacheLocal()
@@ -184,7 +194,7 @@ function ProjectLayout() {
 
     return () => { cancelado = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, state.id, user])
+  }, [id, user])
 
   const rest = location.pathname.split(`/projeto/${id}/`)[1]?.split('/') || []
   const activePage = rest[0] === 'medida' ? `medida-${rest[1]}` : (rest[0] || 'dashboard')
@@ -201,6 +211,13 @@ function ProjectLayout() {
     <>
       <ProjectAside activePage={activePage} onNavigate={handleNavigate}/>
       <div className="flex-1 flex flex-col overflow-hidden">
+        {conflito && (
+          <div className="ibox red m-3" role="alert">
+            <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
+            <span>Este projeto foi alterado em outra sessão enquanto você editava aqui. Para não perder o que foi salvo lá, recarregue antes de continuar — suas últimas mudanças nesta aba não foram salvas.</span>
+            <button className="btn-primary shrink-0" onClick={() => window.location.reload()}>Recarregar</button>
+          </div>
+        )}
         <Outlet/>
       </div>
     </>
