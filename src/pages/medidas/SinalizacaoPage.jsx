@@ -3,6 +3,8 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { calcularSinalizacaoPavimento } from '../../data/sinalizacao_calc'
 import Icon from '../../components/ui/Icon'
+import EstruturaSection from '../../components/ui/EstruturaSection'
+import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 
 // ── Importação do firedata.json (plugin Revit) ───────────────────────
 // Formato esperado (ver comentário completo no final do arquivo):
@@ -53,9 +55,6 @@ function Card({ children, className = '' }) {
 }
 function CardHeader({ children }) {
   return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 flex-wrap">{children}</div>
-}
-function SectionTitle({ label }) {
-  return <h3 className="text-sm font-bold text-ink mb-3">{label}</h3>
 }
 function Chip({ children, tone = 'neutral' }) {
   const tones = {
@@ -306,8 +305,7 @@ export default function SinalizacaoPage() {
         {state.estruturas.map(est => {
           const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
           return (
-            <div key={est.id} className="mb-9">
-              <SectionTitle label={est.nome}/>
+            <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
               {pavimentos.length === 0 ? (
                 <div className="ibox amber">
                   <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
@@ -324,7 +322,7 @@ export default function SinalizacaoPage() {
                   dispatch={dispatch}
                 />
               ))}
-            </div>
+            </EstruturaSection>
           )
         })}
 

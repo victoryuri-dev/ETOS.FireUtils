@@ -23,7 +23,6 @@ import IluminacaoPage         from './pages/medidas/IluminacaoPage'
 import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
 import Icon           from './components/ui/Icon'
 import logo           from './assets/fireutils-logo.png'
-import etosLogo       from './assets/etos-logo.png'
 
 // ── AppHeader ─────────────────────────────────────────────────────────
 function AppHeader({ onGoProjetos, isProjectPage }) {
@@ -74,19 +73,6 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
         )}
       </div>
     </header>
-  )
-}
-
-// ── AppFooter ─────────────────────────────────────────────────────────
-function AppFooter() {
-  return (
-    <footer className="flex items-center justify-between px-6 h-11 bg-surface border-t border-border border-solid shrink-0 text-[11px] text-ink-faint">
-      <div className="flex items-center gap-2.5">
-        <img src={etosLogo} alt="ETOS" className="h-7 w-auto"/>
-        <span>© {new Date().getFullYear()} ETOS Fire Utils. Todos os direitos reservados.</span>
-      </div>
-      <span>Ferramenta de apoio técnico — não substitui a ART do responsável habilitado.</span>
-    </footer>
   )
 }
 
@@ -239,8 +225,6 @@ function AuthedLayout({ onGoProjetos, isProjectPage }) {
       <div className="flex flex-1 overflow-hidden">
         <Outlet/>
       </div>
-
-      <AppFooter/>
     </div>
   )
 }

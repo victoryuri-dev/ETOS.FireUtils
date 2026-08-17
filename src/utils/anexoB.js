@@ -32,7 +32,7 @@ export const MEDIDAS_ANEXO_B_COL2 = [
   { key: null,          label: 'Controle de fontes de ignição' },
 ]
 
-// `key` aponta para state.riscosEspeciais
+// `key` aponta para state.riscosEspeciaisPorEstrutura[estruturaId]
 export const RISCOS_ESPECIAIS = [
   { key: 'liquidos_inflamaveis', label: 'Armazenamento de líquidos inflamáveis' },
   { key: 'fogos_artificio',      label: 'Armazenamento ou revenda de fogos de artifícios' },
@@ -56,7 +56,7 @@ export function buildAnexoBData(state, sistemas) {
   const subsolosSum    = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
   const estruturaTipos = [...new Set(estruturas.flatMap(e => Array.isArray(e.estrutura) ? e.estrutura : [e.estrutura]).filter(Boolean))].join(', ')
 
-  const maxQ = Object.values(state.cargaState || {}).reduce((acc, c) => {
+  const maxQ = Object.values(state.cargaState || {}).flatMap(porEst => Object.values(porEst || {})).reduce((acc, c) => {
     const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0
     return Math.max(acc, q)
   }, 0)
@@ -101,9 +101,16 @@ export function buildAnexoBData(state, sistemas) {
     vedacao: state.fachada || '',
     medidasCol1: MEDIDAS_ANEXO_B_COL1.map(m => ({ label: m.label, ativo: m.key ? marcada(m.key) : false })),
     medidasCol2: MEDIDAS_ANEXO_B_COL2.map(m => ({ label: m.label, ativo: m.key ? marcada(m.key) : false })),
-    riscosEspeciais: RISCOS_ESPECIAIS.map(r => ({
-      label: r.key === 'outros' && state.riscosOutrosDesc ? `${r.label}: ${state.riscosOutrosDesc}` : r.label,
-      ativo: !!state.riscosEspeciais?.[r.key],
-    })),
+    // Anexo B e um formulario unico pra edificacao/area de risco toda —
+    // agrega (OR) os riscos especiais marcados em qualquer estrutura, e
+    // junta as descricoes de "outros" de todas as que marcaram.
+    riscosEspeciais: RISCOS_ESPECIAIS.map(r => {
+      const porEstrutura = Object.values(state.riscosEspeciaisPorEstrutura || {})
+      const ativo = porEstrutura.some(m => !!m?.[r.key])
+      const outrosDesc = r.key === 'outros'
+        ? Object.values(state.riscosOutrosDescPorEstrutura || {}).filter(Boolean).join('; ')
+        : ''
+      return { label: outrosDesc ? `${r.label}: ${outrosDesc}` : r.label, ativo }
+    }),
   }
 }

@@ -40,13 +40,14 @@ function enderecoCompletoDe(state, fallback = '[Rua, Número, Bairro, Cidade –
     .filter(Boolean).join(', ') || fallback
 }
 
-// Carga de incendio de uma ocupacao (divisao + CNAE) — mesma logica do
-// getCarga() do Step5.jsx: com metodo "tabela" o valor vem do catalogo de
-// CNAEs da divisao (state.cargaState[divisao].cargaIncendio so e preenchido
-// quando o usuario troca de metodo manualmente, entao nao da pra confiar
-// só nele — teria ficado null e a carga sumiria da tabela).
-function cargaDaOcupacao(state, divisao, cnae) {
-  const c = state.cargaState?.[divisao]
+// Carga de incendio de uma ocupacao (divisao + CNAE) numa estrutura — mesma
+// logica do getCarga() do Step5.jsx: com metodo "tabela" o valor vem do
+// catalogo de CNAEs da divisao (state.cargaState[estruturaId][divisao]
+// .cargaIncendio so e preenchido quando o usuario troca de metodo
+// manualmente, entao nao da pra confiar só nele — teria ficado null e a
+// carga sumiria da tabela).
+function cargaDaOcupacao(state, estruturaId, divisao, cnae) {
+  const c = state.cargaState?.[estruturaId]?.[divisao]
   if (c?.metodo === 'levantamento') return parseFloat(c.valorManual) || 0
   const daCatalogo = cnae ? getCNAEsDivisao(state.uf, divisao)[cnae]?.cargaIncendio : null
   return daCatalogo || c?.cargaIncendio || 0
@@ -242,7 +243,7 @@ function Caracterizacao({ state, porEstrutura, totalPaginas }) {
                 {linhas.length === 0 ? (
                   <tr><td colSpan={4} className="border border-solid border-[#c9c9cb] px-2 py-2 text-center text-[#8a8a8c]">Nenhuma ocupação classificada</td></tr>
                 ) : linhas.map((l, i) => {
-                  const cargaQ = cargaDaOcupacao(state, l.divisao, l.cnae)
+                  const cargaQ = cargaDaOcupacao(state, est.id, l.divisao, l.cnae)
                   const desc = descricaoDivisao(state, l.divisao)
                   return (
                     <tr key={i}>
@@ -268,10 +269,22 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
   const medidas = [...MEDIDAS_ANEXO_B_COL1, ...MEDIDAS_ANEXO_B_COL2]
     .filter(m => m.key && (sistemas[m.key]?.ativo || sistemas[m.key]?.obrigatorio))
     .map(m => m.key === 'central_gas' ? { ...m, label: 'Central GLP' } : m)
-  const riscosAtivos = RISCOS_ESPECIAIS
-    .filter(r => state.riscosEspeciais?.[r.key])
-    .map(r => (r.key === 'outros' && state.riscosOutrosDesc) ? `${r.label}: ${state.riscosOutrosDesc}` : r.label)
+  const riscosPorEstrutura = state.riscosEspeciaisPorEstrutura || {}
+  const outrosDescPorEstrutura = state.riscosOutrosDescPorEstrutura || {}
+  const riscosAtivosGlobal = RISCOS_ESPECIAIS
+    .filter(r => porEstrutura.some(pe => !!riscosPorEstrutura[pe.estrutura.id]?.[r.key]))
   const multiplasEstruturas = porEstrutura.length > 1
+  // Estrutura unica: reaproveita o riscos dessa unica estrutura pra manter o
+  // rotulo "Outros: <descricao>" embutido, como antes.
+  const unicaEst = porEstrutura[0]?.estrutura
+  const riscosAtivosUnica = multiplasEstruturas ? [] : RISCOS_ESPECIAIS
+    .filter(r => unicaEst && !!riscosPorEstrutura[unicaEst.id]?.[r.key])
+    .map(r => (r.key === 'outros' && outrosDescPorEstrutura[unicaEst.id]) ? `${r.label}: ${outrosDescPorEstrutura[unicaEst.id]}` : r.label)
+  const outrosDescsMultiplas = multiplasEstruturas
+    ? porEstrutura
+        .filter(pe => riscosPorEstrutura[pe.estrutura.id]?.outros && outrosDescPorEstrutura[pe.estrutura.id])
+        .map(pe => `${pe.estrutura.nome}: ${outrosDescPorEstrutura[pe.estrutura.id]}`)
+    : []
 
   return (
     <div className={FOLHA}>
@@ -295,7 +308,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
                 <td className="border border-solid border-[#c9c9cb] px-2.5 py-1.5">{m.label}</td>
                 {porEstrutura.map(pe => (
                   <td key={pe.estrutura.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-center text-[16px] font-bold leading-none">
-                    {(pe.medidas[m.key] || (sistemas[m.key]?.ativo && !sistemas[m.key]?.obrigatorio)) ? 'X' : ''}
+                    {pe.sistemas[m.key]?.ativo ? 'X' : ''}
                   </td>
                 ))}
               </tr>
@@ -310,14 +323,44 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
         </ul>
       )}
 
-      {riscosAtivos.length > 0 && (
+      {riscosAtivosGlobal.length > 0 && (
         <>
           <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Riscos Especiais</h2>
-          <div className="grid grid-cols-2 border border-solid border-[#c9c9cb] divide-x divide-y divide-[#c9c9cb] text-[11.5px] text-black">
-            {riscosAtivos.map((label, i) => (
-              <div key={i} className="px-2.5 py-1.5">{label}</div>
-            ))}
-          </div>
+          {multiplasEstruturas ? (
+            <table className="w-full border-collapse text-[11px] text-black">
+              <thead>
+                <tr>
+                  <th className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-left">Risco Especial</th>
+                  {porEstrutura.map(({ estrutura: est }) => (
+                    <th key={est.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 w-[70px]">{est.nome}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {riscosAtivosGlobal.map(r => (
+                  <tr key={r.key}>
+                    <td className="border border-solid border-[#c9c9cb] px-2.5 py-1.5">{r.label}</td>
+                    {porEstrutura.map(pe => (
+                      <td key={pe.estrutura.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-center text-[16px] font-bold leading-none">
+                        {riscosPorEstrutura[pe.estrutura.id]?.[r.key] ? 'X' : ''}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="grid grid-cols-2 border border-solid border-[#c9c9cb] divide-x divide-y divide-[#c9c9cb] text-[11.5px] text-black">
+              {riscosAtivosUnica.map((label, i) => (
+                <div key={i} className="px-2.5 py-1.5">{label}</div>
+              ))}
+            </div>
+          )}
+          {outrosDescsMultiplas.length > 0 && (
+            <p className="text-[10.5px] text-black leading-[1.6] mt-1.5 mb-0">
+              <strong>Outros (por estrutura):</strong> {outrosDescsMultiplas.join(' · ')}
+            </p>
+          )}
         </>
       )}
 

@@ -1,6 +1,8 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import Icon from '../ui/Icon'
+import EstruturaSection from '../ui/EstruturaSection'
+import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 
 const SIST_CONFIG = [
   { key:'acesso_viatura',      icon:'exit',    label:'Acesso de Viatura em Edificacoes'   },
@@ -31,18 +33,21 @@ const RISCOS_CONFIG = [
   { key:'outros',               icon:'info',     label:'Outros (especificar)' },
 ]
 
+const RISCOS_DEFAULT = {
+  liquidos_inflamaveis: false, fogos_artificio: false, glp: false,
+  vasos_pressao: false, produtos_perigosos: false, outros: false,
+}
+
 const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border'
 const divTag = (mista) => `py-[3px] px-2.5 rounded font-bold text-[12px] font-mono border border-solid ${mista ? 'bg-amber-dim border-amber-border text-amber' : 'bg-red-dim border-red-border text-red'}`
 
 // ── Card com dados de uma estrutura usados na dosagem das medidas ───────
 function EstruturaResumo({ pe }) {
-  const { estrutura: est, areaEstrutura, alturaEstrutura, classificacao, gruposFaltantes } = pe
+  const { areaEstrutura, alturaEstrutura, classificacao, gruposFaltantes } = pe
   const { principaisDivs, subsidiarias, edificacaoMista, mistaDivs, temOcupacoes } = classificacao
 
   return (
     <div className="border border-solid border-border rounded-lg p-4 mb-3">
-      <div className="text-[13px] font-semibold text-ink mb-3">{est.nome}</div>
-
       <div className="grid grid-cols-3 gap-3 mb-3">
         <div>
           <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Area construida</div>
@@ -92,29 +97,89 @@ function EstruturaResumo({ pe }) {
   )
 }
 
+// ── Grid de medidas de seguranca de uma estrutura ───────────────────────
+function MedidasGrid({ pe, dispatch }) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {SIST_CONFIG.map(s => {
+        const sist = pe.sistemas[s.key] || { obrigatorio: false, ativo: false }
+        const on    = sist.ativo
+        const obrig = sist.obrigatorio
+
+        return (
+          <div key={s.key}
+            onClick={() => !obrig && dispatch({ type:'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: pe.estrutura.id, key:s.key })}
+            className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative transition-[border-color,background-color] duration-150 ${obrig ? 'cursor-default border-red-border bg-red-dim' : on ? 'cursor-pointer border-green-border bg-green-dim' : 'cursor-pointer border-border bg-transparent'}`}>
+            {/* Checkbox no canto */}
+            <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${obrig ? 'bg-red border-red' : on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
+              {(on || obrig) && <Icon name="check" size={9} color="#fff"/>}
+            </div>
+            {/* Icone */}
+            <div className={`w-7 h-7 rounded-md flex items-center justify-center ${obrig ? 'bg-red-dim text-red' : on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
+              <Icon name={s.icon} size={14}/>
+            </div>
+            {/* Nome */}
+            <div className={`text-xs font-medium leading-[1.3] ${obrig ? 'text-red' : on ? 'text-green' : 'text-ink-muted'}`}>
+              {s.label}
+            </div>
+            {/* Status */}
+            <div className={`text-[10px] ${obrig ? 'text-[rgba(192,21,42,.6)]' : on ? 'text-[rgba(29,158,117,.65)]' : 'text-ink-hint'}`}>
+              {obrig ? 'Obrigatorio — NT 42/2019' : on ? 'Opcional — habilitado' : 'Opcional — desabilitado'}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Grid de riscos especiais de uma estrutura ───────────────────────────
+function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-2">
+        {RISCOS_CONFIG.map(r => {
+          const on = !!riscos[r.key]
+          return (
+            <div key={r.key}
+              onClick={() => dispatch({ type:'TOGGLE_RISCO_ESTRUTURA', estruturaId, key:r.key })}
+              className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative cursor-pointer transition-[border-color,background-color] duration-150 ${on ? 'border-green-border bg-green-dim' : 'border-border bg-transparent'}`}>
+              <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
+                {on && <Icon name="check" size={9} color="#fff"/>}
+              </div>
+              <div className={`w-7 h-7 rounded-md flex items-center justify-center ${on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
+                <Icon name={r.icon} size={14}/>
+              </div>
+              <div className={`text-xs font-medium leading-[1.3] ${on ? 'text-green' : 'text-ink-muted'}`}>{r.label}</div>
+            </div>
+          )
+        })}
+      </div>
+      {riscos.outros && (
+        <div className="fg mt-3">
+          <label>Descreva o risco especial</label>
+          <input value={outrosDesc} onChange={e => dispatch({ type:'SET_RISCO_OUTROS_DESC', estruturaId, value:e.target.value })}/>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function Step6() {
   const { state, dispatch } = useProjeto()
-  const { porEstrutura, sistemas } = useMedidasObrigatorias()
+  const { porEstrutura } = useMedidasObrigatorias()
 
   return (
     <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
       <div className="mb-[26px]">
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 6 de 7</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Medidas de Seguranca contra Incendio</h2>
-        <p className="text-[13px] text-ink-faint leading-[1.6]">Sistemas identificados com base na area construida, altura e ocupacao de cada estrutura. Obrigatorios nao podem ser removidos.</p>
-      </div>
-
-      {/* Dados usados na dosagem, por estrutura */}
-      <div className="mb-[26px]">
-        <div className={blockTitle}>Estruturas consideradas</div>
-        {porEstrutura.map(pe => (
-          <EstruturaResumo key={pe.estrutura.id} pe={pe}/>
-        ))}
+        <p className="text-[13px] text-ink-faint leading-[1.6]">Sistemas e riscos especiais identificados por estrutura, com base na area construida, altura e ocupacao de cada uma. Obrigatorios nao podem ser removidos.</p>
       </div>
 
       <div className="ibox red">
         <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
-        <span>Sistemas <strong className="text-red">obrigatorios</strong> sao definidos pela NT 42/2019 CBMMA para a ocupacao, altura e area de cada estrutura. Sistemas opcionais podem ser habilitados conforme necessidade tecnica.</span>
+        <span>Sistemas <strong className="text-red">obrigatorios</strong> sao definidos pela NT 42/2019 CBMMA para a ocupacao, altura e area de cada estrutura. Sistemas opcionais podem ser habilitados por estrutura conforme necessidade tecnica.</span>
       </div>
 
       {/* Legenda */}
@@ -133,66 +198,31 @@ export default function Step6() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        {SIST_CONFIG.map(s => {
-          const sist = sistemas[s.key] || { obrigatorio: false, ativo: false }
-          const on    = sist.ativo
-          const obrig = sist.obrigatorio
+      {porEstrutura.map(pe => {
+        const est = pe.estrutura
+        const riscos = state.riscosEspeciaisPorEstrutura[est.id] || RISCOS_DEFAULT
+        const outrosDesc = state.riscosOutrosDescPorEstrutura[est.id] || ''
 
-          return (
-            <div key={s.key}
-              onClick={() => !obrig && dispatch({ type:'TOGGLE_SISTEMA', key:s.key })}
-              className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative transition-[border-color,background-color] duration-150 ${obrig ? 'cursor-default border-red-border bg-red-dim' : on ? 'cursor-pointer border-green-border bg-green-dim' : 'cursor-pointer border-border bg-transparent'}`}>
-              {/* Checkbox no canto */}
-              <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${obrig ? 'bg-red border-red' : on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
-                {(on || obrig) && <Icon name="check" size={9} color="#fff"/>}
-              </div>
-              {/* Icone */}
-              <div className={`w-7 h-7 rounded-md flex items-center justify-center ${obrig ? 'bg-red-dim text-red' : on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
-                <Icon name={s.icon} size={14}/>
-              </div>
-              {/* Nome */}
-              <div className={`text-xs font-medium leading-[1.3] ${obrig ? 'text-red' : on ? 'text-green' : 'text-ink-muted'}`}>
-                {s.label}
-              </div>
-              {/* Status */}
-              <div className={`text-[10px] ${obrig ? 'text-[rgba(192,21,42,.6)]' : on ? 'text-[rgba(29,158,117,.65)]' : 'text-ink-hint'}`}>
-                {obrig ? 'Obrigatorio — NT 42/2019' : on ? 'Opcional — habilitado' : 'Opcional — desabilitado'}
-              </div>
+        return (
+          <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
+            <div className="mb-4">
+              <div className={blockTitle}>Dados usados na dosagem</div>
+              <EstruturaResumo pe={pe}/>
             </div>
-          )
-        })}
-      </div>
 
-      {/* Riscos especiais */}
-      <div className="mt-[26px]">
-        <div className={blockTitle}>Riscos especiais</div>
-        <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes na edificacao ou area de risco, conforme Anexo B da NT 01.</p>
-        <div className="grid grid-cols-3 gap-2">
-          {RISCOS_CONFIG.map(r => {
-            const on = !!state.riscosEspeciais?.[r.key]
-            return (
-              <div key={r.key}
-                onClick={() => dispatch({ type:'TOGGLE_RISCO', key:r.key })}
-                className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative cursor-pointer transition-[border-color,background-color] duration-150 ${on ? 'border-green-border bg-green-dim' : 'border-border bg-transparent'}`}>
-                <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
-                  {on && <Icon name="check" size={9} color="#fff"/>}
-                </div>
-                <div className={`w-7 h-7 rounded-md flex items-center justify-center ${on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
-                  <Icon name={r.icon} size={14}/>
-                </div>
-                <div className={`text-xs font-medium leading-[1.3] ${on ? 'text-green' : 'text-ink-muted'}`}>{r.label}</div>
-              </div>
-            )
-          })}
-        </div>
-        {state.riscosEspeciais?.outros && (
-          <div className="fg mt-3">
-            <label>Descreva o risco especial</label>
-            <input value={state.riscosOutrosDesc} onChange={e => dispatch({ type:'SET_FIELD', field:'riscosOutrosDesc', value:e.target.value })}/>
-          </div>
-        )}
-      </div>
+            <div className="mb-6">
+              <div className={blockTitle}>Medidas de seguranca</div>
+              <MedidasGrid pe={pe} dispatch={dispatch}/>
+            </div>
+
+            <div>
+              <div className={blockTitle}>Riscos especiais</div>
+              <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes nesta estrutura ou area de risco, conforme Anexo B da NT 01.</p>
+              <RiscosGrid estruturaId={est.id} riscos={riscos} outrosDesc={outrosDesc} dispatch={dispatch}/>
+            </div>
+          </EstruturaSection>
+        )
+      })}
     </div>
   )
 }

@@ -5,6 +5,8 @@ import { useNorma } from '../../hooks/useNorma'
 import { calcularBalizamento, nomeEspecificacao } from '../../data/iluminacao_calc'
 import Icon from '../../components/ui/Icon'
 import QuantityStepper from '../../components/ui/QuantityStepper'
+import EstruturaSection from '../../components/ui/EstruturaSection'
+import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import luminaria30ledsImg from '../../assets/luminaria 30 leds.png'
 import blocoIluminacaoImg from '../../assets/bloco de iluminacao.png'
 
@@ -34,9 +36,6 @@ function Card({ children, className = '' }) {
 }
 function CardHeader({ children }) {
   return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 flex-wrap">{children}</div>
-}
-function SectionTitle({ label }) {
-  return <h3 className="text-sm font-bold text-ink mb-3">{label}</h3>
 }
 function Chip({ ok, children }) {
   return (
@@ -492,8 +491,7 @@ export default function IluminacaoPage() {
               state.estruturas.map(est => {
                 const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
                 return (
-                  <div key={est.id} className="mb-9">
-                    <SectionTitle label={est.nome}/>
+                  <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
                     {pavimentos.length === 0 ? (
                       <div className="ibox amber">
                         <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
@@ -513,7 +511,7 @@ export default function IluminacaoPage() {
                         dispatch={dispatch}
                       />
                     ))}
-                  </div>
+                  </EstruturaSection>
                 )
               })
             )}

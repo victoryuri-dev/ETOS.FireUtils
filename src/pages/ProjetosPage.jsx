@@ -88,7 +88,7 @@ function primaryDivisao(pavimentos) {
 }
 
 function maxCarga(cargaState) {
-  return Object.values(cargaState || {}).reduce((acc, c) => {
+  return Object.values(cargaState || {}).flatMap(porEst => Object.values(porEst || {})).reduce((acc, c) => {
     const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0
     return Math.max(acc, q)
   }, 0)

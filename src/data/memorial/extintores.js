@@ -27,7 +27,7 @@ function linhaTabela(ext, catalogoPortatil, catalogoSobreRodas) {
 
 function blocosDoPavimento(pav, extintoresDoPav, state, norma) {
   const { LIMIARES_RISCO, AREA_LIMITE_UNIDADE_UNICA, TIPOS_PORTATIL, TIPOS_SOBRE_RODAS, NOTAS } = norma
-  const risco = riscoDoPavimento(pav, state.cargaState, LIMIARES_RISCO)
+  const risco = riscoDoPavimento(pav, state.cargaState[pav.estruturaId] || {}, LIMIARES_RISCO)
   const blocos = [{ tipo: 'titulo2', texto: pav.label }]
 
   if (!risco) {

@@ -1,30 +1,30 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import Icon from '../ui/Icon'
+import FormSection from '../ui/FormSection'
 const getLbl = q => q<=300?'Baixo — Classe I':q<=1200?'Medio — Classe II':'Alto — Classe III/IV'
 export default function Step7() {
   const {state}=useProjeto()
   const {ocupacoes,cnaesDiv}=useNorma()
-  const maxQ=Object.values(state.cargaState).reduce((acc,c)=>{
+  const maxQ=Object.values(state.cargaState).flatMap(porEst=>Object.values(porEst||{})).reduce((acc,c)=>{
     const q = c?.metodo==='levantamento' ? parseFloat(c?.valorManual)||0 : c?.cargaIncendio||0
     return Math.max(acc,q)
   },0)
   const getDivLabel = code => { const g=code?.charAt(0); return (ocupacoes[g]?.divisoes||{})[code]||code }
   return (
     <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
-      <div className="mb-[26px]">
+      <div className="mb-8">
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 7 de 7</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Revisao e confirmacao</h2>
         <p className="text-[13px] text-ink-faint leading-[1.6]">Verifique todos os dados antes de salvar.</p>
       </div>
-      <div className="ibox green"><Icon name="check" size={14} color="var(--color-green)" className="shrink-0"/><span>Confirme e salve para iniciar os dimensionamentos.</span></div>
+      <div className="ibox green mb-6"><Icon name="check" size={14} color="var(--color-green)" className="shrink-0"/><span>Confirme e salve para iniciar os dimensionamentos.</span></div>
       {[
         {t:'Identificacao', rows:[['Nome',state.nome||'—'],['Cidade',state.cidade||'—'],['Estado','Maranhao (MA)'],['Norma','NT 42/2019 CBMMA']]},
         {t:'Edificacao', rows:[['Situacao',state.situacao==='nova'?'Edificacao nova':'Edificacao existente']]},
         {t:'Risco',rows:[['Carga representativa',maxQ?maxQ+' MJ/m2 — '+getLbl(maxQ):'—']]},
       ].map(({t,rows})=>(
-        <div key={t} className="mb-[26px]">
-          <div className="text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border">{t}</div>
+        <FormSection key={t} title={t}>
           <table className="w-full border-collapse">
             <tbody>
               {rows.map(([k,v])=>(
@@ -35,11 +35,10 @@ export default function Step7() {
               ))}
             </tbody>
           </table>
-        </div>
+        </FormSection>
       ))}
 
-      <div className="mb-[26px]">
-        <div className="text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border">Estruturas</div>
+      <FormSection title="Estruturas">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-solid border-border-2">
@@ -62,10 +61,9 @@ export default function Step7() {
             ))}
           </tbody>
         </table>
-      </div>
+      </FormSection>
 
-      <div className="mb-[26px]">
-        <div className="text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border">Classificacao por pavimento</div>
+      <FormSection title="Classificacao por pavimento">
         {state.pavimentos.map(p=>{
           const est = state.estruturas.find(e => e.id === p.estruturaId)
           const label = state.estruturas.length > 1 && est ? `${est.nome} — ${p.label}` : p.label
@@ -77,7 +75,7 @@ export default function Step7() {
             </div>
           )
         })}
-      </div>
+      </FormSection>
     </div>
   )
 }

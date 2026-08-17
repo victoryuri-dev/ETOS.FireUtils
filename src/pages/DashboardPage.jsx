@@ -262,7 +262,7 @@ export default function DashboardPage({ onGoConfig }) {
   const { user } = useAuth()
   const { info, ocupacoes } = useNorma()
   const { sistemas } = useMedidasObrigatorias()
-  const maxQ       = Object.values(state.cargaState || {}).reduce((acc, c) => {
+  const maxQ       = Object.values(state.cargaState || {}).flatMap(porEst => Object.values(porEst || {})).reduce((acc, c) => {
     const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0
     return Math.max(acc, q)
   }, 0)

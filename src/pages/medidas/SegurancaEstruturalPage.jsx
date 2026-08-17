@@ -2,12 +2,11 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { calcularTRRF, metodologiaDosMateriais } from '../../data/trrf_calc'
 import Icon from '../../components/ui/Icon'
+import EstruturaSection from '../../components/ui/EstruturaSection'
+import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
-}
-function SectionTitle({ label }) {
-  return <h3 className="text-sm font-bold text-ink mb-3">{label}</h3>
 }
 
 function LinhaPavimento({ linha }) {
@@ -41,9 +40,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
   const setObs = (v) => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'obsSegEstrutural', value: v })
 
   return (
-    <div className="mb-9">
-      <SectionTitle label={est.nome}/>
-
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
       <Card className="mb-3">
         <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
           <div>
@@ -138,7 +135,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
           />
         </div>
       </Card>
-    </div>
+    </EstruturaSection>
   )
 }
 

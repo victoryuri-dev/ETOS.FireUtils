@@ -29,19 +29,15 @@ function getStatus(n, state) {
       return 'partial'
     }
     case 5: {
-      const keys = Object.keys(state.cargaState)
-      if (!keys.length) return 'empty'
-      const allHave = keys.every(k => {
-        const c = state.cargaState[k]
-        return c?.metodo === 'levantamento' ? !!c.valorManual : !!c.cargaIncendio
-      })
+      const entradas = Object.values(state.cargaState).flatMap(porEst => Object.values(porEst || {}))
+      if (!entradas.length) return 'empty'
+      const allHave = entradas.every(c => c?.metodo === 'levantamento' ? !!c.valorManual : !!c.cargaIncendio)
       if (allHave) return 'done'
       return 'partial'
     }
     case 6: {
-      const ativos = Object.values(state.sistemas).filter(s => s.ativo).length
-      if (ativos > 0) return 'partial'
-      return 'empty'
+      if (!state.pavimentos.length) return 'empty'
+      return 'partial'
     }
     case 7:
       return 'empty'

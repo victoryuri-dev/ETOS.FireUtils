@@ -52,6 +52,17 @@ export function useMedidasObrigatorias() {
       // da norma ou o baseline de grupo-sem-dados tenham marcado true acima.
       SEMPRE_OPCIONAL.forEach(k => { medidas[k] = false })
 
+      // Sistemas desta estrutura: obrigatorio vem da norma (medidas acima);
+      // ativo soma o toggle manual (opcional habilitado) guardado por
+      // estrutura em state.sistemasPorEstrutura — cada torre/bloco decide
+      // seus proprios sistemas opcionais, independente das demais.
+      const sistemas = {}
+      Object.keys(state.sistemas || {}).forEach(k => {
+        const obrigatorio = !!medidas[k]
+        const ativoManual = !!state.sistemasPorEstrutura[est.id]?.[k]
+        sistemas[k] = { obrigatorio, ativo: obrigatorio || ativoManual }
+      })
+
       return {
         estrutura: est,
         areaEstrutura,
@@ -61,22 +72,20 @@ export function useMedidasObrigatorias() {
         simplificado: resultado?.simplificado ?? null,
         gruposFaltantes,
         medidas,
+        sistemas,
       }
     })
 
-    // Agregado do projeto: uma medida e obrigatoria se for obrigatoria em
-    // QUALQUER estrutura.
-    const agregado = {}
-    porEstrutura.forEach(pe => {
-      Object.entries(pe.medidas).forEach(([k, v]) => { if (v) agregado[k] = true })
-    })
-
+    // Agregado do projeto: uma medida e obrigatoria/ativa se for em QUALQUER
+    // estrutura — usado por telas que ainda tratam o projeto como um todo
+    // (nav lateral, paginas de dimensionamento, Anexo B).
     const sistemas = {}
     Object.keys(state.sistemas || {}).forEach(k => {
-      const obrigatorio = !!agregado[k]
-      sistemas[k] = { obrigatorio, ativo: obrigatorio || !!state.sistemas[k]?.ativo }
+      const obrigatorio = porEstrutura.some(pe => pe.sistemas[k]?.obrigatorio)
+      const ativo = obrigatorio || porEstrutura.some(pe => pe.sistemas[k]?.ativo)
+      sistemas[k] = { obrigatorio, ativo }
     })
 
     return { porEstrutura, sistemas }
-  }, [state.estruturas, state.pavimentos, state.uf, state.sistemas])
+  }, [state.estruturas, state.pavimentos, state.uf, state.sistemas, state.sistemasPorEstrutura])
 }

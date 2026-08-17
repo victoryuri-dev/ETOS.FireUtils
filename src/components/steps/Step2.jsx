@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import Icon from '../ui/Icon'
+import FormSection from '../ui/FormSection'
 
 const S = {
   section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
-  header: 'mb-[26px]',
+  header: 'mb-8',
   stepLbl: 'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',
   title: 'text-[22px] font-semibold text-ink mb-[5px]',
   desc: 'text-[13px] text-ink-faint leading-[1.6]',
-  block: 'mb-[26px]',
-  blockTitle: 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border',
 }
 
 const ALERTAS = (h, sub) => {
@@ -235,8 +234,7 @@ export default function Step2() {
       </div>
 
       {/* Situacao: nova ou existente */}
-      <div className={S.block}>
-        <div className={S.blockTitle}>Situacao</div>
+      <FormSection title="Situacao">
         <div className="grid grid-cols-2 gap-2 mb-3.5">
           {[
             { k:'nova',      icon:'newbld', t:'Edificacao nova',      s:'Em projeto ou construcao' },
@@ -289,11 +287,10 @@ export default function Step2() {
             </div>
           </>
         )}
-      </div>
+      </FormSection>
 
       {/* Terreno e area construida (parametros globais do projeto) */}
-      <div className={S.block}>
-        <div className={S.blockTitle}>Terreno e area construida</div>
+      <FormSection title="Terreno e area construida">
         <div className="g2 mb-3">
           <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
           <div className="fg"><label>Area construida total (m2)</label><input type="number" value={state.areaConstruidaTotal} onChange={set('areaConstruidaTotal')}/></div>
@@ -302,18 +299,17 @@ export default function Step2() {
           <div className="fg"><label>Quantidade de publico</label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
           <div className="fg"><label>Area complementar (m2)</label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
         </div>
-      </div>
+      </FormSection>
 
       {/* Estruturas */}
-      <div className={S.block}>
-        <div className={S.blockTitle}>Estruturas</div>
+      <FormSection title="Estruturas">
         {state.estruturas.map((est, i) => (
           <EstruturaCard key={est.id} est={est} index={i} canRemove={state.estruturas.length > 1} dispatch={dispatch} onOpen={() => setOpenId(est.id)}/>
         ))}
         <button className="btn-add" onClick={() => dispatch({ type:'ADD_ESTRUTURA' })}>
           <Icon name="plus" size={11}/> Adicionar estrutura
         </button>
-      </div>
+      </FormSection>
 
       {openEst && <EstruturaModal est={openEst} index={openIndex} dispatch={dispatch} onClose={() => setOpenId(null)}/>}
     </div>

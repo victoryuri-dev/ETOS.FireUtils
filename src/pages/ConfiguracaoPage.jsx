@@ -27,45 +27,40 @@ export default function ConfiguracaoPage({ onGoDashboard }) {
   const ActiveStep = STEPS[step]
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 overflow-hidden">
+      <StepsNav
+        steps={STEPS_CONFIG.slice(0, unlocked)}
+        current={step}
+        isUnlocked={isUnlocked}
+        getStatus={getStatus}
+        onGo={goTo}
+      />
+      <div className="flex-1 overflow-y-auto">
+        {ActiveStep && <ActiveStep/>}
 
-      {/* StepsNav + conteúdo */}
-      <div className="flex flex-1 overflow-hidden">
-        <StepsNav
-          steps={STEPS_CONFIG.slice(0, unlocked)}
-          current={step}
-          isUnlocked={isUnlocked}
-          getStatus={getStatus}
-          onGo={goTo}
-        />
-        <div className="flex-1 overflow-y-auto">
-          {ActiveStep && <ActiveStep/>}
+        {/* Navegação do wizard — no fim do formulário, rola junto com o conteúdo */}
+        <div className="max-w-[720px] mx-auto px-12 pb-16 -mt-16 flex items-center justify-between border-t border-solid border-border pt-6">
+          <div className="text-xs text-ink-faint flex items-center gap-1.5">
+            <Icon name="info" size={13}/>
+            {step < totalSteps ? `Etapa ${step} de ${totalSteps}` : 'Projeto pronto — revise e confirme.'}
+          </div>
+          <div className="flex items-center gap-2.5">
+            {step > 1 && (
+              <button className="btn-ghost" onClick={prev}>
+                <Icon name="left" size={13}/> Voltar
+              </button>
+            )}
+            {step < totalSteps
+              ? <button className="btn-primary" onClick={next}>
+                  Proximo <Icon name="right" size={13}/>
+                </button>
+              : <button className="btn-success" onClick={onGoDashboard}>
+                  <Icon name="save" size={13}/> Salvar e ver resumo
+                </button>
+            }
+          </div>
         </div>
       </div>
-
-      {/* Footer inline — sem position:fixed */}
-      <div className="h-[60px] shrink-0 bg-surface border-t border-solid border-border flex items-center justify-between px-12 z-10">
-        <div className="text-xs text-ink-faint flex items-center gap-1.5">
-          <Icon name="info" size={13}/>
-          {step < totalSteps ? `Etapa ${step} de ${totalSteps}` : 'Projeto pronto — revise e confirme.'}
-        </div>
-        <div className="flex items-center gap-2.5">
-          {step > 1 && (
-            <button className="btn-ghost" onClick={prev}>
-              <Icon name="left" size={13}/> Voltar
-            </button>
-          )}
-          {step < totalSteps
-            ? <button className="btn-primary" onClick={next}>
-                Proximo <Icon name="right" size={13}/>
-              </button>
-            : <button className="btn-success" onClick={onGoDashboard}>
-                <Icon name="save" size={13}/> Salvar e ver resumo
-              </button>
-          }
-        </div>
-      </div>
-
     </div>
   )
 }

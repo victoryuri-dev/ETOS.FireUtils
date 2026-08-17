@@ -3,15 +3,14 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useCnpjLookup } from '../../hooks/useCnpjLookup'
 import { ESTADOS_DISPONIVEIS, getNormaInfo } from '../../data/normas/index'
 import Icon from '../ui/Icon'
+import FormSection from '../ui/FormSection'
 
 const S = {
   section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
-  header: 'mb-[26px]',
+  header: 'mb-8',
   stepLbl: 'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',
   title: 'text-[22px] font-semibold text-ink mb-[5px]',
   desc: 'text-[13px] text-ink-faint leading-[1.6]',
-  block: 'mb-[26px]',
-  blockTitle: 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border',
 }
 
 function maskCNPJ(raw) {
@@ -53,9 +52,8 @@ export default function Step1() {
         <p className={S.desc}>Comece pelo CNPJ da empresa para pre-preencher os dados — depois confirme o endereco da obra e os demais responsaveis.</p>
       </div>
 
-      <div className={S.block}>
-        <div className={S.blockTitle}>Responsavel pelo uso</div>
-        <div className="ibox blue"><Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/><span>Empresa ou pessoa que ocupa o imovel — pode ser diferente do proprietario. Buscar pelo CNPJ preenche os dados abaixo automaticamente.</span></div>
+      <FormSection title="Responsavel pelo uso" description="Empresa ou pessoa que ocupa o imovel — pode ser diferente do proprietario.">
+        <div className="ibox blue"><Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/><span>Buscar pelo CNPJ preenche os dados abaixo automaticamente.</span></div>
 
         <div className="fg mb-3">
           <label>CNPJ <span className="req">*</span></label>
@@ -77,14 +75,13 @@ export default function Step1() {
           <div className="fg"><label>Telefone</label><input type="tel" value={state.respTelefone} onChange={set('respTelefone')}/></div>
           <div className="fg"><label>E-mail</label><input type="email" value={state.respEmail} onChange={set('respEmail')}/></div>
         </div>
-        <div className="g2 mb-3">
+        <div className="g2">
           <div className="fg"><label>CNAE principal</label><input value={state.cnaePrincipal} onChange={setCNAE} placeholder="0000-0/00"/></div>
           <div className="fg"><label>Descricao da atividade</label><input value={state.cnaePrincipalDesc} onChange={set('cnaePrincipalDesc')} placeholder="Preenchido automaticamente pela busca do CNPJ"/></div>
         </div>
-      </div>
+      </FormSection>
 
-      <div className={S.block}>
-        <div className={S.blockTitle}>Identificacao</div>
+      <FormSection title="Identificacao">
         <div className="fg mb-3">
           <label>Nome do projeto <span className="req">*</span></label>
           <input value={state.nome} onChange={set('nome')} placeholder="Ex: Edificio Comercial Centro"/>
@@ -93,10 +90,9 @@ export default function Step1() {
           <label>Data de inicio</label>
           <input type="date" value={state.dataInicio} onChange={set('dataInicio')} className="max-w-[220px]"/>
         </div>
-      </div>
+      </FormSection>
 
-      <div className={S.block}>
-        <div className={S.blockTitle}>Localizacao da obra</div>
+      <FormSection title="Localizacao da obra">
 
         {enderecoFiscal && (
           <div className="ibox blue">
@@ -133,24 +129,22 @@ export default function Step1() {
             </select>
           </div>
         </div>
-      </div>
+      </FormSection>
 
-      <div className={S.block}>
-        <div className={S.blockTitle}>Norma aplicavel</div>
+      <FormSection title="Norma aplicavel">
         <div className="ibox amber">
           <Icon name="info" size={14} color="var(--color-amber)" className="shrink-0"/>
           <span>Norma vinculada ao estado selecionado. Verifique a versao vigente antes de iniciar o dimensionamento.</span>
         </div>
         {normaInfo && (
-          <div className="norma-badge">
+          <div className="norma-badge mt-3">
             <Icon name="file" size={13}/>
             <span>{normaInfo.nome} — {normaInfo.desc}</span>
           </div>
         )}
-      </div>
+      </FormSection>
 
-      <div className={S.block}>
-        <div className={S.blockTitle}>Proprietario do imovel</div>
+      <FormSection title="Proprietario do imovel">
         <label className="flex items-center gap-2 mb-3 text-[12px] text-ink-muted cursor-pointer">
           <input type="checkbox" checked={mesmoResponsavel} onChange={e => setMesmoResponsavel(e.target.checked)} className="w-auto"/>
           Proprietario e o mesmo que o responsavel pelo uso
@@ -163,7 +157,7 @@ export default function Step1() {
           <div className="fg"><label>Telefone</label><input type="tel" value={state.propTelefone} onChange={set('propTelefone')} placeholder="(99) 99999-9999" readOnly={mesmoResponsavel}/></div>
           <div className="fg"><label>E-mail</label><input type="email" value={state.propEmail} onChange={set('propEmail')}/></div>
         </div>
-      </div>
+      </FormSection>
     </div>
   )
 }

@@ -98,13 +98,63 @@ function novoItemSinalizacao(estruturaId, pavimentoId, tipoPlaca, quantidade) {
 // precisam da mesma proteção, senão um estado salvo com o formato antigo
 // quebra o reducer (ex.: `especificacoes` inexistente vira `undefined`,
 // não iterável).
+// Migra projetos salvos antes de cargaState/sistemas/riscosEspeciais virarem
+// por-estrutura. Formato antigo: cargaState tinha o codigo da divisao (ex:
+// "C-1") como chave direta; sistemas/riscosEspeciais eram um unico objeto
+// pro projeto inteiro. Best-effort: joga tudo pra primeira estrutura (cobre
+// o caso comum de projeto com uma estrutura so — com mais de uma, o usuario
+// precisa reclassificar as demais).
+function migrarParaPorEstrutura(saved) {
+  const firstEstId = saved.estruturas?.[0]?.id
+  const estIds = new Set((saved.estruturas || []).map(e => e.id))
+
+  let cargaState = saved.cargaState || {}
+  const cargaKeys = Object.keys(cargaState)
+  const cargaFormatoAntigo = cargaKeys.length > 0 && !cargaKeys.some(k => estIds.has(k))
+  if (cargaFormatoAntigo && firstEstId) cargaState = { [firstEstId]: cargaState }
+
+  let sistemasPorEstrutura = saved.sistemasPorEstrutura || {}
+  if (saved.sistemas && !saved.sistemasPorEstrutura && firstEstId) {
+    const ativos = {}
+    Object.entries(saved.sistemas).forEach(([k, v]) => { if (v?.ativo) ativos[k] = true })
+    if (Object.keys(ativos).length) sistemasPorEstrutura = { [firstEstId]: ativos }
+  }
+
+  let riscosEspeciaisPorEstrutura = saved.riscosEspeciaisPorEstrutura || {}
+  if (saved.riscosEspeciais && !saved.riscosEspeciaisPorEstrutura && firstEstId) {
+    riscosEspeciaisPorEstrutura = { [firstEstId]: saved.riscosEspeciais }
+  }
+
+  let riscosOutrosDescPorEstrutura = saved.riscosOutrosDescPorEstrutura || {}
+  if (saved.riscosOutrosDesc && !saved.riscosOutrosDescPorEstrutura && firstEstId) {
+    riscosOutrosDescPorEstrutura = { [firstEstId]: saved.riscosOutrosDesc }
+  }
+
+  return { cargaState, sistemasPorEstrutura, riscosEspeciaisPorEstrutura, riscosOutrosDescPorEstrutura }
+}
+
 function hydrateState(saved) {
   return {
     ...INITIAL_STATE,
     ...saved,
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
+    ...migrarParaPorEstrutura(saved),
   }
+}
+
+// Remove uma chave de um objeto sem mutar o original — usado pra limpar os
+// mapas por-estrutura (cargaState, sistemasPorEstrutura, etc.) quando uma
+// estrutura e removida.
+function semChave(obj, key) {
+  return Object.fromEntries(Object.entries(obj).filter(([k]) => k !== key))
+}
+
+// Valor base de riscosEspeciaisPorEstrutura[estruturaId] — replicado (nao
+// referenciado) sempre que uma estrutura ainda nao tem entrada.
+const RISCOS_DEFAULT = {
+  liquidos_inflamaveis: false, fogos_artificio: false, glp: false,
+  vasos_pressao: false, produtos_perigosos: false, outros: false,
 }
 
 function novaEstrutura(nome) {
@@ -139,7 +189,15 @@ const INITIAL_STATE = {
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
   artNumero: '', artData: '', artTipoServico: 'Projeto', artValorObra: '',
   pavimentos: [],
+  // Todos por-estrutura: chave = id da estrutura. cargaState guarda, dentro
+  // de cada estrutura, o codigo da divisao (ex: "C-1"). sistemasPorEstrutura
+  // guarda so o "ativo" manual (opcional habilitado) — o obrigatorio vem do
+  // motor de normas (useMedidasObrigatorias). riscosEspeciaisPorEstrutura
+  // segue o formato de RISCOS_DEFAULT.
   cargaState: {},
+  sistemasPorEstrutura: {},
+  riscosEspeciaisPorEstrutura: {},
+  riscosOutrosDescPorEstrutura: {},
   extintores: [],
   iluminacao: [],
   sinalizacao: [],
@@ -171,11 +229,6 @@ const INITIAL_STATE = {
     manobraRetornoOk: true, saidaIndepLargura: '', saidaIndepAltura: '',
     distanciaAdotada: '',
   },
-  riscosEspeciais: {
-    liquidos_inflamaveis: false, fogos_artificio: false, glp: false,
-    vasos_pressao: false, produtos_perigosos: false, outros: false,
-  },
-  riscosOutrosDesc: '',
   sistemas: {
     // acesso_viatura, seg_estrutural e brigada NAO sao universais: a Tabela 5
     // (simplificado) nunca exige as duas primeiras, e brigada so e exigida
@@ -218,6 +271,10 @@ function reducer(state, action) {
         extintores: state.extintores.filter(e => e.estruturaId !== action.id),
         iluminacao: state.iluminacao.filter(i => i.estruturaId !== action.id),
         sinalizacao: state.sinalizacao.filter(s => s.estruturaId !== action.id),
+        cargaState: semChave(state.cargaState, action.id),
+        sistemasPorEstrutura: semChave(state.sistemasPorEstrutura, action.id),
+        riscosEspeciaisPorEstrutura: semChave(state.riscosEspeciaisPorEstrutura, action.id),
+        riscosOutrosDescPorEstrutura: semChave(state.riscosOutrosDescPorEstrutura, action.id),
       }
     }
     case 'RENAME_ESTRUTURA':
@@ -374,17 +431,47 @@ function reducer(state, action) {
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
     case 'SET_WIZARD':
       return { ...state, configStep: action.step, configUnlocked: action.unlocked }
-    case 'SET_CARGA':
-      return { ...state, cargaState: { ...state.cargaState, [action.code]: { ...(state.cargaState[action.code] || {}), ...action.changes } } }
-    case 'INIT_CARGA': {
-      const next = { ...state.cargaState }
-      action.divisoes.forEach(d => { if (!next[d]) next[d] = { cnae: '', descricao: '', cargaIncendio: null, metodo: 'tabela', valorManual: '' } })
-      return { ...state, cargaState: next }
+    case 'SET_CARGA': {
+      const { estruturaId, code } = action
+      const doEst = state.cargaState[estruturaId] || {}
+      return {
+        ...state,
+        cargaState: {
+          ...state.cargaState,
+          [estruturaId]: { ...doEst, [code]: { ...(doEst[code] || {}), ...action.changes } },
+        },
+      }
     }
-    case 'TOGGLE_SISTEMA':
-      return { ...state, sistemas: { ...state.sistemas, [action.key]: { ...state.sistemas[action.key], ativo: !state.sistemas[action.key].ativo } } }
-    case 'TOGGLE_RISCO':
-      return { ...state, riscosEspeciais: { ...state.riscosEspeciais, [action.key]: !state.riscosEspeciais[action.key] } }
+    case 'INIT_CARGA': {
+      const { estruturaId } = action
+      const next = { ...(state.cargaState[estruturaId] || {}) }
+      action.divisoes.forEach(d => { if (!next[d]) next[d] = { cnae: '', descricao: '', cargaIncendio: null, metodo: 'tabela', valorManual: '' } })
+      return { ...state, cargaState: { ...state.cargaState, [estruturaId]: next } }
+    }
+    case 'TOGGLE_SISTEMA_ESTRUTURA': {
+      const { estruturaId, key } = action
+      const atual = !!state.sistemasPorEstrutura[estruturaId]?.[key]
+      return {
+        ...state,
+        sistemasPorEstrutura: {
+          ...state.sistemasPorEstrutura,
+          [estruturaId]: { ...state.sistemasPorEstrutura[estruturaId], [key]: !atual },
+        },
+      }
+    }
+    case 'TOGGLE_RISCO_ESTRUTURA': {
+      const { estruturaId, key } = action
+      const base = state.riscosEspeciaisPorEstrutura[estruturaId] || RISCOS_DEFAULT
+      return {
+        ...state,
+        riscosEspeciaisPorEstrutura: {
+          ...state.riscosEspeciaisPorEstrutura,
+          [estruturaId]: { ...base, [key]: !base[key] },
+        },
+      }
+    }
+    case 'SET_RISCO_OUTROS_DESC':
+      return { ...state, riscosOutrosDescPorEstrutura: { ...state.riscosOutrosDescPorEstrutura, [action.estruturaId]: action.value } }
     case 'LOAD':
       return { ...hydrateState(action.payload), saveReady: true }
     case 'NEW_PROJECT':

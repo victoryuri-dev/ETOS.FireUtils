@@ -63,15 +63,22 @@ function dadosExemplo() {
       },
     ],
     cargaState: {
-      'C-1': { cnae: '4712-1/00', descricao: 'Comercio varejista', cargaIncendio: 300, metodo: 'tabela', valorManual: '' },
-      'A-1': { cnae: '5590-6/03', descricao: 'Pensionatos', cargaIncendio: 300, metodo: 'tabela', valorManual: '' },
-      'G-1': { cnae: '5223-1/00', descricao: 'Estacionamento de veiculos', cargaIncendio: 200, metodo: 'tabela', valorManual: '' },
+      'est-exemplo-1': {
+        'C-1': { cnae: '4712-1/00', descricao: 'Comercio varejista', cargaIncendio: 300, metodo: 'tabela', valorManual: '' },
+      },
+      'est-exemplo-2': {
+        'A-1': { cnae: '5590-6/03', descricao: 'Pensionatos', cargaIncendio: 300, metodo: 'tabela', valorManual: '' },
+        'G-1': { cnae: '5223-1/00', descricao: 'Estacionamento de veiculos', cargaIncendio: 200, metodo: 'tabela', valorManual: '' },
+      },
     },
-    riscosEspeciais: {
-      liquidos_inflamaveis: false, fogos_artificio: false, glp: true,
-      vasos_pressao: false, produtos_perigosos: false, outros: false,
+    sistemasPorEstrutura: {},
+    riscosEspeciaisPorEstrutura: {
+      'est-exemplo-2': {
+        liquidos_inflamaveis: false, fogos_artificio: false, glp: true,
+        vasos_pressao: false, produtos_perigosos: false, outros: false,
+      },
     },
-    riscosOutrosDesc: '',
+    riscosOutrosDescPorEstrutura: {},
     sistemas: {
       acesso_viatura:      { obrigatorio: true,  ativo: true  },
       seg_estrutural:      { obrigatorio: true,  ativo: true  },
