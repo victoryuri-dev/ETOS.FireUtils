@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
+import SwitchToggle from '../ui/SwitchToggle'
 
 const S = {
   section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
@@ -225,6 +226,32 @@ export default function Step2() {
   const openEst = state.estruturas.find(e => e.id === openId)
   const openIndex = state.estruturas.findIndex(e => e.id === openId)
 
+  // Soma das areas construidas de cada estrutura — usada como valor da area
+  // construida total quando o switch "somar das estruturas" esta ligado.
+  const somaEstruturas = state.estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
+  const somaEstruturasStr = somaEstruturas ? String(somaEstruturas) : ''
+
+  // O switch nao e persistido (o projeto so guarda o valor final de
+  // areaConstruidaTotal, nunca "como" ele foi calculado) — ao abrir o
+  // projeto, comeca ligado se o valor salvo ja bate com a soma das
+  // estruturas (sinal de que foi preenchido assim da ultima vez) e
+  // desligado caso contrario (valor manual, possivelmente maior que a soma
+  // — ex.: area complementar computada junto). O usuario ainda liga/desliga
+  // livremente durante a sessao.
+  const [areaAuto, setAreaAuto] = useState(() => {
+    const total = parseFloat(state.areaConstruidaTotal) || 0
+    return somaEstruturas > 0 && total === somaEstruturas
+  })
+
+  // Mantem areaConstruidaTotal sincronizada com a soma enquanto o switch
+  // estiver ligado — assim quem le state.areaConstruidaTotal em outras telas
+  // (memorial, etc.) nao precisa saber que ela pode vir de uma soma.
+  useEffect(() => {
+    if (areaAuto && state.areaConstruidaTotal !== somaEstruturasStr) {
+      dispatch({ type:'SET_FIELD', field:'areaConstruidaTotal', value: somaEstruturasStr })
+    }
+  }, [areaAuto, somaEstruturasStr])
+
   return (
     <div className={S.section}>
       <div className={S.header}>
@@ -293,7 +320,23 @@ export default function Step2() {
       <FormSection title="Terreno e area construida">
         <div className="g2 mb-3">
           <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
-          <div className="fg"><label>Area construida total (m2)</label><input type="number" value={state.areaConstruidaTotal} onChange={set('areaConstruidaTotal')}/></div>
+          <div className="fg">
+            <label>
+              Area construida total (m2)
+              <span className="ml-auto flex items-center gap-1.5">
+                <span className="text-[10px] text-ink-faint normal-case font-normal whitespace-nowrap">Somar das estruturas</span>
+                <SwitchToggle checked={areaAuto} onChange={setAreaAuto}/>
+              </span>
+            </label>
+            <input
+              type="number"
+              value={areaAuto ? somaEstruturasStr : state.areaConstruidaTotal}
+              onChange={set('areaConstruidaTotal')}
+              readOnly={areaAuto}
+              className={areaAuto ? 'opacity-70 cursor-not-allowed' : ''}
+              title={areaAuto ? 'Somada automaticamente das estruturas — desligue o switch pra editar manualmente' : undefined}
+            />
+          </div>
         </div>
         <div className="g2">
           <div className="fg"><label>Quantidade de publico</label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>

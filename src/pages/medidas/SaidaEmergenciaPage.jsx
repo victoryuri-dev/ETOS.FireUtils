@@ -4,6 +4,7 @@ import { useNorma } from '../../hooks/useNorma'
 import { supabase } from '../../lib/supabase'
 import { getSE } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
+import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import {
   calcPopAmb, calcPopPav, capPavimento, pavMaisPopuloso,
   calcAD, calcER, calcPT,
@@ -21,7 +22,7 @@ function syncPavimentos(projetoPavs, prev = []) {
   if (!projetoPavs?.length) return []
   const anteriores = new Map(prev.map(p => [p.id, p]))
   return projetoPavs.map(p => ({
-    id: p.id, nome: p.label,
+    id: p.id, nome: p.label, estruturaId: p.estruturaId,
     tipo: p.tipo === 'terreo' ? 'descarga' : 'tipo',
     ambientes: anteriores.get(p.id)?.ambientes || [],
   }))
@@ -407,12 +408,14 @@ export default function SaidaEmergenciaPage() {
 
   const [pavimentos,   setPavimentos]   = useState(() => syncPavimentos(state.pavimentos))
   const [openId,       setOpenId]       = useState(null)
-  const [temChuveiros, setTemChuveiros] = useState(false)
-  const [temDeteccao,  setTemDeteccao]  = useState(false)
+  // Chuveiros/detecção são configurados por estrutura, não pro projeto
+  // inteiro — cada prédio pode ter proteção diferente. Chave: estruturaId.
+  const [configEst,    setConfigEst]    = useState({})
   const [largAdotada,  setLargAdotada]  = useState({})
   const [importInfo,   setImportInfo]   = useState(null)
   const [importErro,   setImportErro]   = useState(null)
   const [saidaUnica,   setSaidaUnica]   = useState({})
+  const [colapsadas,   setColapsadas]   = useState({})
   const [buscando,     setBuscando]     = useState(false)
   const fileInputRef = useRef(null)
 
@@ -423,10 +426,16 @@ export default function SaidaEmergenciaPage() {
   const getSaidaUnica = (pavId, adN) => saidaUnica[pavId] ?? (adN <= 1)
   const toggleSaidaUnica = (pavId, val) => setSaidaUnica(prev => ({ ...prev, [pavId]: val }))
 
+  const getConfigEstrutura = estId => configEst[estId] || { temChuveiros: false, temDeteccao: false }
+  const setConfigEstrutura = (estId, changes) => setConfigEst(prev => ({ ...prev, [estId]: { ...getConfigEstrutura(estId), ...changes } }))
+
+  const toggleColapsada = estId => setColapsadas(prev => ({ ...prev, [estId]: !prev[estId] }))
+
   // Aplica um lote (arquivo ou linha do Supabase) — mescla nos pavimentos
   // já existentes, mexendo só nos que foram resolvidos, preservando o
   // resto (inclusive de outras estruturas). `estruturaId` é null no upload
-  // manual de arquivo.
+  // manual de arquivo — nesse caso não dá pra saber a qual estrutura
+  // atribuir chuveiros/detecção, então essas configurações não são tocadas.
   const aplicarSaidas = (payloadSE, estruturaId) => {
     try {
       const { atualizacoes, erros, temChuveiros: tc, temDeteccao: td, timestamp } =
@@ -439,8 +448,7 @@ export default function SaidaEmergenciaPage() {
           return next
         })
       }
-      setTemChuveiros(tc)
-      setTemDeteccao(td)
+      if (estruturaId) setConfigEstrutura(estruturaId, { temChuveiros: tc, temDeteccao: td })
       return { erros, timestamp }
     } catch (err) {
       return { erros: [err.message || 'Dados inválidos.'], timestamp: null }
@@ -492,7 +500,6 @@ export default function SaidaEmergenciaPage() {
   }, [])
 
   const openPav = pavimentos.find(p => p.id === openId)
-  const govPav  = pavMaisPopuloso(pavimentos, TAXA_POPULACIONAL)
 
   const savePav = updated => {
     setPavimentos(prev => prev.map(p => p.id===updated.id ? updated : p))
@@ -508,22 +515,34 @@ export default function SaidaEmergenciaPage() {
   }
 
   const dadosPav = pavimentos.map(p => {
+    const cfg      = getConfigEstrutura(p.estruturaId)
     const pop      = calcPopPav(p, TAXA_POPULACIONAL)
     const cap      = capPavimento(p, TAXA_POPULACIONAL)
     const ad       = calcAD(pop, cap.AD, LARGURAS_MINIMAS)
     const pt       = calcPT(pop, cap.PT, LARGURAS_MINIMAS)
     const unica    = getSaidaUnica(p.id, ad.n)
     const nSaidas  = unica ? 1 : 2
-    const dist     = getDistanciaPavimento(p, nSaidas, temChuveiros, temDeteccao, BLOCOS_DISTANCIA)
+    const dist     = getDistanciaPavimento(p, nSaidas, cfg.temChuveiros, cfg.temDeteccao, BLOCOS_DISTANCIA)
     return { pav:p, pop, cap, ad, pt, dist, unica, laAD: largAdotada[p.id]?.AD ?? ad.la, laPT: largAdotada[p.id]?.PT ?? pt.la }
   })
 
-  const erDados = govPav ? (() => {
-    const pop = calcPopPav(govPav, TAXA_POPULACIONAL)
-    const cap = capPavimento(govPav, TAXA_POPULACIONAL)
-    const er  = calcER(pop, cap.ER, LARGURAS_MINIMAS)
-    return { pop, capER:cap.ER, ...er, laER: largAdotada[govPav.id]?.ER ?? er.la }
-  })() : null
+  // Cada estrutura dimensiona suas próprias saídas de forma independente —
+  // em especial ER (Escadas e Rampas), que usa o pavimento mais populoso
+  // como referência. Antes disso considerava o pavimento mais populoso do
+  // PROJETO INTEIRO, então um prédio poderia ter a escada dimensionada pela
+  // população de outro prédio do mesmo projeto.
+  const porEstrutura = state.estruturas.map(est => {
+    const pavsDaEstrutura   = pavimentos.filter(p => p.estruturaId === est.id)
+    const dadosDaEstrutura  = dadosPav.filter(d => d.pav.estruturaId === est.id)
+    const govPav            = pavMaisPopuloso(pavsDaEstrutura, TAXA_POPULACIONAL)
+    const erDados = govPav ? (() => {
+      const pop = calcPopPav(govPav, TAXA_POPULACIONAL)
+      const cap = capPavimento(govPav, TAXA_POPULACIONAL)
+      const er  = calcER(pop, cap.ER, LARGURAS_MINIMAS)
+      return { pop, capER: cap.ER, ...er, laER: largAdotada[govPav.id]?.ER ?? er.la }
+    })() : null
+    return { estrutura: est, pavimentos: pavsDaEstrutura, dadosPav: dadosDaEstrutura, govPav, erDados }
+  })
 
   const temPavimentos = pavimentos.length > 0
   const temPopulacao  = dadosPav.some(d => d.pop > 0)
@@ -537,7 +556,10 @@ export default function SaidaEmergenciaPage() {
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-              <h2 className="text-[22px] font-bold text-ink mb-1.5">Saídas de Emergência</h2>
+              <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+                <Icon name={SISTEMA_ICON.saida_emergencia} size={20} color="var(--color-red)" className="shrink-0"/>
+                Saídas de Emergência
+              </h2>
               <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
                 Cadastre os ambientes de cada pavimento (1) para calcular a população e dimensionar as saídas (2), conforme {info?.nome || 'NT vigente'} / NBR 9077.
               </p>
@@ -571,63 +593,82 @@ export default function SaidaEmergenciaPage() {
         {/* Etapa 1 — Ambientes e população */}
         <div className="mb-10">
           <StepHeader n={1} label="Ambientes e população"
-            desc="Cadastre os ambientes de cada pavimento e sua divisão de ocupação — a população é calculada automaticamente pela taxa normativa da divisão."/>
+            desc="Cadastre os ambientes de cada pavimento e sua divisão de ocupação — a população é calculada automaticamente pela taxa normativa da divisão, por estrutura."/>
 
-          <div className="bg-surface border border-solid border-border rounded-lg overflow-hidden">
-            <div className="py-3.5 px-5 border-b border-solid border-border flex items-center justify-between">
-              <div className="text-sm font-semibold text-ink flex items-center gap-2">
-                Pavimentos
-                {govPav && <span className="text-[11px] font-normal text-ink-faint">— Mais populoso: <span className="text-red font-semibold">{govPav.nome} ({calcPopPav(govPav, TAXA_POPULACIONAL)} pess.)</span></span>}
-              </div>
-            </div>
-
-            {temPavimentos && (
-              <div className={`grid ${MAIN_COL} gap-3.5 py-2 px-5 bg-surface-2 border-b border-solid border-border text-[10px] text-ink-faint uppercase tracking-[.06em]`}>
-                <span>Pavimento</span><span className="text-center">Amb.</span><span className="text-center">Pop.</span><span>Divisões</span>
-              </div>
-            )}
-
-            {pavimentos.map(p => {
-              const pop  = calcPopPav(p, TAXA_POPULACIONAL)
-              const divs = [...new Set(p.ambientes.map(a => a.divisao).filter(Boolean))]
-              const isGov = govPav?.id === p.id
-              const pendente = p.ambientes.length === 0
-              return (
-                <div key={p.id}
-                  onClick={() => setOpenId(p.id)}
-                  className={`grid ${MAIN_COL} gap-3.5 items-center py-[13px] px-5 border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.025] ${pendente ? 'border-l-2 border-l-amber-border' : 'border-l-2 border-l-green-border'}`}
+          {porEstrutura.map(({ estrutura, pavimentos: pavsDaEstrutura, govPav }) => {
+            const aberta = !colapsadas[estrutura.id]
+            return (
+            <div key={estrutura.id} className="mb-4">
+              <div className="bg-surface border border-solid border-border rounded-lg overflow-hidden">
+                <div
+                  className="py-3.5 px-5 border-b border-solid border-border flex items-center justify-between cursor-pointer select-none"
+                  onClick={() => toggleColapsada(estrutura.id)}
                 >
-                  <div>
-                    <div className="flex items-center gap-[7px]">
-                      <span className="text-[13px] font-semibold text-ink">{p.nome}</span>
-                      {p.tipo==='descarga'
-                        ? <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>
-                        : <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-surface-2 border border-solid border-border text-ink-faint">TIPO</span>}
-                    </div>
-                    {isGov ? (
-                      <div className="text-[10px] text-red font-medium mt-0.5">Mais populoso · referência para ER</div>
-                    ) : pendente ? (
-                      <div className="text-[10px] text-amber font-medium mt-0.5">Pendente — clique para cadastrar ambientes</div>
-                    ) : null}
+                  <div className="text-sm font-semibold text-ink flex items-center gap-2">
+                    <Icon name={aberta ? 'chevD' : 'chevR'} size={13} color="var(--color-ink-faint)" className="shrink-0"/>
+                    {estrutura.nome}
+                    {govPav && <span className="text-[11px] font-normal text-ink-faint">— Mais populoso: <span className="text-red font-semibold">{govPav.nome} ({calcPopPav(govPav, TAXA_POPULACIONAL)} pess.)</span></span>}
                   </div>
-                  <div className={`text-center text-[15px] font-bold ${p.ambientes.length ? 'text-red' : 'text-ink-faint'}`}>{p.ambientes.length}</div>
-                  <div className={`text-center text-sm font-bold ${pop>0 ? 'text-red' : 'text-ink-faint'}`}>{pop>0 ? `${pop} pess.` : <span className="text-[11px] font-normal">—</span>}</div>
-                  <div className="flex gap-1 flex-wrap">{divs.map(d=><DivBadge key={d} label={d}/>)}{!divs.length && <span className="text-[11px] text-ink-faint">—</span>}</div>
                 </div>
-              )
-            })}
 
-            {!temPavimentos && (
-              <div className="p-9 text-center text-ink-faint text-[13px]">
-                Nenhum pavimento configurado. Cadastre os pavimentos da edificação na Etapa 2 (Edificação).
+                {aberta && <>
+                {pavsDaEstrutura.length > 0 && (
+                  <div className={`grid ${MAIN_COL} gap-3.5 py-2 px-5 bg-surface-2 border-b border-solid border-border text-[10px] text-ink-faint uppercase tracking-[.06em]`}>
+                    <span>Pavimento</span><span className="text-center">Amb.</span><span className="text-center">Pop.</span><span>Divisões</span>
+                  </div>
+                )}
+
+                {pavsDaEstrutura.map(p => {
+                  const pop  = calcPopPav(p, TAXA_POPULACIONAL)
+                  const divs = [...new Set(p.ambientes.map(a => a.divisao).filter(Boolean))]
+                  const isGov = govPav?.id === p.id
+                  const pendente = p.ambientes.length === 0
+                  return (
+                    <div key={p.id}
+                      onClick={() => setOpenId(p.id)}
+                      className={`grid ${MAIN_COL} gap-3.5 items-center py-[13px] px-5 border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.025] ${pendente ? 'border-l-2 border-l-amber-border' : 'border-l-2 border-l-green-border'}`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-[7px]">
+                          <span className="text-[13px] font-semibold text-ink">{p.nome}</span>
+                          {p.tipo==='descarga'
+                            ? <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>
+                            : <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-surface-2 border border-solid border-border text-ink-faint">TIPO</span>}
+                        </div>
+                        {isGov ? (
+                          <div className="text-[10px] text-red font-medium mt-0.5">Mais populoso · referência para ER</div>
+                        ) : pendente ? (
+                          <div className="text-[10px] text-amber font-medium mt-0.5">Pendente — clique para cadastrar ambientes</div>
+                        ) : null}
+                      </div>
+                      <div className={`text-center text-[15px] font-bold ${p.ambientes.length ? 'text-red' : 'text-ink-faint'}`}>{p.ambientes.length}</div>
+                      <div className={`text-center text-sm font-bold ${pop>0 ? 'text-red' : 'text-ink-faint'}`}>{pop>0 ? `${pop} pess.` : <span className="text-[11px] font-normal">—</span>}</div>
+                      <div className="flex gap-1 flex-wrap">{divs.map(d=><DivBadge key={d} label={d}/>)}{!divs.length && <span className="text-[11px] text-ink-faint">—</span>}</div>
+                    </div>
+                  )
+                })}
+
+                {pavsDaEstrutura.length === 0 && (
+                  <div className="p-9 text-center text-ink-faint text-[13px]">
+                    Nenhum pavimento configurado para esta estrutura. Cadastre na Etapa 2 (Edificação).
+                  </div>
+                )}
+                </>}
               </div>
-            )}
-          </div>
 
-          {temPavimentos && !pavimentos.some(p => p.tipo==='descarga') && (
-            <div className="ibox amber mb-0 mt-4">
-              <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-              <span className="text-xs">Nenhum piso de descarga definido. Marque o pavimento térreo na Etapa 2 (Edificação) para o cálculo correto das distâncias máximas.</span>
+              {aberta && pavsDaEstrutura.length > 0 && !pavsDaEstrutura.some(p => p.tipo==='descarga') && (
+                <div className="ibox amber mb-0 mt-3">
+                  <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+                  <span className="text-xs">Nenhum piso de descarga definido em {estrutura.nome}. Marque o pavimento térreo na Etapa 2 (Edificação) para o cálculo correto das distâncias máximas.</span>
+                </div>
+              )}
+            </div>
+            )
+          })}
+
+          {!temPavimentos && (
+            <div className="p-9 text-center text-ink-faint text-[13px] bg-surface border border-solid border-border rounded-lg">
+              Nenhum pavimento configurado. Cadastre os pavimentos da edificação na Etapa 2 (Edificação).
             </div>
           )}
         </div>
@@ -636,7 +677,7 @@ export default function SaidaEmergenciaPage() {
         {temPavimentos && (
           <div>
             <StepHeader n={2} label="Dimensionamento das saídas"
-              desc="Larguras de acessos, escadas e portas, e distâncias máximas a percorrer — calculados automaticamente a partir da população de cada pavimento."/>
+              desc="Larguras de acessos, escadas e portas, e distâncias máximas a percorrer — calculados automaticamente a partir da população de cada pavimento, por estrutura."/>
 
             {!temPopulacao ? (
               <div className="border border-solid border-border rounded-lg py-12 px-6 text-center bg-surface">
@@ -647,98 +688,111 @@ export default function SaidaEmergenciaPage() {
                 </div>
               </div>
             ) : (
-          <div className="flex flex-col gap-7">
+          <div className="flex flex-col gap-4">
 
-            <div>
-              <SectionTitle label="Acessos e Descargas (AD)" desc={`Todos os pavimentos · ${fmt(LARGURAS_MINIMAS.LARG_UP)} m/UP · mínimo ${fmt(LARGURAS_MINIMAS.AD)} m`}/>
-              <DimTable>
-                <thead><tr><TH>Pavimento</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH right>L adotada</TH></tr></thead>
-                <tbody>
-                  {dadosPav.map(({ pav,pop,cap,ad,laAD }) => (
-                    <tr key={pav.id}><TD bold>{pav.nome}</TD><TD center red>{pop}</TD><TD center muted>{cap.AD}</TD><TD center red bold>{ad.n} UP</TD><TD right muted>{fmtM(ad.lc)}</TD><TD right muted>{fmtM(ad.lMin)}</TD>
-                      <LargAdotadaInput laMin={ad.la} value={laAD} onChange={v => setLarg(pav.id,'AD',v)}/>
-                    </tr>
-                  ))}
-                </tbody>
-              </DimTable>
-            </div>
-
-            <div>
-              <SectionTitle label="Escadas e Rampas (ER)" desc={`Pavimento mais populoso (excl. piso de descarga) · mínimo ${fmt(LARGURAS_MINIMAS.ER)} m`}/>
-              {erDados ? (
-                <DimTable>
-                  <thead><tr><TH>Pav. mais populoso</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH right>L adotada</TH></tr></thead>
-                  <tbody>
-                    <tr><TD bold>{govPav.nome}</TD><TD center red>{erDados.pop}</TD><TD center muted>{erDados.capER}</TD><TD center red bold>{erDados.n} UP</TD><TD right muted>{fmtM(erDados.lc)}</TD><TD right muted>{fmtM(erDados.lMin)}</TD>
-                      <LargAdotadaInput laMin={erDados.la} value={erDados.laER} onChange={v => setLarg(govPav.id,'ER',v)}/>
-                    </tr>
-                  </tbody>
-                </DimTable>
-              ) : (
-                <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span className="text-xs">Nenhum pavimento tipo configurado. O piso de descarga não é referência para ER.</span></div>
-              )}
-            </div>
-
-            <div>
-              <SectionTitle label="Portas (PT)" desc="Todos os pavimentos · 1 UP→0,80 m · 2 UPs→1,00 m · 3 UPs→1,50 m · 4 UPs→2,00 m"/>
-              <DimTable>
-                <thead><tr><TH>Pavimento</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH center>Tipo</TH><TH right>L adotada</TH></tr></thead>
-                <tbody>
-                  {dadosPav.map(({ pav,pop,cap,pt,laPT }) => (
-                    <tr key={pav.id}><TD bold>{pav.nome}</TD><TD center red>{pop}</TD><TD center muted>{cap.PT}</TD><TD center red bold>{pt.n} UP</TD><TD right muted>{fmtM(pt.lc)}</TD><TD right muted>{fmtM(pt.lMin)}</TD><TD center muted>{pt.tipo}</TD>
-                      <LargAdotadaInput laMin={pt.la} value={laPT} onChange={v => setLarg(pav.id,'PT',v)}/>
-                    </tr>
-                  ))}
-                </tbody>
-              </DimTable>
-            </div>
-
-            <div>
-              <div className="flex items-start justify-between mb-3">
-                <SectionTitle label="Distâncias Máximas a Percorrer" desc="Distância máxima do ponto mais remoto até a saída de emergência (NBR 9077)"/>
-                <div className="flex gap-2 shrink-0 ml-4">
-                  <Toggle checked={temChuveiros} onChange={setTemChuveiros} label="Chuveiros automáticos"/>
-                  <Toggle checked={temDeteccao}  onChange={setTemDeteccao}  label="Detecção de incêndio"/>
+            {porEstrutura.filter(g => g.pavimentos.length > 0).map(({ estrutura, dadosPav: dadosDaEstrutura, govPav, erDados }) => {
+              const cfg = getConfigEstrutura(estrutura.id)
+              const aberta = !colapsadas[estrutura.id]
+              return (
+              <div key={estrutura.id} className="border border-solid border-border rounded-lg bg-surface overflow-hidden">
+                <div
+                  className="flex items-center justify-between gap-4 py-3.5 px-5 cursor-pointer select-none"
+                  onClick={() => toggleColapsada(estrutura.id)}
+                >
+                  <div className="text-[13px] font-bold text-ink flex items-center gap-2">
+                    <Icon name={aberta ? 'chevD' : 'chevR'} size={13} color="var(--color-ink-faint)" className="shrink-0"/>
+                    <Icon name="newbld" size={14} color="var(--color-red)"/> {estrutura.nome}
+                  </div>
+                  <div className="flex gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                    <Toggle checked={cfg.temChuveiros} onChange={v => setConfigEstrutura(estrutura.id, { temChuveiros: v })} label="Chuveiros automáticos"/>
+                    <Toggle checked={cfg.temDeteccao}  onChange={v => setConfigEstrutura(estrutura.id, { temDeteccao: v })}  label="Detecção de incêndio"/>
+                  </div>
                 </div>
+
+                {aberta && (
+                <div className="flex flex-col gap-5 px-5 pb-5">
+                  <div>
+                    <SectionTitle label="Acessos e Descargas (AD)" desc={`Todos os pavimentos · ${fmt(LARGURAS_MINIMAS.LARG_UP)} m/UP · mínimo ${fmt(LARGURAS_MINIMAS.AD)} m`}/>
+                    <DimTable>
+                      <thead><tr><TH>Pavimento</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH right>L adotada</TH></tr></thead>
+                      <tbody>
+                        {dadosDaEstrutura.map(({ pav,pop,cap,ad,laAD }) => (
+                          <tr key={pav.id}><TD bold>{pav.nome}</TD><TD center red>{pop}</TD><TD center muted>{cap.AD}</TD><TD center red bold>{ad.n} UP</TD><TD right muted>{fmtM(ad.lc)}</TD><TD right muted>{fmtM(ad.lMin)}</TD>
+                            <LargAdotadaInput laMin={ad.la} value={laAD} onChange={v => setLarg(pav.id,'AD',v)}/>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </DimTable>
+                  </div>
+
+                  <div>
+                    <SectionTitle label="Escadas e Rampas (ER)" desc={`Pavimento mais populoso desta estrutura (excl. piso de descarga) · mínimo ${fmt(LARGURAS_MINIMAS.ER)} m`}/>
+                    {erDados ? (
+                      <DimTable>
+                        <thead><tr><TH>Pav. mais populoso</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH right>L adotada</TH></tr></thead>
+                        <tbody>
+                          <tr><TD bold>{govPav.nome}</TD><TD center red>{erDados.pop}</TD><TD center muted>{erDados.capER}</TD><TD center red bold>{erDados.n} UP</TD><TD right muted>{fmtM(erDados.lc)}</TD><TD right muted>{fmtM(erDados.lMin)}</TD>
+                            <LargAdotadaInput laMin={erDados.la} value={erDados.laER} onChange={v => setLarg(govPav.id,'ER',v)}/>
+                          </tr>
+                        </tbody>
+                      </DimTable>
+                    ) : (
+                      <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span className="text-xs">Nenhum pavimento tipo configurado nesta estrutura. O piso de descarga não é referência para ER.</span></div>
+                    )}
+                  </div>
+
+                  <div>
+                    <SectionTitle label="Portas (PT)" desc="Todos os pavimentos · 1 UP→0,80 m · 2 UPs→1,00 m · 3 UPs→1,50 m · 4 UPs→2,00 m"/>
+                    <DimTable>
+                      <thead><tr><TH>Pavimento</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH center>Tipo</TH><TH right>L adotada</TH></tr></thead>
+                      <tbody>
+                        {dadosDaEstrutura.map(({ pav,pop,cap,pt,laPT }) => (
+                          <tr key={pav.id}><TD bold>{pav.nome}</TD><TD center red>{pop}</TD><TD center muted>{cap.PT}</TD><TD center red bold>{pt.n} UP</TD><TD right muted>{fmtM(pt.lc)}</TD><TD right muted>{fmtM(pt.lMin)}</TD><TD center muted>{pt.tipo}</TD>
+                            <LargAdotadaInput laMin={pt.la} value={laPT} onChange={v => setLarg(pav.id,'PT',v)}/>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </DimTable>
+                  </div>
+
+                  <div>
+                    <SectionTitle label="Distâncias Máximas a Percorrer" desc="Distância máxima do ponto mais remoto até a saída de emergência (NBR 9077)"/>
+                    <DimTable>
+                      <thead><tr><TH>Pavimento</TH><TH>Tipo</TH><TH center>Saídas</TH><TH>Proteção</TH><TH right>Dist. máxima</TH></tr></thead>
+                      <tbody>
+                        {dadosDaEstrutura.map(({ pav, ad, dist, unica }) => {
+                          const prot = [cfg.temChuveiros&&'Chuveiros', cfg.temDeteccao&&'Detecção'].filter(Boolean)
+                          const minSaidas = ad.n
+                          return (
+                            <tr key={pav.id}>
+                              <TD bold>{pav.nome}</TD>
+                              <TD muted>{pav.tipo==='descarga' ? 'Piso de descarga' : 'Demais andares'}</TD>
+                              <td className="py-2 px-3.5 border-b border-solid border-border-2 align-middle">
+                                <div className="flex items-center gap-2">
+                                  <Toggle checked={unica} onChange={v => toggleSaidaUnica(pav.id, v)} label="Saída única"/>
+                                  {unica && minSaidas > 1 && (
+                                    <span className="text-[10px] text-amber flex items-center gap-[3px]">
+                                      <Icon name="warn" size={10} color="var(--color-amber)"/> mín. {minSaidas} UPs
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <TD muted>{prot.length ? prot.join(' + ') : '—'}</TD>
+                              <td className="py-2.5 px-3.5 text-right border-b border-solid border-border-2">
+                                {dist!==null ? <Chip val={`${dist} m`} green/> : <span className="text-xs text-ink-faint">Consultar NT</span>}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </DimTable>
+                    <div className="text-[11px] text-ink-faint leading-[1.6] mt-1.5">Fonte: NBR 9077 — Saídas de Emergência em Edifícios, Tabelas 1 e 2.</div>
+                  </div>
+                </div>
+                )}
               </div>
-              <DimTable>
-                <thead><tr><TH>Pavimento</TH><TH>Tipo</TH><TH center>Saídas</TH><TH>Proteção</TH><TH right>Dist. máxima</TH></tr></thead>
-                <tbody>
-                  {dadosPav.map(({ pav, ad, dist, unica }) => {
-                    const prot = [temChuveiros&&'Chuveiros', temDeteccao&&'Detecção'].filter(Boolean)
-                    const minSaidas = ad.n
-                    return (
-                      <tr key={pav.id}>
-                        <TD bold>{pav.nome}</TD>
-                        <TD muted>{pav.tipo==='descarga' ? 'Piso de descarga' : 'Demais andares'}</TD>
-                        <td className="py-2 px-3.5 border-b border-solid border-border-2 align-middle">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => toggleSaidaUnica(pav.id, true)}
-                              className={`text-[11px] py-1 px-2.5 rounded-md border border-solid cursor-pointer transition-all duration-150 ${unica ? 'border-red-border bg-red-dim text-red font-semibold' : 'border-border bg-transparent text-ink-faint font-normal'}`}
-                            >Saída única</button>
-                            <button
-                              onClick={() => toggleSaidaUnica(pav.id, false)}
-                              className={`text-[11px] py-1 px-2.5 rounded-md border border-solid cursor-pointer transition-all duration-150 ${!unica ? 'border-green-border bg-green-dim text-green font-semibold' : 'border-border bg-transparent text-ink-faint font-normal'}`}
-                            >Mais de uma saída</button>
-                            {unica && minSaidas > 1 && (
-                              <span className="text-[10px] text-amber flex items-center gap-[3px]">
-                                <Icon name="warn" size={10} color="var(--color-amber)"/> mín. {minSaidas} UPs
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <TD muted>{prot.length ? prot.join(' + ') : '—'}</TD>
-                        <td className="py-2.5 px-3.5 text-right border-b border-solid border-border-2">
-                          {dist!==null ? <Chip val={`${dist} m`} green/> : <span className="text-xs text-ink-faint">Consultar NT</span>}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </DimTable>
-              <div className="text-[11px] text-ink-faint leading-[1.6] mt-1.5">Fonte: NBR 9077 — Saídas de Emergência em Edifícios, Tabelas 1 e 2.</div>
-            </div>
+              )
+            })}
           </div>
             )}
           </div>

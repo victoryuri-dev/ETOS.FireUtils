@@ -52,6 +52,10 @@ export function buildAnexoBData(state, sistemas) {
 
   const estruturas     = state.estruturas || []
   const areaTotalSum   = estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
+  // area construida total: sempre o valor gravado no projeto (manual ou
+  // somado das estruturas pelo switch da Etapa 2) — a soma das estruturas
+  // so entra como fallback quando esse campo ainda nao foi preenchido.
+  const areaConstruida = parseFloat(state.areaConstruidaTotal) || areaTotalSum
   const alturaNum      = estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
   const subsolosSum    = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
   const estruturaTipos = [...new Set(estruturas.flatMap(e => Array.isArray(e.estrutura) ? e.estrutura : [e.estrutura]).filter(Boolean))].join(', ')
@@ -82,7 +86,7 @@ export function buildAnexoBData(state, sistemas) {
     nomeFantasia: state.respFantasia || '',
     cnaePrincipal: [state.cnaePrincipal, state.cnaePrincipalDesc].filter(Boolean).join(' — '),
     classificacaoOcupacao,
-    areaTotalConstruida: areaTotalSum ? `${areaTotalSum} m²` : '',
+    areaTotalConstruida: areaConstruida ? `${areaConstruida} m²` : '',
     pavimentosSubsolo: subsolosSum ? String(subsolosSum) : '',
     areaTerreno: state.areaTerreno ? `${state.areaTerreno} m²` : '',
     quantidadePublico: state.quantidadePublico ? String(state.quantidadePublico) : '',

@@ -25,8 +25,12 @@ async function garantirProjetoExemploFixo(userId) {
 
 // ── helpers ───────────────────────────────────────────────────────────
 
+// Area construida total do projeto: sempre o valor gravado no campo (manual
+// ou somado das estruturas pelo switch da Etapa 2) — a soma das estruturas
+// so entra como fallback quando esse campo ainda nao foi preenchido.
 function totalArea(proj) {
-  return (proj.estruturas || []).reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
+  const soma = (proj.estruturas || []).reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
+  return parseFloat(proj.areaConstruidaTotal) || soma
 }
 
 function calcCompletude(s) {

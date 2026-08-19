@@ -4,6 +4,7 @@ import { useNorma } from '../../hooks/useNorma'
 import { calcularSinalizacaoPavimento } from '../../data/sinalizacao_calc'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
+import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 
 // ── Importação do firedata.json (plugin Revit) ───────────────────────
@@ -53,21 +54,6 @@ function resolverImportacaoSinalizacao(json, estruturas, pavimentos, tiposPlaca)
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
 }
-function CardHeader({ children }) {
-  return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 flex-wrap">{children}</div>
-}
-function Chip({ children, tone = 'neutral' }) {
-  const tones = {
-    neutral: 'bg-surface-2 border-border-2 text-ink-muted',
-    green:   'bg-green-dim border-green-border text-green',
-    amber:   'bg-amber-dim border-amber-border text-amber',
-  }
-  return (
-    <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-md font-semibold text-xs border border-solid ${tones[tone]}`}>
-      {children}
-    </span>
-  )
-}
 function EmptyState({ texto }) {
   return (
     <div className="border border-solid border-border rounded-lg py-12 px-6 text-center bg-surface mb-8">
@@ -78,6 +64,14 @@ function EmptyState({ texto }) {
 }
 function RefLabel({ children }) {
   return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">{children}</div>
+}
+// Cor da tag de código por categoria — alerta é amarelo, orientação/saída é
+// verde, proibição e equipamentos são vermelhos (mesmas cores dos pictogramas
+// da NBR 13434).
+function corTagCategoria(categoriaKey) {
+  if (categoriaKey === 'alerta')     return 'bg-amber border-amber text-white'
+  if (categoriaKey === 'orientacao') return 'bg-green border-green text-white'
+  return 'bg-red border-red text-white'
 }
 function StepperButton({ onClick, title, children }) {
   return (
@@ -113,14 +107,16 @@ function CategoriaAccordion({ categoria, tipos, itens, estruturaId, pavimentoId,
         className="w-full py-2.5 px-3 bg-surface-2 flex items-center gap-2 flex-wrap text-left cursor-pointer"
       >
         <span className="text-[13px] font-semibold text-ink">{categoria.label}</span>
-        {tiposUsados.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap">
-            {tiposUsados.map(t => (
-              <span key={t.key} className="inline-block py-0.5 px-1.5 rounded border border-red bg-red text-white text-[10px] font-mono font-semibold">{t.codigo}</span>
-            ))}
-          </div>
-        )}
-        <Icon name="chevD" size={14} className={`ml-auto text-ink-faint transition-transform ${open ? 'rotate-180' : ''}`}/>
+        <div className="flex items-center gap-1.5 ml-auto">
+          {tiposUsados.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {tiposUsados.map(t => (
+                <span key={t.key} className={`inline-block py-0.5 px-1.5 rounded border text-[11px] font-mono font-semibold ${corTagCategoria(categoria.key)}`}>{t.codigo}</span>
+              ))}
+            </div>
+          )}
+          <Icon name="chevD" size={14} className={`text-ink-faint transition-transform ${open ? 'rotate-180' : ''}`}/>
+        </div>
       </button>
       {open && (
         <table className="w-full border-collapse">
@@ -134,7 +130,7 @@ function CategoriaAccordion({ categoria, tipos, itens, estruturaId, pavimentoId,
                     <img src={t.img} alt={t.codigo} className="w-20 h-20 max-w-none object-contain rounded-md"/>
                   </td>
                   <td className="py-2 px-2.5 border-b border-solid border-border-2 w-[56px]">
-                    <span className={`inline-block py-0.5 px-1.5 rounded border text-[10px] font-mono font-semibold transition-colors ${usado ? 'bg-red border-red text-white' : 'bg-surface-2 border-border-2 text-ink-muted'}`}>{t.codigo}</span>
+                    <span className={`inline-block py-0.5 px-1.5 rounded border text-[11px] font-mono font-semibold transition-colors ${usado ? corTagCategoria(t.categoria) : 'bg-surface-2 border-border-2 text-ink-muted'}`}>{t.codigo}</span>
                   </td>
                   <td className="py-2 px-2.5 text-[13px] text-ink-muted border-b border-solid border-border-2">
                     {t.label}
@@ -172,30 +168,45 @@ function CategoriaAccordion({ categoria, tipos, itens, estruturaId, pavimentoId,
   )
 }
 
-// ── Card de um pavimento ──────────────────────────────────────────────
+// ── Card de um pavimento (retrátil) ──────────────────────────────────
 function PavimentoCard({ pavimento, estruturaId, itens, tiposPlaca, categorias, dispatch }) {
+  const [open, setOpen] = useState(false)
   const resultado = calcularSinalizacaoPavimento(itens, tiposPlaca)
+  const tiposUsados = tiposPlaca.filter(t => resultado.porTipo[t.key] > 0)
 
   return (
     <Card className="mb-4">
-      <CardHeader>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 flex-wrap text-left cursor-pointer"
+      >
         <span className="text-[13px] font-semibold text-ink">{pavimento.label}</span>
-        {resultado.quantidadeTotal > 0 && (
-          <Chip tone="green">{resultado.tiposCadastrados} tipos · {resultado.quantidadeTotal} placas no total</Chip>
-        )}
-      </CardHeader>
-      <div className="py-3.5 px-[18px]">
-        {categorias.map(cat => (
-          <CategoriaAccordion
-            key={cat.key}
-            categoria={cat}
-            tipos={tiposPlaca.filter(t => t.categoria === cat.key)}
-            itens={itens.filter(i => tiposPlaca.find(t => t.key === i.tipoPlaca)?.categoria === cat.key)}
-            estruturaId={estruturaId} pavimentoId={pavimento.id}
-            dispatch={dispatch}
-          />
-        ))}
-      </div>
+        <div className="flex items-center gap-1.5 ml-auto">
+          {!open && tiposUsados.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {tiposUsados.map(t => (
+                <span key={t.key} className={`inline-block py-0.5 px-1.5 rounded border text-[11px] font-mono font-semibold ${corTagCategoria(t.categoria)}`}>{t.codigo}</span>
+              ))}
+            </div>
+          )}
+          <Icon name="chevD" size={14} className={`text-ink-faint transition-transform ${open ? 'rotate-180' : ''}`}/>
+        </div>
+      </button>
+      {open && (
+        <div className="py-3.5 px-[18px]">
+          {categorias.map(cat => (
+            <CategoriaAccordion
+              key={cat.key}
+              categoria={cat}
+              tipos={tiposPlaca.filter(t => t.categoria === cat.key)}
+              itens={itens.filter(i => tiposPlaca.find(t => t.key === i.tipoPlaca)?.categoria === cat.key)}
+              estruturaId={estruturaId} pavimentoId={pavimento.id}
+              dispatch={dispatch}
+            />
+          ))}
+        </div>
+      )}
     </Card>
   )
 }
@@ -267,7 +278,10 @@ export default function SinalizacaoPage() {
         <div className="flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-            <h2 className="text-[22px] font-bold text-ink mb-1.5">Sinalização de Emergência</h2>
+            <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+              <Icon name={SISTEMA_ICON.sinalizacao} size={20} color="var(--color-red)" className="shrink-0"/>
+              Sinalização de Emergência
+            </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
               Cadastre as placas de sinalização de emergência utilizadas em cada pavimento, conforme a NT 20 CBMMA / NBR 13434 — proibição, alerta, orientação/saída e equipamentos de combate a incêndio.
             </p>

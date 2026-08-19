@@ -7,6 +7,7 @@ import Icon from '../../components/ui/Icon'
 import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 // ── Importação do firedata.json (plugin Revit) ───────────────────────
 // Formato esperado — um item por extintor físico (cada família do Revit
@@ -604,7 +605,10 @@ export default function ExtintoresPage() {
         <div className="flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-            <h2 className="text-[22px] font-bold text-ink mb-1.5">Sistema de Proteção por Extintores de Incêndio</h2>
+            <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+              <Icon name={SISTEMA_ICON.extintores} size={20} color="var(--color-red)" className="shrink-0"/>
+              Sistema de Proteção por Extintores de Incêndio
+            </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
               Distribuição de extintores por estrutura, pavimento e ambiente conforme a NT 21 CBMMA. Cadastre manualmente ou importe do plugin Revit — o risco predominante (que define a área-limite para unidade única) vem da carga de incêndio classificada na Etapa 5.
             </p>

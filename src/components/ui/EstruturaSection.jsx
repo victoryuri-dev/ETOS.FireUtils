@@ -13,10 +13,10 @@ export default function EstruturaSection({ titulo, extra, defaultOpen = true, ch
   const [open, setOpen] = useState(defaultOpen)
 
   return (
-    <div className="mb-5 border border-solid border-border rounded-lg overflow-hidden bg-surface last:mb-0">
+    <div className="mb-5 border border-solid border-border rounded-lg overflow-hidden bg-surface transition-colors duration-300 ease-out hover:border-[rgba(255,255,255,.3)] focus-within:border-[rgba(255,255,255,.3)] last:mb-0">
       <div
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-2 py-4 px-4 cursor-pointer select-none group bg-surface-2 ${open ? 'border-b border-solid border-border' : ''}`}
+        className={`flex items-center gap-2 py-4 px-4 cursor-pointer select-none group ${open ? 'border-b border-solid border-border' : ''}`}
       >
         <Icon
           name="chevD"

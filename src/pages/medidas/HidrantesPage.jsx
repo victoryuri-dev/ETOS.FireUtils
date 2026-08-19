@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { supabase } from '../../lib/supabase'
 import Icon from '../../components/ui/Icon'
+import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 // ── Formatação ────────────────────────────────────────────────────────
 const f4  = n => Number(n).toFixed(4)
@@ -506,7 +507,10 @@ export default function HidrantesPage() {
         <div className="flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-            <h2 className="text-[22px] font-bold text-ink mb-1.5">Hidrantes / Mangotinho</h2>
+            <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+              <Icon name={SISTEMA_ICON.hidrantes} size={20} color="var(--color-red)" className="shrink-0"/>
+              Hidrantes / Mangotinho
+            </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
               Resultados gerados pelo plugin Revit e apresentados conforme NT 22 CBMMA / NBR 13714.
             </p>

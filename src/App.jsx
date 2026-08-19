@@ -27,24 +27,33 @@ import logo           from './assets/fireutils-logo.png'
 // ── AppHeader ─────────────────────────────────────────────────────────
 function AppHeader({ onGoProjetos, isProjectPage }) {
   const { user, signOut } = useAuth()
+  const { state } = useProjeto()
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <header className="flex items-center justify-between px-6 h-16 bg-surface border-b border-border border-solid shrink-0 z-100">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5">
-        <img src={logo} alt="Fire Utils" className="h-11 w-auto"/>
-      </div>
+    <header className="flex items-center justify-between px-6 h-16 border-b border-border border-solid shrink-0 z-100">
+      {/* Logo — omitida dentro de um projeto, ja mostrada no topo do aside */}
+      {!isProjectPage && (
+        <div className="flex items-center gap-2.5">
+          <img src={logo} alt="Fire Utils" className="h-11 w-auto"/>
+        </div>
+      )}
 
-      {/* Nav */}
-      <nav className="flex items-center gap-1">
-        <button
-          onClick={onGoProjetos}
-          className={`btn-ghost ${!isProjectPage ? 'font-medium text-ink' : 'font-normal text-ink-muted'}`}
-        >
-          <Icon name="file" size={12}/> Meus projetos
-        </button>
-      </nav>
+      {/* Nav — breadcrumb estilo url: Projeto / UF / nome. So aparece dentro
+          de um projeto, ja que fora dele nao ha contexto pra mostrar. */}
+      {isProjectPage && (
+        <nav className="flex items-center gap-1.5 text-[14px]">
+          <button onClick={onGoProjetos} className="text-ink-muted hover:text-ink transition-colors cursor-pointer">
+            PROJETOS
+          </button>
+          {state.uf && <>
+            <span className="text-ink-hint">/</span>
+            <span className="text-ink-muted">{state.uf}</span>
+          </>}
+          <span className="text-ink-hint">/</span>
+          <span className="text-ink font-medium">{state.nome || 'Sem nome'}</span>
+        </nav>
+      )}
 
       {/* Direita — conta */}
       <div className="flex items-center gap-2 relative">
@@ -125,6 +134,7 @@ function ProjetosRoute() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
       <ProjetosPage
         onOpenProject={handleOpenProject}
         onNewProject={handleNewProject}
@@ -211,6 +221,7 @@ function ProjectLayout() {
     <>
       <ProjectAside activePage={activePage} onNavigate={handleNavigate}/>
       <div className="flex-1 flex flex-col overflow-hidden">
+        <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage/>
         {conflito && (
           <div className="ibox red m-3" role="alert">
             <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
@@ -229,19 +240,15 @@ function ProjectLayout() {
 // (preservando a página de origem em state.from) em vez de só trocar o
 // que é renderizado — assim o back/forward do navegador e o retorno pós
 // -login funcionam como esperado.
-function AuthedLayout({ onGoProjetos, isProjectPage }) {
+function AuthedLayout() {
   const { user } = useAuth()
   const location = useLocation()
 
   if (!user) return <Navigate to="/login" state={{ from: location }} replace/>
 
   return (
-    <div className="w-screen h-screen flex flex-col overflow-hidden bg-bg text-ink">
-      <AppHeader onGoProjetos={onGoProjetos} isProjectPage={isProjectPage}/>
-
-      <div className="flex flex-1 overflow-hidden">
-        <Outlet/>
-      </div>
+    <div className="w-screen h-screen flex overflow-hidden bg-bg text-ink">
+      <Outlet/>
     </div>
   )
 }
@@ -264,9 +271,6 @@ function LoginRoute() {
 // ── AppInner ──────────────────────────────────────────────────────────
 function AppInner() {
   const { loading } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const isProjectPage = location.pathname.startsWith('/projeto/')
 
   if (loading) {
     return (
@@ -280,7 +284,7 @@ function AppInner() {
     <Routes>
       <Route path="/login" element={<LoginRoute/>}/>
 
-      <Route element={<AuthedLayout onGoProjetos={() => navigate('/projetos')} isProjectPage={isProjectPage}/>}>
+      <Route element={<AuthedLayout/>}>
         <Route path="/" element={<Navigate to="/projetos" replace/>}/>
         <Route path="/projetos" element={<ProjetosRoute/>}/>
 

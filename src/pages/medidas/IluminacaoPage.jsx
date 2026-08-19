@@ -4,9 +4,11 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { calcularBalizamento, nomeEspecificacao } from '../../data/iluminacao_calc'
 import Icon from '../../components/ui/Icon'
+import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import SwitchToggle from '../../components/ui/SwitchToggle'
 import luminaria30ledsImg from '../../assets/luminaria 30 leds.png'
 import blocoIluminacaoImg from '../../assets/bloco de iluminacao.png'
 
@@ -147,17 +149,6 @@ function EspecificacaoRow({ spec, eqLabel, campos, dispatch, defaultAberto }) {
         </div>
       )}
     </div>
-  )
-}
-
-// ── Switch liga/desliga — mesmo estilo do Toggle usado em Saída de Emergência ──
-function SwitchToggle({ checked, onChange }) {
-  return (
-    <button type="button" onClick={() => onChange(!checked)} className="shrink-0 cursor-pointer bg-transparent border-none p-0">
-      <div className={`w-9 h-5 rounded-full relative transition-colors duration-200 ${checked ? 'bg-red' : 'bg-border'}`}>
-        <div className={`absolute top-0.5 ${checked ? 'left-[18px]' : 'left-0.5'} w-4 h-4 rounded-full bg-white transition-[left] duration-200`}/>
-      </div>
-    </button>
   )
 }
 
@@ -469,7 +460,10 @@ export default function IluminacaoPage() {
 
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="text-[22px] font-bold text-ink mb-1.5">Sistema de Iluminação de Emergência</h2>
+          <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+            <Icon name={SISTEMA_ICON.iluminacao} size={20} color="var(--color-red)" className="shrink-0"/>
+            Sistema de Iluminação de Emergência
+          </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
             Escolha o sistema utilizado no projeto e os equipamentos de aclaramento, e depois cadastre as quantidades por pavimento, conforme a NT 18 CBMMA / NBR 10898.
           </p>

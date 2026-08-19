@@ -3,6 +3,7 @@ import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { calcGatilho, calcAcessoViatura } from '../../data/av_calc'
 import Icon from '../../components/ui/Icon'
+import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 const fmt = n => Number(n || 0).toFixed(2).replace('.', ',')
 
@@ -96,7 +97,10 @@ export default function AcessoViaturaPage() {
         {/* Header */}
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="text-[22px] font-bold text-ink mb-1.5">Acesso de Viatura</h2>
+          <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+            <Icon name={SISTEMA_ICON.acesso_viatura} size={20} color="var(--color-red)" className="shrink-0"/>
+            Acesso de Viatura
+          </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
             Dimensionamento conforme item 5.1 (Anexo A e Anexo B) da NT 06/2021 CBMMA — Acesso de Viaturas nas Edificações e Áreas de Risco.
           </p>

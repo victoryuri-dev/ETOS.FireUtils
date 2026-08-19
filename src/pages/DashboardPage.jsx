@@ -12,23 +12,23 @@ const getCargaLbl = (q) => q <= 300 ? 'Risco baixo · Classe I' : q <= 1200 ? 'R
 const fmtNum = (n) => n ? Number(n).toLocaleString('pt-BR') : '—'
 
 const SIST_DISPLAY = [
-  { key:'acesso_viatura',      icon:'exit',   label:'Acesso de Viatura' },
-  { key:'seg_estrutural',      icon:'newbld', label:'Seg. Estrutural' },
-  { key:'saida_emergencia',    icon:'exit',   label:'Saidas de Emergencia' },
-  { key:'brigada',             icon:'drop',   label:'Brigada de Incendio' },
-  { key:'iluminacao',          icon:'sun',    label:'Iluminacao de Emergencia' },
-  { key:'sinalizacao',         icon:'sign',   label:'Sinalizacao de Emergencia' },
-  { key:'extintores',          icon:'ext',    label:'Extintores' },
-  { key:'hidrantes',           icon:'drop',   label:'Hidrantes / Mangotinho' },
-  { key:'alarme',              icon:'bell',   label:'Alarme de Incendio' },
-  { key:'deteccao',            icon:'sensor', label:'Deteccao de Incendio' },
-  { key:'sprinklers',          icon:'spray',  label:'Chuveiros Automaticos' },
-  { key:'controle_fumaca',     icon:'flame',  label:'Controle de Fumaca' },
-  { key:'compart_vertical',    icon:'stair',  label:'Compartimentacao Vertical' },
-  { key:'controle_acabamento', icon:'sign',   label:'Controle de Acabamento' },
-  { key:'gerenciamento_risco', icon:'warn',   label:'Gerenciamento de Risco' },
-  { key:'central_gas',         icon:'info',   label:'Central de Gas' },
-  { key:'spda',                icon:'warn',   label:'SPDA' },
+  { key:'acesso_viatura',      icon:'van',         label:'Acesso de Viatura' },
+  { key:'seg_estrutural',      icon:'wallFire',    label:'Seg. Estrutural' },
+  { key:'saida_emergencia',    icon:'exit',        label:'Saidas de Emergencia' },
+  { key:'brigada',             icon:'shieldAlert', label:'Brigada de Incendio' },
+  { key:'iluminacao',          icon:'sun',         label:'Iluminacao de Emergencia' },
+  { key:'sinalizacao',         icon:'sign',        label:'Sinalizacao de Emergencia' },
+  { key:'extintores',          icon:'ext',         label:'Extintores' },
+  { key:'hidrantes',           icon:'drop',        label:'Hidrantes / Mangotinho' },
+  { key:'alarme',              icon:'bellElectric',label:'Alarme de Incendio' },
+  { key:'deteccao',            icon:'alarmSmoke',  label:'Deteccao de Incendio' },
+  { key:'sprinklers',          icon:'spray',       label:'Chuveiros Automaticos' },
+  { key:'controle_fumaca',     icon:'flame',       label:'Controle de Fumaca' },
+  { key:'compart_vertical',    icon:'stair',       label:'Compartimentacao Vertical' },
+  { key:'controle_acabamento', icon:'sign',        label:'Controle de Acabamento' },
+  { key:'gerenciamento_risco', icon:'warn',        label:'Gerenciamento de Risco' },
+  { key:'central_gas',         icon:'info',        label:'Central de Gas' },
+  { key:'spda',                icon:'warn',        label:'SPDA' },
 ]
 
 const CHECKLIST_ITEMS = [
@@ -281,6 +281,11 @@ export default function DashboardPage({ onGoConfig }) {
   // Agregados das estruturas (torres/blocos)
   const estruturas    = state.estruturas || []
   const areaTotalSum  = estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
+  // area construida total: sempre o valor gravado no projeto (preenchido
+  // manualmente ou pelo switch "somar das estruturas" na Etapa 2) — a soma
+  // das estruturas so entra como fallback quando esse campo ainda nao foi
+  // preenchido (projeto antigo, por exemplo).
+  const areaConstruida = parseFloat(state.areaConstruidaTotal) || areaTotalSum
   const alturaNum     = estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
   const pavimentosSum = estruturas.reduce((s, e) => s + (parseInt(e.nPavimentos) || 0), 0)
   const subsolosSum   = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
@@ -334,7 +339,7 @@ export default function DashboardPage({ onGoConfig }) {
           <div className="flex gap-3 mb-5">
             <StatCell
               label="Area construida"
-              value={fmtNum(areaTotalSum)}
+              value={fmtNum(areaConstruida)}
               unit="m2"
               sub={estruturasNomes || null}
             />
@@ -376,7 +381,7 @@ export default function DashboardPage({ onGoConfig }) {
                 { label:'Altura maxima', value: alturaNum ? `${alturaNum} m` : '—', big:true },
                 { label:'Pavimentos', value: pavimentosSum || '—' },
                 { label:'Subsolos', value: subsolosSum || 0 },
-                { label:'Area construida', value: areaTotalSum ? `${fmtNum(areaTotalSum)} m2` : '—' },
+                { label:'Area construida', value: areaConstruida ? `${fmtNum(areaConstruida)} m2` : '—' },
                 { label:'Sistema construtivo', value: estruturaTipos },
               ]}
             />

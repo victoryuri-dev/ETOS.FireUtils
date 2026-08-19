@@ -3,6 +3,7 @@ import { useNorma } from '../../hooks/useNorma'
 import { calcularTRRF, metodologiaDosMateriais } from '../../data/trrf_calc'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
+import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 
 function Card({ children, className = '' }) {
@@ -150,7 +151,10 @@ export default function SegurancaEstruturalPage() {
 
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="text-[22px] font-bold text-ink mb-1.5">Segurança Estrutural Contra Incêndio</h2>
+          <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+            <Icon name={SISTEMA_ICON.seg_estrutural} size={20} color="var(--color-red)" className="shrink-0"/>
+            Segurança Estrutural Contra Incêndio
+          </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
             Classificação e TRRF (Tempo Requerido de Resistência ao Fogo) conforme Anexo B da NT 01 CBMMA, calculados por estrutura a partir da altura (acima do solo) e da profundidade do subsolo.
           </p>

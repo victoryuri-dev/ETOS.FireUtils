@@ -1,4 +1,5 @@
 import Icon from '../components/ui/Icon'
+import { SISTEMA_ICON } from '../data/sistemasIcons'
 
 const SIST_LABELS = {
   acesso_viatura:      'Acesso de Viatura em Edificações',
@@ -29,7 +30,10 @@ export default function MedidaPage({ sistKey }) {
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">
           Medidas de segurança
         </div>
-        <h2 className="text-[22px] font-semibold text-ink mb-[5px]">{label}</h2>
+        <h2 className="flex items-center gap-2 text-[22px] font-semibold text-ink mb-[5px]">
+          <Icon name={SISTEMA_ICON[sistKey]} size={20} color="var(--color-red)" className="shrink-0"/>
+          {label}
+        </h2>
         <p className="text-[13px] text-ink-faint leading-[1.6]">
           Dimensionamento e especificações técnicas do sistema conforme NT 42/2019 CBMMA.
         </p>

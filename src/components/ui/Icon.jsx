@@ -2,7 +2,8 @@ import {
   ArrowLeft, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Check, Plus, Minus,
   Trash2, Info, AlertTriangle, Save, Settings, LayoutDashboard, Droplet, DoorOpen,
   Flame, Bell, Sun, Moon, File, SprayCan, Signpost, Radar, FireExtinguisher, Layers,
-  Building2, Building, Search, X, Upload, Pencil, User, SquareDashed,
+  Building2, Building, Search, X, Upload, Pencil, User, SquareDashed, PanelLeft,
+  BrickWallFire, AlarmSmoke, BellElectric, Van, ShieldAlert,
 } from 'lucide-react'
 
 const ICONS = {
@@ -12,6 +13,8 @@ const ICONS = {
   flame: Flame, bell: Bell, sun: Sun, moon: Moon, file: File, spray: SprayCan, sign: Signpost,
   sensor: Radar, ext: FireExtinguisher, stair: Layers, newbld: Building2, oldbld: Building,
   search: Search, x: X, upload: Upload, edit: Pencil, user: User, area: SquareDashed,
+  panelLeft: PanelLeft, wallFire: BrickWallFire, alarmSmoke: AlarmSmoke, bellElectric: BellElectric,
+  van: Van, shieldAlert: ShieldAlert,
 }
 
 export default function Icon({ name, size=16, color, className='' }) {
