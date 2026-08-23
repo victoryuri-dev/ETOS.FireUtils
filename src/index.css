@@ -6,7 +6,9 @@
   --color-green: #1D9E75; --color-green-dim: rgba(29,158,117,.12); --color-green-border: rgba(29,158,117,.35);
   --color-amber: #c98a1a; --color-amber-dim: rgba(186,117,23,.12); --color-amber-border: rgba(186,117,23,.35);
   --color-blue-dim: rgba(80,140,220,.10); --color-blue-border: rgba(80,140,220,.30);
-  --color-bg: #0f0f11; --color-surface: #141416; --color-surface-2: #1a1a1d;
+    --color-bg: #101012;
+    --color-surface: #151518;
+    --color-surface-2: #1e1e22;
   --color-border: rgba(255,255,255,.11); --color-border-2: rgba(255,255,255,.06);
   --color-ink: #eaeaea; --color-ink-muted: rgba(255,255,255,.70);
   --color-ink-faint: rgba(255,255,255,.50); --color-ink-hint: rgba(255,255,255,.40);

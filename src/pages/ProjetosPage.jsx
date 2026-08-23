@@ -4,6 +4,7 @@ import { useNorma } from '../hooks/useNorma'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { criarProjetoExemploFixo, EXEMPLO_FIXO_ID } from '../data/projetoExemplo'
+import { temCNAECadastrado } from '../data/normas/index'
 
 // Garante que o projeto de exemplo fixo sempre exista pra este usuário — se
 // foi excluido em uma sessao anterior, recria-lo ao carregar a pagina. O id
@@ -35,12 +36,16 @@ function totalArea(proj) {
 
 function calcCompletude(s) {
   const area = totalArea(s)
+  const uf = s.uf || 'MA'
+  // Divisoes sem nenhum CNAE cadastrado (ex: J-1..J-4) nunca terao p.cnae
+  // preenchido — contam como classificadas so com a divisao definida.
+  const pavClassificado = p => !!(p.divisao && (p.cnae || !temCNAECadastrado(uf, p.divisao)))
   const checks = [
     !!(s.nome && s.endereco && s.cidade),
     !!(s.estruturas?.length && s.estruturas.every(e => e.areaTotal && e.altura)),
     !!s.propNome,
     !!(s.rtNome && s.artNumero),
-    !!(s.pavimentos?.length > 0 && s.pavimentos.every(p => p.cnae)),
+    !!(s.pavimentos?.length > 0 && s.pavimentos.every(pavClassificado)),
     !!(Object.keys(s.cargaState || {}).length > 0),
     true,
     !!(s.nome && area > 0 && s.pavimentos?.length > 0),

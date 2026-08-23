@@ -81,6 +81,12 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
             const q = getCarga(code)
             const cls = q ? getCls(q) : null
             const semCNAE = !cnae
+            // Algumas divisoes (ex: J-1..J-4, varias do grupo M) nao tem
+            // nenhum CNAE cadastrado na base normativa — a carga ja vem
+            // definida no proprio nome da divisao, e o usuario preenche por
+            // levantamento. Pra essas, o aviso de "volte a etapa 4" nunca
+            // seria resolvivel, entao nem aparece.
+            const temCnaeDisponivel = Object.keys(cnaesDiv(code)).length > 0
 
             return (
               <div key={code} className={`py-3.5 px-4 ${i < keys.length - 1 ? 'border-b border-solid border-border-2' : ''}`}>
@@ -93,7 +99,9 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
                     <div className="text-[11px] text-ink-faint mt-1.5">
                       {cnae
                         ? <><span className="font-mono text-red">{cnae}</span> — {divMap[code]?.cnaeDesc || cnaesDiv(code)[cnae]?.descricao || ''}</>
-                        : <span className="text-amber">Sem CNAE configurado — volte a etapa 4</span>
+                        : temCnaeDisponivel
+                          ? <span className="text-amber">Sem CNAE configurado — volte a etapa 4</span>
+                          : null
                       }
                     </div>
                     <div className="text-[11px] text-ink-hint mt-1">{divMap[code]?.pavs?.join(', ')}</div>

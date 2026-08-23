@@ -28,11 +28,6 @@ export default function Step1() {
   const [mesmoResponsavel, setMesmoResponsavel] = useState(false)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
   const setCNPJ = e => dispatch({ type:'SET_FIELD', field:'respCNPJ', value: maskCNPJ(e.target.value) })
-  const setCNAE = e => {
-    const d = e.target.value.replace(/\D/g, '').slice(0, 7)
-    const masked = d.length <= 4 ? d : d.length === 5 ? `${d.slice(0,4)}-${d[4]}` : `${d.slice(0,4)}-${d[4]}/${d.slice(5,7)}`
-    dispatch({ type:'SET_FIELD', field:'cnaePrincipal', value: masked })
-  }
   const normaInfo = getNormaInfo(state.uf || 'MA')
 
   // Mantem "Proprietario do imovel" espelhando "Responsavel pelo uso" enquanto marcado —
@@ -50,6 +45,11 @@ export default function Step1() {
         <div className={S.stepLbl}>Etapa 1 de 7</div>
         <h2 className={S.title}>Identificacao do projeto</h2>
         <p className={S.desc}>Comece pelo CNPJ da empresa para pre-preencher os dados — depois confirme o endereco da obra e os demais responsaveis.</p>
+      </div>
+
+      <div className="fg mb-6">
+        <label className="text-[13px]">Nome do projeto <span className="req">*</span></label>
+        <input value={state.nome} onChange={set('nome')} placeholder="Ex: Edificio Comercial Centro" className="text-[15px] py-3"/>
       </div>
 
       <FormSection title="Responsavel pelo uso" description="Empresa ou pessoa que ocupa o imovel — pode ser diferente do proprietario.">
@@ -75,35 +75,23 @@ export default function Step1() {
           <div className="fg"><label>Telefone</label><input type="tel" value={state.respTelefone} onChange={set('respTelefone')}/></div>
           <div className="fg"><label>E-mail</label><input type="email" value={state.respEmail} onChange={set('respEmail')}/></div>
         </div>
-        <div className="g2">
-          <div className="fg"><label>CNAE principal</label><input value={state.cnaePrincipal} onChange={setCNAE} placeholder="0000-0/00"/></div>
-          <div className="fg"><label>Descricao da atividade</label><input value={state.cnaePrincipalDesc} onChange={set('cnaePrincipalDesc')} placeholder="Preenchido automaticamente pela busca do CNPJ"/></div>
-        </div>
-      </FormSection>
-
-      <FormSection title="Identificacao">
-        <div className="fg mb-3">
-          <label>Nome do projeto <span className="req">*</span></label>
-          <input value={state.nome} onChange={set('nome')} placeholder="Ex: Edificio Comercial Centro"/>
-        </div>
-        <div className="fg">
-          <label>Data de inicio</label>
-          <input type="date" value={state.dataInicio} onChange={set('dataInicio')} className="max-w-[220px]"/>
-        </div>
       </FormSection>
 
       <FormSection title="Localizacao da obra">
 
         {enderecoFiscal && (
           <div className="ibox blue">
-            <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
-            <span>
-              Endereco fiscal encontrado: {enderecoFiscal.logradouro}, {enderecoFiscal.numero} — {enderecoFiscal.bairro}, {enderecoFiscal.cidade} — {enderecoFiscal.uf}, CEP {enderecoFiscal.cep}.
-              {' '}Pode ser diferente do endereco da obra — confirme antes de usar.{' '}
-              <button type="button" className="btn-ghost" onClick={aplicarEndereco}>
+            <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
+            <div className="flex-1 text-[13px]">
+              <div>
+                <span>Endereco fiscal encontrado:</span><br></br>
+                <span className="font-semibold text-ink">{enderecoFiscal.logradouro}, {enderecoFiscal.numero} — {enderecoFiscal.bairro}, {enderecoFiscal.cidade} — {enderecoFiscal.uf}, CEP {enderecoFiscal.cep}</span>
+              </div>
+              <div className="text-[12px] text-ink-faint mt-1">Pode ser diferente do endereco da obra — confirme antes de usar.</div>
+              <button type="button" className="btn-ghost mt-2" onClick={aplicarEndereco}>
                 <Icon name="check" size={11}/> Usar como endereco da obra
               </button>
-            </span>
+            </div>
           </div>
         )}
 

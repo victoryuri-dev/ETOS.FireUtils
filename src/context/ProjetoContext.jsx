@@ -168,6 +168,16 @@ function novaEstrutura(nome) {
   }
 }
 
+// Pavimento térreo padrão de uma estrutura recém-criada — toda estrutura
+// nasce com nPavimentos:1/nSubsolos:0, então já cadastra este único
+// pavimento de saída, em vez de deixar `pavimentos` vazio até o usuário
+// mexer nos campos do Step2 (mesmo formato produzido pelo térreo em
+// REBUILD_PAVIMENTOS, que o reaproveita ao invés de recriar quando os
+// valores mudam).
+function pavimentoTerreo(estruturaId) {
+  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] }
+}
+
 const INITIAL_STATE = {
   id: '', createdAt: '', saveReady: false,
   configStep: 1, configUnlocked: 1,
@@ -188,7 +198,7 @@ const INITIAL_STATE = {
   rtNome: '', rtCpf: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
   artNumero: '', artData: '', artTipoServico: 'Projeto', artValorObra: '',
-  pavimentos: [],
+  pavimentos: [pavimentoTerreo('est-1')],
   // Todos por-estrutura: chave = id da estrutura. cargaState guarda, dentro
   // de cada estrutura, o codigo da divisao (ex: "C-1"). sistemasPorEstrutura
   // guarda so o "ativo" manual (opcional habilitado) — o obrigatorio vem do
@@ -260,8 +270,10 @@ function reducer(state, action) {
   switch (action.type) {
     case 'SET_FIELD':
       return { ...state, [action.field]: action.value }
-    case 'ADD_ESTRUTURA':
-      return { ...state, estruturas: [...state.estruturas, novaEstrutura(`Estrutura ${state.estruturas.length + 1}`)] }
+    case 'ADD_ESTRUTURA': {
+      const est = novaEstrutura(`Estrutura ${state.estruturas.length + 1}`)
+      return { ...state, estruturas: [...state.estruturas, est], pavimentos: [...state.pavimentos, pavimentoTerreo(est.id)] }
+    }
     case 'REMOVE_ESTRUTURA': {
       if (state.estruturas.length <= 1) return state
       return {
@@ -293,7 +305,7 @@ function reducer(state, action) {
       }
       const terId = `${estruturaId}-P1`
       const ter = find(terId)
-      list.push(ter || { id: terId, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+      list.push(ter || pavimentoTerreo(estruturaId))
       for (let p = 2; p <= nPav; p++) {
         const id = `${estruturaId}-P${p}`
         list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
@@ -478,8 +490,10 @@ function reducer(state, action) {
       return { ...state, riscosOutrosDescPorEstrutura: { ...state.riscosOutrosDescPorEstrutura, [action.estruturaId]: action.value } }
     case 'LOAD':
       return { ...hydrateState(action.payload), saveReady: true }
-    case 'NEW_PROJECT':
-      return { ...INITIAL_STATE, id: action.id, createdAt: action.createdAt, estruturas: [novaEstrutura('Estrutura 1')], saveReady: true }
+    case 'NEW_PROJECT': {
+      const est = novaEstrutura('Estrutura 1')
+      return { ...INITIAL_STATE, id: action.id, createdAt: action.createdAt, estruturas: [est], pavimentos: [pavimentoTerreo(est.id)], saveReady: true }
+    }
     default: return state
   }
 }

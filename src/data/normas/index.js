@@ -62,6 +62,27 @@ export function getCargaCNAE(uf, divisao, cnae) {
   return getCNAEsDivisao(uf, divisao)[cnae] ?? null
 }
 
+// Busca um CNAE (codigo exato) em toda a base, em qualquer divisao — usado
+// pra resolver automaticamente grupo/divisao a partir de um CNAE já
+// conhecido (ex: vindo da Receita Federal via consulta de CNPJ), ao
+// contrario de buscarCNAE (que faz busca textual parcial pro autocomplete).
+export function buscarCNAEExato(uf, cnae) {
+  const mapa = getCargaMap(uf)
+  for (const [divisao, cnaes] of Object.entries(mapa)) {
+    if (cnaes[cnae]) return { cnae, divisao, grupo: divisao.charAt(0), ...cnaes[cnae] }
+  }
+  return null
+}
+
+// Indica se a divisao tem algum CNAE cadastrado na base normativa. Algumas
+// divisoes (ex: J-1..J-4, varias do grupo M) nao tem nenhum — a carga ja
+// vem definida no proprio nome da divisao, e o usuario preenche por
+// levantamento em vez de escolher um CNAE. Usado pra nao exigir CNAE de
+// divisoes que nunca terao um pra escolher.
+export function temCNAECadastrado(uf, divisao) {
+  return Object.keys(getCNAEsDivisao(uf, divisao)).length > 0
+}
+
 // ── Medidas de segurança ─────────────────────────────────────────────────────
 
 export function getMedidas(uf) {

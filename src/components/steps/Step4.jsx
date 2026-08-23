@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { useCnaeCnpjLookup } from '../../hooks/useCnaeCnpjLookup'
 import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
@@ -131,6 +132,70 @@ function SectionHead({ titulo, descricao, aviso }) {
   )
 }
 
+// ── Sugestão de classificação a partir do CNPJ (só no Térreo) ──────────
+// O Térreo carrega a ocupação predominante da edificação — por isso só ele
+// ganha esse atalho. O CNPJ já foi informado na Etapa 1 (Responsável pelo
+// uso), então a busca dispara sozinha ao abrir o modal — sem pedir de novo.
+// Acha o CNAE fiscal da empresa (mesma API de useCnpjLookup) e casa contra
+// a base normativa pra sugerir grupo/divisão automaticamente.
+function BuscaCnaePorCnpj({ pav, dispatch }) {
+  const { state } = useProjeto()
+  const { buscar, limpar, loading, error, resultado } = useCnaeCnpjLookup()
+  const cnpjDigits = (state.respCNPJ || '').replace(/\D/g, '')
+
+  useEffect(() => {
+    if (cnpjDigits.length === 14) buscar(state.respCNPJ)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cnpjDigits])
+
+  const aplicarClassificacao = () => {
+    if (!resultado?.match) return
+    dispatch({
+      type: 'UPDATE_PAV', id: pav.id,
+      changes: { grupo: resultado.match.grupo, divisao: resultado.match.divisao, cnae: resultado.match.cnae, cnaeDesc: resultado.match.descricao },
+    })
+    limpar()
+  }
+
+  if (cnpjDigits.length !== 14 || loading) return null
+
+  if (error) {
+    return (
+      <div className="ibox amber mb-5">
+        <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+        <span>Nao foi possivel sugerir a classificacao pelo CNPJ da Etapa 1: {error}</span>
+      </div>
+    )
+  }
+
+  // Sem correspondencia na base normativa — nada pra sugerir, entao nem
+  // mostra a caixa (ver conversa: nao ha CNAE pra classificar manualmente
+  // por essa via mesmo).
+  if (!resultado?.match) return null
+
+  return (
+    <div className="ibox blue mb-5">
+      <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
+      <div className="flex flex-col gap-2 flex-1 min-w-0">
+        <div>
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">CNAE encontrado pelo CNPJ da Etapa 1</div>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="font-mono text-red font-semibold text-[12px] shrink-0">{resultado.cnae}</span>
+            <span className="text-[12px] text-ink-muted leading-[1.4]">{resultado.descricao}</span>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-ink-faint leading-[1.5] m-0">
+          Corresponde a <strong className="text-ink-muted font-semibold">{resultado.match.divisao}</strong> — {resultado.match.descricao} na norma. Pode ser diferente da ocupacao real do Terreo — confirme antes de usar.
+        </p>
+        <button type="button" className="btn-ghost self-start" onClick={aplicarClassificacao}>
+          <Icon name="check" size={11}/> Usar esta classificacao no Terreo
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Linha de ocupação subsidiária ─────────────────────────────────────
 function AcessRow({ pav, acess, index, usadas }) {
   const { dispatch } = useProjeto()
@@ -242,6 +307,8 @@ function PavModal({ pav, onClose }) {
         {/* Body */}
         <div className="flex-1 overflow-y-auto py-5 px-[22px]">
 
+          {pav.tipo === 'terreo' && <BuscaCnaePorCnpj pav={pav} dispatch={dispatch}/>}
+
           {/* Ocupação principal */}
           <SectionHead
             titulo="Ocupacao principal ou predominante"
@@ -306,10 +373,12 @@ function PavModal({ pav, onClose }) {
 
 // ── Card resumo do pavimento ──────────────────────────────────────────
 function PavCard({ pav, onOpen }) {
-  const { ocupacoes } = useNorma()
+  const { ocupacoes, temCNAE } = useNorma()
   const divisoes = ocupacoes[pav.grupo]?.divisoes || {}
   const divLabel = divisoes[pav.divisao] || pav.divisao || '—'
-  const configured = !!(pav.divisao && pav.cnae)
+  // Divisoes sem nenhum CNAE cadastrado (ex: J-1..J-4) nunca terao pav.cnae
+  // preenchido — contam como classificadas so com a divisao definida.
+  const configured = !!(pav.divisao && (pav.cnae || !temCNAE(pav.divisao)))
 
   return (
     <div
