@@ -48,11 +48,11 @@ const LINHA_RESTRITIVA = {
   fachada: FACHADA_PADRAO,
 }
 
-// PENDENTE: Tabela B.1 não traz coluna de "cobertura" — a classe máxima
-// admitida para cobertura vem de outra tabela/item da NT 10/2021 CBMMA
-// (ver item 12 das instruções normativas do CMAR) ainda não recebida.
-// Nenhuma linha abaixo define `cobertura` — fica "sem dado normativo" até
-// essa tabela ser informada.
+// PENDENTE: a Tabela B.1 não traz colunas de "cobertura" nem "isolamento
+// térmico acústico" — não há, por ora, tabela normativa equivalente para
+// esses dois elementos do Quadro Resumo (memorial). Nenhuma linha abaixo
+// define `cobertura`/`isolamento` — ficam "sem dado normativo" até uma
+// referência normativa ser informada.
 export const TABELA_B1 = {
   'A-3': LINHA_A3_CONDOMINIOS,
 
@@ -86,15 +86,6 @@ export const TABELA_B1 = {
   'L-1':  LINHA_RESTRITIVA,
   'M-2':  LINHA_RESTRITIVA, // nota 3
   'M-3':  LINHA_RESTRITIVA,
-}
-
-// PENDENTE: item 10 das instruções normativas do CMAR (corredor
-// protegido/acesso a saída enclausurada, escada, rampa) vem de outra
-// tabela/item da NT 10/2021 CBMMA ainda não recebida — nenhum dos dois
-// itens tem classe cadastrada ainda.
-export const ROTAS_FUGA = {
-  corredorProtegido: null,
-  escadaRampa:        null,
 }
 
 // PENDENTE: texto das "Notas específicas" da Tabela B.1 (marcadas ¹ a ⁹ no

@@ -92,19 +92,20 @@ function idAcabamento() {
 }
 
 // Linha do CMAR (Controle de Material de Acabamento e Revestimento) — uma
-// por combinação estrutura+chave (`chave` = `${divisao}|${elemento}` para um
-// elemento comum, ou `rotaFuga|${item}` para um item de rota de fuga; ver
+// por combinação estrutura+chave (`chave` = `${divisao}|${elemento}`, ver
 // cmar_calc.js). `origem` discrimina se a classe vem do catálogo de
 // materiais incombustíveis ('incombustivel', classe sempre 'I') ou de
-// cadastro manual ('manual', exige classeInformada + fabricante +
-// laudoNumero preenchidos para a classe ser considerada comprovada — ver
+// cadastro manual ('manual', exige classeAdotada + fabricante + laudoNumero
+// preenchidos para a classe ser considerada comprovada — ver
 // classeResolvida em cmar_calc.js, nunca presume classe sem essa
-// documentação).
+// documentação). `normasEnsaio` é o campo livre do Quadro Resumo do
+// memorial (ex.: "ISO 1182, NBR 9442") — não participa da comparação de
+// classe, só da citação no memorial.
 function novaLinhaAcabamento(estruturaId, chave) {
   return {
     id: idAcabamento(), estruturaId, chave,
     origem: '', materialId: '', materialNome: '',
-    classeInformada: '', fabricante: '', laudoNumero: '', laudoValidade: '',
+    classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '',
   }
 }
 

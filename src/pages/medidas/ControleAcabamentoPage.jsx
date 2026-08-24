@@ -32,27 +32,28 @@ const RESULTADO_INFO = {
   SEM_DADO_NORMATIVO:  { cls: 'text-amber',     label: 'Pendente de norma' },
 }
 
-// Uma linha (elemento de uma divisão, ou item de rota de fuga) da tabela do
-// CMAR. O material incombustível resolve a classe sozinho (item 7 das
-// instruções normativas); qualquer outro material só é aceito com fabricante
-// e nº do laudo preenchidos (item 6 — nunca presumir classe).
+// Uma linha (elemento construtivo de uma divisão) do Quadro Resumo de
+// Controle de Materiais de Acabamento. O material incombustível resolve a
+// classe sozinho (item 7 das instruções normativas); qualquer outro
+// material só é aceito com fabricante e nº do laudo preenchidos (item 6 —
+// nunca presumir classe).
 function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   const { elementoLabel, classesExigidas, item, resultado } = linha
   const manual = item?.origem === 'manual'
-  const [editando, setEditando] = useState(manual && !(item.classeInformada && item.fabricante && item.laudoNumero))
+  const [editando, setEditando] = useState(manual && !(item.classeAdotada && item.fabricante && item.laudoNumero))
 
   const set = (changes) => dispatch({ type: 'SET_ACABAMENTO', estruturaId, chave: linha.chave, changes })
 
   const handleMaterial = (e) => {
     const val = e.target.value
-    if (val === '') { set({ origem: '', materialId: '', materialNome: '', classeInformada: '', fabricante: '', laudoNumero: '', laudoValidade: '' }); setEditando(false); return }
-    if (val === 'manual') { set({ origem: 'manual', materialId: '', materialNome: '', classeInformada: '', fabricante: '', laudoNumero: '', laudoValidade: '' }); setEditando(true); return }
+    if (val === '') { set({ origem: '', materialId: '', materialNome: '', classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '' }); setEditando(false); return }
+    if (val === 'manual') { set({ origem: 'manual', materialId: '', materialNome: '', classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '' }); setEditando(true); return }
     const mat = buscarMaterialIncombustivel(val)
-    set({ origem: 'incombustivel', materialId: val, materialNome: mat?.nome || '', classeInformada: CLASSE_INCOMBUSTIVEL, fabricante: '', laudoNumero: '', laudoValidade: '' })
+    set({ origem: 'incombustivel', materialId: val, materialNome: mat?.nome || '', classeAdotada: CLASSE_INCOMBUSTIVEL, fabricante: '', laudoNumero: '', laudoValidade: '' })
     setEditando(false)
   }
 
-  const classeMostrada = item?.origem === 'incombustivel' ? CLASSE_INCOMBUSTIVEL : (manual ? item.classeInformada : '')
+  const classeMostrada = item?.origem === 'incombustivel' ? CLASSE_INCOMBUSTIVEL : (manual ? item.classeAdotada : '')
   const r = RESULTADO_INFO[resultado] || RESULTADO_INFO.NAO_PREENCHIDO
 
   return (
@@ -81,14 +82,22 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
           {formatarClasses(classesExigidas) || <span className="text-amber whitespace-nowrap">Pendente de norma</span>}
         </td>
         <td className={`${td} text-ink whitespace-nowrap`}>{classeMostrada || '—'}</td>
+        <td className={td}>
+          <input
+            placeholder="ex.: ISO 1182, NBR 9442"
+            value={item?.normasEnsaio || ''}
+            onChange={e => set({ normasEnsaio: e.target.value })}
+            className={input}
+          />
+        </td>
         <td className={`${td} font-semibold whitespace-nowrap ${r.cls}`}>{r.label}</td>
       </tr>
       {manual && editando && (
         <tr className="border-b border-solid border-border last:border-b-0">
-          <td colSpan={5} className="py-3 px-3 bg-surface-2">
+          <td colSpan={6} className="py-3 px-3 bg-surface-2">
             <div className="grid grid-cols-4 gap-2">
               <input placeholder="Nome do material" value={item.materialNome} onChange={e => set({ materialNome: e.target.value })} className={input}/>
-              <select value={item.classeInformada} onChange={e => set({ classeInformada: e.target.value })} className={input}>
+              <select value={item.classeAdotada} onChange={e => set({ classeAdotada: e.target.value })} className={input}>
                 <option value="">Classe (aguardando laudo)</option>
                 {ORDEM_CLASSE.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -105,27 +114,29 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   )
 }
 
-function TabelaAcabamento({ titulo, subtitulo, linhas, estruturaId, dispatch }) {
+function TabelaAcabamento({ titulo, linhas, estruturaId, dispatch }) {
   return (
     <Card className="mb-3">
       <div className="py-2.5 px-3 border-b border-solid border-border">
         <div className="text-xs font-semibold text-ink">{titulo}</div>
-        {subtitulo && <div className="text-[10px] text-ink-faint mt-0.5">{subtitulo}</div>}
       </div>
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="border-b border-solid border-border">
-            <th className={th}>Elemento</th>
-            <th className={th}>Material</th>
-            <th className={th}>Classe exigida</th>
-            <th className={th}>Classe informada</th>
-            <th className={th}>Resultado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {linhas.map(l => <LinhaAcabamento key={l.chave} estruturaId={estruturaId} linha={l} dispatch={dispatch}/>)}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-solid border-border">
+              <th className={th}>Elemento construtivo</th>
+              <th className={th}>Material</th>
+              <th className={th}>Classe exigida</th>
+              <th className={th}>Classe adotada</th>
+              <th className={th}>Normas de ensaio</th>
+              <th className={th}>Resultado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map(l => <LinhaAcabamento key={l.chave} estruturaId={estruturaId} linha={l} dispatch={dispatch}/>)}
+          </tbody>
+        </table>
+      </div>
     </Card>
   )
 }
@@ -134,13 +145,12 @@ const RESUMO_INFO = {
   ATENDE:                { cls: 'ibox green', titulo: 'ATENDE', texto: 'Todos os materiais possuem classificação compatível com as exigências da NT 10/2021 CBMMA.' },
   ATENDE_COM_PENDENCIAS: { cls: 'ibox amber', titulo: 'ATENDE COM PENDÊNCIAS DOCUMENTAIS', texto: 'Os materiais especificados são potencialmente compatíveis, porém há linhas sem material selecionado ou sem os dados de laudo necessários para comprovar a classe.' },
   NAO_ATENDE:            { cls: 'ibox red',   titulo: 'NÃO ATENDE', texto: 'Um ou mais materiais possuem classificação inferior à exigida pela NT 10/2021 CBMMA.' },
-  DADOS_INSUFICIENTES:   { cls: 'ibox amber', titulo: 'DADOS INSUFICIENTES', texto: 'Uma ou mais linhas (cobertura, rotas de fuga, ou divisão sem dado normativo cadastrado para este estado) ainda não têm classe exigida definida — não é possível concluir a análise até isso ser preenchido.' },
+  DADOS_INSUFICIENTES:   { cls: 'ibox amber', titulo: 'DADOS INSUFICIENTES', texto: 'Uma ou mais linhas (cobertura, isolamento térmico acústico, ou divisão sem dado normativo cadastrado para este estado) ainda não têm classe exigida definida — não é possível concluir a análise até isso ser preenchido.' },
 }
 
-function EstruturaAcabamento({ est, pavimentos, tabela, rotasFuga, ocupacoes, itens, dispatch }) {
+function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispatch }) {
   const divisoes = divisoesDaEstrutura(pavimentos)
-  const linhas = montarLinhas(divisoes, tabela, rotasFuga, itens)
-  const linhasRota = linhas.filter(l => l.escopo === 'rotaFuga')
+  const linhas = montarLinhas(divisoes, tabela, itens)
   const resumo = resumoCMAR(linhas)
   const info = RESUMO_INFO[resumo]
 
@@ -154,7 +164,7 @@ function EstruturaAcabamento({ est, pavimentos, tabela, rotasFuga, ocupacoes, it
       ) : (
         <div className="ibox amber">
           <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">A classe exigida para <strong>cobertura</strong> e para as <strong>rotas de fuga</strong> ainda não foi cadastrada (tabelas específicas da NT 10/2021 CBMMA, fora da Tabela B.1) — essas linhas ficarão pendentes até isso ser preenchido.</span>
+          <span className="text-xs">A classe exigida para <strong>cobertura</strong> e <strong>isolamento térmico acústico</strong> ainda não foi cadastrada (a Tabela B.1 não traz essas colunas) — essas linhas ficarão pendentes até uma referência normativa ser informada.</span>
         </div>
       )}
 
@@ -175,14 +185,6 @@ function EstruturaAcabamento({ est, pavimentos, tabela, rotasFuga, ocupacoes, it
         ))
       )}
 
-      <TabelaAcabamento
-        titulo="Rotas de fuga"
-        subtitulo="Corredores protegidos, acessos às saídas enclausuradas, escadas e rampas — classes mais restritivas que as dos ambientes comuns (item 10, NT 10/2021 CBMMA)."
-        linhas={linhasRota}
-        estruturaId={est.id}
-        dispatch={dispatch}
-      />
-
       <div className={info.cls}>
         <Icon name={resumo === 'ATENDE' ? 'check' : 'warn'} size={14} color={`var(--color-${resumo === 'ATENDE' ? 'green' : resumo === 'NAO_ATENDE' ? 'red' : 'amber'})`} className="shrink-0"/>
         <span className="text-xs"><strong>{info.titulo}</strong> — {info.texto}</span>
@@ -194,11 +196,11 @@ function EstruturaAcabamento({ est, pavimentos, tabela, rotasFuga, ocupacoes, it
 export default function ControleAcabamentoPage() {
   const { state, dispatch } = useProjeto()
   const { cmar, ocupacoes } = useNorma()
-  const { TABELA_B1, ROTAS_FUGA } = cmar
+  const { TABELA_B1 } = cmar
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
+      <div className="max-w-[1100px] mx-auto pt-8 px-10 pb-20">
 
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
@@ -207,7 +209,7 @@ export default function ControleAcabamentoPage() {
             Controle de Materiais de Acabamento e Revestimento
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
-            Classe de reação ao fogo exigida por elemento (piso, parede, teto, fachada, cobertura) em cada ocupação, e do material efetivamente utilizado, conforme Anexo B da NT 10/2021 CBMMA. Materiais incombustíveis (concreto, vidro, gesso, cerâmica, pedra natural, alvenaria, metais) recebem Classe I automaticamente; qualquer outro material exige fabricante e nº do laudo para a classe ser considerada comprovada.
+            Quadro Resumo de Controle de Materiais de Acabamento por estrutura — piso, parede/divisórias, teto/forro, cobertura e isolamento térmico acústico de cada ocupação, conforme Anexo B da NT 10/2021 CBMMA. Materiais incombustíveis (concreto, vidro, gesso, cerâmica, pedra natural, alvenaria, metais) recebem Classe I automaticamente; qualquer outro material exige fabricante e nº do laudo para a classe ser considerada comprovada.
           </p>
         </div>
 
@@ -217,7 +219,6 @@ export default function ControleAcabamentoPage() {
             est={est}
             pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
             tabela={TABELA_B1}
-            rotasFuga={ROTAS_FUGA}
             ocupacoes={ocupacoes}
             itens={state.acabamentos.filter(a => a.estruturaId === est.id)}
             dispatch={dispatch}

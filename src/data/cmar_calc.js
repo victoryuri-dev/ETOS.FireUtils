@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // cmar_calc.js — Funções universais do Controle de Material de Acabamento e
 // Revestimento (CMAR, NT 10 CBMMA). Recebem os dados normativos (tabela por
-// divisão/rotas de fuga) como parâmetro; não importam nenhum arquivo de
-// estado diretamente. As mesmas funções alimentam a tela de dimensionamento
-// e o texto do memorial — nunca duas fontes de verdade.
+// divisão) como parâmetro; não importam nenhum arquivo de estado
+// diretamente. As mesmas funções alimentam a tela de dimensionamento e o
+// "Quadro Resumo de Controle de Materiais de Acabamento" do memorial —
+// nunca duas fontes de verdade.
 //
 // Princípio (item 24 das instruções normativas do CMAR):
 //   OCUPAÇÃO → ELEMENTO → CLASSE MÁXIMA ADMITIDA → MATERIAL → CLASSE DO
@@ -16,20 +17,17 @@
 
 import { CLASSE_INCOMBUSTIVEL } from './materiaisAcabamento'
 
-// Elementos construtivos avaliados por divisão (item 4 das instruções).
+// Elementos construtivos avaliados por divisão — mesma lista e nomenclatura
+// do "Quadro Resumo de Controle de Materiais de Acabamento" (memorial).
+// 'fachada' segue cadastrada em TABELA_B1 (a Tabela B.1 define classe para
+// ela) mas fora desta lista — não faz parte do quadro que o usuário
+// preenche na tela.
 export const ELEMENTOS = [
-  { key: 'piso',      label: 'Piso' },
-  { key: 'parede',    label: 'Parede / divisória' },
-  { key: 'teto',      label: 'Teto / forro' },
-  { key: 'fachada',   label: 'Fachada' },
-  { key: 'cobertura', label: 'Cobertura' },
-]
-
-// Itens de rota de fuga avaliados à parte, com classes mais restritivas
-// (item 10 das instruções) — não variam por divisão.
-export const ROTA_FUGA_ITENS = [
-  { key: 'corredorProtegido', label: 'Corredor protegido / acesso à saída enclausurada' },
-  { key: 'escadaRampa',       label: 'Escada / rampa' },
+  { key: 'piso',       label: 'Piso' },
+  { key: 'parede',     label: 'Parede/Divisórias' },
+  { key: 'teto',       label: 'Teto/Forro' },
+  { key: 'cobertura',  label: 'Cobertura' },
+  { key: 'isolamento', label: 'Isolamento Térmico Acústico' },
 ]
 
 // Universo de classes de reação ao fogo que um laudo pode atribuir a um
@@ -60,11 +58,6 @@ export function classesAdmitidasDivisao(tabela, divisao, elemento) {
   return linhaDivisao(tabela, divisao)?.[elemento] ?? null
 }
 
-/** Classes admitidas pela norma para um item de rota de fuga. */
-export function classesAdmitidasRotaFuga(rotasFuga, item) {
-  return rotasFuga?.[item] ?? null
-}
-
 /** Formata uma lista de classes admitidas no mesmo estilo da norma (ex.:
  *  "I, II-A, III-A, IV-A ou V-A") para exibição na tela e no memorial. */
 export function formatarClasses(classes) {
@@ -78,7 +71,7 @@ export function formatarClasses(classes) {
 export function classeResolvida(item) {
   if (!item) return null
   if (item.origem === 'incombustivel') return CLASSE_INCOMBUSTIVEL
-  if (item.origem === 'manual' && item.classeInformada && item.fabricante && item.laudoNumero) return item.classeInformada
+  if (item.origem === 'manual' && item.classeAdotada && item.fabricante && item.laudoNumero) return item.classeAdotada
   return null
 }
 
@@ -94,11 +87,11 @@ export function resultadoLinha(item, classesExigidas) {
   return classesExigidas.includes(classe) ? 'ATENDE' : 'NAO_ATENDE'
 }
 
-/** Monta todas as linhas (por divisão × elemento, mais rotas de fuga) de
- *  uma estrutura, cruzando os itens já cadastrados (`itens`, filtrados pela
- *  estrutura) com a tabela normativa. Usado tanto pela tela quanto pelo
- *  memorial — nunca duas fontes de verdade sobre o resultado de uma linha. */
-export function montarLinhas(divisoes, tabela, rotasFuga, itens) {
+/** Monta todas as linhas (divisão × elemento) de uma estrutura, cruzando os
+ *  itens já cadastrados (`itens`, filtrados pela estrutura) com a tabela
+ *  normativa. Usado tanto pela tela quanto pelo memorial — nunca duas
+ *  fontes de verdade sobre o resultado de uma linha. */
+export function montarLinhas(divisoes, tabela, itens) {
   const porChave = new Map(itens.map(a => [a.chave, a]))
   const linhas = []
 
@@ -108,19 +101,9 @@ export function montarLinhas(divisoes, tabela, rotasFuga, itens) {
       const classesExigidas = classesAdmitidasDivisao(tabela, divisao, el.key)
       const item = porChave.get(chave) || null
       linhas.push({
-        chave, escopo: 'divisao', divisao, elemento: el.key, elementoLabel: el.label,
+        chave, divisao, elemento: el.key, elementoLabel: el.label,
         classesExigidas, item, resultado: resultadoLinha(item, classesExigidas),
       })
-    })
-  })
-
-  ROTA_FUGA_ITENS.forEach(el => {
-    const chave = `rotaFuga|${el.key}`
-    const classesExigidas = classesAdmitidasRotaFuga(rotasFuga, el.key)
-    const item = porChave.get(chave) || null
-    linhas.push({
-      chave, escopo: 'rotaFuga', divisao: null, elemento: el.key, elementoLabel: el.label,
-      classesExigidas, item, resultado: resultadoLinha(item, classesExigidas),
     })
   })
 
