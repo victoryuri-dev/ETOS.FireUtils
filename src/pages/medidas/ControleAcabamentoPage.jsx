@@ -3,7 +3,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { divisoesDaEstrutura } from '../../utils/classificacao'
 import { montarLinhas, resumoCMAR, ORDEM_CLASSE, formatarClasses } from '../../data/cmar_calc'
-import { MATERIAIS_INCOMBUSTIVEIS, buscarMaterialIncombustivel, CLASSE_INCOMBUSTIVEL } from '../../data/materiaisAcabamento'
+import { MATERIAIS_INCOMBUSTIVEIS, buscarMaterialIncombustivel, CLASSE_INCOMBUSTIVEL, MATERIAIS_ENSAIADOS, buscarMaterialEnsaiado } from '../../data/materiaisAcabamento'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
@@ -33,14 +33,16 @@ const RESULTADO_INFO = {
 }
 
 // Uma linha (elemento construtivo de uma divisão) do Quadro Resumo de
-// Controle de Materiais de Acabamento. O material incombustível resolve a
-// classe sozinho (item 7 das instruções normativas); qualquer outro
-// material só é aceito com fabricante e nº do laudo preenchidos (item 6 —
-// nunca presumir classe).
+// Controle de Materiais de Acabamento. O material incombustível e o
+// material do catálogo de ensaiados resolvem a classe sozinhos (itens 6/7
+// das instruções normativas); qualquer outro material só é aceito com
+// fabricante e nº do laudo preenchidos (nunca presumir classe).
 function LinhaAcabamento({ estruturaId, linha, dispatch }) {
-  const { elementoLabel, classesExigidas, item, resultado } = linha
+  const { elemento, elementoLabel, classesExigidas, item, resultado } = linha
   const manual = item?.origem === 'manual'
+  const ensaiado = item?.origem === 'ensaiado'
   const [editando, setEditando] = useState(manual && !(item.classeAdotada && item.fabricante && item.laudoNumero))
+  const materiaisEnsaiadosDoElemento = MATERIAIS_ENSAIADOS[elemento] || []
 
   const set = (changes) => dispatch({ type: 'SET_ACABAMENTO', estruturaId, chave: linha.chave, changes })
 
@@ -48,12 +50,18 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
     const val = e.target.value
     if (val === '') { set({ origem: '', materialId: '', materialNome: '', classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '' }); setEditando(false); return }
     if (val === 'manual') { set({ origem: 'manual', materialId: '', materialNome: '', classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '' }); setEditando(true); return }
+    if (val.startsWith('ensaiado:')) {
+      const mat = buscarMaterialEnsaiado(elemento, val.slice('ensaiado:'.length))
+      set({ origem: 'ensaiado', materialId: mat?.id || '', materialNome: mat?.nome || '', classeAdotada: mat?.classe || '', fabricante: '', laudoNumero: '', laudoValidade: '' })
+      setEditando(false)
+      return
+    }
     const mat = buscarMaterialIncombustivel(val)
     set({ origem: 'incombustivel', materialId: val, materialNome: mat?.nome || '', classeAdotada: CLASSE_INCOMBUSTIVEL, fabricante: '', laudoNumero: '', laudoValidade: '' })
     setEditando(false)
   }
 
-  const classeMostrada = item?.origem === 'incombustivel' ? CLASSE_INCOMBUSTIVEL : (manual ? item.classeAdotada : '')
+  const classeMostrada = item?.origem === 'incombustivel' ? CLASSE_INCOMBUSTIVEL : (ensaiado || manual ? item.classeAdotada : '')
   const r = RESULTADO_INFO[resultado] || RESULTADO_INFO.NAO_PREENCHIDO
 
   return (
@@ -62,7 +70,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
         <td className={`${td} text-ink whitespace-nowrap`}>{elementoLabel}</td>
         <td className={td}>
           <select
-            value={manual ? 'manual' : (item?.materialId || '')}
+            value={manual ? 'manual' : ensaiado ? `ensaiado:${item.materialId}` : (item?.materialId || '')}
             onChange={handleMaterial}
             className={input}
           >
@@ -70,6 +78,13 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
             <optgroup label="Incombustíveis (Classe I automática)">
               {MATERIAIS_INCOMBUSTIVEIS.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
             </optgroup>
+            {materiaisEnsaiadosDoElemento.length > 0 && (
+              <optgroup label="Materiais ensaiados (catálogo)">
+                {materiaisEnsaiadosDoElemento.map(m => (
+                  <option key={m.id} value={`ensaiado:${m.id}`}>{m.nome} — Classe {m.classe}</option>
+                ))}
+              </optgroup>
+            )}
             <option value="manual">Outro material (informar / anexar laudo)</option>
           </select>
           {manual && (
@@ -209,7 +224,7 @@ export default function ControleAcabamentoPage() {
             Controle de Materiais de Acabamento e Revestimento
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
-            Quadro Resumo de Controle de Materiais de Acabamento por estrutura — piso, parede/divisórias, teto/forro, cobertura e isolamento térmico acústico de cada ocupação, conforme Anexo B da NT 10/2021 CBMMA. Materiais incombustíveis (concreto, vidro, gesso, cerâmica, pedra natural, alvenaria, metais) recebem Classe I automaticamente; qualquer outro material exige fabricante e nº do laudo para a classe ser considerada comprovada.
+            Quadro Resumo de Controle de Materiais de Acabamento por estrutura — piso, parede/divisórias, teto/forro, cobertura e isolamento térmico acústico de cada ocupação, conforme Anexo B da NT 10/2021 CBMMA. Materiais incombustíveis recebem Classe I automaticamente, e produtos do catálogo de materiais já ensaiados (piso, parede e teto) têm a classe preenchida direto do ensaio; qualquer outro material exige fabricante e nº do laudo para a classe ser considerada comprovada.
           </p>
         </div>
 

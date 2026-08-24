@@ -67,10 +67,14 @@ export function formatarClasses(classes) {
 }
 
 /** Classe efetivamente resolvida para o material informado numa linha, ou
- *  null quando ainda não há classe comprovada (item 6 — nunca presumir). */
+ *  null quando ainda não há classe comprovada (item 6 — nunca presumir).
+ *  'ensaiado' confia na classe do catálogo de materiais ensaiados (dado de
+ *  ensaio já fornecido pelo usuário — ver materiaisAcabamento.js) sem
+ *  exigir fabricante/laudo de novo na tela, igual a 'incombustivel'. */
 export function classeResolvida(item) {
   if (!item) return null
   if (item.origem === 'incombustivel') return CLASSE_INCOMBUSTIVEL
+  if (item.origem === 'ensaiado') return item.classeAdotada || null
   if (item.origem === 'manual' && item.classeAdotada && item.fabricante && item.laudoNumero) return item.classeAdotada
   return null
 }

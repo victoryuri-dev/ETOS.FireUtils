@@ -36,6 +36,7 @@ function fmtMaterial(item) {
 
 function fmtClasse(item) {
   if (item?.origem === 'incombustivel') return 'I'
+  if (item?.origem === 'ensaiado') return item.classeAdotada || 'Não informada'
   if (item?.origem === 'manual' && item.classeAdotada && item.fabricante && item.laudoNumero) return item.classeAdotada
   return 'Não informada'
 }
