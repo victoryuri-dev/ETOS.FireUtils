@@ -1,40 +1,116 @@
 // normas/MA/controle_acabamento.js — NT 10/2021 CBMMA (Controle de Material
-// de Acabamento e Revestimento — CMAR).
+// de Acabamento e Revestimento — CMAR), Anexo B, Tabela B.1 ("Classe dos
+// materiais a serem utilizados considerando o Grupo/Divisão da
+// ocupação/uso em função da finalidade do material").
 //
-// PENDENTE: os valores de TABELA_B1 e ROTAS_FUGA abaixo ainda não foram
-// preenchidos com os dados reais do Anexo B da NT 10/2021 CBMMA — só a
-// ESTRUTURA do arquivo está pronta. Nunca preencha uma classe aqui "de
-// memória" ou por estimativa: transcreva exatamente o que a tabela vigente
-// da norma indicar para cada divisão/elemento, citando o item/tabela em
-// NOTAS. Enquanto uma chave não tiver valor, o cálculo (cmar_calc.js) trata
-// a exigência como "sem dado normativo" e a tela/memorial sinalizam a
-// pendência em vez de assumir qualquer classe.
+// Cada entrada é o CONJUNTO EXPLÍCITO de classes admitidas por elemento —
+// não um limiar único: a tabela às vezes aceita a variante A de uma classe
+// mais restritiva (ex.: III-A) sem aceitar a variante B de uma classe menos
+// restritiva (ex.: II-B), por causa do critério de produção de fumaça. Ver
+// resultadoLinha em cmar_calc.js — a comparação é sempre "a classe do
+// material está nesta lista?", nunca "é numericamente menor ou igual".
 //
-// Formato de TABELA_B1 (mesma convenção usada em normas/MA/trrf.js para o
-// Anexo B da NT 01): chave = código da divisão (ex: 'D-1', 'E-1', 'J-3');
-// valor = classe máxima admitida por elemento construtivo. Uma divisão sem
-// entrada aqui é tratada como "sem dado normativo cadastrado" — não como
-// "sem exigência".
-//
-// Exemplo de como preencher (NÃO é dado real — apagar ao inserir a tabela
-// vigente):
-//   'D-1': { piso: 'IV-A', parede: 'III-A', teto: 'II-A', fachada: 'III-A', cobertura: 'II-A' },
+// Chaves de TABELA_B1: divisão exata (ex.: 'C-1') quando a tabela distingue
+// divisões dentro do grupo, ou só a letra do grupo (ex.: 'B') quando a
+// tabela trata o grupo inteiro igual — ver linhaDivisao em cmar_calc.js
+// (mesma convenção de busca "divisão exata → grupo" de normas/index.js).
+
+// Fachada: "Classe I a II-B" — mesma faixa para todas as divisões desta
+// tabela (não varia por grupo).
+const FACHADA_PADRAO = ['I', 'II-A', 'II-B']
+
+// Linha 1 da Tabela B.1 — A-3 e Condomínios Residenciais (nota 5).
+// PENDENTE: "Condomínios Residenciais" não tem código de divisão próprio
+// no classificador deste app — confirmar com qual(is) divisão(ões) essa
+// linha deve ser associada além de A-3 antes de aplicar automaticamente.
+const LINHA_A3_CONDOMINIOS = {
+  piso:    ['I', 'II-A', 'III-A', 'IV-A', 'V-A'], // nota 7
+  parede:  ['I', 'II-A', 'III-A', 'IV-A'],        // nota 8
+  teto:    ['I', 'II-A', 'III-A'],                // nota 6
+  fachada: FACHADA_PADRAO,
+}
+
+// Linha 2 da Tabela B.1 — B, D, E, G, H, I-1, J-1 (nota 4), J-2, C-1,
+// F-1, F-2, F-3, F-4, F-6, F-8, F-9, F-10.
+const LINHA_INTERMEDIARIA = {
+  piso:    ['I', 'II-A', 'III-A', 'IV-A'],
+  parede:  ['I', 'II-A', 'III-A'], // nota 9
+  teto:    ['I', 'II-A'],
+  fachada: FACHADA_PADRAO,
+}
+
+// Linha 3 da Tabela B.1 — C-2, C-3, F-5, F-7, F-11, I-2, I-3, J-3, J-4,
+// L-1, M-2 (nota 3), M-3.
+const LINHA_RESTRITIVA = {
+  piso:    ['I', 'II-A', 'III-A', 'IV-A'],
+  parede:  ['I', 'II-A'],
+  teto:    ['I', 'II-A'],
+  fachada: FACHADA_PADRAO,
+}
+
+// PENDENTE: Tabela B.1 não traz coluna de "cobertura" — a classe máxima
+// admitida para cobertura vem de outra tabela/item da NT 10/2021 CBMMA
+// (ver item 12 das instruções normativas do CMAR) ainda não recebida.
+// Nenhuma linha abaixo define `cobertura` — fica "sem dado normativo" até
+// essa tabela ser informada.
 export const TABELA_B1 = {
-  // 'D-1': { piso: null, parede: null, teto: null, fachada: null, cobertura: null },
+  'A-3': LINHA_A3_CONDOMINIOS,
+
+  'B': LINHA_INTERMEDIARIA,
+  'D': LINHA_INTERMEDIARIA,
+  'E': LINHA_INTERMEDIARIA,
+  'G': LINHA_INTERMEDIARIA,
+  'H': LINHA_INTERMEDIARIA,
+  'I-1':  LINHA_INTERMEDIARIA,
+  'J-1':  LINHA_INTERMEDIARIA, // nota 4
+  'J-2':  LINHA_INTERMEDIARIA,
+  'C-1':  LINHA_INTERMEDIARIA,
+  'F-1':  LINHA_INTERMEDIARIA,
+  'F-2':  LINHA_INTERMEDIARIA,
+  'F-3':  LINHA_INTERMEDIARIA,
+  'F-4':  LINHA_INTERMEDIARIA,
+  'F-6':  LINHA_INTERMEDIARIA,
+  'F-8':  LINHA_INTERMEDIARIA,
+  'F-9':  LINHA_INTERMEDIARIA,
+  'F-10': LINHA_INTERMEDIARIA,
+
+  'C-2':  LINHA_RESTRITIVA,
+  'C-3':  LINHA_RESTRITIVA,
+  'F-5':  LINHA_RESTRITIVA,
+  'F-7':  LINHA_RESTRITIVA,
+  'F-11': LINHA_RESTRITIVA,
+  'I-2':  LINHA_RESTRITIVA,
+  'I-3':  LINHA_RESTRITIVA,
+  'J-3':  LINHA_RESTRITIVA,
+  'J-4':  LINHA_RESTRITIVA,
+  'L-1':  LINHA_RESTRITIVA,
+  'M-2':  LINHA_RESTRITIVA, // nota 3
+  'M-3':  LINHA_RESTRITIVA,
 }
 
-// Classes máximas admitidas para as rotas de fuga (item 10 da NT 10/2021
-// CBMMA) — mais restritivas que as de um ambiente comum, aplicam-se a
-// corredores protegidos/acessos às saídas enclausuradas e a escadas/rampas,
-// independente da divisão dos ambientes que elas atendem.
+// PENDENTE: item 10 das instruções normativas do CMAR (corredor
+// protegido/acesso a saída enclausurada, escada, rampa) vem de outra
+// tabela/item da NT 10/2021 CBMMA ainda não recebida — nenhum dos dois
+// itens tem classe cadastrada ainda.
 export const ROTAS_FUGA = {
-  corredorProtegido: null, // PENDENTE — preencher com a classe do item 10
-  escadaRampa:        null, // PENDENTE — preencher com a classe do item 10
+  corredorProtegido: null,
+  escadaRampa:        null,
 }
 
-// Citação (item/tabela da NT) de cada entrada de TABELA_B1/ROTAS_FUGA, para
-// o memorial referenciar a fonte normativa junto do resultado. Chave = mesma
-// chave usada em TABELA_B1 (ex: 'D-1.piso') ou 'rotaFuga.corredorProtegido'.
-export const NOTAS = {}
+// PENDENTE: texto das "Notas específicas" da Tabela B.1 (marcadas ¹ a ⁹ no
+// Anexo B) ainda não recebido — os comentários acima já indicam a qual
+// célula cada número se refere. Preencher aqui assim que o texto das notas
+// for informado, para o memorial poder citá-las junto do resultado.
+export const NOTAS = {
+  1: null, // cabeçalho da coluna "Piso (Acabamento¹/Revestimento)"
+  2: null, // cabeçalho da coluna "Parede e Divisória (Acabamento²/Revestimento)"
+  3: null, // divisão M-2
+  4: null, // divisão J-1
+  5: null, // "A-3 e Condomínios Residenciais"
+  6: null, // Linha 1 (A-3/Condomínios), Teto
+  7: null, // Linha 1 (A-3/Condomínios), Piso
+  8: null, // Linha 1 (A-3/Condomínios), Parede
+  9: null, // Linha 2 (intermediária), Parede
+}
 
 export const NORMA = { numero: 'NT 10/2021', nome: 'Controle de Material de Acabamento e Revestimento — CBMMA' }

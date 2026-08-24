@@ -8,7 +8,7 @@
 
 import { getControleAcabamento } from '../normas/index'
 import { divisoesDaEstrutura } from '../../utils/classificacao'
-import { montarLinhas, resumoCMAR } from '../cmar_calc'
+import { montarLinhas, resumoCMAR, formatarClasses } from '../cmar_calc'
 
 const CONCLUSAO_TEXTO = {
   ATENDE:                'ATENDE — todos os materiais possuem classificação compatível com as exigências da NT 10/2021 CBMMA.',
@@ -51,7 +51,7 @@ function blocosDaEstrutura(state, est, tabela, rotasFuga) {
       l.escopo === 'rotaFuga' ? 'Rota de fuga' : l.divisao,
       l.elementoLabel,
       fmtMaterial(l.item),
-      l.classeExigida || 'Pendente de norma',
+      formatarClasses(l.classesExigidas) || 'Pendente de norma',
       fmtClasse(l.item),
       l.resultado === 'ATENDE' ? 'ATENDE' : l.resultado === 'NAO_ATENDE' ? 'NÃO ATENDE' : 'PENDENTE',
     ]),
@@ -76,7 +76,7 @@ function blocosDaEstrutura(state, est, tabela, rotasFuga) {
       tipo: 'lista', estilo: 'alerta',
       itens: naoAtende.map(l => {
         const ambiente = l.escopo === 'rotaFuga' ? 'rota de fuga' : `ambiente ${l.divisao}`
-        return `${l.elementoLabel} (${ambiente}): "${l.item.materialNome}" — Classe ${fmtClasse(l.item)} — não atende à classe máxima admitida (${l.classeExigida}).`
+        return `${l.elementoLabel} (${ambiente}): "${l.item.materialNome}" — Classe ${fmtClasse(l.item)} — não atende às classes admitidas pela norma (${formatarClasses(l.classesExigidas)}).`
       }),
     })
   }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { divisoesDaEstrutura } from '../../utils/classificacao'
-import { montarLinhas, resumoCMAR, ORDEM_CLASSE } from '../../data/cmar_calc'
+import { montarLinhas, resumoCMAR, ORDEM_CLASSE, formatarClasses } from '../../data/cmar_calc'
 import { MATERIAIS_INCOMBUSTIVEIS, buscarMaterialIncombustivel, CLASSE_INCOMBUSTIVEL } from '../../data/materiaisAcabamento'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
@@ -11,6 +11,13 @@ import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
+}
+
+// Descrição oficial da divisão (ex.: "A-3" -> "Habitação coletiva") — OCUPACOES
+// é indexado pela letra do grupo, com as divisões aninhadas em `.divisoes`
+// (mesma resolução usada em descricaoDivisao, MemorialDescritivoPage.jsx).
+function descricaoDivisao(ocupacoes, divisao) {
+  return ocupacoes?.[divisao.charAt(0)]?.divisoes?.[divisao] || ''
 }
 
 const th = 'py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]'
@@ -30,7 +37,7 @@ const RESULTADO_INFO = {
 // instruções normativas); qualquer outro material só é aceito com fabricante
 // e nº do laudo preenchidos (item 6 — nunca presumir classe).
 function LinhaAcabamento({ estruturaId, linha, dispatch }) {
-  const { elementoLabel, classeExigida, item, resultado } = linha
+  const { elementoLabel, classesExigidas, item, resultado } = linha
   const manual = item?.origem === 'manual'
   const [editando, setEditando] = useState(manual && !(item.classeInformada && item.fabricante && item.laudoNumero))
 
@@ -70,8 +77,8 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
             </button>
           )}
         </td>
-        <td className={`${td} text-ink-faint whitespace-nowrap`}>
-          {classeExigida || <span className="text-amber">Pendente de norma</span>}
+        <td className={`${td} text-ink-faint`}>
+          {formatarClasses(classesExigidas) || <span className="text-amber whitespace-nowrap">Pendente de norma</span>}
         </td>
         <td className={`${td} text-ink whitespace-nowrap`}>{classeMostrada || '—'}</td>
         <td className={`${td} font-semibold whitespace-nowrap ${r.cls}`}>{r.label}</td>
@@ -127,7 +134,7 @@ const RESUMO_INFO = {
   ATENDE:                { cls: 'ibox green', titulo: 'ATENDE', texto: 'Todos os materiais possuem classificação compatível com as exigências da NT 10/2021 CBMMA.' },
   ATENDE_COM_PENDENCIAS: { cls: 'ibox amber', titulo: 'ATENDE COM PENDÊNCIAS DOCUMENTAIS', texto: 'Os materiais especificados são potencialmente compatíveis, porém há linhas sem material selecionado ou sem os dados de laudo necessários para comprovar a classe.' },
   NAO_ATENDE:            { cls: 'ibox red',   titulo: 'NÃO ATENDE', texto: 'Um ou mais materiais possuem classificação inferior à exigida pela NT 10/2021 CBMMA.' },
-  DADOS_INSUFICIENTES:   { cls: 'ibox amber', titulo: 'DADOS INSUFICIENTES', texto: 'A Tabela B.1 (Anexo B) da NT 10/2021 CBMMA ainda não foi cadastrada para este estado, ou a estrutura não tem divisões classificadas — não é possível concluir a análise.' },
+  DADOS_INSUFICIENTES:   { cls: 'ibox amber', titulo: 'DADOS INSUFICIENTES', texto: 'Uma ou mais linhas (cobertura, rotas de fuga, ou divisão sem dado normativo cadastrado para este estado) ainda não têm classe exigida definida — não é possível concluir a análise até isso ser preenchido.' },
 }
 
 function EstruturaAcabamento({ est, pavimentos, tabela, rotasFuga, ocupacoes, itens, dispatch }) {
@@ -139,10 +146,15 @@ function EstruturaAcabamento({ est, pavimentos, tabela, rotasFuga, ocupacoes, it
 
   return (
     <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
-      {Object.keys(tabela).length === 0 && (
+      {Object.keys(tabela).length === 0 ? (
         <div className="ibox amber">
           <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
           <span className="text-xs">A Tabela B.1 (Anexo B) da NT 10/2021 CBMMA ainda não foi cadastrada para este estado — as classes exigidas abaixo ficarão pendentes até isso ser preenchido.</span>
+        </div>
+      ) : (
+        <div className="ibox amber">
+          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+          <span className="text-xs">A classe exigida para <strong>cobertura</strong> e para as <strong>rotas de fuga</strong> ainda não foi cadastrada (tabelas específicas da NT 10/2021 CBMMA, fora da Tabela B.1) — essas linhas ficarão pendentes até isso ser preenchido.</span>
         </div>
       )}
 
@@ -155,7 +167,7 @@ function EstruturaAcabamento({ est, pavimentos, tabela, rotasFuga, ocupacoes, it
         divisoes.map(divisao => (
           <TabelaAcabamento
             key={divisao}
-            titulo={ocupacoes?.[divisao]?.descricao ? `${divisao} — ${ocupacoes[divisao].descricao}` : divisao}
+            titulo={descricaoDivisao(ocupacoes, divisao) ? `${divisao} — ${descricaoDivisao(ocupacoes, divisao)}` : divisao}
             linhas={linhas.filter(l => l.divisao === divisao)}
             estruturaId={est.id}
             dispatch={dispatch}

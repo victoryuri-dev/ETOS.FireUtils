@@ -32,24 +32,45 @@ export const ROTA_FUGA_ITENS = [
   { key: 'escadaRampa',       label: 'Escada / rampa' },
 ]
 
-// Ordem das classes de reação ao fogo, da mais favorável (I) à menos
-// favorável (VI-B) — item 5 das instruções: "quanto menor o número da
-// classe, melhor o comportamento"; dentro da mesma classe, A é mais
-// favorável que B (produção de fumaça).
+// Universo de classes de reação ao fogo que um laudo pode atribuir a um
+// material — item 5 das instruções: Classe I a VI, com subdivisão A/B
+// (fumaça) dentro de cada classe numérica. NÃO usado para comparar "melhor
+// ou igual" em ordem crescente: a Tabela B.1 lista, para cada elemento, o
+// CONJUNTO explícito de classes aceitas (às vezes pulando a variante B de
+// uma classe intermediária mesmo aceitando a variante A da classe seguinte
+// — ex.: aceita II-A e III-A mas não II-B). Por isso a comparação é sempre
+// "a classe do material está na lista de classes admitidas?", nunca um
+// limiar único.
 export const ORDEM_CLASSE = [
   'I', 'II-A', 'II-B', 'III-A', 'III-B', 'IV-A', 'IV-B', 'V-A', 'V-B', 'VI-A', 'VI-B',
 ]
 
-/** Classe máxima admitida pela norma para um elemento de uma divisão.
- *  Retorna null quando a divisão ainda não tem dado cadastrado na tabela
- *  (não deve ser interpretado como "sem exigência"). */
-export function classeAdmitidaDivisao(tabela, divisao, elemento) {
-  return tabela?.[divisao]?.[elemento] ?? null
+/** Linha da Tabela B.1 aplicável a uma divisão — busca a divisão exata
+ *  primeiro (ex.: 'C-1') e cai para a letra do grupo quando a tabela não
+ *  distingue divisões dentro do grupo (ex.: 'B'), mesma convenção de
+ *  _medidasDaDivisaoNormal em normas/index.js. */
+function linhaDivisao(tabela, divisao) {
+  return tabela?.[divisao] ?? tabela?.[divisao?.charAt?.(0)] ?? null
 }
 
-/** Classe máxima admitida pela norma para um item de rota de fuga. */
-export function classeAdmitidaRotaFuga(rotasFuga, item) {
+/** Classes admitidas pela norma para um elemento de uma divisão. Retorna
+ *  null quando a divisão/grupo ainda não tem dado cadastrado na tabela
+ *  (não deve ser interpretado como "sem exigência"). */
+export function classesAdmitidasDivisao(tabela, divisao, elemento) {
+  return linhaDivisao(tabela, divisao)?.[elemento] ?? null
+}
+
+/** Classes admitidas pela norma para um item de rota de fuga. */
+export function classesAdmitidasRotaFuga(rotasFuga, item) {
   return rotasFuga?.[item] ?? null
+}
+
+/** Formata uma lista de classes admitidas no mesmo estilo da norma (ex.:
+ *  "I, II-A, III-A, IV-A ou V-A") para exibição na tela e no memorial. */
+export function formatarClasses(classes) {
+  if (!classes || classes.length === 0) return null
+  if (classes.length === 1) return classes[0]
+  return `${classes.slice(0, -1).join(', ')} ou ${classes[classes.length - 1]}`
 }
 
 /** Classe efetivamente resolvida para o material informado numa linha, ou
@@ -63,17 +84,14 @@ export function classeResolvida(item) {
 
 /** Resultado de uma linha: ATENDE | NAO_ATENDE | PENDENTE_LAUDO |
  *  NAO_PREENCHIDO | SEM_DADO_NORMATIVO. Regra de comparação (item 19): a
- *  classe do material deve ser igual ou mais favorável que a classe máxima
- *  admitida (índice igual ou menor na ORDEM_CLASSE). */
-export function resultadoLinha(item, classeExigida) {
+ *  classe do material precisa estar entre as classes admitidas pela Tabela
+ *  B.1 para aquele elemento/divisão — nunca um limiar numérico único. */
+export function resultadoLinha(item, classesExigidas) {
   if (!item || !item.origem) return 'NAO_PREENCHIDO'
   const classe = classeResolvida(item)
   if (!classe) return 'PENDENTE_LAUDO'
-  if (!classeExigida) return 'SEM_DADO_NORMATIVO'
-  const idxClasse   = ORDEM_CLASSE.indexOf(classe)
-  const idxExigida  = ORDEM_CLASSE.indexOf(classeExigida)
-  if (idxClasse === -1 || idxExigida === -1) return 'PENDENTE_LAUDO'
-  return idxClasse <= idxExigida ? 'ATENDE' : 'NAO_ATENDE'
+  if (!classesExigidas || classesExigidas.length === 0) return 'SEM_DADO_NORMATIVO'
+  return classesExigidas.includes(classe) ? 'ATENDE' : 'NAO_ATENDE'
 }
 
 /** Monta todas as linhas (por divisão × elemento, mais rotas de fuga) de
@@ -87,22 +105,22 @@ export function montarLinhas(divisoes, tabela, rotasFuga, itens) {
   divisoes.forEach(divisao => {
     ELEMENTOS.forEach(el => {
       const chave = `${divisao}|${el.key}`
-      const classeExigida = classeAdmitidaDivisao(tabela, divisao, el.key)
+      const classesExigidas = classesAdmitidasDivisao(tabela, divisao, el.key)
       const item = porChave.get(chave) || null
       linhas.push({
         chave, escopo: 'divisao', divisao, elemento: el.key, elementoLabel: el.label,
-        classeExigida, item, resultado: resultadoLinha(item, classeExigida),
+        classesExigidas, item, resultado: resultadoLinha(item, classesExigidas),
       })
     })
   })
 
   ROTA_FUGA_ITENS.forEach(el => {
     const chave = `rotaFuga|${el.key}`
-    const classeExigida = classeAdmitidaRotaFuga(rotasFuga, el.key)
+    const classesExigidas = classesAdmitidasRotaFuga(rotasFuga, el.key)
     const item = porChave.get(chave) || null
     linhas.push({
       chave, escopo: 'rotaFuga', divisao: null, elemento: el.key, elementoLabel: el.label,
-      classeExigida, item, resultado: resultadoLinha(item, classeExigida),
+      classesExigidas, item, resultado: resultadoLinha(item, classesExigidas),
     })
   })
 
