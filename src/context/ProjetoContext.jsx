@@ -83,6 +83,31 @@ function idSinalizacao() {
   return `sin-${Date.now().toString(36)}-${sinalizacaoSeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
+// Mesma lógica de idExtintor/idIluminacao/idSinalizacao — evita colisão
+// entre linhas do CMAR cadastradas no mesmo milissegundo.
+let acabamentoSeq = 0
+function idAcabamento() {
+  acabamentoSeq += 1
+  return `cmar-${Date.now().toString(36)}-${acabamentoSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Linha do CMAR (Controle de Material de Acabamento e Revestimento) — uma
+// por combinação estrutura+chave (`chave` = `${divisao}|${elemento}` para um
+// elemento comum, ou `rotaFuga|${item}` para um item de rota de fuga; ver
+// cmar_calc.js). `origem` discrimina se a classe vem do catálogo de
+// materiais incombustíveis ('incombustivel', classe sempre 'I') ou de
+// cadastro manual ('manual', exige classeInformada + fabricante +
+// laudoNumero preenchidos para a classe ser considerada comprovada — ver
+// classeResolvida em cmar_calc.js, nunca presume classe sem essa
+// documentação).
+function novaLinhaAcabamento(estruturaId, chave) {
+  return {
+    id: idAcabamento(), estruturaId, chave,
+    origem: '', materialId: '', materialNome: '',
+    classeInformada: '', fabricante: '', laudoNumero: '', laudoValidade: '',
+  }
+}
+
 // Item de sinalização de emergência — granularidade só até pavimento (sem
 // ambiente), conforme NT 20 CBMMA / NBR 13434. `tipoPlaca` referencia a
 // chave do catálogo em normas/MA/sinalizacao.js (TIPOS_PLACA).
@@ -211,6 +236,7 @@ const INITIAL_STATE = {
   extintores: [],
   iluminacao: [],
   sinalizacao: [],
+  acabamentos: [],
   // Sistema de iluminação de emergência escolhido para o projeto todo (não
   // varia por pavimento) — perguntado antes de liberar as quantidades por
   // pavimento em IluminacaoPage.jsx. `localizacaoFonte` só se aplica a
@@ -283,6 +309,7 @@ function reducer(state, action) {
         extintores: state.extintores.filter(e => e.estruturaId !== action.id),
         iluminacao: state.iluminacao.filter(i => i.estruturaId !== action.id),
         sinalizacao: state.sinalizacao.filter(s => s.estruturaId !== action.id),
+        acabamentos: state.acabamentos.filter(a => a.estruturaId !== action.id),
         cargaState: semChave(state.cargaState, action.id),
         sistemasPorEstrutura: semChave(state.sistemasPorEstrutura, action.id),
         riscosEspeciaisPorEstrutura: semChave(state.riscosEspeciaisPorEstrutura, action.id),
@@ -441,6 +468,18 @@ function reducer(state, action) {
     // projeto atual.
     case 'IMPORT_SINALIZACAO':
       return { ...state, sinalizacao: action.itens.map(it => ({ id: idSinalizacao(), ...it })) }
+    // Upsert de uma linha do CMAR — identificada por estrutura+chave (não
+    // por id), já que a tela deriva as linhas a partir das divisões/rotas de
+    // fuga da estrutura (ver montarLinhas em cmar_calc.js) em vez de o
+    // usuário criar cada linha manualmente.
+    case 'SET_ACABAMENTO': {
+      const { estruturaId, chave, changes } = action
+      const idx = state.acabamentos.findIndex(a => a.estruturaId === estruturaId && a.chave === chave)
+      if (idx === -1) {
+        return { ...state, acabamentos: [...state.acabamentos, { ...novaLinhaAcabamento(estruturaId, chave), ...changes }] }
+      }
+      return { ...state, acabamentos: state.acabamentos.map((a, i) => i === idx ? { ...a, ...changes } : a) }
+    }
     case 'SET_BALIZAMENTO_APLICADO':
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
