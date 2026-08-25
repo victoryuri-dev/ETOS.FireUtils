@@ -139,6 +139,7 @@ function hydrateState(saved) {
     ...saved,
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
+    planoEmergencia: { ...INITIAL_STATE.planoEmergencia, ...(saved.planoEmergencia || {}) },
     ...migrarParaPorEstrutura(saved),
   }
 }
@@ -238,6 +239,24 @@ const INITIAL_STATE = {
     extensaoVia: '', tipoRetorno: '', tipoRetornoOutroDesc: '',
     manobraRetornoOk: true, saidaIndepLargura: '', saidaIndepAltura: '',
     distanciaAdotada: '',
+  },
+  // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) — só o que
+  // não existe em nenhum outro lugar do state (endereço, sistemas, riscos
+  // especiais, estrutura, população total etc. são reaproveitados de lá na
+  // hora de montar o documento, ver utils/planoEmergencia.js). `telefoneCBM`
+  // já nasce preenchido com o numero de emergencia nacional (193) — unica
+  // excecao a regra de nascer em branco, por ser um dado publico e fixo.
+  planoEmergencia: {
+    caracteristicaVizinhanca: '', distanciaCBM: '', meiosAjudaExterna: '',
+    populacaoFixa: '', populacaoFlutuante: '',
+    horarioFuncionamento: '', pontoEncontro: '',
+    pneQuantidade: '', pneLocalizacao: '',
+    riscosDetalhamento: '',
+    brigadistasQtd: '', brigadistasProfissionaisQtd: '',
+    meioAlerta: '', telefoneCBM: '193', hospitalReferencia: '',
+    respAnaliseSituacao: '', respApoioExterno: '', respPrimeirosSocorros: '',
+    respEliminarRiscos: '', respAbandono: '', respIsolamento: '',
+    respConfinamento: '', respCombate: '', respInvestigacao: '',
   },
   sistemas: {
     // acesso_viatura, seg_estrutural e brigada NAO sao universais: a Tabela 5
@@ -445,6 +464,8 @@ function reducer(state, action) {
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
+    case 'SET_PLANO_EMERGENCIA':
+      return { ...state, planoEmergencia: { ...state.planoEmergencia, ...action.changes } }
     case 'SET_WIZARD':
       return { ...state, configStep: action.step, configUnlocked: action.unlocked }
     case 'SET_CARGA': {
