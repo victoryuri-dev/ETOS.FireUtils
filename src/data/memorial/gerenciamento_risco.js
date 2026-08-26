@@ -23,7 +23,7 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
   const blocosRiscos = d.riscosPorEstrutura.length > 0
     ? d.riscosPorEstrutura.flatMap(r => [
         { tipo: 'campo', label: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade', valor: '' },
-        { tipo: 'lista', itens: r.riscos.map(x => `${x.label}: ${x.localizacao || 'localização não informada'}`) },
+        { tipo: 'lista', itens: r.riscos.map(x => x.localizacao ? `${x.label}: ${x.localizacao}` : x.label) },
       ])
     : [{ tipo: 'campo', label: 'Riscos específicos inerentes à atividade', valor: '' }]
 
