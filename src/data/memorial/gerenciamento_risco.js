@@ -4,14 +4,15 @@
 // alimentaria um documento avulso — só que aqui o resultado vira um capítulo
 // do Memorial Descritivo em vez de um documento separado.
 //
-// A seção "Descrição da edificação ou área de risco" (item B.1) é uma única
-// lista com marcadores — cada campo é um item, e os compostos (Localização,
-// Estrutura e Dimensões, População, Riscos, Recursos humanos/materiais) viram
-// um item com sub-lista aninhada (ver suporte a `{ texto, sub }` no bloco
-// 'lista' de MemorialDescritivoPage.jsx). A tabela de dimensões por estrutura
-// é o único conteúdo que não cabe numa sub-lista, por isso entra como bloco
-// próprio logo depois do item "Estrutura e Dimensões", partindo a seção B.1
-// em duas listas.
+// As seções B.1 (Descrição da edificação) e B.2 (Procedimentos) são listas
+// com marcadores — cada campo é um item `{ label, valor }` (rótulo em
+// negrito, valor normal, igual ao bloco 'campo'), e os compostos (Localização,
+// Estrutura e Dimensões, População, Riscos, Recursos humanos/materiais, Apoio
+// externo, Primeiros socorros) ganham uma sub-lista aninhada em `sub` (ver
+// suporte a isso no bloco 'lista' de MemorialDescritivoPage.jsx). A tabela de
+// dimensões por estrutura é o único conteúdo que não cabe numa sub-lista, por
+// isso entra como bloco próprio logo depois do item "Estrutura e Dimensões",
+// partindo a seção B.1 em duas listas.
 import { buildPlanoEmergenciaData } from '../../utils/planoEmergencia'
 
 export function textoMemorialGerenciamentoRisco(state, sistemas) {
@@ -19,38 +20,69 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
 
   const multiplasEstruturas = d.riscosPorEstrutura.length > 1
   const itensRiscos = d.riscosPorEstrutura.map(r => ({
-    texto: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade',
-    sub: r.riscos.map(x => x.localizacao ? `${x.label}: ${x.localizacao}` : x.label),
+    label: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade',
+    valor: '',
+    // Sem localização informada, é só o nome do risco (sem ":" solto) — ver
+    // combinação anterior no histórico do arquivo.
+    sub: r.riscos.map(x => x.localizacao ? { label: x.label, valor: x.localizacao } : { texto: x.label }),
   }))
 
   const itensDescricaoParte1 = [
-    `Identificação da edificação: ${d.edificacao}`,
+    { label: 'Identificação da edificação', valor: d.edificacao },
     {
-      texto: `Localização: ${d.localizacaoTipo}`,
+      label: 'Localização', valor: d.localizacaoTipo,
       sub: [
-        `Endereço: ${d.endereco}`,
-        `Característica da vizinhança: ${d.caracteristicaVizinhanca}`,
-        `Distância do Corpo de Bombeiros Militar: ${d.distanciaCBM}`,
-        `Meios de ajuda externa: ${d.meiosAjudaExterna}`,
+        { label: 'Endereço', valor: d.endereco },
+        { label: 'Característica da vizinhança', valor: d.caracteristicaVizinhanca },
+        { label: 'Distância do Corpo de Bombeiros Militar', valor: d.distanciaCBM },
+        { label: 'Meios de ajuda externa', valor: d.meiosAjudaExterna },
       ],
     },
-    { texto: 'Estrutura e Dimensões', sub: [`Área do terreno: ${d.areaTerreno}`] },
+    { label: 'Estrutura e Dimensões', valor: '', sub: [{ label: 'Área do terreno', valor: d.areaTerreno }] },
   ]
 
   const itensDescricaoParte2 = [
-    `Ocupação: ${d.ocupacao}`,
-    { texto: 'População', sub: [`Fixa: ${d.populacaoFixa}`, `Flutuante: ${d.populacaoFlutuante}`] },
-    `Características de funcionamento: ${d.horarioFuncionamento}`,
-    ...(d.pneTemPessoas ? [d.pneDescricao ? `Existem pessoas portadoras de necessidades especiais: ${d.pneDescricao}` : 'Existem pessoas portadoras de necessidades especiais'] : []),
+    { label: 'Ocupação', valor: d.ocupacao },
+    {
+      label: 'População', valor: '',
+      sub: [{ label: 'Fixa', valor: d.populacaoFixa }, { label: 'Flutuante', valor: d.populacaoFlutuante }],
+    },
+    { label: 'Características de funcionamento', valor: d.horarioFuncionamento },
+    // Sem descrição, é só a afirmação (sem negrito nem ":" soltos); com
+    // descrição, "Existem pessoas...:" vira o rótulo em negrito do item.
+    ...(d.pneTemPessoas ? [
+      d.pneDescricao
+        ? { label: 'Existem pessoas portadoras de necessidades especiais', valor: d.pneDescricao }
+        : { texto: 'Existem pessoas portadoras de necessidades especiais' },
+    ] : []),
     ...itensRiscos,
     {
-      texto: 'Recursos humanos',
+      label: 'Recursos humanos', valor: '',
       sub: [
-        `Brigada de Incêndio: ${d.brigadistasQtd ? `${d.brigadistasQtd} membros` : ''}`,
-        `Brigadistas Profissionais: ${d.brigadistasProfissionaisQtd}`,
+        { label: 'Brigada de Incêndio', valor: d.brigadistasQtd ? `${d.brigadistasQtd} membros` : '' },
+        { label: 'Brigadistas Profissionais', valor: d.brigadistasProfissionaisQtd },
       ],
     },
-    { texto: 'Recursos materiais', sub: d.sistemasAtivos },
+    { label: 'Recursos materiais', valor: '', sub: d.sistemasAtivos },
+  ]
+
+  const itensProcedimentos = [
+    { label: 'Alerta', valor: d.meioAlerta },
+    { label: 'Análise da situação', valor: d.respAnaliseSituacao },
+    {
+      label: 'Apoio externo', valor: d.respApoioExterno,
+      sub: [{ label: 'Telefone do Corpo de Bombeiros', valor: d.telefoneCBM }],
+    },
+    {
+      label: 'Primeiros socorros e hospitais próximos', valor: d.respPrimeirosSocorros,
+      sub: [{ label: 'Hospital de referência', valor: d.hospitalReferencia }],
+    },
+    { label: 'Eliminar riscos', valor: d.respEliminarRiscos },
+    { label: 'Abandono de área', valor: d.respAbandono },
+    { label: 'Isolamento de área', valor: d.respIsolamento },
+    { label: 'Confinamento do incêndio', valor: d.respConfinamento },
+    { label: 'Combate ao incêndio', valor: d.respCombate },
+    { label: 'Investigação', valor: d.respInvestigacao },
   ]
 
   const blocos = [
@@ -69,18 +101,7 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     { tipo: 'lista', itens: itensDescricaoParte2 },
 
     { tipo: 'titulo2', texto: 'Procedimentos básicos de emergência contra incêndio' },
-    { tipo: 'campo', label: 'Alerta', valor: d.meioAlerta },
-    { tipo: 'campo', label: 'Análise da situação', valor: d.respAnaliseSituacao },
-    { tipo: 'campo', label: 'Apoio externo', valor: d.respApoioExterno },
-    { tipo: 'campo', label: 'Telefone do Corpo de Bombeiros', valor: d.telefoneCBM },
-    { tipo: 'campo', label: 'Primeiros socorros e hospitais próximos', valor: d.respPrimeirosSocorros },
-    { tipo: 'campo', label: 'Hospital de referência', valor: d.hospitalReferencia },
-    { tipo: 'campo', label: 'Eliminar riscos', valor: d.respEliminarRiscos },
-    { tipo: 'campo', label: 'Abandono de área', valor: d.respAbandono },
-    { tipo: 'campo', label: 'Isolamento de área', valor: d.respIsolamento },
-    { tipo: 'campo', label: 'Confinamento do incêndio', valor: d.respConfinamento },
-    { tipo: 'campo', label: 'Combate ao incêndio', valor: d.respCombate },
-    { tipo: 'campo', label: 'Investigação', valor: d.respInvestigacao },
+    { tipo: 'lista', itens: itensProcedimentos },
 
     { tipo: 'titulo2', texto: 'Responsabilidade pelo plano' },
     { tipo: 'campo', label: 'Responsável pela empresa (preposto)', valor: d.proprietario },

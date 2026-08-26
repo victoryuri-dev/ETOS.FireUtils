@@ -369,6 +369,16 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
   )
 }
 
+// Texto de um item de bloco 'lista' (ver abaixo) — string simples (ex.: os
+// avisos "estilo: alerta" de extintores.js/seg_estrutural.js) renderiza como
+// está; { label, valor } (ex.: gerenciamento_risco.js) renderiza com o rotulo
+// em negrito e o valor normal, igual ao bloco 'campo'.
+function ListaItemTexto({ item }) {
+  if (!item || typeof item !== 'object') return item
+  if (!item.label) return item.texto ?? null
+  return <><strong>{item.label}:</strong> <span className="whitespace-pre-line">{item.valor}</span></>
+}
+
 // Blocos de conteudo (opcionais, ver memorial/seg_estrutural.js) — permitem
 // que uma secao troque paragrafo corrido por tabela/lista/campo quando isso
 // deixa os valores mais faceis de achar (ex.: TRRF por pavimento). Secoes
@@ -412,31 +422,24 @@ function BlocoMedida({ bloco }) {
     case 'lista':
       return (
         <ul className="list-none mb-4">
-          {bloco.itens.map((item, i) => {
-            // Item pode ser uma string simples ou { texto, sub: [...] } —
-            // sub vira uma sub-lista indentada dentro do mesmo <li> (ex.:
-            // "Localização" com Endereço/Vizinhança/Distância embaixo).
-            const composto = item && typeof item === 'object'
-            const texto = composto ? item.texto : item
-            return (
-              <li key={i} className={
-                bloco.estilo === 'alerta'
-                  ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
-                  : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
-              }>
-                {texto}
-                {composto && item.sub?.length > 0 && (
-                  <ul className="list-none mt-1 ml-2">
-                    {item.sub.map((s, j) => (
-                      <li key={j} className="text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]">
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            )
-          })}
+          {bloco.itens.map((item, i) => (
+            <li key={i} className={
+              bloco.estilo === 'alerta'
+                ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
+                : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
+            }>
+              <ListaItemTexto item={item}/>
+              {item?.sub?.length > 0 && (
+                <ul className="list-none mt-1 ml-2">
+                  {item.sub.map((s, j) => (
+                    <li key={j} className="text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]">
+                      <ListaItemTexto item={s}/>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
         </ul>
       )
     default:
