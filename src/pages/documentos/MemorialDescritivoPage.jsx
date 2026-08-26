@@ -379,6 +379,26 @@ function ListaItemTexto({ item }) {
   return <><strong>{item.label}:</strong> <span className="whitespace-pre-line">{item.valor}</span></>
 }
 
+// Um <li> de bloco 'lista', com sub-lista recursiva (item.sub pode ter seus
+// próprios itens com sub, sem limite de profundidade — ex.: riscos especiais
+// com mais de uma estrutura viram Riscos > Estrutura > risco, 3 níveis).
+function ListaLi({ item, estilo }) {
+  return (
+    <li className={
+      estilo === 'alerta'
+        ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
+        : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
+    }>
+      <ListaItemTexto item={item}/>
+      {item?.sub?.length > 0 && (
+        <ul className="list-none mt-1 ml-2">
+          {item.sub.map((s, j) => <ListaLi key={j} item={s} estilo={estilo}/>)}
+        </ul>
+      )}
+    </li>
+  )
+}
+
 // Blocos de conteudo (opcionais, ver memorial/seg_estrutural.js) — permitem
 // que uma secao troque paragrafo corrido por tabela/lista/campo quando isso
 // deixa os valores mais faceis de achar (ex.: TRRF por pavimento). Secoes
@@ -422,24 +442,7 @@ function BlocoMedida({ bloco }) {
     case 'lista':
       return (
         <ul className="list-none mb-4">
-          {bloco.itens.map((item, i) => (
-            <li key={i} className={
-              bloco.estilo === 'alerta'
-                ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
-                : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
-            }>
-              <ListaItemTexto item={item}/>
-              {item?.sub?.length > 0 && (
-                <ul className="list-none mt-1 ml-2">
-                  {item.sub.map((s, j) => (
-                    <li key={j} className="text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]">
-                      <ListaItemTexto item={s}/>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
+          {bloco.itens.map((item, i) => <ListaLi key={i} item={item} estilo={bloco.estilo}/>)}
         </ul>
       )
     default:

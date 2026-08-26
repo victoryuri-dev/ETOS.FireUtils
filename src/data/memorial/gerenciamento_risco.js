@@ -18,14 +18,20 @@ import { buildPlanoEmergenciaData } from '../../utils/planoEmergencia'
 export function textoMemorialGerenciamentoRisco(state, sistemas) {
   const d = buildPlanoEmergenciaData(state, sistemas)
 
+  // Sem localização informada, é só o nome do risco (sem ":" solto) — ver
+  // combinação anterior no histórico do arquivo.
+  const riscosDaEstrutura = r => r.riscos.map(x => x.localizacao ? { label: x.label, valor: x.localizacao } : { texto: x.label })
+
+  // Com mais de uma estrutura, "Riscos específicos" vira um único item pai,
+  // com o nome de cada estrutura como sub-item e os riscos dela um nível
+  // abaixo disso — em vez de repetir "Riscos específicos —" por estrutura.
   const multiplasEstruturas = d.riscosPorEstrutura.length > 1
-  const itensRiscos = d.riscosPorEstrutura.map(r => ({
-    label: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade',
-    valor: '',
-    // Sem localização informada, é só o nome do risco (sem ":" solto) — ver
-    // combinação anterior no histórico do arquivo.
-    sub: r.riscos.map(x => x.localizacao ? { label: x.label, valor: x.localizacao } : { texto: x.label }),
-  }))
+  const itensRiscos = d.riscosPorEstrutura.length === 0 ? [] : multiplasEstruturas
+    ? [{
+        label: 'Riscos específicos inerentes à atividade', valor: '',
+        sub: d.riscosPorEstrutura.map(r => ({ label: r.estrutura, valor: '', sub: riscosDaEstrutura(r) })),
+      }]
+    : [{ label: 'Riscos específicos inerentes à atividade', valor: '', sub: riscosDaEstrutura(d.riscosPorEstrutura[0]) }]
 
   const itensDescricaoParte1 = [
     { label: 'Identificação da edificação', valor: d.edificacao },
