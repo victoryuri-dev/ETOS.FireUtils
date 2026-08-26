@@ -412,15 +412,31 @@ function BlocoMedida({ bloco }) {
     case 'lista':
       return (
         <ul className="list-none mb-4">
-          {bloco.itens.map((item, i) => (
-            <li key={i} className={
-              bloco.estilo === 'alerta'
-                ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
-                : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
-            }>
-              {item}
-            </li>
-          ))}
+          {bloco.itens.map((item, i) => {
+            // Item pode ser uma string simples ou { texto, sub: [...] } —
+            // sub vira uma sub-lista indentada dentro do mesmo <li> (ex.:
+            // "Localização" com Endereço/Vizinhança/Distância embaixo).
+            const composto = item && typeof item === 'object'
+            const texto = composto ? item.texto : item
+            return (
+              <li key={i} className={
+                bloco.estilo === 'alerta'
+                  ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
+                  : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
+              }>
+                {texto}
+                {composto && item.sub?.length > 0 && (
+                  <ul className="list-none mt-1 ml-2">
+                    {item.sub.map((s, j) => (
+                      <li key={j} className="text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]">
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )
     default:

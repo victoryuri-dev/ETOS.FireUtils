@@ -4,28 +4,54 @@
 // alimentaria um documento avulso — só que aqui o resultado vira um capítulo
 // do Memorial Descritivo em vez de um documento separado.
 //
-// Os campos deste capítulo seguem os itens B.1 e B.2 do Anexo B (modelo de
-// Plano de Emergência), na mesma ordem do documento oficial, com alguns itens
-// simplificados ou removidos a pedido (ex.: sem "meios de ajuda externa" e
-// sem "rotas de fuga/ponto de encontro" — ver histórico do arquivo).
-// Preenchidos automaticamente sempre que o dado já existe em outro lugar do
-// projeto (ver utils/planoEmergencia.js). Os rótulos ficam sem a numeração
-// B.x.y — é só referência interna da norma, não ajuda o leitor do memorial.
+// A seção "Descrição da edificação ou área de risco" (item B.1) é uma única
+// lista com marcadores — cada campo é um item, e os compostos (Localização,
+// Estrutura e Dimensões, População, Riscos, Recursos humanos/materiais) viram
+// um item com sub-lista aninhada (ver suporte a `{ texto, sub }` no bloco
+// 'lista' de MemorialDescritivoPage.jsx). A tabela de dimensões por estrutura
+// é o único conteúdo que não cabe numa sub-lista, por isso entra como bloco
+// próprio logo depois do item "Estrutura e Dimensões", partindo a seção B.1
+// em duas listas.
 import { buildPlanoEmergenciaData } from '../../utils/planoEmergencia'
 
 export function textoMemorialGerenciamentoRisco(state, sistemas) {
   const d = buildPlanoEmergenciaData(state, sistemas)
 
-  // Um cabeçalho por estrutura com risco marcado (sem nome de estrutura
-  // quando só há uma) seguido de uma lista com a localização de cada risco —
-  // mesmo tratamento dado aos demais campos compostos deste capítulo. Sem
-  // nenhum risco marcado em nenhuma estrutura, o item some do capítulo — não
-  // faz sentido declarar "não há riscos" quando isso já é o padrão.
   const multiplasEstruturas = d.riscosPorEstrutura.length > 1
-  const blocosRiscos = d.riscosPorEstrutura.flatMap(r => [
-    { tipo: 'campo', label: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade', valor: '' },
-    { tipo: 'lista', itens: r.riscos.map(x => x.localizacao ? `${x.label}: ${x.localizacao}` : x.label) },
-  ])
+  const itensRiscos = d.riscosPorEstrutura.map(r => ({
+    texto: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade',
+    sub: r.riscos.map(x => x.localizacao ? `${x.label}: ${x.localizacao}` : x.label),
+  }))
+
+  const itensDescricaoParte1 = [
+    `Identificação da edificação: ${d.edificacao}`,
+    {
+      texto: `Localização: ${d.localizacaoTipo}`,
+      sub: [
+        `Endereço: ${d.endereco}`,
+        `Característica da vizinhança: ${d.caracteristicaVizinhanca}`,
+        `Distância do Corpo de Bombeiros Militar: ${d.distanciaCBM}`,
+        `Meios de ajuda externa: ${d.meiosAjudaExterna}`,
+      ],
+    },
+    { texto: 'Estrutura e Dimensões', sub: [`Área do terreno: ${d.areaTerreno}`] },
+  ]
+
+  const itensDescricaoParte2 = [
+    `Ocupação: ${d.ocupacao}`,
+    { texto: 'População', sub: [`Fixa: ${d.populacaoFixa}`, `Flutuante: ${d.populacaoFlutuante}`] },
+    `Características de funcionamento: ${d.horarioFuncionamento}`,
+    ...(d.pneTemPessoas ? [d.pneDescricao ? `Existem pessoas portadoras de necessidades especiais: ${d.pneDescricao}` : 'Existem pessoas portadoras de necessidades especiais'] : []),
+    ...itensRiscos,
+    {
+      texto: 'Recursos humanos',
+      sub: [
+        `Brigada de Incêndio: ${d.brigadistasQtd ? `${d.brigadistasQtd} membros` : ''}`,
+        `Brigadistas Profissionais: ${d.brigadistasProfissionaisQtd}`,
+      ],
+    },
+    { texto: 'Recursos materiais', sub: d.sistemasAtivos },
+  ]
 
   const blocos = [
     {
@@ -34,43 +60,13 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     },
 
     { tipo: 'titulo2', texto: 'Descrição da edificação ou área de risco' },
-    { tipo: 'campo', label: 'Identificação da edificação', valor: d.edificacao },
-    { tipo: 'campo', label: 'Localização', valor: d.localizacaoTipo },
-    {
-      tipo: 'lista',
-      itens: [
-        `Endereço: ${d.endereco}`,
-        `Característica da vizinhança: ${d.caracteristicaVizinhanca}`,
-        `Distância do Corpo de Bombeiros Militar: ${d.distanciaCBM}`,
-        `Meios de ajuda externa: ${d.meiosAjudaExterna}`,
-      ],
-    },
-    { tipo: 'campo', label: 'Estrutura e Dimensões', valor: '' },
-    { tipo: 'lista', itens: [`Área do terreno: ${d.areaTerreno}`] },
+    { tipo: 'lista', itens: itensDescricaoParte1 },
     {
       tipo: 'tabela',
       colunas: ['Estrutura', 'Tipo', 'Área construída', 'Altura', 'Pavimentos', 'Subsolos'],
       linhas: d.estruturas.map(e => [e.nome, e.tipo, e.areaConstruida, e.altura, e.nPavimentos, e.nSubsolos]),
     },
-    { tipo: 'campo', label: 'Ocupação', valor: d.ocupacao },
-    { tipo: 'campo', label: 'População', valor: '' },
-    { tipo: 'lista', itens: [`Fixa: ${d.populacaoFixa}`, `Flutuante: ${d.populacaoFlutuante}`] },
-    { tipo: 'campo', label: 'Características de funcionamento', valor: d.horarioFuncionamento },
-    ...(d.pneTemPessoas ? [{
-      tipo: 'lista',
-      itens: [d.pneDescricao ? `Existem pessoas portadoras de necessidades especiais: ${d.pneDescricao}` : 'Existem pessoas portadoras de necessidades especiais'],
-    }] : []),
-    ...blocosRiscos,
-    { tipo: 'campo', label: 'Recursos humanos', valor: '' },
-    {
-      tipo: 'lista',
-      itens: [
-        `Brigada de Incêndio: ${d.brigadistasQtd ? `${d.brigadistasQtd} membros` : ''}`,
-        `Brigadistas Profissionais: ${d.brigadistasProfissionaisQtd}`,
-      ],
-    },
-    { tipo: 'campo', label: 'Recursos materiais', valor: '' },
-    { tipo: 'lista', itens: d.sistemasAtivos },
+    { tipo: 'lista', itens: itensDescricaoParte2 },
 
     { tipo: 'titulo2', texto: 'Procedimentos básicos de emergência contra incêndio' },
     { tipo: 'campo', label: 'Alerta', valor: d.meioAlerta },
