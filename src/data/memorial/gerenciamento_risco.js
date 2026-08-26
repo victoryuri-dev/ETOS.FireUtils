@@ -44,7 +44,8 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
         `Distância do Corpo de Bombeiros Militar: ${d.distanciaCBM}`,
       ],
     },
-    { tipo: 'campo', label: 'Área do terreno', valor: d.areaTerreno },
+    { tipo: 'campo', label: 'Estrutura e Dimensões', valor: '' },
+    { tipo: 'lista', itens: [`Área do terreno: ${d.areaTerreno}`] },
     {
       tipo: 'tabela',
       colunas: ['Estrutura', 'Tipo', 'Área construída', 'Altura', 'Pavimentos', 'Subsolos'],
@@ -54,7 +55,10 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     { tipo: 'campo', label: 'População', valor: '' },
     { tipo: 'lista', itens: [`Fixa: ${d.populacaoFixa}`, `Flutuante: ${d.populacaoFlutuante}`] },
     { tipo: 'campo', label: 'Características de funcionamento', valor: d.horarioFuncionamento },
-    ...(d.pneTemPessoas ? [{ tipo: 'campo', label: 'Pessoas portadoras de necessidades especiais', valor: d.pneDescricao }] : []),
+    ...(d.pneTemPessoas ? [{
+      tipo: 'lista',
+      itens: [d.pneDescricao ? `Existem pessoas portadoras de necessidades especiais: ${d.pneDescricao}` : 'Existem pessoas portadoras de necessidades especiais'],
+    }] : []),
     ...blocosRiscos,
     { tipo: 'campo', label: 'Recursos humanos', valor: '' },
     {

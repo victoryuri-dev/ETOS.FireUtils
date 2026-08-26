@@ -91,7 +91,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     populacaoFlutuante: pe.populacaoFlutuante || '',
     horarioFuncionamento: pe.horarioFuncionamento || '',
     pneTemPessoas: !!pe.pneTemPessoas,
-    pneDescricao: pe.pneTemPessoas ? (pe.pneDescricao || 'Sim') : '',
+    pneDescricao: pe.pneTemPessoas ? (pe.pneDescricao || '') : '',
 
     riscosPorEstrutura: riscosPorEstruturaDe(state, pe),
 
