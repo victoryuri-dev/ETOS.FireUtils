@@ -127,7 +127,7 @@ export default function GerenciamentoRiscoPage() {
       </FormSection>
 
       {estruturasComRisco.length > 0 && (
-        <FormSection title="Localização dos riscos especiais" description="Os riscos marcados na Configuração já entram no documento — informe aqui onde cada um fica localizado.">
+        <FormSection title="Localização dos riscos especiais" description="Os riscos marcados na Configuração já entram no documento — se quiser, informe onde cada um fica localizado.">
           {estruturasComRisco.map(est => {
             const marcados = state.riscosEspeciaisPorEstrutura[est.id] || {}
             const riscosDaEst = RISCOS_ESPECIAIS.filter(r => marcados[r.key])
@@ -137,7 +137,10 @@ export default function GerenciamentoRiscoPage() {
                 <div className="border border-solid border-border rounded-lg overflow-hidden">
                   {riscosDaEst.map((r, i) => (
                     <div key={r.key} className={`py-3 px-4 ${i < riscosDaEst.length - 1 ? 'border-b border-solid border-border-2' : ''}`}>
-                      <div className="text-[13px] text-ink font-semibold mb-2">{r.label}</div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-[13px] text-ink font-semibold">{r.label}</span>
+                        <span className="text-[10px] text-ink-faint whitespace-nowrap">campo opcional</span>
+                      </div>
                       <input value={localizacoes[r.key] || ''} onChange={e => setLocalizacaoRisco(est.id, r.key, e.target.value)}
                         placeholder="Ex.: 1º subsolo"/>
                     </div>
