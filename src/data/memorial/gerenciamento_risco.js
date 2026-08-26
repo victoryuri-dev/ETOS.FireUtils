@@ -18,14 +18,14 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
 
   // Um cabeçalho por estrutura com risco marcado (sem nome de estrutura
   // quando só há uma) seguido de uma lista com a localização de cada risco —
-  // mesmo tratamento dado aos demais campos compostos deste capítulo.
+  // mesmo tratamento dado aos demais campos compostos deste capítulo. Sem
+  // nenhum risco marcado em nenhuma estrutura, o item some do capítulo — não
+  // faz sentido declarar "não há riscos" quando isso já é o padrão.
   const multiplasEstruturas = d.riscosPorEstrutura.length > 1
-  const blocosRiscos = d.riscosPorEstrutura.length > 0
-    ? d.riscosPorEstrutura.flatMap(r => [
-        { tipo: 'campo', label: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade', valor: '' },
-        { tipo: 'lista', itens: r.riscos.map(x => x.localizacao ? `${x.label}: ${x.localizacao}` : x.label) },
-      ])
-    : [{ tipo: 'campo', label: 'Riscos específicos inerentes à atividade', valor: '' }]
+  const blocosRiscos = d.riscosPorEstrutura.flatMap(r => [
+    { tipo: 'campo', label: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade', valor: '' },
+    { tipo: 'lista', itens: r.riscos.map(x => x.localizacao ? `${x.label}: ${x.localizacao}` : x.label) },
+  ])
 
   const blocos = [
     {
@@ -54,7 +54,7 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     { tipo: 'campo', label: 'População', valor: '' },
     { tipo: 'lista', itens: [`Fixa: ${d.populacaoFixa}`, `Flutuante: ${d.populacaoFlutuante}`] },
     { tipo: 'campo', label: 'Características de funcionamento', valor: d.horarioFuncionamento },
-    { tipo: 'campo', label: 'Pessoas portadoras de necessidades especiais', valor: d.pneTemPessoas ? d.pneDescricao : 'Não' },
+    ...(d.pneTemPessoas ? [{ tipo: 'campo', label: 'Pessoas portadoras de necessidades especiais', valor: d.pneDescricao }] : []),
     ...blocosRiscos,
     { tipo: 'campo', label: 'Recursos humanos', valor: '' },
     {
