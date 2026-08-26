@@ -12,9 +12,6 @@ import { SISTEMA_ICON } from '../../data/sistemasIcons'
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
 }
-function CardHeader({ children }) {
-  return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 flex-wrap">{children}</div>
-}
 function RiscoBadge({ risco }) {
   const map    = { baixo: 'low', medio: 'med', alto: 'high' }
   const labels = { baixo: 'Risco baixo', medio: 'Risco médio', alto: 'Risco alto' }
@@ -22,104 +19,140 @@ function RiscoBadge({ risco }) {
   return <span className={`carga-class ${map[risco]}`}>{labels[risco]}</span>
 }
 
-// ── Card de resultado de uma linha calculada (treinamento/instalação) ────
-function NivelResultado({ titulo, nivel }) {
-  if (!nivel) return null
-  return (
-    <div className="shrink-0 text-center border-l border-solid border-border pl-6">
-      <div className="text-sm font-bold text-ink leading-none whitespace-nowrap">{nivel.label}</div>
-      <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mt-1 whitespace-nowrap">{titulo}</div>
-    </div>
-  )
+// ── Selo de nível de treinamento/instalação ──────────────────────────
+function NivelBadge({ nivel }) {
+  if (!nivel) return <span className="text-[11px] text-ink-faint">—</span>
+  const map = { basico: 'low', intermediario: 'med', avancado: 'high' }
+  return <span className={`carga-class ${nivel.dinamico ? 'med' : map[nivel.nivel] || ''}`} title={nivel.detalhe || undefined}>{nivel.label}</span>
 }
 
-// ── Card de um pavimento ──────────────────────────────────────────────
-function PavimentoCard({ pavimento, estruturaId, altura, cargaState, limiaresRisco, tabela, dispatch }) {
-  const risco = riscoDoPavimento(pavimento, cargaState, limiaresRisco)
+// ── Linha de um pavimento dentro da tabela da estrutura ──────────────
+// Recebe o cálculo já pronto (calculado uma única vez em TabelaBrigadaEstrutura,
+// que também precisa dele para os totais) — evita rodar a mesma regra duas vezes.
+function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, nivelInstalacao, dispatch }) {
   const divisao = pavimento.divisao
-
   const setPopulacao = v => dispatch({ type: 'UPDATE_PAV', id: pavimento.id, changes: { populacaoFixa: v } })
-
-  const { linha, resultado, nivelTreinamento, nivelInstalacao } = calcularBrigadaPavimento(
-    divisao, risco, pavimento.populacaoFixa, altura, tabela
-  )
 
   const semLinha = !linha
   const isento = linha?.isento
   const especial = resultado?.especial
 
   return (
-    <Card className="mb-4">
-      <CardHeader>
-        <span className="text-[13px] font-semibold text-ink">{pavimento.label}</span>
-        <span className="text-[11px] text-ink-faint bg-surface border border-solid border-border-2 rounded py-0.5 px-1.5 font-mono">{divisao || '—'}</span>
-        <RiscoBadge risco={risco}/>
-        {pavimento.area && <span className="text-[11px] text-ink-faint ml-auto">{pavimento.area} m²</span>}
-      </CardHeader>
+    <tr>
+      <td className="py-2 px-2.5 border-b border-solid border-border-2 text-[13px] font-medium text-ink whitespace-nowrap">{pavimento.label}</td>
+      <td className="py-2 px-2.5 border-b border-solid border-border-2">
+        <span className="text-[11px] text-ink-faint bg-surface-2 border border-solid border-border-2 rounded py-0.5 px-1.5 font-mono">{divisao || '—'}</span>
+      </td>
+      <td className="py-2 px-2.5 border-b border-solid border-border-2"><RiscoBadge risco={risco}/></td>
+      <td className="py-2 px-2.5 border-b border-solid border-border-2">
+        <input
+          type="number" min="0" step="1"
+          value={pavimento.populacaoFixa ?? ''}
+          onChange={e => setPopulacao(e.target.value)}
+          placeholder="0"
+          className="w-16 text-right"
+        />
+      </td>
+      {semLinha ? (
+        <td className="py-2 px-2.5 border-b border-solid border-border-2" colSpan={4}>
+          <span className="text-[11px] text-amber flex items-center gap-1.5">
+            <Icon name="warn" size={12} color="var(--color-amber)" className="shrink-0"/>
+            {divisao ? `Divisão ${divisao} não cadastrada na Tabela A.1 — verifique com o CBM competente.` : 'Classifique a divisão de ocupação na Etapa 4.'}
+          </span>
+        </td>
+      ) : (
+        <>
+          <td className="py-2 px-2.5 border-b border-solid border-border-2 text-center">
+            <span className={`text-base font-bold ${isento ? 'text-ink-faint' : 'text-ink'}`}>{resultado.brigadistas ?? '—'}</span>
+            {especial && <Icon name="warn" size={11} color="var(--color-amber)" className="inline-block ml-1 align-text-top" title={resultado.detalhe}/>}
+          </td>
+          <td className="py-2 px-2.5 border-b border-solid border-border-2"><NivelBadge nivel={nivelTreinamento}/></td>
+          <td className="py-2 px-2.5 border-b border-solid border-border-2"><NivelBadge nivel={nivelInstalacao}/></td>
+          <td className="py-2 px-2.5 border-b border-solid border-border-2">
+            <div className="flex flex-wrap gap-1">
+              {linha.notas?.map(n => <span key={n} className="text-[10px] text-ink-faint bg-surface-2 border border-solid border-border-2 rounded py-0.5 px-1.5">Nota {n}</span>)}
+            </div>
+          </td>
+        </>
+      )}
+    </tr>
+  )
+}
 
-      <div className="py-3.5 px-[18px] border-b border-solid border-border flex items-end gap-4 flex-wrap">
-        <div className="fg m-0 w-[180px]">
-          <label>População fixa (pessoas)</label>
-          <input
-            type="number" min="0" step="1"
-            value={pavimento.populacaoFixa ?? ''}
-            onChange={e => setPopulacao(e.target.value)}
-            placeholder="Ex: 12"
-          />
-        </div>
-        <div className="text-[11px] text-ink-faint leading-[1.6] max-w-[420px]">
-          Ocupantes fixos deste pavimento (funcionários/moradores em atividade contínua) no turno de maior população — ver Notas Gerais “a” e “b” quando houver mais de um turno.
-        </div>
+// ── Tabela de dimensionamento de uma estrutura ────────────────────────
+function TabelaBrigadaEstrutura({ estrutura, pavimentos, cargaState, limiaresRisco, tabela, dispatch }) {
+  const linhasCalculadas = pavimentos.map(pav => {
+    const risco = riscoDoPavimento(pav, cargaState, limiaresRisco)
+    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela) }
+  })
+
+  const observacoes = new Set()
+  linhasCalculadas.forEach(({ resultado, nivelTreinamento }) => {
+    if (resultado?.detalhe) observacoes.add(resultado.detalhe)
+    if (nivelTreinamento?.detalhe) observacoes.add(nivelTreinamento.detalhe)
+    if (nivelTreinamento?.podeReduzirParaBasico) observacoes.add('Nota 4: edificação com altura ≤ 12 m — o treinamento pode ser reduzido para o nível básico.')
+  })
+
+  const totalNumerico = linhasCalculadas.some(l => l.resultado?.brigadistas != null)
+  const totalBrigadistas = linhasCalculadas.reduce((s, l) => s + (l.resultado?.brigadistas || 0), 0)
+  const ORDEM_NIVEL = { basico: 1, intermediario: 2, avancado: 3 }
+  const nivelMaisAlto = (campo) => linhasCalculadas
+    .map(l => l[campo])
+    .filter(n => n && !n.dinamico)
+    .reduce((max, n) => (!max || ORDEM_NIVEL[n.nivel] > ORDEM_NIVEL[max.nivel]) ? n : max, null)
+  const treinamentoMax = nivelMaisAlto('nivelTreinamento')
+  const instalacaoMax = nivelMaisAlto('nivelInstalacao')
+
+  return (
+    <>
+      <div className="border border-solid border-border rounded-md overflow-hidden overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-surface-2">
+              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Pavimento</th>
+              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Divisão</th>
+              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Risco</th>
+              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border">Pop. fixa</th>
+              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border">Brigadistas</th>
+              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Treinamento</th>
+              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Instalação</th>
+              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhasCalculadas.map(({ pav, risco, linha, resultado, nivelTreinamento, nivelInstalacao }) => (
+              <LinhaPavimento
+                key={pav.id}
+                pavimento={pav}
+                risco={risco}
+                linha={linha}
+                resultado={resultado}
+                nivelTreinamento={nivelTreinamento}
+                nivelInstalacao={nivelInstalacao}
+                dispatch={dispatch}
+              />
+            ))}
+          </tbody>
+          {totalNumerico && (
+            <tfoot>
+              <tr className="bg-surface-2">
+                <td className="py-2 px-2.5 text-[12px] font-semibold text-ink" colSpan={4}>Total da estrutura</td>
+                <td className="py-2 px-2.5 text-center text-base font-bold text-ink">{totalBrigadistas}</td>
+                <td className="py-2 px-2.5"><NivelBadge nivel={treinamentoMax}/></td>
+                <td className="py-2 px-2.5"><NivelBadge nivel={instalacaoMax}/></td>
+                <td/>
+              </tr>
+            </tfoot>
+          )}
+        </table>
       </div>
 
-      {semLinha ? (
-        <div className="py-3.5 px-[18px]">
-          <div className="ibox amber">
-            <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-            <span className="text-xs">
-              {divisao
-                ? `A divisão ${divisao} ainda não está cadastrada na Tabela A.1 desta norma — verifique diretamente com o CBM competente.`
-                : 'Classifique a divisão de ocupação deste pavimento na Etapa 4 para calcular a brigada.'}
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className={`py-3.5 px-[18px] ${isento ? 'bg-surface-2' : especial ? 'bg-amber-dim' : 'bg-green-dim'}`}>
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="shrink-0 text-center">
-              <div className="text-2xl font-bold text-ink leading-none">{resultado.brigadistas ?? '—'}</div>
-              <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mt-1 whitespace-nowrap">brigadista{resultado.brigadistas !== 1 ? 's' : ''} exigido{resultado.brigadistas !== 1 ? 's' : ''}</div>
-            </div>
-            {!isento && !especial && resultado.faixaUsada && (
-              <div className="shrink-0 text-center border-l border-solid border-border pl-6">
-                <div className="text-sm font-bold text-ink leading-none whitespace-nowrap">{resultado.faixaUsada}</div>
-                <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mt-1 whitespace-nowrap">faixa da Tabela A.1</div>
-              </div>
-            )}
-            <NivelResultado titulo="Nível de treinamento" nivel={nivelTreinamento}/>
-            <NivelResultado titulo="Nível de instalação" nivel={nivelInstalacao}/>
-          </div>
-
-          {(resultado.detalhe || nivelTreinamento?.detalhe || nivelInstalacao?.detalhe || nivelTreinamento?.podeReduzirParaBasico) && (
-            <div className="text-[11px] text-ink-faint leading-[1.6] mt-3 pt-3 border-t border-solid border-border-2 flex flex-col gap-1">
-              {resultado.detalhe && <span>{resultado.detalhe}</span>}
-              {nivelTreinamento?.detalhe && <span>{nivelTreinamento.detalhe}</span>}
-              {nivelTreinamento?.podeReduzirParaBasico && (
-                <span>Nota 4: como a edificação tem altura ≤ 12 m, o treinamento pode ser reduzido para o nível básico.</span>
-              )}
-            </div>
-          )}
+      {observacoes.size > 0 && (
+        <div className="text-[11px] text-ink-faint leading-[1.6] mt-2.5 flex flex-col gap-1">
+          {[...observacoes].map((o, i) => <span key={i}>{o}</span>)}
         </div>
       )}
-
-      {!semLinha && linha.notas?.length > 0 && (
-        <div className="py-2.5 px-[18px] flex flex-wrap gap-1.5">
-          {linha.notas.map(n => (
-            <span key={n} className="text-[10px] text-ink-faint bg-surface-2 border border-solid border-border-2 rounded py-1 px-2">Nota {n}</span>
-          ))}
-        </div>
-      )}
-    </Card>
+    </>
   )
 }
 
@@ -201,18 +234,16 @@ export default function BrigadaIncendioPage() {
                   <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
                   <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>
                 </div>
-              ) : pavimentos.map(pav => (
-                <PavimentoCard
-                  key={pav.id}
-                  pavimento={pav}
-                  estruturaId={est.id}
-                  altura={est.altura}
+              ) : (
+                <TabelaBrigadaEstrutura
+                  estrutura={est}
+                  pavimentos={pavimentos}
                   cargaState={state.cargaState[est.id] || {}}
                   limiaresRisco={extNorma.LIMIARES_RISCO}
                   tabela={brigNorma.TABELA_A1}
                   dispatch={dispatch}
                 />
-              ))}
+              )}
             </EstruturaSection>
           )
         })}
