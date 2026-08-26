@@ -23,6 +23,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
 
   return {
     edificacao: state.respFantasia || state.respRazaoSocial || state.nome || '',
+    localizacaoTipo: pe.localizacaoTipo || 'Urbana',
     endereco: enderecoCompletoDe(state),
     caracteristicaVizinhanca: pe.caracteristicaVizinhanca || '',
     distanciaCBM: pe.distanciaCBM ? `${pe.distanciaCBM} km` : '',

@@ -61,14 +61,21 @@ export default function GerenciamentoRiscoPage() {
       <FormSection title="Edificação e funcionamento" description="Vizinhança, apoio externo e características de uso — item B.1 do Anexo B.">
         <div className="g2 mb-3">
           <div className="fg">
-            <label>Característica da vizinhança</label>
-            <input value={pe.caracteristicaVizinhanca} onChange={e => set({ caracteristicaVizinhanca: e.target.value })}
-              placeholder="Ex.: alta concentração de edificações comerciais"/>
+            <label>Tipo de localização</label>
+            <select value={pe.localizacaoTipo} onChange={e => set({ localizacaoTipo: e.target.value })}>
+              <option>Urbana</option>
+              <option>Rural</option>
+            </select>
           </div>
           <div className="fg">
             <label>Distância do Corpo de Bombeiros (km)</label>
             <input type="number" value={pe.distanciaCBM} onChange={e => set({ distanciaCBM: e.target.value })}/>
           </div>
+        </div>
+        <div className="fg mb-3">
+          <label>Característica da vizinhança</label>
+          <input value={pe.caracteristicaVizinhanca} onChange={e => set({ caracteristicaVizinhanca: e.target.value })}
+            placeholder="Ex.: alta concentração de edificações comerciais"/>
         </div>
         <div className="fg mb-3">
           <label>Meios de ajuda externa</label>

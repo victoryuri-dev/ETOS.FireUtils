@@ -247,6 +247,7 @@ const INITIAL_STATE = {
   // já nasce preenchido com o numero de emergencia nacional (193) — unica
   // excecao a regra de nascer em branco, por ser um dado publico e fixo.
   planoEmergencia: {
+    localizacaoTipo: 'Urbana',
     caracteristicaVizinhanca: '', distanciaCBM: '', meiosAjudaExterna: '',
     populacaoFixa: '', populacaoFlutuante: '',
     horarioFuncionamento: '', pontoEncontro: '',
