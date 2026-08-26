@@ -16,15 +16,15 @@ import { buildPlanoEmergenciaData } from '../../utils/planoEmergencia'
 export function textoMemorialGerenciamentoRisco(state, sistemas) {
   const d = buildPlanoEmergenciaData(state, sistemas)
 
-  // Uma linha por estrutura com risco marcado — sem nome de estrutura quando
-  // só há uma (não repete o óbvio quando o projeto tem uma única edificação).
+  // Um cabeçalho por estrutura com risco marcado (sem nome de estrutura
+  // quando só há uma) seguido de uma lista com a localização de cada risco —
+  // mesmo tratamento dado aos demais campos compostos deste capítulo.
   const multiplasEstruturas = d.riscosPorEstrutura.length > 1
   const blocosRiscos = d.riscosPorEstrutura.length > 0
-    ? d.riscosPorEstrutura.map(r => ({
-        tipo: 'campo',
-        label: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade',
-        valor: [r.riscos.join(', '), r.detalhamento].filter(Boolean).join(' — '),
-      }))
+    ? d.riscosPorEstrutura.flatMap(r => [
+        { tipo: 'campo', label: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade', valor: '' },
+        { tipo: 'lista', itens: r.riscos.map(x => `${x.label}: ${x.localizacao || 'localização não informada'}`) },
+      ])
     : [{ tipo: 'campo', label: 'Riscos específicos inerentes à atividade', valor: '' }]
 
   const sistemasValor = d.sistemasAtivos.join(', ')

@@ -32,21 +32,26 @@ function enderecoCompletoDe(state) {
     .filter(Boolean).join(', ')
 }
 
-// Riscos especiais marcados na Configuração são por estrutura — o
-// detalhamento (onde cada um fica localizado) segue a mesma granularidade,
-// em vez de um texto único para o projeto inteiro. Só entram estruturas com
-// pelo menos um risco marcado.
+// Riscos especiais marcados na Configuração são por estrutura, e cada risco
+// marcado tem sua própria localização (ex.: "vasos sob pressão" no 1º
+// subsolo, "GLP" na cobertura) — em vez de um texto único juntando todos os
+// riscos da estrutura. Só entram estruturas com pelo menos um risco marcado.
 function riscosPorEstruturaDe(state, pe) {
   const riscosPorEst = state.riscosEspeciaisPorEstrutura || {}
   const outrosDescPorEst = state.riscosOutrosDescPorEstrutura || {}
-  const detalhamentoPorEst = pe.riscosDetalhamentoPorEstrutura || {}
+  const localizacaoPorEst = pe.riscosLocalizacaoPorEstrutura || {}
   return (state.estruturas || [])
     .map(est => {
       const marcados = riscosPorEst[est.id] || {}
+      const localizacoes = localizacaoPorEst[est.id] || {}
       const riscos = RISCOS_ESPECIAIS
         .filter(r => !!marcados[r.key])
-        .map(r => (r.key === 'outros' && outrosDescPorEst[est.id]) ? `${r.label}: ${outrosDescPorEst[est.id]}` : r.label)
-      return { estrutura: est.nome, riscos, detalhamento: detalhamentoPorEst[est.id] || '' }
+        .map(r => ({
+          key: r.key,
+          label: (r.key === 'outros' && outrosDescPorEst[est.id]) ? `${r.label}: ${outrosDescPorEst[est.id]}` : r.label,
+          localizacao: localizacoes[r.key] || '',
+        }))
+      return { estrutura: est.nome, riscos }
     })
     .filter(r => r.riscos.length > 0)
 }

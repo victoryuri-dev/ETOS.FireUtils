@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import FormSection from '../../components/ui/FormSection'
+import EstruturaSection from '../../components/ui/EstruturaSection'
 import Icon from '../../components/ui/Icon'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import { RISCOS_ESPECIAIS } from '../../utils/anexoB'
@@ -32,12 +33,16 @@ export default function GerenciamentoRiscoPage() {
   const pe = state.planoEmergencia
   const set = changes => dispatch({ type: 'SET_PLANO_EMERGENCIA', changes })
 
-  // Riscos especiais sao marcados por estrutura na Configuracao — o
-  // detalhamento (onde cada um fica localizado) segue a mesma granularidade.
+  // Riscos especiais sao marcados por estrutura na Configuracao — cada risco
+  // marcado ganha seu proprio campo de localizacao (ex.: "vasos sob pressao"
+  // no 1o subsolo, "GLP" na cobertura), em vez de um texto unico por estrutura.
   const estruturasComRisco = state.estruturas.filter(est =>
     Object.values(state.riscosEspeciaisPorEstrutura[est.id] || {}).some(Boolean))
-  const setDetalhamentoRisco = (estId, valor) => set({
-    riscosDetalhamentoPorEstrutura: { ...pe.riscosDetalhamentoPorEstrutura, [estId]: valor },
+  const setLocalizacaoRisco = (estId, riscoKey, valor) => set({
+    riscosLocalizacaoPorEstrutura: {
+      ...pe.riscosLocalizacaoPorEstrutura,
+      [estId]: { ...pe.riscosLocalizacaoPorEstrutura[estId], [riscoKey]: valor },
+    },
   })
 
   // Ligar o switch ja pre-preenche a descricao com "Sim" (se ainda vazia) —
@@ -120,24 +125,25 @@ export default function GerenciamentoRiscoPage() {
       </FormSection>
 
       {estruturasComRisco.length > 0 && (
-        <FormSection title="Detalhamento dos riscos especiais" description="Os riscos marcados na Configuração já entram no documento — descreva aqui onde cada um fica localizado.">
-          <div className="flex flex-col gap-4">
-            {estruturasComRisco.map(est => {
-              const marcados = state.riscosEspeciaisPorEstrutura[est.id] || {}
-              const labels = RISCOS_ESPECIAIS.filter(r => marcados[r.key]).map(r => r.label)
-              return (
-                <div key={est.id} className="fg">
-                  <label>
-                    {est.nome}
-                    <span className="ml-auto text-[10px] text-ink-faint normal-case font-normal text-right">{labels.join(', ')}</span>
-                  </label>
-                  <textarea value={pe.riscosDetalhamentoPorEstrutura[est.id] || ''}
-                    onChange={e => setDetalhamentoRisco(est.id, e.target.value)}
-                    placeholder="Ex.: cabine primária e caldeira elétrica no 1º subsolo"/>
+        <FormSection title="Localização dos riscos especiais" description="Os riscos marcados na Configuração já entram no documento — informe aqui onde cada um fica localizado.">
+          {estruturasComRisco.map(est => {
+            const marcados = state.riscosEspeciaisPorEstrutura[est.id] || {}
+            const riscosDaEst = RISCOS_ESPECIAIS.filter(r => marcados[r.key])
+            const localizacoes = pe.riscosLocalizacaoPorEstrutura[est.id] || {}
+            return (
+              <EstruturaSection key={est.id} titulo={est.nome}>
+                <div className="border border-solid border-border rounded-lg overflow-hidden">
+                  {riscosDaEst.map((r, i) => (
+                    <div key={r.key} className={`py-3 px-4 ${i < riscosDaEst.length - 1 ? 'border-b border-solid border-border-2' : ''}`}>
+                      <div className="text-[13px] text-ink font-semibold mb-2">{r.label}</div>
+                      <input value={localizacoes[r.key] || ''} onChange={e => setLocalizacaoRisco(est.id, r.key, e.target.value)}
+                        placeholder="Ex.: 1º subsolo"/>
+                    </div>
+                  ))}
                 </div>
-              )
-            })}
-          </div>
+              </EstruturaSection>
+            )
+          })}
         </FormSection>
       )}
 

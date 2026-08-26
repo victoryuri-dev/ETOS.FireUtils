@@ -269,10 +269,11 @@ const INITIAL_STATE = {
     populacaoFixa: '', populacaoFlutuante: '',
     horarioFuncionamento: '',
     pneTemPessoas: false, pneDescricao: '',
-    // Localizacao/detalhe de cada risco especial, por estrutura — mesma
-    // chave (estruturaId) de riscosEspeciaisPorEstrutura, ja que os riscos
-    // marcados na Configuracao tambem sao por estrutura.
-    riscosDetalhamentoPorEstrutura: {},
+    // Localizacao de cada risco especial marcado — chaveado por estrutura e,
+    // dentro dela, pela chave do risco (mesmas chaves de RISCOS_ESPECIAIS em
+    // utils/anexoB.js), ja que os riscos marcados na Configuracao tambem sao
+    // por estrutura: riscosLocalizacaoPorEstrutura[estId][riscoKey] = texto.
+    riscosLocalizacaoPorEstrutura: {},
     brigadistasQtd: '', brigadistasProfissionaisQtd: '',
     telefoneCBM: '193', hospitalReferencia: '',
     ...PROCEDIMENTOS_PADRAO,
