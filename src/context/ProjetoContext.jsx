@@ -531,6 +531,11 @@ export function ProjetoProvider({ children }) {
   // `definirVersaoConhecida`; enquanto for null, autosave fica pausado.
   const versaoRef = useRef(null)
   const [conflito, setConflito] = useState(false)
+  // Status do sync com o Postgres pro indicador no header ('saving' | 'saved'
+  // | 'error' | null). Fica null (nada exibido) ate a primeira sincronizacao
+  // elegivel, e some de novo se entrar em conflito — o banner de conflito ja
+  // comunica o problema, dois avisos ao mesmo tempo seria redundante.
+  const [syncStatus, setSyncStatus] = useState(null)
 
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (init) => {
     try {
@@ -574,6 +579,7 @@ export function ProjetoProvider({ children }) {
     }
 
     if (!user || !state.id || !state.saveReady || conflito || versaoRef.current == null) return
+    setSyncStatus('saving')
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       const versaoLocal = versaoRef.current
@@ -583,27 +589,33 @@ export function ProjetoProvider({ children }) {
         .eq('id', state.id).eq('user_id', user.id).eq('version', versaoLocal)
         .select('version')
 
-      if (error) { console.error('Falha ao sincronizar projeto com o Supabase:', error.message); return }
+      if (error) {
+        console.error('Falha ao sincronizar projeto com o Supabase:', error.message)
+        setSyncStatus('error')
+        return
+      }
 
       if (!data || data.length === 0) {
         // Nenhuma linha afetada: ou a versão mudou (conflito) ou o projeto
         // ainda não existe no Postgres (primeiro save de um projeto novo).
         const { data: existente } = await supabase.from('projetos').select('id').eq('id', state.id).maybeSingle()
-        if (existente) { setConflito(true); return }
+        if (existente) { setConflito(true); setSyncStatus(null); return }
         const { error: insertErr } = await supabase.from('projetos').insert({
           id: state.id, user_id: user.id, nome: state.nome || 'Projeto sem nome', dados: toSave, version: 1,
         })
-        if (insertErr) console.error('Falha ao criar projeto no Supabase:', insertErr.message)
-        else versaoRef.current = 1
+        if (insertErr) { console.error('Falha ao criar projeto no Supabase:', insertErr.message); setSyncStatus('error'); return }
+        versaoRef.current = 1
+        setSyncStatus('saved')
         return
       }
       versaoRef.current = data[0].version
+      setSyncStatus('saved')
     }, 800)
     return () => clearTimeout(saveTimer.current)
   }, [state, user, conflito])
 
   return (
-    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida }}>
+    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida, syncStatus }}>
       {children}
     </Ctx.Provider>
   )
