@@ -16,8 +16,17 @@ import { buildPlanoEmergenciaData } from '../../utils/planoEmergencia'
 export function textoMemorialGerenciamentoRisco(state, sistemas) {
   const d = buildPlanoEmergenciaData(state, sistemas)
 
-  const riscos = d.riscosAtivos.length ? d.riscosAtivos.join(', ') : ''
-  const riscosValor = [riscos, d.riscosDetalhamento].filter(Boolean).join(' — ')
+  // Uma linha por estrutura com risco marcado — sem nome de estrutura quando
+  // só há uma (não repete o óbvio quando o projeto tem uma única edificação).
+  const multiplasEstruturas = d.riscosPorEstrutura.length > 1
+  const blocosRiscos = d.riscosPorEstrutura.length > 0
+    ? d.riscosPorEstrutura.map(r => ({
+        tipo: 'campo',
+        label: multiplasEstruturas ? `Riscos específicos — ${r.estrutura}` : 'Riscos específicos inerentes à atividade',
+        valor: [r.riscos.join(', '), r.detalhamento].filter(Boolean).join(' — '),
+      }))
+    : [{ tipo: 'campo', label: 'Riscos específicos inerentes à atividade', valor: '' }]
+
   const sistemasValor = d.sistemasAtivos.join(', ')
 
   const blocos = [
@@ -43,7 +52,7 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     { tipo: 'campo', label: 'População — flutuante', valor: d.populacaoFlutuante },
     { tipo: 'campo', label: 'Características de funcionamento', valor: d.horarioFuncionamento },
     { tipo: 'campo', label: 'Pessoas portadoras de necessidades especiais', valor: d.pneTemPessoas ? d.pneDescricao : 'Não' },
-    { tipo: 'campo', label: 'Riscos específicos inerentes à atividade', valor: riscosValor },
+    ...blocosRiscos,
     { tipo: 'campo', label: 'Recursos humanos — Brigada de Incêndio', valor: d.brigadistasQtd ? `${d.brigadistasQtd} membros` : '' },
     { tipo: 'campo', label: 'Recursos humanos — Brigadistas Profissionais', valor: d.brigadistasProfissionaisQtd },
     { tipo: 'campo', label: 'Sistemas de Segurança contra Incêndio', valor: sistemasValor },

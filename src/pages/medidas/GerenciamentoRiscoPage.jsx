@@ -3,6 +3,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import FormSection from '../../components/ui/FormSection'
 import Icon from '../../components/ui/Icon'
 import SwitchToggle from '../../components/ui/SwitchToggle'
+import { RISCOS_ESPECIAIS } from '../../utils/anexoB'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) com os poucos
@@ -31,8 +32,13 @@ export default function GerenciamentoRiscoPage() {
   const pe = state.planoEmergencia
   const set = changes => dispatch({ type: 'SET_PLANO_EMERGENCIA', changes })
 
-  const temRiscoEspecial = Object.values(state.riscosEspeciaisPorEstrutura || {})
-    .some(r => Object.values(r || {}).some(Boolean))
+  // Riscos especiais sao marcados por estrutura na Configuracao — o
+  // detalhamento (onde cada um fica localizado) segue a mesma granularidade.
+  const estruturasComRisco = state.estruturas.filter(est =>
+    Object.values(state.riscosEspeciaisPorEstrutura[est.id] || {}).some(Boolean))
+  const setDetalhamentoRisco = (estId, valor) => set({
+    riscosDetalhamentoPorEstrutura: { ...pe.riscosDetalhamentoPorEstrutura, [estId]: valor },
+  })
 
   // Ligar o switch ja pre-preenche a descricao com "Sim" (se ainda vazia) —
   // usuario so precisa digitar por cima se quiser detalhar quantidade/local.
@@ -113,11 +119,24 @@ export default function GerenciamentoRiscoPage() {
         </div>
       </FormSection>
 
-      {temRiscoEspecial && (
-        <FormSection title="Detalhamento dos riscos especiais" description="Os riscos marcados na Configuração já entram no documento — descreva aqui onde ficam localizados.">
-          <div className="fg">
-            <textarea value={pe.riscosDetalhamento} onChange={e => set({ riscosDetalhamento: e.target.value })}
-              placeholder="Ex.: cabine primária e caldeira elétrica no 1º subsolo"/>
+      {estruturasComRisco.length > 0 && (
+        <FormSection title="Detalhamento dos riscos especiais" description="Os riscos marcados na Configuração já entram no documento — descreva aqui onde cada um fica localizado.">
+          <div className="flex flex-col gap-4">
+            {estruturasComRisco.map(est => {
+              const marcados = state.riscosEspeciaisPorEstrutura[est.id] || {}
+              const labels = RISCOS_ESPECIAIS.filter(r => marcados[r.key]).map(r => r.label)
+              return (
+                <div key={est.id} className="fg">
+                  <label>
+                    {est.nome}
+                    <span className="ml-auto text-[10px] text-ink-faint normal-case font-normal text-right">{labels.join(', ')}</span>
+                  </label>
+                  <textarea value={pe.riscosDetalhamentoPorEstrutura[est.id] || ''}
+                    onChange={e => setDetalhamentoRisco(est.id, e.target.value)}
+                    placeholder="Ex.: cabine primária e caldeira elétrica no 1º subsolo"/>
+                </div>
+              )
+            })}
           </div>
         </FormSection>
       )}

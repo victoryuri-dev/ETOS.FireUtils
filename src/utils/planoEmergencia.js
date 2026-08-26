@@ -6,7 +6,7 @@
 // existe em nenhum outro lugar do app. Campos sem valor cadastrado recebem um
 // papel/procedimento padrão condizente com o modelo do Anexo B, sempre
 // editável na tela de complementação.
-import { buildAnexoBData } from './anexoB'
+import { buildAnexoBData, RISCOS_ESPECIAIS } from './anexoB'
 
 // Texto padrão dos 10 procedimentos básicos (item B.2 do Anexo B) — adaptado
 // de um exemplo prático genérico de plano de emergência, servindo de ponto de
@@ -30,6 +30,25 @@ function enderecoCompletoDe(state) {
   const linha = [state.endereco, state.numero].filter(Boolean).join(', ')
   return [linha, state.complemento, state.bairro, [state.cidade, state.uf].filter(Boolean).join(' – '), state.cep]
     .filter(Boolean).join(', ')
+}
+
+// Riscos especiais marcados na Configuração são por estrutura — o
+// detalhamento (onde cada um fica localizado) segue a mesma granularidade,
+// em vez de um texto único para o projeto inteiro. Só entram estruturas com
+// pelo menos um risco marcado.
+function riscosPorEstruturaDe(state, pe) {
+  const riscosPorEst = state.riscosEspeciaisPorEstrutura || {}
+  const outrosDescPorEst = state.riscosOutrosDescPorEstrutura || {}
+  const detalhamentoPorEst = pe.riscosDetalhamentoPorEstrutura || {}
+  return (state.estruturas || [])
+    .map(est => {
+      const marcados = riscosPorEst[est.id] || {}
+      const riscos = RISCOS_ESPECIAIS
+        .filter(r => !!marcados[r.key])
+        .map(r => (r.key === 'outros' && outrosDescPorEst[est.id]) ? `${r.label}: ${outrosDescPorEst[est.id]}` : r.label)
+      return { estrutura: est.nome, riscos, detalhamento: detalhamentoPorEst[est.id] || '' }
+    })
+    .filter(r => r.riscos.length > 0)
 }
 
 export function buildPlanoEmergenciaData(state, sistemas) {
@@ -59,8 +78,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     pneTemPessoas: !!pe.pneTemPessoas,
     pneDescricao: pe.pneTemPessoas ? (pe.pneDescricao || 'Sim') : '',
 
-    riscosAtivos: b.riscosEspeciais.filter(r => r.ativo).map(r => r.label),
-    riscosDetalhamento: pe.riscosDetalhamento || '',
+    riscosPorEstrutura: riscosPorEstruturaDe(state, pe),
 
     brigadistasQtd: pe.brigadistasQtd || '',
     brigadistasProfissionaisQtd: pe.brigadistasProfissionaisQtd || '',

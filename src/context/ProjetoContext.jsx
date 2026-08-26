@@ -269,7 +269,10 @@ const INITIAL_STATE = {
     populacaoFixa: '', populacaoFlutuante: '',
     horarioFuncionamento: '',
     pneTemPessoas: false, pneDescricao: '',
-    riscosDetalhamento: '',
+    // Localizacao/detalhe de cada risco especial, por estrutura — mesma
+    // chave (estruturaId) de riscosEspeciaisPorEstrutura, ja que os riscos
+    // marcados na Configuracao tambem sao por estrutura.
+    riscosDetalhamentoPorEstrutura: {},
     brigadistasQtd: '', brigadistasProfissionaisQtd: '',
     telefoneCBM: '193', hospitalReferencia: '',
     ...PROCEDIMENTOS_PADRAO,
