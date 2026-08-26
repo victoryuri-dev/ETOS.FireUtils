@@ -89,6 +89,11 @@ export default function GerenciamentoRiscoPage() {
           <input value={pe.caracteristicaVizinhanca} onChange={e => set({ caracteristicaVizinhanca: e.target.value })}
             placeholder="Ex.: alta concentração de edificações comerciais"/>
         </div>
+        <div className="fg mb-3">
+          <label>Meios de ajuda externa</label>
+          <input value={pe.meiosAjudaExterna} onChange={e => set({ meiosAjudaExterna: e.target.value })}
+            placeholder="Ex.: Posto de Bombeiros do Centro, Brigada de empresa vizinha"/>
+        </div>
         <div className="g2 mb-3">
           <div className="fg">
             <label>População fixa</label>

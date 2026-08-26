@@ -265,7 +265,7 @@ const INITIAL_STATE = {
   // precisar, nunca preenche do zero.
   planoEmergencia: {
     localizacaoTipo: 'Urbana',
-    caracteristicaVizinhanca: '', distanciaCBM: '',
+    caracteristicaVizinhanca: '', distanciaCBM: '', meiosAjudaExterna: 'Posto de Bombeiros',
     populacaoFixa: '', populacaoFlutuante: '',
     horarioFuncionamento: '',
     pneTemPessoas: false, pneDescricao: '',

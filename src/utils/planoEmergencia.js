@@ -82,6 +82,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     endereco: enderecoCompletoDe(state),
     caracteristicaVizinhanca: pe.caracteristicaVizinhanca || '',
     distanciaCBM: pe.distanciaCBM ? `${pe.distanciaCBM} km` : '',
+    meiosAjudaExterna: pe.meiosAjudaExterna || 'Posto de Bombeiros',
 
     areaTerreno: b.areaTerreno,
     estruturas: estruturasDetalheDe(state),

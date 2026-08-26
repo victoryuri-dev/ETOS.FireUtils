@@ -42,6 +42,7 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
         `Endereço: ${d.endereco}`,
         `Característica da vizinhança: ${d.caracteristicaVizinhanca}`,
         `Distância do Corpo de Bombeiros Militar: ${d.distanciaCBM}`,
+        `Meios de ajuda externa: ${d.meiosAjudaExterna}`,
       ],
     },
     { tipo: 'campo', label: 'Estrutura e Dimensões', valor: '' },
