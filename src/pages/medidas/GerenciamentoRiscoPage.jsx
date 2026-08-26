@@ -45,7 +45,7 @@ export default function GerenciamentoRiscoPage() {
           Gerenciamento de Risco de Incêndio
         </h2>
         <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
-          Plano de Emergência Contra Incêndio conforme NT 16/2021 CBMMA (Anexo B).
+          Plano de Emergência Contra Incêndio conforme NT 16/2021 CBMMA (Anexo B) — vira um capítulo do Memorial Descritivo.
         </p>
       </div>
 
@@ -53,7 +53,8 @@ export default function GerenciamentoRiscoPage() {
         <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
         <span>
           Endereço, estrutura, área, altura, ocupação, sistemas de segurança e riscos especiais já cadastrados na
-          Configuração do projeto entram automaticamente no Plano de Emergência. Complete aqui só o que falta.
+          Configuração do projeto entram automaticamente no capítulo do Plano de Emergência dentro do Memorial
+          Descritivo. Complete aqui só o que falta.
         </span>
       </div>
 
@@ -149,8 +150,8 @@ export default function GerenciamentoRiscoPage() {
         </div>
       </FormSection>
 
-      <button className="btn-primary" onClick={() => navigate(`/projeto/${id}/documentos`, { state: { abrir: 'plano-emergencia' } })}>
-        <Icon name="file" size={13}/> Ver Plano de Emergência
+      <button className="btn-primary" onClick={() => navigate(`/projeto/${id}/documentos`, { state: { abrir: 'memorial-descritivo' } })}>
+        <Icon name="file" size={13}/> Ver no Memorial Descritivo
       </button>
 
     </div></div>

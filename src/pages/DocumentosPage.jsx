@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import AnexoBPage from './documentos/AnexoBPage'
 import MemorialDescritivoPage from './documentos/MemorialDescritivoPage'
-import PlanoEmergenciaPage from './documentos/PlanoEmergenciaPage'
 import Icon from '../components/ui/Icon'
 
 const DOCUMENTOS = [
@@ -14,12 +13,7 @@ const DOCUMENTOS = [
   {
     id: 'memorial-descritivo',
     titulo: 'Memorial Descritivo',
-    descricao: 'Uma pagina por medida de seguranca dimensionada, com o texto tecnico gerado a partir dos dados de cada dimensionamento.',
-  },
-  {
-    id: 'plano-emergencia',
-    titulo: 'Plano de Emergência — NT 16',
-    descricao: 'Plano de Emergencia Contra Incendio (Anexo B, NT 16/2021 CBMMA). Preenchido com os dados do projeto e as informacoes complementares cadastradas em Gerenciamento de Risco.',
+    descricao: 'Uma pagina por medida de seguranca dimensionada, com o texto tecnico gerado a partir dos dados de cada dimensionamento — inclui o Plano de Emergencia (NT 16) quando aplicavel ao projeto.',
   },
 ]
 
@@ -43,9 +37,10 @@ function DocumentoCard({ doc, onAbrir }) {
 
 export default function DocumentosPage() {
   const location = useLocation()
-  // Permite chegar aqui com um documento ja aberto (ex.: botao "Ver Plano de
-  // Emergencia" em GerenciamentoRiscoPage.jsx) — so usado como valor inicial,
-  // pra nao reabrir sozinho se o usuario voltar pra lista e navegar de novo.
+  // Permite chegar aqui com um documento ja aberto (ex.: botao "Ver no
+  // Memorial Descritivo" em GerenciamentoRiscoPage.jsx) — so usado como
+  // valor inicial, pra nao reabrir sozinho se o usuario voltar pra lista e
+  // navegar de novo.
   const [aberto, setAberto] = useState(() => location.state?.abrir || null)
 
   if (aberto === 'anexo-b') {
@@ -53,9 +48,6 @@ export default function DocumentosPage() {
   }
   if (aberto === 'memorial-descritivo') {
     return <MemorialDescritivoPage onBack={() => setAberto(null)}/>
-  }
-  if (aberto === 'plano-emergencia') {
-    return <PlanoEmergenciaPage onBack={() => setAberto(null)}/>
   }
 
   return (

@@ -8,13 +8,15 @@ import { textoMemorialSegEstrutural } from './seg_estrutural'
 import { textoMemorialExtintores } from './extintores'
 import { textoMemorialIluminacao } from './iluminacao'
 import { textoMemorialSinalizacao } from './sinalizacao'
+import { textoMemorialGerenciamentoRisco } from './gerenciamento_risco'
 
 export const MEMORIAL_BUILDERS = {
-  acesso_viatura: textoMemorialAcessoViatura,
-  seg_estrutural: textoMemorialSegEstrutural,
-  extintores:     textoMemorialExtintores,
-  iluminacao:     textoMemorialIluminacao,
-  sinalizacao:    textoMemorialSinalizacao,
+  acesso_viatura:      textoMemorialAcessoViatura,
+  seg_estrutural:      textoMemorialSegEstrutural,
+  extintores:          textoMemorialExtintores,
+  iluminacao:          textoMemorialIluminacao,
+  sinalizacao:         textoMemorialSinalizacao,
+  gerenciamento_risco: textoMemorialGerenciamentoRisco,
   // saida_emergencia, hidrantes, ... entram aqui conforme forem implementadas
 }
 
