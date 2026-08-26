@@ -27,8 +27,6 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
       ])
     : [{ tipo: 'campo', label: 'Riscos específicos inerentes à atividade', valor: '' }]
 
-  const sistemasValor = d.sistemasAtivos.join(', ')
-
   const blocos = [
     {
       tipo: 'paragrafo',
@@ -53,7 +51,8 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
       linhas: [[d.areaConstruida, d.areaTerreno, d.altura, d.nPavimentos, d.nSubsolos]],
     },
     { tipo: 'campo', label: 'Ocupação', valor: d.ocupacao },
-    { tipo: 'lista', itens: [`População fixa: ${d.populacaoFixa}`, `População flutuante: ${d.populacaoFlutuante}`] },
+    { tipo: 'campo', label: 'População', valor: '' },
+    { tipo: 'lista', itens: [`Fixa: ${d.populacaoFixa}`, `Flutuante: ${d.populacaoFlutuante}`] },
     { tipo: 'campo', label: 'Características de funcionamento', valor: d.horarioFuncionamento },
     { tipo: 'campo', label: 'Pessoas portadoras de necessidades especiais', valor: d.pneTemPessoas ? d.pneDescricao : 'Não' },
     ...blocosRiscos,
@@ -65,16 +64,15 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
         `Brigadistas Profissionais: ${d.brigadistasProfissionaisQtd}`,
       ],
     },
-    { tipo: 'campo', label: 'Sistemas de Segurança contra Incêndio', valor: sistemasValor },
+    { tipo: 'campo', label: 'Recursos materiais', valor: '' },
+    { tipo: 'lista', itens: d.sistemasAtivos },
 
     { tipo: 'titulo2', texto: 'Procedimentos básicos de emergência contra incêndio' },
     { tipo: 'campo', label: 'Alerta', valor: d.meioAlerta },
     { tipo: 'campo', label: 'Análise da situação', valor: d.respAnaliseSituacao },
-    { tipo: 'campo', label: 'Apoio externo', valor: '' },
-    { tipo: 'campo', label: 'Responsável', valor: d.respApoioExterno },
+    { tipo: 'campo', label: 'Apoio externo', valor: d.respApoioExterno },
     { tipo: 'campo', label: 'Telefone do Corpo de Bombeiros', valor: d.telefoneCBM },
-    { tipo: 'campo', label: 'Primeiros socorros e hospitais próximos', valor: '' },
-    { tipo: 'campo', label: 'Responsável', valor: d.respPrimeirosSocorros },
+    { tipo: 'campo', label: 'Primeiros socorros e hospitais próximos', valor: d.respPrimeirosSocorros },
     { tipo: 'campo', label: 'Hospital de referência', valor: d.hospitalReferencia },
     { tipo: 'campo', label: 'Eliminar riscos', valor: d.respEliminarRiscos },
     { tipo: 'campo', label: 'Abandono de área', valor: d.respAbandono },

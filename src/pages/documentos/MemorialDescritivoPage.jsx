@@ -413,7 +413,11 @@ function BlocoMedida({ bloco }) {
       return (
         <ul className="list-none mb-4">
           {bloco.itens.map((item, i) => (
-            <li key={i} className={`text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 ${bloco.estilo === 'alerta' ? 'border-l-2 border-solid border-black font-medium' : 'border-l border-solid border-[#c9c9cb]'}`}>
+            <li key={i} className={
+              bloco.estilo === 'alerta'
+                ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
+                : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
+            }>
               {item}
             </li>
           ))}
