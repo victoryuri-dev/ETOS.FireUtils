@@ -11,16 +11,16 @@ import { SISTEMA_ICON } from '../../data/sistemasIcons'
 // utils/planoEmergencia.js). Nenhum campo aqui é obrigatório: em branco, o
 // documento usa um papel/procedimento padrão condizente com o modelo oficial.
 const PROCEDIMENTOS = [
-  { key: 'meioAlerta',              label: 'Alerta — como a emergência é avisada',        placeholder: 'Ex.: alarme manual por botoeira' },
-  { key: 'respAnaliseSituacao',     label: 'Análise da situação',                          placeholder: 'Ex.: Brigadista de plantão' },
-  { key: 'respApoioExterno',        label: 'Apoio externo — quem aciona o Corpo de Bombeiros', placeholder: 'Ex.: Brigadista de plantão' },
-  { key: 'respPrimeirosSocorros',   label: 'Primeiros socorros',                           placeholder: 'Ex.: Brigadistas treinados' },
-  { key: 'respEliminarRiscos',      label: 'Eliminar riscos — corte de energia/gás',       placeholder: 'Ex.: Equipe de manutenção' },
-  { key: 'respAbandono',            label: 'Abandono de área',                             placeholder: 'Ex.: Chefe da Brigada' },
-  { key: 'respIsolamento',          label: 'Isolamento de área',                           placeholder: 'Ex.: Brigada de Incêndio' },
-  { key: 'respConfinamento',        label: 'Confinamento do incêndio',                     placeholder: 'Ex.: Brigada de Incêndio' },
-  { key: 'respCombate',             label: 'Combate ao incêndio',                          placeholder: 'Ex.: Brigada de Incêndio' },
-  { key: 'respInvestigacao',        label: 'Investigação pós-emergência',                  placeholder: 'Ex.: Chefe da Brigada' },
+  { key: 'meioAlerta',            label: 'Alerta' },
+  { key: 'respAnaliseSituacao',   label: 'Análise da situação' },
+  { key: 'respApoioExterno',      label: 'Apoio externo' },
+  { key: 'respPrimeirosSocorros', label: 'Primeiros socorros' },
+  { key: 'respEliminarRiscos',    label: 'Eliminar riscos' },
+  { key: 'respAbandono',          label: 'Abandono de área' },
+  { key: 'respIsolamento',        label: 'Isolamento de área' },
+  { key: 'respConfinamento',      label: 'Confinamento do incêndio' },
+  { key: 'respCombate',           label: 'Combate ao incêndio' },
+  { key: 'respInvestigacao',      label: 'Investigação' },
 ]
 
 export default function GerenciamentoRiscoPage() {
@@ -146,12 +146,12 @@ export default function GerenciamentoRiscoPage() {
         </div>
       </FormSection>
 
-      <FormSection title="Responsáveis pelos procedimentos de emergência" description="Quem faz o quê em cada etapa — item B.2 do Anexo B. Deixe em branco para usar um papel padrão.">
-        <div className="flex flex-col">
+      <FormSection title="Procedimentos básicos de emergência" description="Item B.2 do Anexo B — cada campo já vem com um texto padrão pronto para uso; edite à vontade para refletir a realidade da edificação.">
+        <div className="flex flex-col gap-4">
           {PROCEDIMENTOS.map(p => (
-            <div key={p.key} className="grid grid-cols-[1fr_1.2fr] gap-4 items-center py-2 border-b border-solid border-border last:border-b-0">
-              <label className="text-xs text-ink-muted m-0">{p.label}</label>
-              <input value={pe[p.key]} onChange={e => set({ [p.key]: e.target.value })} placeholder={p.placeholder}/>
+            <div key={p.key} className="fg">
+              <label>{p.label}</label>
+              <textarea rows={3} value={pe[p.key]} onChange={e => set({ [p.key]: e.target.value })}/>
             </div>
           ))}
         </div>

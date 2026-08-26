@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import { PROCEDIMENTOS_PADRAO } from '../utils/planoEmergencia'
 
 // Gera um ID interno único
 export function newIds() {
@@ -244,8 +245,11 @@ const INITIAL_STATE = {
   // não existe em nenhum outro lugar do state (endereço, sistemas, riscos
   // especiais, estrutura, população total etc. são reaproveitados de lá na
   // hora de montar o documento, ver utils/planoEmergencia.js). `telefoneCBM`
-  // já nasce preenchido com o numero de emergencia nacional (193) — unica
-  // excecao a regra de nascer em branco, por ser um dado publico e fixo.
+  // já nasce preenchido com o numero de emergencia nacional (193), e os 10
+  // procedimentos (item B.2) nascem com o texto padrao de PROCEDIMENTOS_PADRAO
+  // (adaptado de um exemplo pratico) — unicas excecoes a regra de nascer em
+  // branco, por serem dados/texto de partida que o usuario so edita se
+  // precisar, nunca preenche do zero.
   planoEmergencia: {
     localizacaoTipo: 'Urbana',
     caracteristicaVizinhanca: '', distanciaCBM: '', meiosAjudaExterna: '',
@@ -254,10 +258,8 @@ const INITIAL_STATE = {
     pneQuantidade: '', pneLocalizacao: '',
     riscosDetalhamento: '',
     brigadistasQtd: '', brigadistasProfissionaisQtd: '',
-    meioAlerta: '', telefoneCBM: '193', hospitalReferencia: '',
-    respAnaliseSituacao: '', respApoioExterno: '', respPrimeirosSocorros: '',
-    respEliminarRiscos: '', respAbandono: '', respIsolamento: '',
-    respConfinamento: '', respCombate: '', respInvestigacao: '',
+    telefoneCBM: '193', hospitalReferencia: '',
+    ...PROCEDIMENTOS_PADRAO,
   },
   sistemas: {
     // acesso_viatura, seg_estrutural e brigada NAO sao universais: a Tabela 5
