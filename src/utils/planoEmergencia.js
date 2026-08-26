@@ -32,6 +32,22 @@ function enderecoCompletoDe(state) {
     .filter(Boolean).join(', ')
 }
 
+// Dimensões são por estrutura — um projeto pode ter várias edificações, cada
+// uma com sua própria área construída, altura, pavimentos e subsolos, então
+// o memorial mostra uma linha por estrutura em vez de somar/misturar tudo
+// num único valor (área do terreno é a exceção: é do lote todo, não de cada
+// edificação, e por isso não entra aqui — ver areaTerreno em buildAnexoBData).
+function estruturasDetalheDe(state) {
+  return (state.estruturas || []).map(est => ({
+    nome: est.nome,
+    tipo: (Array.isArray(est.estrutura) ? est.estrutura.join(', ') : est.estrutura) || '',
+    areaConstruida: est.areaTotal ? `${est.areaTotal} m²` : '',
+    altura: est.altura ? `${est.altura} m` : '',
+    nPavimentos: est.nPavimentos ?? '',
+    nSubsolos: est.nSubsolos ?? '',
+  }))
+}
+
 // Riscos especiais marcados na Configuração são por estrutura, e cada risco
 // marcado tem sua própria localização (ex.: "vasos sob pressão" no 1º
 // subsolo, "GLP" na cobertura) — em vez de um texto único juntando todos os
@@ -59,9 +75,6 @@ function riscosPorEstruturaDe(state, pe) {
 export function buildPlanoEmergenciaData(state, sistemas) {
   const b = buildAnexoBData(state, sistemas)
   const pe = state.planoEmergencia || {}
-  const estruturas = state.estruturas || []
-  const nPavimentos = estruturas.reduce((s, e) => s + (parseInt(e.nPavimentos) || 0), 0)
-  const nSubsolos = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
 
   return {
     edificacao: state.respFantasia || state.respRazaoSocial || state.nome || '',
@@ -70,12 +83,8 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     caracteristicaVizinhanca: pe.caracteristicaVizinhanca || '',
     distanciaCBM: pe.distanciaCBM ? `${pe.distanciaCBM} km` : '',
 
-    estrutura: b.estrutura,
-    areaConstruida: b.areaTotalConstruida,
     areaTerreno: b.areaTerreno,
-    altura: b.altura,
-    nPavimentos: nPavimentos || '',
-    nSubsolos: nSubsolos || '',
+    estruturas: estruturasDetalheDe(state),
     ocupacao: b.classificacaoOcupacao,
 
     populacaoFixa: pe.populacaoFixa || '',
