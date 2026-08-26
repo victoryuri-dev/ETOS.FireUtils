@@ -2,6 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import FormSection from '../../components/ui/FormSection'
 import Icon from '../../components/ui/Icon'
+import SwitchToggle from '../../components/ui/SwitchToggle'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) com os poucos
@@ -32,6 +33,10 @@ export default function GerenciamentoRiscoPage() {
 
   const temRiscoEspecial = Object.values(state.riscosEspeciaisPorEstrutura || {})
     .some(r => Object.values(r || {}).some(Boolean))
+
+  // Ligar o switch ja pre-preenche a descricao com "Sim" (se ainda vazia) —
+  // usuario so precisa digitar por cima se quiser detalhar quantidade/local.
+  const handleTogglePne = v => set(v && !pe.pneDescricao ? { pneTemPessoas: true, pneDescricao: 'Sim' } : { pneTemPessoas: v })
 
   return (
     <div className="flex-1 overflow-y-auto"><div className="max-w-[820px] mx-auto px-12 pt-[34px] pb-24">
@@ -77,11 +82,6 @@ export default function GerenciamentoRiscoPage() {
           <input value={pe.caracteristicaVizinhanca} onChange={e => set({ caracteristicaVizinhanca: e.target.value })}
             placeholder="Ex.: alta concentração de edificações comerciais"/>
         </div>
-        <div className="fg mb-3">
-          <label>Meios de ajuda externa</label>
-          <input value={pe.meiosAjudaExterna} onChange={e => set({ meiosAjudaExterna: e.target.value })}
-            placeholder="Ex.: Plano de Auxílio Mútuo (PAM), brigada de empresa vizinha etc."/>
-        </div>
         <div className="g2 mb-3">
           <div className="fg">
             <label>População fixa</label>
@@ -98,20 +98,18 @@ export default function GerenciamentoRiscoPage() {
           <input value={pe.horarioFuncionamento} onChange={e => set({ horarioFuncionamento: e.target.value })}
             placeholder="Ex.: horário comercial, 08h às 18h, segunda a sexta"/>
         </div>
-        <div className="g2 mb-3">
-          <div className="fg">
-            <label>Pessoas c/ necessidades especiais — quantidade</label>
-            <input type="number" value={pe.pneQuantidade} onChange={e => set({ pneQuantidade: e.target.value })}/>
-          </div>
-          <div className="fg">
-            <label>Localização</label>
-            <input value={pe.pneLocalizacao} onChange={e => set({ pneLocalizacao: e.target.value })} placeholder="Ex.: térreo"/>
-          </div>
-        </div>
         <div className="fg">
-          <label>Rotas de fuga e ponto de encontro</label>
-          <input value={pe.pontoEncontro} onChange={e => set({ pontoEncontro: e.target.value })}
-            placeholder="Ex.: estacionamento externo, em frente à portaria principal"/>
+          <label>
+            Pessoas portadoras de necessidades especiais
+            <span className="ml-auto flex items-center gap-1.5">
+              <span className="text-[10px] text-ink-faint normal-case font-normal whitespace-nowrap">{pe.pneTemPessoas ? 'Sim' : 'Não'}</span>
+              <SwitchToggle checked={pe.pneTemPessoas} onChange={handleTogglePne}/>
+            </span>
+          </label>
+          {pe.pneTemPessoas && (
+            <input value={pe.pneDescricao} onChange={e => set({ pneDescricao: e.target.value })}
+              placeholder="Ex.: 3 pessoas no térreo, uma gestante no 15º andar"/>
+          )}
         </div>
       </FormSection>
 

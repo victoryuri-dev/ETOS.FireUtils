@@ -4,12 +4,13 @@
 // alimentaria um documento avulso — só que aqui o resultado vira um capítulo
 // do Memorial Descritivo em vez de um documento separado.
 //
-// Os campos deste capítulo reproduzem EXATAMENTE os itens B.1.1 a B.1.12,
-// B.2.1 a B.2.10 e B.3 do Anexo B (modelo de Plano de Emergência) — nem mais
-// nem menos — na mesma ordem do documento oficial, preenchidos
-// automaticamente sempre que o dado já existe em outro lugar do projeto (ver
-// utils/planoEmergencia.js). Os rótulos ficam sem a numeração B.x.y — é só
-// referência interna da norma, não ajuda o leitor do memorial.
+// Os campos deste capítulo seguem os itens B.1 e B.2 do Anexo B (modelo de
+// Plano de Emergência), na mesma ordem do documento oficial, com alguns itens
+// simplificados ou removidos a pedido (ex.: sem "meios de ajuda externa" e
+// sem "rotas de fuga/ponto de encontro" — ver histórico do arquivo).
+// Preenchidos automaticamente sempre que o dado já existe em outro lugar do
+// projeto (ver utils/planoEmergencia.js). Os rótulos ficam sem a numeração
+// B.x.y — é só referência interna da norma, não ajuda o leitor do memorial.
 import { buildPlanoEmergenciaData } from '../../utils/planoEmergencia'
 
 export function textoMemorialGerenciamentoRisco(state, sistemas) {
@@ -31,7 +32,6 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     { tipo: 'campo', label: 'Localização — endereço', valor: d.endereco },
     { tipo: 'campo', label: 'Localização — característica da vizinhança', valor: d.caracteristicaVizinhanca },
     { tipo: 'campo', label: 'Localização — distância do Corpo de Bombeiros Militar', valor: d.distanciaCBM },
-    { tipo: 'campo', label: 'Localização — meios de ajuda externa', valor: d.meiosAjudaExterna },
     { tipo: 'campo', label: 'Estrutura', valor: d.estrutura },
     {
       tipo: 'tabela',
@@ -42,15 +42,11 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     { tipo: 'campo', label: 'População — fixa', valor: d.populacaoFixa },
     { tipo: 'campo', label: 'População — flutuante', valor: d.populacaoFlutuante },
     { tipo: 'campo', label: 'Características de funcionamento', valor: d.horarioFuncionamento },
-    {
-      tipo: 'campo', label: 'Pessoas portadoras de necessidades especiais',
-      valor: d.pneQuantidade ? `${d.pneQuantidade} — ${d.pneLocalizacao || 'localização não informada'}` : '',
-    },
+    { tipo: 'campo', label: 'Pessoas portadoras de necessidades especiais', valor: d.pneTemPessoas ? d.pneDescricao : 'Não' },
     { tipo: 'campo', label: 'Riscos específicos inerentes à atividade', valor: riscosValor },
     { tipo: 'campo', label: 'Recursos humanos — Brigada de Incêndio', valor: d.brigadistasQtd ? `${d.brigadistasQtd} membros` : '' },
     { tipo: 'campo', label: 'Recursos humanos — Brigadistas Profissionais', valor: d.brigadistasProfissionaisQtd },
     { tipo: 'campo', label: 'Sistemas de Segurança contra Incêndio', valor: sistemasValor },
-    { tipo: 'campo', label: 'Rotas de fuga e ponto de encontro', valor: d.pontoEncontro },
 
     { tipo: 'titulo2', texto: 'Procedimentos básicos de emergência contra incêndio' },
     { tipo: 'campo', label: 'Alerta', valor: d.meioAlerta },

@@ -134,13 +134,26 @@ function migrarParaPorEstrutura(saved) {
   return { cargaState, sistemasPorEstrutura, riscosEspeciaisPorEstrutura, riscosOutrosDescPorEstrutura }
 }
 
+// Mescla planoEmergencia salvo com os defaults atuais (INITIAL_STATE) — mas,
+// diferente do merge simples usado pelos outros campos aninhados, aqui um
+// valor salvo em branco ('' ou null/undefined) NAO sobrescreve o default.
+// Sem isso, o texto padrao dos 10 procedimentos (PROCEDIMENTOS_PADRAO) nunca
+// apareceria em projetos salvos antes dessa mudanca, que ja gravaram esses
+// campos como string vazia — o usuario so editou de verdade continua
+// preservado normalmente.
+function hydratarPlanoEmergencia(saved) {
+  const base = { ...INITIAL_STATE.planoEmergencia }
+  Object.entries(saved || {}).forEach(([k, v]) => { if (v !== '' && v != null) base[k] = v })
+  return base
+}
+
 function hydrateState(saved) {
   return {
     ...INITIAL_STATE,
     ...saved,
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
-    planoEmergencia: { ...INITIAL_STATE.planoEmergencia, ...(saved.planoEmergencia || {}) },
+    planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
     ...migrarParaPorEstrutura(saved),
   }
 }
@@ -252,10 +265,10 @@ const INITIAL_STATE = {
   // precisar, nunca preenche do zero.
   planoEmergencia: {
     localizacaoTipo: 'Urbana',
-    caracteristicaVizinhanca: '', distanciaCBM: '', meiosAjudaExterna: '',
+    caracteristicaVizinhanca: '', distanciaCBM: '',
     populacaoFixa: '', populacaoFlutuante: '',
-    horarioFuncionamento: '', pontoEncontro: '',
-    pneQuantidade: '', pneLocalizacao: '',
+    horarioFuncionamento: '',
+    pneTemPessoas: false, pneDescricao: '',
     riscosDetalhamento: '',
     brigadistasQtd: '', brigadistasProfissionaisQtd: '',
     telefoneCBM: '193', hospitalReferencia: '',

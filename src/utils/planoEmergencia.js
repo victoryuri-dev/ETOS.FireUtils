@@ -45,7 +45,6 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     endereco: enderecoCompletoDe(state),
     caracteristicaVizinhanca: pe.caracteristicaVizinhanca || '',
     distanciaCBM: pe.distanciaCBM ? `${pe.distanciaCBM} km` : '',
-    meiosAjudaExterna: pe.meiosAjudaExterna || '',
 
     estrutura: b.estrutura,
     areaConstruida: b.areaTotalConstruida,
@@ -57,8 +56,8 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     populacaoFixa: pe.populacaoFixa || '',
     populacaoFlutuante: pe.populacaoFlutuante || '',
     horarioFuncionamento: pe.horarioFuncionamento || '',
-    pneQuantidade: pe.pneQuantidade || '',
-    pneLocalizacao: pe.pneLocalizacao || '',
+    pneTemPessoas: !!pe.pneTemPessoas,
+    pneDescricao: pe.pneTemPessoas ? (pe.pneDescricao || 'Sim') : '',
 
     riscosAtivos: b.riscosEspeciais.filter(r => r.ativo).map(r => r.label),
     riscosDetalhamento: pe.riscosDetalhamento || '',
@@ -67,7 +66,6 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     brigadistasProfissionaisQtd: pe.brigadistasProfissionaisQtd || '',
 
     sistemasAtivos: [...b.medidasCol1, ...b.medidasCol2].filter(m => m.ativo).map(m => m.label),
-    pontoEncontro: pe.pontoEncontro || '',
 
     meioAlerta: pe.meioAlerta || PROCEDIMENTOS_PADRAO.meioAlerta,
     telefoneCBM: pe.telefoneCBM || '193',
