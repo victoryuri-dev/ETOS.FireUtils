@@ -49,8 +49,8 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     { tipo: 'campo', label: 'Estrutura', valor: d.estrutura },
     {
       tipo: 'tabela',
-      colunas: ['Dimensões — área construída', 'Altura', 'Pavimentos', 'Subsolos'],
-      linhas: [[d.areaConstruida, d.altura, d.nPavimentos, d.nSubsolos]],
+      colunas: ['Área construída', 'Área do terreno', 'Altura', 'Pavimentos', 'Subsolos'],
+      linhas: [[d.areaConstruida, d.areaTerreno, d.altura, d.nPavimentos, d.nSubsolos]],
     },
     { tipo: 'campo', label: 'Ocupação', valor: d.ocupacao },
     { tipo: 'lista', itens: [`População fixa: ${d.populacaoFixa}`, `População flutuante: ${d.populacaoFlutuante}`] },

@@ -72,6 +72,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
 
     estrutura: b.estrutura,
     areaConstruida: b.areaTotalConstruida,
+    areaTerreno: b.areaTerreno,
     altura: b.altura,
     nPavimentos: nPavimentos || '',
     nSubsolos: nSubsolos || '',
