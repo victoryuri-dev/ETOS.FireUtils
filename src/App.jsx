@@ -24,10 +24,38 @@ import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
 import Icon           from './components/ui/Icon'
 import logo           from './assets/fireutils-logo.png'
 
+// ── SaveStatusIndicator ───────────────────────────────────────────────
+// Mostra se o projeto esta sendo sincronizado com o servidor ou se ja foi
+// salvo — ve syncStatus (ProjetoContext), atualizado pelo autosave debounced.
+// Fica invisivel ate a primeira sincronizacao (ex: sem usuario logado, ou
+// projeto ainda nao pronto pra salvar).
+function SaveStatusIndicator({ status }) {
+  if (!status) return null
+  if (status === 'saving') {
+    return (
+      <span className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+        <Icon name="spinner" size={12} className="animate-spin"/> Salvando...
+      </span>
+    )
+  }
+  if (status === 'error') {
+    return (
+      <span className="flex items-center gap-1.5 text-[11px] text-red">
+        <Icon name="warn" size={12}/> Erro ao salvar
+      </span>
+    )
+  }
+  return (
+    <span className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+      <Icon name="checkCircle" size={12} className="text-green"/> Salvo
+    </span>
+  )
+}
+
 // ── AppHeader ─────────────────────────────────────────────────────────
 function AppHeader({ onGoProjetos, isProjectPage }) {
   const { user, signOut } = useAuth()
-  const { state } = useProjeto()
+  const { state, syncStatus } = useProjeto()
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -52,6 +80,11 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
           </>}
           <span className="text-ink-hint">/</span>
           <span className="text-ink font-medium">{state.nome || 'Sem nome'}</span>
+          {syncStatus && (
+            <span className="ml-2 pl-2.5 border-l border-solid border-border">
+              <SaveStatusIndicator status={syncStatus}/>
+            </span>
+          )}
         </nav>
       )}
 
