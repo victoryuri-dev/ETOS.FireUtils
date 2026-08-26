@@ -45,10 +45,6 @@ export default function GerenciamentoRiscoPage() {
     },
   })
 
-  // Ligar o switch ja pre-preenche a descricao com "Sim" (se ainda vazia) —
-  // usuario so precisa digitar por cima se quiser detalhar quantidade/local.
-  const handleTogglePne = v => set(v && !pe.pneDescricao ? { pneTemPessoas: true, pneDescricao: 'Sim' } : { pneTemPessoas: v })
-
   return (
     <div className="flex-1 overflow-y-auto"><div className="max-w-[820px] mx-auto px-12 pt-[34px] pb-24">
 
@@ -111,17 +107,23 @@ export default function GerenciamentoRiscoPage() {
         </div>
         <div className="fg">
           <label>
-            Pessoas portadoras de necessidades especiais
+            Existem pessoas com necessidades especiais?
             <span className="ml-auto flex items-center gap-1.5">
               <span className="text-[10px] text-ink-faint normal-case font-normal whitespace-nowrap">{pe.pneTemPessoas ? 'Sim' : 'Não'}</span>
-              <SwitchToggle checked={pe.pneTemPessoas} onChange={handleTogglePne}/>
+              <SwitchToggle checked={pe.pneTemPessoas} onChange={v => set({ pneTemPessoas: v })}/>
             </span>
           </label>
-          {pe.pneTemPessoas && (
+        </div>
+        {pe.pneTemPessoas && (
+          <div className="fg mt-3">
+            <label>
+              Onde estão localizadas
+              <span className="ml-auto text-[10px] text-ink-faint normal-case font-normal whitespace-nowrap">campo opcional</span>
+            </label>
             <input value={pe.pneDescricao} onChange={e => set({ pneDescricao: e.target.value })}
               placeholder="Ex.: 3 pessoas no térreo, uma gestante no 15º andar"/>
-          )}
-        </div>
+          </div>
+        )}
       </FormSection>
 
       {estruturasComRisco.length > 0 && (
