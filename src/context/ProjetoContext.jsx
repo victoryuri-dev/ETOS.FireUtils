@@ -175,7 +175,7 @@ function novaEstrutura(nome) {
 // REBUILD_PAVIMENTOS, que o reaproveita ao invés de recriar quando os
 // valores mudam).
 function pavimentoTerreo(estruturaId) {
-  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] }
+  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [] }
 }
 
 const INITIAL_STATE = {
@@ -301,14 +301,14 @@ function reducer(state, action) {
       const list = []
       for (let s = nSub; s >= 1; s--) {
         const id = `${estruturaId}-sub-${s}`
-        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [] })
       }
       const terId = `${estruturaId}-P1`
       const ter = find(terId)
       list.push(ter || pavimentoTerreo(estruturaId))
       for (let p = 2; p <= nPav; p++) {
         const id = `${estruturaId}-P${p}`
-        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [] })
       }
       const idsValidos = new Set(list.map(p => p.id))
       return {

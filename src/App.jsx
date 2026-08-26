@@ -21,6 +21,7 @@ import SegurancaEstruturalPage from './pages/medidas/SegurancaEstruturalPage'
 import ExtintoresPage         from './pages/medidas/ExtintoresPage'
 import IluminacaoPage         from './pages/medidas/IluminacaoPage'
 import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
+import BrigadaIncendioPage    from './pages/medidas/BrigadaIncendioPage'
 import Icon           from './components/ui/Icon'
 import logo           from './assets/fireutils-logo.png'
 
@@ -127,6 +128,7 @@ function MedidaRoute() {
   if (sistKey === 'extintores')        return <ExtintoresPage/>
   if (sistKey === 'iluminacao')        return <IluminacaoPage/>
   if (sistKey === 'sinalizacao')       return <SinalizacaoPage/>
+  if (sistKey === 'brigada')           return <BrigadaIncendioPage/>
   return <MedidaPage sistKey={sistKey}/>
 }
 
