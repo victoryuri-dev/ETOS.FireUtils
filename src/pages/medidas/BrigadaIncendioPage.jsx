@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
-import { riscoDoPavimento } from '../../data/extintores_calc'
-import { calcularBrigadaPavimento } from '../../data/brigada_calc'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento } from '../../data/brigada_calc'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
@@ -29,7 +28,7 @@ function NivelBadge({ nivel }) {
 // ── Linha de um pavimento dentro da tabela da estrutura ──────────────
 // Recebe o cálculo já pronto (calculado uma única vez em TabelaBrigadaEstrutura,
 // que também precisa dele para os totais) — evita rodar a mesma regra duas vezes.
-function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, nivelInstalacao, dispatch }) {
+function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, nivelInstalacao, notasIdentificadas, dispatch }) {
   const divisao = pavimento.divisao
   const setPopulacao = v => dispatch({ type: 'UPDATE_PAV', id: pavimento.id, changes: { populacaoFixa: v } })
 
@@ -70,7 +69,7 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
           <td className="py-2 px-2.5 border-b border-solid border-border-2"><NivelBadge nivel={nivelInstalacao}/></td>
           <td className="py-2 px-2.5 border-b border-solid border-border-2">
             <div className="flex flex-wrap gap-1">
-              {linha.notas?.map(n => <span key={n} className="text-[10px] text-ink-faint bg-surface-2 border border-solid border-border-2 rounded py-0.5 px-1.5">Nota {n}</span>)}
+              {notasIdentificadas?.map(n => <span key={n} className="text-[10px] text-ink-faint bg-surface-2 border border-solid border-border-2 rounded py-0.5 px-1.5">Nota {n}</span>)}
             </div>
           </td>
         </>
@@ -80,18 +79,27 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
 }
 
 // ── Tabela de dimensionamento de uma estrutura ────────────────────────
-function TabelaBrigadaEstrutura({ estrutura, pavimentos, cargaState, limiaresRisco, tabela, dispatch }) {
+function TabelaBrigadaEstrutura({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, dispatch }) {
   const linhasCalculadas = pavimentos.map(pav => {
-    const risco = riscoDoPavimento(pav, cargaState, limiaresRisco)
+    const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
     return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela) }
   })
 
-  const observacoes = new Set()
-  linhasCalculadas.forEach(({ resultado, nivelTreinamento }) => {
-    if (resultado?.detalhe) observacoes.add(resultado.detalhe)
-    if (nivelTreinamento?.detalhe) observacoes.add(nivelTreinamento.detalhe)
-    if (nivelTreinamento?.podeReduzirParaBasico) observacoes.add('Nota 4: edificação com altura ≤ 12 m — o treinamento pode ser reduzido para o nível básico.')
+  // Texto de cada nota vem sempre do rodapé oficial (NOTAS_TABELA_A1) — nunca
+  // uma paráfrase escrita à mão — e só aparece quando pelo menos um pavimento
+  // desta estrutura efetivamente a identificou (ver notasIdentificadas em
+  // brigada_calc.js). `observacoesLivres` cobre só os casos sem número de
+  // nota (ex.: "informe a população fixa", regra 80% dos funcionários).
+  const notasNumeros = new Set()
+  const observacoesLivres = new Set()
+  linhasCalculadas.forEach(({ resultado, nivelTreinamento, nivelInstalacao, notasIdentificadas }) => {
+    if (resultado?.detalhe) observacoesLivres.add(resultado.detalhe)
+    if (nivelTreinamento?.detalhe) observacoesLivres.add(nivelTreinamento.detalhe)
+    if (nivelInstalacao?.detalhe) observacoesLivres.add(nivelInstalacao.detalhe)
+    notasIdentificadas?.forEach(n => notasNumeros.add(n))
   })
+  const notasTexto = [...notasNumeros].sort((a, b) => a - b).map(n => `Nota ${n}: ${notasTabela[n]}`)
+  const observacoes = [...notasTexto, ...observacoesLivres]
 
   const totalNumerico = linhasCalculadas.some(l => l.resultado?.brigadistas != null)
   const totalBrigadistas = linhasCalculadas.reduce((s, l) => s + (l.resultado?.brigadistas || 0), 0)
@@ -120,7 +128,7 @@ function TabelaBrigadaEstrutura({ estrutura, pavimentos, cargaState, limiaresRis
             </tr>
           </thead>
           <tbody>
-            {linhasCalculadas.map(({ pav, risco, linha, resultado, nivelTreinamento, nivelInstalacao }) => (
+            {linhasCalculadas.map(({ pav, risco, linha, resultado, nivelTreinamento, nivelInstalacao, notasIdentificadas }) => (
               <LinhaPavimento
                 key={pav.id}
                 pavimento={pav}
@@ -129,6 +137,7 @@ function TabelaBrigadaEstrutura({ estrutura, pavimentos, cargaState, limiaresRis
                 resultado={resultado}
                 nivelTreinamento={nivelTreinamento}
                 nivelInstalacao={nivelInstalacao}
+                notasIdentificadas={notasIdentificadas}
                 dispatch={dispatch}
               />
             ))}
@@ -147,9 +156,9 @@ function TabelaBrigadaEstrutura({ estrutura, pavimentos, cargaState, limiaresRis
         </table>
       </div>
 
-      {observacoes.size > 0 && (
+      {observacoes.length > 0 && (
         <div className="text-[11px] text-ink-faint leading-[1.6] mt-2.5 flex flex-col gap-1">
-          {[...observacoes].map((o, i) => <span key={i}>{o}</span>)}
+          {observacoes.map((o, i) => <span key={i}>{o}</span>)}
         </div>
       )}
     </>
@@ -206,7 +215,7 @@ function ReferenciaNormativa({ brigNorma }) {
 // ── Page Principal ────────────────────────────────────────────────────
 export default function BrigadaIncendioPage() {
   const { state, dispatch } = useProjeto()
-  const { extintores: extNorma, brigada: brigNorma } = useNorma()
+  const { extintores: extNorma, brigada: brigNorma, cnaesDiv } = useNorma()
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -238,9 +247,11 @@ export default function BrigadaIncendioPage() {
                 <TabelaBrigadaEstrutura
                   estrutura={est}
                   pavimentos={pavimentos}
-                  cargaState={state.cargaState[est.id] || {}}
+                  cargaEst={state.cargaState[est.id] || {}}
+                  cnaesDiv={cnaesDiv}
                   limiaresRisco={extNorma.LIMIARES_RISCO}
                   tabela={brigNorma.TABELA_A1}
+                  notasTabela={brigNorma.NOTAS_TABELA_A1}
                   dispatch={dispatch}
                 />
               )}

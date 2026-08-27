@@ -5,9 +5,8 @@
 // estrutura (mesmas colunas da tela: Pavimento, Divisão, Risco, População
 // fixa, Brigadistas, Treinamento, Instalação), com uma linha de total.
 
-import { getBrigada, getExtintores } from '../normas/index'
-import { riscoDoPavimento } from '../extintores_calc'
-import { calcularBrigadaPavimento, NIVEL_LABEL } from '../brigada_calc'
+import { getBrigada, getExtintores, getCNAEsDivisao } from '../normas/index'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../brigada_calc'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 
@@ -30,9 +29,9 @@ function linhaTabela(pav, risco, linha, resultado, nivelTreinamento, nivelInstal
   ]
 }
 
-function blocosDaEstrutura(est, pavs, altura, cargaState, limiaresRisco, tabela) {
+function blocosDaEstrutura(est, pavs, altura, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela) {
   const linhasCalculadas = pavs.map(pav => {
-    const risco = riscoDoPavimento(pav, cargaState, limiaresRisco)
+    const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
     return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, altura, tabela) }
   })
 
@@ -54,14 +53,22 @@ function blocosDaEstrutura(est, pavs, altura, cargaState, limiaresRisco, tabela)
     blocos.push({ tipo: 'campo', label: 'Total de brigadistas exigidos na estrutura', valor: String(totalBrigadistas) })
   }
 
-  const observacoes = new Set()
-  linhasCalculadas.forEach(({ linha, resultado, nivelTreinamento }) => {
+  // Texto de cada nota vem sempre do rodapé oficial (NOTAS_TABELA_A1) — nunca
+  // uma paráfrase — e só entra quando algum pavimento desta estrutura a
+  // identificou de fato (ver notasIdentificadas em brigada_calc.js).
+  // `observacoesLivres` cobre só os casos sem número de nota.
+  const notasNumeros = new Set()
+  const observacoesLivres = new Set()
+  linhasCalculadas.forEach(({ linha, resultado, nivelTreinamento, nivelInstalacao, notasIdentificadas }) => {
     if (!linha) return
-    if (resultado?.detalhe) observacoes.add(resultado.detalhe)
-    if (nivelTreinamento?.detalhe) observacoes.add(nivelTreinamento.detalhe)
-    if (nivelTreinamento?.podeReduzirParaBasico) observacoes.add('Nota 4: edificação com altura ≤ 12 m — o treinamento pode ser reduzido para o nível básico.')
+    if (resultado?.detalhe) observacoesLivres.add(resultado.detalhe)
+    if (nivelTreinamento?.detalhe) observacoesLivres.add(nivelTreinamento.detalhe)
+    if (nivelInstalacao?.detalhe) observacoesLivres.add(nivelInstalacao.detalhe)
+    notasIdentificadas?.forEach(n => notasNumeros.add(n))
   })
-  if (observacoes.size > 0) blocos.push({ tipo: 'lista', itens: [...observacoes] })
+  const notasTexto = [...notasNumeros].sort((a, b) => a - b).map(n => `Nota ${n}: ${notasTabela[n]}`)
+  const observacoes = [...notasTexto, ...observacoesLivres]
+  if (observacoes.length > 0) blocos.push({ tipo: 'lista', itens: observacoes })
 
   const semDivisao = linhasCalculadas.filter(l => !l.linha)
   if (semDivisao.length > 0) {
@@ -79,7 +86,8 @@ function blocosDaEstrutura(est, pavs, altura, cargaState, limiaresRisco, tabela)
 export function textoMemorialBrigadaIncendio(state) {
   const brigNorma = getBrigada(state.uf)
   const extNorma  = getExtintores(state.uf)
-  const { NORMA_BRIGADA, TABELA_A1, NOTAS_GERAIS } = brigNorma
+  const { NORMA_BRIGADA, TABELA_A1, NOTAS_TABELA_A1, NOTAS_GERAIS } = brigNorma
+  const cnaesDiv = divisao => getCNAEsDivisao(state.uf, divisao)
 
   const introducao = [{
     tipo: 'paragrafo',
@@ -90,7 +98,7 @@ export function textoMemorialBrigadaIncendio(state) {
   const blocos = (state.estruturas || []).flatMap(est => {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     if (pavs.length === 0) return []
-    const r = blocosDaEstrutura(est, pavs, est.altura, state.cargaState[est.id] || {}, extNorma.LIMIARES_RISCO, TABELA_A1)
+    const r = blocosDaEstrutura(est, pavs, est.altura, state.cargaState[est.id] || {}, cnaesDiv, extNorma.LIMIARES_RISCO, TABELA_A1, NOTAS_TABELA_A1)
     if (r.temAsterisco) temAsterisco = true
     return r.blocos
   })

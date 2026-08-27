@@ -8,9 +8,38 @@
 // duas fontes de verdade.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { classificarRisco } from './extintores_calc'
+
 const num = v => parseFloat(v) || 0
 
 export const NIVEL_LABEL = { basico: 'Básico', intermediario: 'Intermediário', avancado: 'Avançado' }
+
+/** Carga de incêndio (MJ/m²) de uma divisão, priorizando o valor resolvido ao
+ *  vivo pela tabela normativa (CNAE → carga) e caindo para o valor já gravado
+ *  em cargaState quando a busca por CNAE não encontra nada. Mesma robustez
+ *  usada no resumo do cabeçalho da estrutura (EstruturaHeaderInfo) — cobre o
+ *  caso em que o campo `cargaIncendio` do cargaState não ficou persistido no
+ *  momento da classificação (Etapa 5), mas o CNAE e o método continuam lá. */
+export function cargaDivisaoRobusta(divisao, cnae, cargaEst, cnaesDiv) {
+  const st = cargaEst?.[divisao]
+  if (!st) return null
+  if (st.metodo === 'levantamento') return parseFloat(st.valorManual) || null
+  const viaTabela = cnae ? cnaesDiv(divisao)?.[cnae]?.cargaIncendio : null
+  return viaTabela ?? st.cargaIncendio ?? null
+}
+
+/** Risco predominante (baixo/médio/alto) de um pavimento — maior carga de
+ *  incêndio entre a divisão principal e as subsidiárias (pavimento.acess),
+ *  usando a resolução robusta acima. */
+export function riscoDoPavimentoRobusto(pavimento, cargaEst, cnaesDiv, limiares) {
+  const entradas = [
+    { divisao: pavimento.divisao, cnae: pavimento.cnae },
+    ...(pavimento.acess || []).map(a => ({ divisao: a.divisao, cnae: a.cnae })),
+  ].filter(e => e.divisao)
+  const cargas = entradas.map(e => cargaDivisaoRobusta(e.divisao, e.cnae, cargaEst, cnaesDiv)).filter(c => c != null)
+  if (cargas.length === 0) return null
+  return classificarRisco(Math.max(...cargas), limiares)
+}
 
 /** Localiza a linha da Tabela A.1 aplicável a uma divisão/grau de risco.
  *  Divisões com uma única linha na tabela (risco fixo pela norma) ignoram o
@@ -31,37 +60,39 @@ const GRUPO_NOTA5 = { baixo: 20, medio: 15, alto: 10 }
 
 /** Número de brigadistas exigidos para uma linha da Tabela A.1 e uma
  *  população fixa informada. Cobre a regra padrão (colunas "Até N" + Nota 5
- *  acima de 10 pessoas) e as regras especiais (isenção, percentuais,
- *  túnel, instalação temporária). */
+ *  acima de 10 pessoas) e as regras especiais (isenção, percentuais, túnel,
+ *  instalação temporária). `notasDinamicas` lista os números de nota do
+ *  rodapé (NOTAS_TABELA_A1) que este cálculo específico efetivamente
+ *  acionou — não a lista estática de notas da linha, ver calcularBrigadaPavimento. */
 export function calcularBrigadistas(linha, populacaoFixa) {
-  if (!linha) return { brigadistas: null, especial: false, faixaUsada: null, detalhe: 'Divisão não cadastrada na Tabela A.1 — classifique a divisão do pavimento na Etapa 4.' }
-  if (linha.isento) return { brigadistas: 0, especial: false, faixaUsada: null, detalhe: 'Divisão isenta de brigada de incêndio.' }
+  if (!linha) return { brigadistas: null, especial: false, faixaUsada: null, detalhe: 'Divisão não cadastrada na Tabela A.1 — classifique a divisão do pavimento na Etapa 4.', notasDinamicas: [] }
+  if (linha.isento) return { brigadistas: 0, especial: false, faixaUsada: null, detalhe: 'Divisão isenta de brigada de incêndio.', notasDinamicas: [] }
 
   const pop = Math.max(0, Math.round(num(populacaoFixa)))
 
   if (linha.regraAcima10 === 'ver_item_5_11_2') {
-    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: 'Instalação temporária — dimensionamento conforme item 5.11.2 da norma (não coberto pela Tabela A.1 padrão).' }
+    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: 'Instalação temporária — dimensionamento conforme item 5.11.2 da norma (não coberto pela Tabela A.1 padrão).', notasDinamicas: [] }
   }
   if (linha.regraAcima10 === 'tunel') {
-    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: 'Túnel — dimensionamento pela extensão (Nota 9): 200–500 m = 2 brigadistas; 501–1000 m = 4 brigadistas; acima de 1000 m = análise por Comissão Técnica.' }
+    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: null, notasDinamicas: [9] }
   }
   if (linha.regraAcima10 === 'pct_funcionarios_pav') {
-    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: '80% dos funcionários da edificação, mais 1 (um) brigadista por pavimento — informe o total de funcionários para completar o cálculo manualmente.' }
+    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: '80% dos funcionários da edificação e 1 (um) brigadista para cada pavimento — informe o total de funcionários para completar o cálculo manualmente.', notasDinamicas: [] }
   }
   if (linha.regraAcima10 === 'pct_populacao') {
-    if (pop === 0) return { brigadistas: null, especial: false, faixaUsada: '80% da população fixa', detalhe: 'Informe a população fixa para calcular.' }
+    if (pop === 0) return { brigadistas: null, especial: false, faixaUsada: '80% da população fixa', detalhe: 'Informe a população fixa para calcular.', notasDinamicas: [] }
     const brigadistas = Math.ceil(pop * 0.8)
-    return { brigadistas, especial: false, faixaUsada: '80% da população fixa', detalhe: `80% de ${pop} pessoas = ${brigadistas} brigadistas.` }
+    return { brigadistas, especial: false, faixaUsada: '80% da população fixa', detalhe: null, notasDinamicas: [] }
   }
 
   if (!linha.faixas) {
-    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: 'Regra de dimensionamento não tabelada para esta divisão — verifique diretamente a norma vigente.' }
+    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: 'Regra de dimensionamento não tabelada para esta divisão — verifique diretamente a norma vigente.', notasDinamicas: [] }
   }
 
-  if (pop === 0) return { brigadistas: null, especial: false, faixaUsada: null, detalhe: 'Informe a população fixa para calcular.' }
+  if (pop === 0) return { brigadistas: null, especial: false, faixaUsada: null, detalhe: 'Informe a população fixa para calcular.', notasDinamicas: [] }
 
   const [v2, v4, v6, v8, v10] = linha.faixas
-  let brigadistas, faixaUsada
+  let brigadistas, faixaUsada, notasDinamicas = []
   if (pop <= 2)       { brigadistas = v2;  faixaUsada = 'Até 2' }
   else if (pop <= 4)  { brigadistas = v4;  faixaUsada = 'Até 4' }
   else if (pop <= 6)  { brigadistas = v6;  faixaUsada = 'Até 6' }
@@ -71,14 +102,11 @@ export function calcularBrigadistas(linha, populacaoFixa) {
     const grupo = GRUPO_NOTA5[linha.risco] || 20
     const extra = Math.ceil((pop - 10) / grupo)
     brigadistas = v10 + extra
-    faixaUsada = `Acima de 10 (Nota 5: +${extra} a cada grupo de até ${grupo} pessoas)`
+    faixaUsada = `Acima de 10 (+${extra} pela Nota 5, grupos de até ${grupo})`
+    notasDinamicas = [5]
   }
 
-  const maiorCenario = linha.regraAcima10 === 'maior_cenario'
-  return {
-    brigadistas, especial: false, faixaUsada,
-    detalhe: maiorCenario ? 'O valor final deve ser o maior entre este cálculo e a necessidade do cenário de combate a incêndio (Nota 7).' : null,
-  }
+  return { brigadistas, especial: false, faixaUsada, detalhe: null, notasDinamicas }
 }
 
 /** Nível de treinamento/instalação exigido (Básico/Intermediário/Avançado),
@@ -86,35 +114,42 @@ export function calcularBrigadistas(linha, populacaoFixa) {
  *  eleva o patamar mínimo) e 'nota1' (Divisão C-2, decidido pela área
  *  construída, fora do escopo desta função). `temNota4` habilita a
  *  reclassificação opcional da Nota 4 (edificações ≤ 12 m) — só quando a
- *  linha da Tabela A.1 desta divisão/risco traz a Nota 4 no rodapé; a
- *  redução não é uma regra geral para qualquer nível intermediário (ex.:
- *  hoje só a Divisão M-7, risco médio, carrega essa nota). */
+ *  linha da Tabela A.1 desta divisão/risco traz a Nota 4 no rodapé para esta
+ *  coluna especificamente (ver nota4Aplicavel em calcularBrigadaPavimento);
+ *  a redução não é uma regra geral para qualquer nível intermediário. */
 export function calcularNivel(nivelBase, brigadistas, alturaEdificacao, temNota4) {
   if (!nivelBase) return null
 
   if (nivelBase === 'nota1') {
-    return { nivel: null, dinamico: true, label: 'A confirmar (Nota 1)', detalhe: 'Divisão C-2: básico para edificações com menos de 5.000 m²; a partir de 5.000 m², mínimo de 4 brigadistas por turno em nível intermediário — confirme pela área construída da estrutura.' }
+    return { nivel: null, dinamico: true, label: 'A confirmar (Nota 1)', detalhe: null, podeReduzirParaBasico: false, notasDinamicas: [1] }
   }
 
   let nivel = nivelBase
-  let detalhe = null
+  let notasDinamicas = []
   if (nivelBase === 'nota8') {
-    if (brigadistas == null) return { nivel: null, dinamico: true, label: 'A confirmar (Nota 8)', detalhe: 'Depende do total de brigadistas calculado.' }
+    if (brigadistas == null) return { nivel: null, dinamico: true, label: 'A confirmar (Nota 8)', detalhe: 'Depende do total de brigadistas calculado.', podeReduzirParaBasico: false, notasDinamicas: [] }
     nivel = brigadistas > 20 ? 'intermediario' : 'basico'
-    if (nivel === 'intermediario') {
-      detalhe = `Nota 8: acima de 20 brigadistas — mínimo de 4 (quatro) por turno em nível intermediário de treinamento/instalações, acrescidos de 1 (um) a cada grupo adicional de 20 brigadistas, os demais em nível básico. Confirme a distribuição exata conforme o total de brigadistas por turno.`
-    }
+    if (nivel === 'intermediario') notasDinamicas = [8]
   }
 
   const alturaOk = alturaEdificacao !== '' && alturaEdificacao != null && num(alturaEdificacao) <= 12
   const podeReduzirParaBasico = nivel === 'intermediario' && !!temNota4 && alturaOk
+  if (podeReduzirParaBasico) notasDinamicas = [...notasDinamicas, 4]
 
-  return { nivel, dinamico: false, label: NIVEL_LABEL[nivel] || nivel, detalhe, podeReduzirParaBasico }
+  return { nivel, dinamico: false, label: NIVEL_LABEL[nivel] || nivel, detalhe: null, podeReduzirParaBasico, notasDinamicas }
 }
 
+// Números de nota que só aparecem quando o cálculo específico os aciona
+// (nunca estáticos pela divisão) — o restante das notas de `linha.notas`
+// (ex.: 2, 3, 6, 7, 9, 10) descreve a divisão/regra em si e vale sempre que
+// a linha é usada, independente da população ou altura informadas.
+const NOTAS_SO_DINAMICAS = new Set([1, 4, 5, 8])
+
 /** Composição completa do dimensionamento de um pavimento/instalação: linha
- *  aplicável da Tabela A.1, número de brigadistas e níveis de treinamento e
- *  de instalação exigidos. */
+ *  aplicável da Tabela A.1, número de brigadistas, níveis de treinamento e
+ *  de instalação exigidos, e `notasIdentificadas` — a lista exata (e só ela)
+ *  das notas do rodapé que se aplicam a este resultado específico, pronta
+ *  para render verbatim (ver NOTAS_TABELA_A1). */
 export function calcularBrigadaPavimento(divisao, risco, populacaoFixa, alturaEdificacao, tabela) {
   const linha = linhaTabelaA1(divisao, risco, tabela)
   const resultado = calcularBrigadistas(linha, populacaoFixa)
@@ -124,5 +159,14 @@ export function calcularBrigadaPavimento(divisao, risco, populacaoFixa, alturaEd
   const temNota4Instalacao  = linha?.nota4Aplicavel === 'instalacao'  || linha?.nota4Aplicavel === 'ambos'
   const nivelTreinamento = linha ? calcularNivel(linha.nivelTreinamento, resultado.brigadistas, alturaEdificacao, temNota4Treinamento) : null
   const nivelInstalacao  = linha ? calcularNivel(linha.nivelInstalacao,  resultado.brigadistas, alturaEdificacao, temNota4Instalacao)  : null
-  return { linha, resultado, nivelTreinamento, nivelInstalacao }
+
+  const estaticas = (linha?.notas || []).filter(n => !NOTAS_SO_DINAMICAS.has(n))
+  const dinamicas = [
+    ...(resultado.notasDinamicas || []),
+    ...(nivelTreinamento?.notasDinamicas || []),
+    ...(nivelInstalacao?.notasDinamicas || []),
+  ]
+  const notasIdentificadas = [...new Set([...estaticas, ...dinamicas])].sort((a, b) => a - b)
+
+  return { linha, resultado, nivelTreinamento, nivelInstalacao, notasIdentificadas }
 }
