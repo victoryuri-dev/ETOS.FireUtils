@@ -1,12 +1,16 @@
 // memorial/brigada_incendio.js — texto do memorial descritivo para a
 // Brigada de Incêndio (Anexo A / Tabela A.1). Usa o MESMO calc puro
 // (brigada_calc.js) que alimenta a tela de dimensionamento — o texto nunca
-// duplica a lógica de faixa/nota, só narra o resultado. Uma tabela por
-// estrutura (mesmas colunas da tela: Pavimento, Divisão, Risco, População
-// fixa, Brigadistas, Treinamento, Instalação), com uma linha de total.
+// duplica a lógica de faixa/nota, só narra o resultado.
+//
+// Cada estrutura entra com duas tabelas: primeiro o trecho normativo bruto
+// (uma linha por divisão realmente usada, exatamente como impresso na
+// Tabela A.1, com as notas do rodapé logo abaixo), depois a tabela de
+// resultado calculado (mesmas colunas da tela: Pavimento, Divisão, Risco,
+// População fixa, Brigadistas, Treinamento, Instalação) com o total.
 
 import { getBrigada, getExtintores, getCNAEsDivisao } from '../normas/index'
-import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../brigada_calc'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL } from '../brigada_calc'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 
@@ -29,6 +33,22 @@ function linhaTabela(pav, risco, linha, resultado, nivelTreinamento, nivelInstal
   ]
 }
 
+function linhaReferencia(divisao, linha) {
+  const b = linhaTabelaA1Bruta(divisao, linha)
+  return [b.grupo, b.divisao, b.descricao, b.risco, ...b.celulas, b.acima10, b.nivelTreinamento, b.nivelInstalacao]
+}
+
+// Uma linha do Anexo A por divisão distinta usada na estrutura (não por
+// pavimento — dois pavimentos na mesma divisão/risco citam a mesma linha
+// uma única vez), na ordem em que a divisão aparece pela primeira vez.
+function divisoesUsadas(linhasCalculadas) {
+  const vistas = new Map()
+  linhasCalculadas.forEach(({ pav, linha }) => {
+    if (linha && !vistas.has(linha)) vistas.set(linha, pav.divisao)
+  })
+  return [...vistas.entries()].map(([linha, divisao]) => ({ divisao, linha }))
+}
+
 function blocosDaEstrutura(est, pavs, altura, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela) {
   const linhasCalculadas = pavs.map(pav => {
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
@@ -40,6 +60,23 @@ function blocosDaEstrutura(est, pavs, altura, cargaEst, cnaesDiv, limiaresRisco,
 
   const blocos = [{ tipo: 'titulo2', texto: est.nome }]
 
+  // ── Trecho normativo (Anexo A) — uma linha por divisão usada, tal como
+  // impressa na Tabela A.1, com as notas do rodapé logo abaixo.
+  const usadas = divisoesUsadas(linhasCalculadas)
+  if (usadas.length > 0) {
+    blocos.push({
+      tipo: 'tabela',
+      colunas: ['Grupo', 'Divisão', 'Descrição', 'Grau de risco', 'Até 2', 'Até 4', 'Até 6', 'Até 8', 'Até 10', 'Acima de 10', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'],
+      linhas: usadas.map(({ divisao, linha }) => linhaReferencia(divisao, linha)),
+    })
+
+    const notasDaTabela = [...new Set(usadas.flatMap(({ linha }) => linha.notas || []))].sort((a, b) => a - b)
+    if (notasDaTabela.length > 0) {
+      blocos.push({ tipo: 'lista', itens: notasDaTabela.map(n => `Nota ${n}: ${notasTabela[n]}`) })
+    }
+  }
+
+  // ── Resultado calculado — uma linha por pavimento, com o total.
   blocos.push({
     tipo: 'tabela',
     colunas: ['Pavimento', 'Divisão', 'Risco', 'Pop. fixa', 'Brigadistas', 'Treinamento', 'Instalação'],
@@ -53,22 +90,15 @@ function blocosDaEstrutura(est, pavs, altura, cargaEst, cnaesDiv, limiaresRisco,
     blocos.push({ tipo: 'campo', label: 'Total de brigadistas exigidos na estrutura', valor: String(totalBrigadistas) })
   }
 
-  // Texto de cada nota vem sempre do rodapé oficial (NOTAS_TABELA_A1) — nunca
-  // uma paráfrase — e só entra quando algum pavimento desta estrutura a
-  // identificou de fato (ver notasIdentificadas em brigada_calc.js).
-  // `observacoesLivres` cobre só os casos sem número de nota.
-  const notasNumeros = new Set()
+  // Observações sem número de nota (não cabem no rodapé da tabela de
+  // referência acima) — ex.: "informe a população fixa para calcular".
   const observacoesLivres = new Set()
-  linhasCalculadas.forEach(({ linha, resultado, nivelTreinamento, nivelInstalacao, notasIdentificadas }) => {
-    if (!linha) return
+  linhasCalculadas.forEach(({ resultado, nivelTreinamento, nivelInstalacao }) => {
     if (resultado?.detalhe) observacoesLivres.add(resultado.detalhe)
     if (nivelTreinamento?.detalhe) observacoesLivres.add(nivelTreinamento.detalhe)
     if (nivelInstalacao?.detalhe) observacoesLivres.add(nivelInstalacao.detalhe)
-    notasIdentificadas?.forEach(n => notasNumeros.add(n))
   })
-  const notasTexto = [...notasNumeros].sort((a, b) => a - b).map(n => `Nota ${n}: ${notasTabela[n]}`)
-  const observacoes = [...notasTexto, ...observacoesLivres]
-  if (observacoes.length > 0) blocos.push({ tipo: 'lista', itens: observacoes })
+  if (observacoesLivres.size > 0) blocos.push({ tipo: 'lista', itens: [...observacoesLivres] })
 
   const semDivisao = linhasCalculadas.filter(l => !l.linha)
   if (semDivisao.length > 0) {

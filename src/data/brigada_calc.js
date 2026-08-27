@@ -139,6 +139,67 @@ export function calcularNivel(nivelBase, brigadistas, alturaEdificacao, temNota4
   return { nivel, dinamico: false, label: NIVEL_LABEL[nivel] || nivel, detalhe: null, podeReduzirParaBasico, notasDinamicas }
 }
 
+const RISCO_LABEL_BRUTO = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
+
+const NIVEL_TOKEN_LABEL = {
+  basico: 'Básico', intermediario: 'Intermediário', avancado: 'Avançado',
+  nota1: '(nota 1)', nota8: '(nota 8)',
+}
+
+// Texto da coluna "Acima de 10" (ou, para linhas sem faixas numéricas, o
+// texto único que ocupa a célula "Até 2" mesclada no original) tal como
+// impresso na Tabela A.1 — não o valor calculado.
+const ACIMA10_LABEL_BRUTO = {
+  nota5: '(nota 5)',
+  maior_cenario: '(nota 5)',
+  pct_populacao: '80% da população fixa',
+  pct_funcionarios_pav: '80% dos funcionários da edificação e 1 (um) brigadista para cada pavimento',
+  ver_item_5_11_2: 'Ver item 5.11.2',
+  tunel: '(nota 9)',
+}
+
+/** Uma divisão específica (código, ex.: "E-5") formatada exatamente como a
+ *  Tabela A.1 imprime — grupo, descrição, grau de risco, as colunas "Até N"
+ *  literais (números, "Isento" ou o texto da regra especial) e os tokens de
+ *  nível ("Básico"/"(nota 8)"/etc., com "(nota 4)" anexado só na coluna a
+ *  que essa nota se aplica). Usada para reproduzir o trecho normativo no
+ *  memorial — nunca o resultado calculado (ver calcularBrigadaPavimento). */
+export function linhaTabelaA1Bruta(divisao, linha) {
+  if (!linha) return null
+
+  let celulas, acima10
+  if (linha.isento) {
+    celulas = ['Isento', 'Isento', 'Isento', 'Isento', 'Isento']
+    acima10 = 'Isento'
+  } else if (linha.faixas) {
+    celulas = linha.faixas.map(String)
+    acima10 = ACIMA10_LABEL_BRUTO[linha.regraAcima10] || '—'
+  } else {
+    // Regra especial sem faixas numéricas (A-2, F-7, M-1): no original é uma
+    // única célula mesclada — aqui vai no primeiro campo, o resto em branco.
+    celulas = [ACIMA10_LABEL_BRUTO[linha.regraAcima10] || '—', '—', '—', '—', '—']
+    acima10 = '—'
+  }
+
+  const nivelBruto = (token, coluna) => {
+    if (linha.isento || !token) return 'Isento'
+    let label = NIVEL_TOKEN_LABEL[token] || token
+    if (linha.nota4Aplicavel === coluna || linha.nota4Aplicavel === 'ambos') label += ' (nota 4)'
+    return label
+  }
+
+  return {
+    grupo: divisao.charAt(0),
+    divisao,
+    descricao: linha.descricao,
+    risco: linha.risco ? RISCO_LABEL_BRUTO[linha.risco] : '—',
+    celulas,
+    acima10,
+    nivelTreinamento: nivelBruto(linha.nivelTreinamento, 'treinamento'),
+    nivelInstalacao: nivelBruto(linha.nivelInstalacao, 'instalacao'),
+  }
+}
+
 // Números de nota que só aparecem quando o cálculo específico os aciona
 // (nunca estáticos pela divisão) — o restante das notas de `linha.notas`
 // (ex.: 2, 3, 6, 7, 9, 10) descreve a divisão/regra em si e vale sempre que
