@@ -385,7 +385,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
         {!risco && (
           <div className="ibox amber">
             <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-            <span className="text-xs">A carga de incêndio deste pavimento ainda não foi classificada na Etapa 5 (Carga de Incêndio) — a área-limite para unidade única (item 5.2.1.4.2) não pode ser verificada até lá.</span>
+            <span className="text-xs">A carga de incêndio deste pavimento ainda não foi classificada na Etapa 5 (Carga de Incêndio) — o risco predominante não pode ser determinado até lá.</span>
           </div>
         )}
 
