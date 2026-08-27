@@ -445,7 +445,7 @@ function SecaoMedida({ secao, pagina, totalPaginas }) {
 export default function MemorialDescritivoPage({ onBack }) {
   const { state }    = useProjeto()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
-  const secoes = buildMemorial(state, sistemas)
+  const secoes = buildMemorial(state, sistemas, porEstrutura)
   const totalPaginas = PRIMEIRA_PAGINA_MEDIDA - 1 + secoes.length
   const topicos = [
     { titulo: 'Objetivo', pagina: PAGINA_INTRODUCAO },

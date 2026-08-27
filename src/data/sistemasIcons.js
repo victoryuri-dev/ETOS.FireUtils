@@ -4,6 +4,7 @@
 export const SISTEMA_ICON = {
   acesso_viatura:      'van',
   seg_estrutural:      'wallFire',
+  compart_horizontal:  'wallCompart',
   compart_vertical:    'stair',
   controle_acabamento: 'sign',
   saida_emergencia:    'exit',

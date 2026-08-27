@@ -7,6 +7,7 @@ import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 const SIST_CONFIG = [
   { key:'acesso_viatura',      icon:'van',         label:'Acesso de Viatura em Edificacoes'   },
   { key:'seg_estrutural',      icon:'wallFire',    label:'Seg. Estrutural Contra Incendio'    },
+  { key:'compart_horizontal',  icon:'wallCompart', label:'Compartimentacao Horizontal'        },
   { key:'compart_vertical',    icon:'stair',       label:'Compartimentacao Vertical'          },
   { key:'controle_acabamento', icon:'sign',        label:'Controle de Materiais de Acabamento'},
   { key:'saida_emergencia',    icon:'exit',        label:'Saida de Emergencia'                },

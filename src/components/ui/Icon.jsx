@@ -4,6 +4,7 @@ import {
   Flame, Bell, Sun, Moon, File, SprayCan, Signpost, Radar, FireExtinguisher, Layers,
   Building2, Building, Search, X, Upload, Pencil, User, SquareDashed, PanelLeft,
   BrickWallFire, AlarmSmoke, BellElectric, Van, ShieldAlert, Loader2, CircleCheck,
+  SeparatorHorizontal,
 } from 'lucide-react'
 
 const ICONS = {
@@ -15,6 +16,7 @@ const ICONS = {
   search: Search, x: X, upload: Upload, edit: Pencil, user: User, area: SquareDashed,
   panelLeft: PanelLeft, wallFire: BrickWallFire, alarmSmoke: AlarmSmoke, bellElectric: BellElectric,
   van: Van, shieldAlert: ShieldAlert, spinner: Loader2, checkCircle: CircleCheck,
+  wallCompart: SeparatorHorizontal,
 }
 
 export default function Icon({ name, size=16, color, className='' }) {

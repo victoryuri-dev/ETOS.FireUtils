@@ -165,6 +165,15 @@ function novaEstrutura(nome) {
     nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '',
     estrutura: ['Concreto armado'],
     obsSegEstrutural: '',
+    // Compartimentação horizontal/vertical (NT 09 CBMMA) — elementos de
+    // proteção efetivamente adotados (chaves de ELEMENTOS_COMPART_HORIZONTAL/
+    // VERTICAL em normas/MA/compartimentacao.js) e condições especiais
+    // (dispensas) confirmadas pelo responsável técnico para esta estrutura.
+    elementosCompartHorizontal: [],
+    elementosCompartVertical: [],
+    condicoesEspeciaisCompartHorizontal: [],
+    condicoesEspeciaisCompartVertical: [],
+    obsCompartimentacao: '',
   }
 }
 
@@ -191,7 +200,14 @@ const INITIAL_STATE = {
   usoSubsolo: '', coberturaHabitavel: 'Nao',
   compartVertical: 'Sem compartimentacao',
   fachada: 'Convencional', cobertura: 'Laje impermeabilizada',
-  estruturas: [{ id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0, nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', estrutura: ['Concreto armado'], obsSegEstrutural: '' }],
+  estruturas: [{
+    id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0,
+    nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', estrutura: ['Concreto armado'],
+    obsSegEstrutural: '',
+    elementosCompartHorizontal: [], elementosCompartVertical: [],
+    condicoesEspeciaisCompartHorizontal: [], condicoesEspeciaisCompartVertical: [],
+    obsCompartimentacao: '',
+  }],
   propNome: '', propDocumento: '', propTelefone: '', propEmail: '',
   respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '', respEmail: '',
   cnaePrincipal: '', cnaePrincipalDesc: '',

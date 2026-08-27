@@ -18,6 +18,7 @@ import SaidaEmergenciaPage   from './pages/medidas/SaidaEmergenciaPage'
 import HidrantesPage          from './pages/medidas/HidrantesPage'
 import AcessoViaturaPage      from './pages/medidas/AcessoViaturaPage'
 import SegurancaEstruturalPage from './pages/medidas/SegurancaEstruturalPage'
+import CompartimentacaoPage    from './pages/medidas/CompartimentacaoPage'
 import ExtintoresPage         from './pages/medidas/ExtintoresPage'
 import IluminacaoPage         from './pages/medidas/IluminacaoPage'
 import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
@@ -124,6 +125,7 @@ function MedidaRoute() {
   if (sistKey === 'hidrantes')         return <HidrantesPage/>
   if (sistKey === 'acesso_viatura')    return <AcessoViaturaPage/>
   if (sistKey === 'seg_estrutural')    return <SegurancaEstruturalPage/>
+  if (sistKey === 'compart_horizontal' || sistKey === 'compart_vertical') return <CompartimentacaoPage/>
   if (sistKey === 'extintores')        return <ExtintoresPage/>
   if (sistKey === 'iluminacao')        return <IluminacaoPage/>
   if (sistKey === 'sinalizacao')       return <SinalizacaoPage/>
