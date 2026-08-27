@@ -84,9 +84,12 @@ export function calcularBrigadistas(linha, populacaoFixa) {
 /** Nível de treinamento/instalação exigido (Básico/Intermediário/Avançado),
  *  resolvendo os tokens dinâmicos da Tabela A.1: 'nota8' (>20 brigadistas
  *  eleva o patamar mínimo) e 'nota1' (Divisão C-2, decidido pela área
- *  construída, fora do escopo desta função). `alturaEdificacao` habilita a
- *  reclassificação opcional da Nota 4 (edificações ≤ 12 m). */
-export function calcularNivel(nivelBase, brigadistas, alturaEdificacao) {
+ *  construída, fora do escopo desta função). `temNota4` habilita a
+ *  reclassificação opcional da Nota 4 (edificações ≤ 12 m) — só quando a
+ *  linha da Tabela A.1 desta divisão/risco traz a Nota 4 no rodapé; a
+ *  redução não é uma regra geral para qualquer nível intermediário (ex.:
+ *  hoje só a Divisão M-7, risco médio, carrega essa nota). */
+export function calcularNivel(nivelBase, brigadistas, alturaEdificacao, temNota4) {
   if (!nivelBase) return null
 
   if (nivelBase === 'nota1') {
@@ -104,7 +107,7 @@ export function calcularNivel(nivelBase, brigadistas, alturaEdificacao) {
   }
 
   const alturaOk = alturaEdificacao !== '' && alturaEdificacao != null && num(alturaEdificacao) <= 12
-  const podeReduzirParaBasico = nivel === 'intermediario' && alturaOk
+  const podeReduzirParaBasico = nivel === 'intermediario' && !!temNota4 && alturaOk
 
   return { nivel, dinamico: false, label: NIVEL_LABEL[nivel] || nivel, detalhe, podeReduzirParaBasico }
 }
@@ -115,7 +118,8 @@ export function calcularNivel(nivelBase, brigadistas, alturaEdificacao) {
 export function calcularBrigadaPavimento(divisao, risco, populacaoFixa, alturaEdificacao, tabela) {
   const linha = linhaTabelaA1(divisao, risco, tabela)
   const resultado = calcularBrigadistas(linha, populacaoFixa)
-  const nivelTreinamento = linha ? calcularNivel(linha.nivelTreinamento, resultado.brigadistas, alturaEdificacao) : null
-  const nivelInstalacao  = linha ? calcularNivel(linha.nivelInstalacao,  resultado.brigadistas, alturaEdificacao) : null
+  const temNota4 = !!linha?.notas?.includes(4)
+  const nivelTreinamento = linha ? calcularNivel(linha.nivelTreinamento, resultado.brigadistas, alturaEdificacao, temNota4) : null
+  const nivelInstalacao  = linha ? calcularNivel(linha.nivelInstalacao,  resultado.brigadistas, alturaEdificacao, temNota4) : null
   return { linha, resultado, nivelTreinamento, nivelInstalacao }
 }
