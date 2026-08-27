@@ -118,8 +118,11 @@ export function calcularNivel(nivelBase, brigadistas, alturaEdificacao, temNota4
 export function calcularBrigadaPavimento(divisao, risco, populacaoFixa, alturaEdificacao, tabela) {
   const linha = linhaTabelaA1(divisao, risco, tabela)
   const resultado = calcularBrigadistas(linha, populacaoFixa)
-  const temNota4 = !!linha?.notas?.includes(4)
-  const nivelTreinamento = linha ? calcularNivel(linha.nivelTreinamento, resultado.brigadistas, alturaEdificacao, temNota4) : null
-  const nivelInstalacao  = linha ? calcularNivel(linha.nivelInstalacao,  resultado.brigadistas, alturaEdificacao, temNota4) : null
+  // nota4Aplicavel diferencia a coluna: na única linha que hoje cita a Nota 4
+  // (M-7 risco médio), ela vale só para o Treinamento — a Instalação não a cita.
+  const temNota4Treinamento = linha?.nota4Aplicavel === 'treinamento' || linha?.nota4Aplicavel === 'ambos'
+  const temNota4Instalacao  = linha?.nota4Aplicavel === 'instalacao'  || linha?.nota4Aplicavel === 'ambos'
+  const nivelTreinamento = linha ? calcularNivel(linha.nivelTreinamento, resultado.brigadistas, alturaEdificacao, temNota4Treinamento) : null
+  const nivelInstalacao  = linha ? calcularNivel(linha.nivelInstalacao,  resultado.brigadistas, alturaEdificacao, temNota4Instalacao)  : null
   return { linha, resultado, nivelTreinamento, nivelInstalacao }
 }

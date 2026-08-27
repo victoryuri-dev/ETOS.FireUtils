@@ -1,8 +1,10 @@
 // normas/MA/brigada_incendio.js — NT 17/2021 CBMMA, Parte 1: Brigada de
-// Incêndio Orgânica. Fonte: transcrição visual do Anexo A (Tabela A.1),
+// Incêndio Orgânica. Fonte: transcrição consolidada do Anexo A (Tabela A.1),
 // feita pelo usuário a partir do PDF original (cuja camada de texto está
 // corrompida por um problema de codificação de fonte — não é extraível por
-// parsing). Ver observações de transcrição abaixo, preservadas fielmente.
+// parsing) — revisão que corrige a transcrição visual inicial (nome da M-6,
+// e a Nota 4 na M-7 risco médio, que se aplica só ao nível de treinamento,
+// não ao de instalação — ver `nota4Aplicavel` abaixo).
 //
 // Cada linha de TABELA_A1 representa uma combinação (divisão × grau de
 // risco) do Anexo A. `faixas` são os valores das colunas "Até 2 / Até 4 /
@@ -17,12 +19,9 @@ export const NORMA_BRIGADA = {
   desc:   'Brigada de Incêndio — Parte 1: Brigada de Incêndio Orgânica',
 }
 
-// ── Observações sobre a transcrição (inconsistências no PDF original,
-// preservadas conforme reportado por quem transcreveu) ──────────────────
+// ── Observações sobre a fonte desta tabela ────────────────────────────────
 export const OBSERVACOES_TRANSCRICAO = [
-  'Grupo F vs H (divisões H-1 a H-6): o PDF original imprime o rótulo vertical do grupo ao lado dessas divisões como "F — Local de Reunião de", aparentemente um erro de diagramação do documento fonte (o grupo F já foi usado para F-1..F-11). Tratado aqui como Grupo H, conforme a numeração das divisões.',
-  'M-3 "Central de Comunicação e energia": a célula de grau de risco não apresentou texto visível na transcrição (possível célula em branco no original) — tratado aqui como risco não definido, a confirmar com o CBMMA.',
-  'M-6: o nome da divisão consta como "Terra Selvagem" no PDF original — semanticamente estranho para uma tabela de risco de incêndio, mas transcrito fielmente. Confirme o nome correto da divisão M-6 antes de usar em projeto real.',
+  'M-3 "Central de Comunicação e energia": a célula de grau de risco é apresentada em branco no Anexo A original (sem Baixo/Médio/Alto) — tratado aqui como risco não definido; a única linha cadastrada para a divisão M-3 é usada independente do risco calculado do pavimento.',
 ]
 
 // regraAcima10: 'nota5' (padrão) | 'pct_funcionarios_pav' (A-2) | 'pct_populacao' (E-5/E-6/L-1/L-2/L-3) |
@@ -31,6 +30,10 @@ export const OBSERVACOES_TRANSCRICAO = [
 //
 // nivelTreinamento/nivelInstalacao: 'basico' | 'intermediario' | 'avancado' | 'nota8' (definido
 // dinamicamente pela Nota 8 — ver brigada_calc.js) | null (isento/não aplicável)
+//
+// nota4Aplicavel: presente só na única linha da Tabela A.1 onde a Nota 4 (redução para o nível
+// básico em edificações ≤ 12 m) é citada — hoje M-7 risco médio, e apenas para a coluna de
+// Treinamento (a de Instalação não cita a nota). Valores: 'treinamento' | 'instalacao' | 'ambos'.
 export const TABELA_A1 = [
   // ── A — Residencial ──────────────────────────────────────────────────
   { divisoes: ['A-1'], grupoLabel: 'A - Residencial', descricao: 'Habitação unifamiliar', risco: 'baixo', isento: true, faixas: null, regraAcima10: null, nivelTreinamento: null, nivelInstalacao: null, notas: [] },
@@ -61,8 +64,8 @@ export const TABELA_A1 = [
   { divisoes: ['E-2'], grupoLabel: 'E – Educacional e cultura física', descricao: 'Escola especial', risco: 'baixo', isento: false, faixas: [1, 2, 2, 2, 2], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
   { divisoes: ['E-3'], grupoLabel: 'E – Educacional e cultura física', descricao: 'Espaço para cultura física', risco: 'baixo', isento: false, faixas: [1, 2, 2, 2, 2], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
   { divisoes: ['E-4'], grupoLabel: 'E – Educacional e cultura física', descricao: 'Centro de treinamento profissional', risco: 'baixo', isento: false, faixas: [1, 2, 3, 4, 4], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
-  { divisoes: ['E-5'], grupoLabel: 'E – Educacional e cultura física', descricao: 'Pré-escola', risco: 'baixo', isento: false, faixas: [2, 4, 6, 8, 8], regraAcima10: 'pct_populacao', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
-  { divisoes: ['E-6'], grupoLabel: 'E – Educacional e cultura física', descricao: 'Escola para portadores de deficiências', risco: 'baixo', isento: false, faixas: [2, 4, 6, 6, 8], regraAcima10: 'pct_populacao', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
+  { divisoes: ['E-5'], grupoLabel: 'E – Educacional e cultura física', descricao: 'Pré-escola', risco: 'baixo', isento: false, faixas: [2, 4, 6, 8, 8], regraAcima10: 'pct_populacao', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [] },
+  { divisoes: ['E-6'], grupoLabel: 'E – Educacional e cultura física', descricao: 'Escola para portadores de deficiências', risco: 'baixo', isento: false, faixas: [2, 4, 6, 6, 8], regraAcima10: 'pct_populacao', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [] },
 
   // ── F — Local de Reunião de Público ──────────────────────────────────
   { divisoes: ['F-1'], grupoLabel: 'F', descricao: 'Local onde há objeto de valor inestimável', risco: 'baixo', isento: false, faixas: [1, 2, 3, 4, 4], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
@@ -86,9 +89,8 @@ export const TABELA_A1 = [
   { divisoes: ['G-5'], grupoLabel: 'G – Serviço automotivo', descricao: 'Hangares', risco: 'baixo', isento: false, faixas: [1, 2, 3, 4, 4], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
   { divisoes: ['G-6'], grupoLabel: 'G – Serviço automotivo', descricao: 'Marinas, iates-clubes e garagens náuticas', risco: 'baixo', isento: false, faixas: [1, 2, 3, 4, 4], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
 
-  // ── H — Serviço de saúde e institucional (impresso como "F" no PDF
-  // original ao lado destas divisões — ver OBSERVACOES_TRANSCRICAO) ────
-  { divisoes: ['H-1'], grupoLabel: 'H', descricao: 'Hospitais veterinários e assemelhados', risco: 'baixo', isento: false, faixas: [1, 2, 3, 4, 4], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
+  // ── H — Serviço de saúde e institucional ─────────────────────────────
+  { divisoes: ['H-1'], grupoLabel: 'H – Serviço de saúde e institucional', descricao: 'Hospitais veterinários e assemelhados', risco: 'baixo', isento: false, faixas: [1, 2, 3, 4, 4], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
   { divisoes: ['H-2'], grupoLabel: 'H', descricao: 'Locais onde pessoas requerem cuidados especiais por limitações físicas ou mentais', risco: 'medio', isento: false, faixas: [2, 4, 5, 6, 8], regraAcima10: 'nota5', nivelTreinamento: 'nota8', nivelInstalacao: 'nota8', notas: [5, 8] },
   { divisoes: ['H-3'], grupoLabel: 'H', descricao: 'Hospital e assemelhado', risco: 'baixo', isento: false, faixas: [2, 3, 4, 5, 6], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
   { divisoes: ['H-4'], grupoLabel: 'H', descricao: 'Repartição pública, edificações das forças armadas e policiais', risco: 'medio', isento: false, faixas: [2, 3, 4, 5, 6], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
@@ -122,9 +124,9 @@ export const TABELA_A1 = [
   { divisoes: ['M-5'], grupoLabel: 'M', descricao: 'Silos', risco: 'baixo', isento: false, faixas: [1, 2, 2, 2, 2], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
   { divisoes: ['M-5'], grupoLabel: 'M', descricao: 'Silos', risco: 'medio', isento: false, faixas: [2, 3, 4, 5, 6], regraAcima10: 'nota5', nivelTreinamento: 'intermediario', nivelInstalacao: 'intermediario', notas: [5] },
   { divisoes: ['M-5'], grupoLabel: 'M', descricao: 'Silos', risco: 'alto', isento: false, faixas: [2, 4, 5, 7, 8], regraAcima10: 'nota5', nivelTreinamento: 'avancado', nivelInstalacao: 'avancado', notas: [5] },
-  { divisoes: ['M-6'], grupoLabel: 'M', descricao: 'Terra Selvagem', risco: 'medio', isento: false, faixas: [2, 4, 5, 6, 8], regraAcima10: 'nota5', nivelTreinamento: 'intermediario', nivelInstalacao: 'intermediario', notas: [5] },
+  { divisoes: ['M-6'], grupoLabel: 'M', descricao: 'Floresta nativa ou cultivada', risco: 'medio', isento: false, faixas: [2, 4, 5, 6, 8], regraAcima10: 'nota5', nivelTreinamento: 'intermediario', nivelInstalacao: 'intermediario', notas: [5] },
   { divisoes: ['M-7'], grupoLabel: 'M', descricao: 'Pátio de contêineres', risco: 'baixo', isento: false, faixas: [1, 2, 2, 2, 2], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
-  { divisoes: ['M-7'], grupoLabel: 'M', descricao: 'Pátio de contêineres', risco: 'medio', isento: false, faixas: [2, 3, 4, 5, 6], regraAcima10: 'nota5', nivelTreinamento: 'intermediario', nivelInstalacao: 'intermediario', notas: [4, 5] },
+  { divisoes: ['M-7'], grupoLabel: 'M', descricao: 'Pátio de contêineres', risco: 'medio', isento: false, faixas: [2, 3, 4, 5, 6], regraAcima10: 'nota5', nivelTreinamento: 'intermediario', nivelInstalacao: 'intermediario', notas: [4, 5], nota4Aplicavel: 'treinamento' },
   { divisoes: ['M-7'], grupoLabel: 'M', descricao: 'Pátio de contêineres', risco: 'alto', isento: false, faixas: [2, 4, 5, 7, 8], regraAcima10: 'nota5', nivelTreinamento: 'avancado', nivelInstalacao: 'avancado', notas: [5] },
 ]
 
