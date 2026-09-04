@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import { PROCEDIMENTOS_PADRAO } from '../utils/planoEmergencia'
 
 // Gera um ID interno único
 export function newIds() {
@@ -133,12 +134,26 @@ function migrarParaPorEstrutura(saved) {
   return { cargaState, sistemasPorEstrutura, riscosEspeciaisPorEstrutura, riscosOutrosDescPorEstrutura }
 }
 
+// Mescla planoEmergencia salvo com os defaults atuais (INITIAL_STATE) — mas,
+// diferente do merge simples usado pelos outros campos aninhados, aqui um
+// valor salvo em branco ('' ou null/undefined) NAO sobrescreve o default.
+// Sem isso, o texto padrao dos 10 procedimentos (PROCEDIMENTOS_PADRAO) nunca
+// apareceria em projetos salvos antes dessa mudanca, que ja gravaram esses
+// campos como string vazia — o usuario so editou de verdade continua
+// preservado normalmente.
+function hydratarPlanoEmergencia(saved) {
+  const base = { ...INITIAL_STATE.planoEmergencia }
+  Object.entries(saved || {}).forEach(([k, v]) => { if (v !== '' && v != null) base[k] = v })
+  return base
+}
+
 function hydrateState(saved) {
   return {
     ...INITIAL_STATE,
     ...saved,
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
+    planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
     ...migrarParaPorEstrutura(saved),
   }
 }
@@ -238,6 +253,30 @@ const INITIAL_STATE = {
     extensaoVia: '', tipoRetorno: '', tipoRetornoOutroDesc: '',
     manobraRetornoOk: true, saidaIndepLargura: '', saidaIndepAltura: '',
     distanciaAdotada: '',
+  },
+  // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) — só o que
+  // não existe em nenhum outro lugar do state (endereço, sistemas, riscos
+  // especiais, estrutura, população total etc. são reaproveitados de lá na
+  // hora de montar o documento, ver utils/planoEmergencia.js). `telefoneCBM`
+  // já nasce preenchido com o numero de emergencia nacional (193), e os 10
+  // procedimentos (item B.2) nascem com o texto padrao de PROCEDIMENTOS_PADRAO
+  // (adaptado de um exemplo pratico) — unicas excecoes a regra de nascer em
+  // branco, por serem dados/texto de partida que o usuario so edita se
+  // precisar, nunca preenche do zero.
+  planoEmergencia: {
+    localizacaoTipo: 'Urbana',
+    caracteristicaVizinhanca: '', distanciaCBM: '', meiosAjudaExterna: 'Posto de Bombeiros',
+    populacaoFixa: '', populacaoFlutuante: '',
+    horarioFuncionamento: '',
+    pneTemPessoas: false, pneDescricao: '',
+    // Localizacao de cada risco especial marcado — chaveado por estrutura e,
+    // dentro dela, pela chave do risco (mesmas chaves de RISCOS_ESPECIAIS em
+    // utils/anexoB.js), ja que os riscos marcados na Configuracao tambem sao
+    // por estrutura: riscosLocalizacaoPorEstrutura[estId][riscoKey] = texto.
+    riscosLocalizacaoPorEstrutura: {},
+    brigadistasQtd: '', brigadistasProfissionaisQtd: '',
+    telefoneCBM: '193', hospitalReferencia: '',
+    ...PROCEDIMENTOS_PADRAO,
   },
   sistemas: {
     // acesso_viatura, seg_estrutural e brigada NAO sao universais: a Tabela 5
@@ -445,6 +484,8 @@ function reducer(state, action) {
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
+    case 'SET_PLANO_EMERGENCIA':
+      return { ...state, planoEmergencia: { ...state.planoEmergencia, ...action.changes } }
     case 'SET_WIZARD':
       return { ...state, configStep: action.step, configUnlocked: action.unlocked }
     case 'SET_CARGA': {

@@ -21,6 +21,7 @@ import SegurancaEstruturalPage from './pages/medidas/SegurancaEstruturalPage'
 import ExtintoresPage         from './pages/medidas/ExtintoresPage'
 import IluminacaoPage         from './pages/medidas/IluminacaoPage'
 import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
+import GerenciamentoRiscoPage from './pages/medidas/GerenciamentoRiscoPage'
 import Icon           from './components/ui/Icon'
 import logo           from './assets/fireutils-logo.png'
 
@@ -127,6 +128,7 @@ function MedidaRoute() {
   if (sistKey === 'extintores')        return <ExtintoresPage/>
   if (sistKey === 'iluminacao')        return <IluminacaoPage/>
   if (sistKey === 'sinalizacao')       return <SinalizacaoPage/>
+  if (sistKey === 'gerenciamento_risco') return <GerenciamentoRiscoPage/>
   return <MedidaPage sistKey={sistKey}/>
 }
 
