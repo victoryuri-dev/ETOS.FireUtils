@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 import { PROCEDIMENTOS_PADRAO } from '../utils/planoEmergencia'
@@ -19,9 +19,9 @@ function idExtintor() {
   return `ext-${Date.now().toString(36)}-${extintorSeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
-function novoExtintor(estruturaId, pavimentoId, ambiente) {
+function novoExtintor(estruturaId, pavimentoId, ambiente, id) {
   return {
-    id: idExtintor(),
+    id: id || idExtintor(),
     estruturaId, pavimentoId, ambiente: ambiente || '',
     // Capacidade extintora do agente escolhido no projeto — livre para o
     // projetista aumentar, mas sempre nasce preenchida com o mínimo
@@ -42,8 +42,8 @@ function idIluminacao() {
 // ambiente), conforme NT 18 CBMMA / NBR 10898. `categoria` decide o campo
 // discriminador ('aclaramento' → tipoEquipamento, 'balizamento' → pontoTipo),
 // sempre enviado em `overrides` por quem despacha a ação.
-function novoItemIluminacao(estruturaId, pavimentoId, categoria, overrides = {}) {
-  return { id: idIluminacao(), estruturaId, pavimentoId, categoria, quantidade: 1, ...overrides }
+function novoItemIluminacao(estruturaId, pavimentoId, categoria, overrides = {}, id) {
+  return { id: id || idIluminacao(), estruturaId, pavimentoId, categoria, quantidade: 1, ...overrides }
 }
 
 // Mesma lógica de idIluminacao — evita colisão entre especificações
@@ -87,8 +87,8 @@ function idSinalizacao() {
 // Item de sinalização de emergência — granularidade só até pavimento (sem
 // ambiente), conforme NT 20 CBMMA / NBR 13434. `tipoPlaca` referencia a
 // chave do catálogo em normas/MA/sinalizacao.js (TIPOS_PLACA).
-function novoItemSinalizacao(estruturaId, pavimentoId, tipoPlaca, quantidade) {
-  return { id: idSinalizacao(), estruturaId, pavimentoId, tipoPlaca, quantidade }
+function novoItemSinalizacao(estruturaId, pavimentoId, tipoPlaca, quantidade, id) {
+  return { id: id || idSinalizacao(), estruturaId, pavimentoId, tipoPlaca, quantidade }
 }
 
 // Normaliza um estado salvo (localStorage ou payload de LOAD) contra
@@ -172,9 +172,17 @@ const RISCOS_DEFAULT = {
   vasos_pressao: false, produtos_perigosos: false, outros: false,
 }
 
-function novaEstrutura(nome) {
+// Mesma lógica de idExtintor/idIluminacao/idSinalizacao — evita colisão
+// entre estruturas criadas no mesmo milissegundo.
+let estruturaSeq = 0
+function idEstrutura() {
+  estruturaSeq += 1
+  return `est-${Date.now().toString(36)}-${estruturaSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+function novaEstrutura(nome, id) {
   return {
-    id: `est-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+    id: id || idEstrutura(),
     nome,
     areaTotal: '', altura: '', alturaPisoPiso: 0,
     nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '',
@@ -310,7 +318,7 @@ function reducer(state, action) {
     case 'SET_FIELD':
       return { ...state, [action.field]: action.value }
     case 'ADD_ESTRUTURA': {
-      const est = novaEstrutura(`Estrutura ${state.estruturas.length + 1}`)
+      const est = novaEstrutura(`Estrutura ${state.estruturas.length + 1}`, action.id)
       return { ...state, estruturas: [...state.estruturas, est], pavimentos: [...state.pavimentos, pavimentoTerreo(est.id)] }
     }
     case 'REMOVE_ESTRUTURA': {
@@ -378,7 +386,7 @@ function reducer(state, action) {
     case 'UPDATE_ACESS':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, acess: p.acess.map((a, i) => i === action.index ? { ...a, ...action.changes } : a) } : p) }
     case 'ADD_EXTINTOR':
-      return { ...state, extintores: [...state.extintores, novoExtintor(action.estruturaId, action.pavimentoId, action.ambiente)] }
+      return { ...state, extintores: [...state.extintores, novoExtintor(action.estruturaId, action.pavimentoId, action.ambiente, action.id)] }
     case 'UPDATE_EXTINTOR':
       return { ...state, extintores: state.extintores.map(e => e.id === action.id ? { ...e, ...action.changes } : e) }
     case 'REMOVE_EXTINTOR':
@@ -404,10 +412,10 @@ function reducer(state, action) {
     case 'IMPORT_EXTINTORES': {
       const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
       const preservados = state.extintores.filter(e => !estruturasDoLote.has(e.estruturaId))
-      return { ...state, extintores: [...preservados, ...action.itens.map(it => ({ id: idExtintor(), ...it }))] }
+      return { ...state, extintores: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idExtintor() }))] }
     }
     case 'ADD_ILUMINACAO':
-      return { ...state, iluminacao: [...state.iluminacao, novoItemIluminacao(action.estruturaId, action.pavimentoId, action.categoria, action.overrides)] }
+      return { ...state, iluminacao: [...state.iluminacao, novoItemIluminacao(action.estruturaId, action.pavimentoId, action.categoria, action.overrides, action.id)] }
     case 'UPDATE_ILUMINACAO':
       return { ...state, iluminacao: state.iluminacao.map(i => i.id === action.id ? { ...i, ...action.changes } : i) }
     case 'REMOVE_ILUMINACAO':
@@ -469,7 +477,7 @@ function reducer(state, action) {
         iluminacao: state.iluminacao.filter(i => !(i.categoria === 'aclaramento' && i.tipoEquipamento === action.id)),
       }
     case 'ADD_SINALIZACAO':
-      return { ...state, sinalizacao: [...state.sinalizacao, novoItemSinalizacao(action.estruturaId, action.pavimentoId, action.tipoPlaca, action.quantidade)] }
+      return { ...state, sinalizacao: [...state.sinalizacao, novoItemSinalizacao(action.estruturaId, action.pavimentoId, action.tipoPlaca, action.quantidade, action.id)] }
     case 'UPDATE_SINALIZACAO':
       return { ...state, sinalizacao: state.sinalizacao.map(s => s.id === action.id ? { ...s, ...action.changes } : s) }
     case 'REMOVE_SINALIZACAO':
@@ -479,7 +487,7 @@ function reducer(state, action) {
     // os itens já chegam com estruturaId/pavimentoId resolvidos contra o
     // projeto atual.
     case 'IMPORT_SINALIZACAO':
-      return { ...state, sinalizacao: action.itens.map(it => ({ id: idSinalizacao(), ...it })) }
+      return { ...state, sinalizacao: action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() })) }
     case 'SET_BALIZAMENTO_APLICADO':
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
@@ -505,25 +513,31 @@ function reducer(state, action) {
       action.divisoes.forEach(d => { if (!next[d]) next[d] = { cnae: '', descricao: '', cargaIncendio: null, metodo: 'tabela', valorManual: '' } })
       return { ...state, cargaState: { ...state.cargaState, [estruturaId]: next } }
     }
+    // `action.value`, quando informado (ver resolverAcaoLocal), fixa o valor
+    // final decidido no momento do dispatch original — sem isso, replicar o
+    // toggle pra outra aba via broadcast inverteria o campo de novo em vez
+    // de convergir pro mesmo estado (ver comentário em resolverAcaoLocal).
     case 'TOGGLE_SISTEMA_ESTRUTURA': {
       const { estruturaId, key } = action
       const atual = !!state.sistemasPorEstrutura[estruturaId]?.[key]
+      const novo = action.value !== undefined ? action.value : !atual
       return {
         ...state,
         sistemasPorEstrutura: {
           ...state.sistemasPorEstrutura,
-          [estruturaId]: { ...state.sistemasPorEstrutura[estruturaId], [key]: !atual },
+          [estruturaId]: { ...state.sistemasPorEstrutura[estruturaId], [key]: novo },
         },
       }
     }
     case 'TOGGLE_RISCO_ESTRUTURA': {
       const { estruturaId, key } = action
       const base = state.riscosEspeciaisPorEstrutura[estruturaId] || RISCOS_DEFAULT
+      const novo = action.value !== undefined ? action.value : !base[key]
       return {
         ...state,
         riscosEspeciaisPorEstrutura: {
           ...state.riscosEspeciaisPorEstrutura,
-          [estruturaId]: { ...base, [key]: !base[key] },
+          [estruturaId]: { ...base, [key]: novo },
         },
       }
     }
@@ -537,6 +551,61 @@ function reducer(state, action) {
     }
     default: return state
   }
+}
+
+// Ações puramente locais de navegação/boot — cada aba faz a sua conta, não
+// faz sentido nem é desejável replicar pras outras sessões da mesma conta
+// (LOAD/NEW_PROJECT são o próprio carregamento; SET_WIZARD é só a etapa do
+// wizard que esta aba está olhando, não dado do projeto).
+const NAO_BROADCAST = new Set(['LOAD', 'NEW_PROJECT', 'SET_WIZARD'])
+
+// Resolve, a partir do estado local no momento do dispatch, tudo que a
+// action precisa ter fixado ANTES de seguir pro reducer e pro broadcast —
+// pra que a mesma action aplicada em outra aba (via canal Realtime) produza
+// exatamente o mesmo resultado, em vez de divergir:
+//  - ações que criam um item novo (ADD_EXTINTOR etc.) geram o id dentro do
+//    reducer a partir de Date.now()/Math.random(); se cada aba gerasse o
+//    seu, o mesmo "clique" viraria dois itens diferentes, um em cada lado.
+//  - os toggles (TOGGLE_SISTEMA_ESTRUTURA/TOGGLE_RISCO_ESTRUTURA) invertem
+//    o valor atual; replicando a inversão "cega" pra outra aba, um clique
+//    perto o suficiente nos dois lados converge de volta pro valor errado
+//    (A liga, B recebe e inverte nele; B liga, A recebe e inverte de volta).
+//    Fixando o valor final aqui, replicar passa a dizer "fica assim", não
+//    "inverte de novo".
+function resolverAcaoLocal(action, state) {
+  switch (action.type) {
+    case 'ADD_EXTINTOR':
+    case 'ADD_ILUMINACAO':
+    case 'ADD_SINALIZACAO':
+    case 'ADD_ESTRUTURA':
+    case 'ADD_ESPECIFICACAO_EQUIPAMENTO':
+    case 'SET_EQUIPAMENTO_USADO':
+      return action.id ? action : { ...action, id: idParaTipo(action.type)() }
+    case 'IMPORT_EXTINTORES':
+      return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idExtintor() }) }
+    case 'IMPORT_SINALIZACAO':
+      return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idSinalizacao() }) }
+    case 'TOGGLE_SISTEMA_ESTRUTURA': {
+      if (action.value !== undefined) return action
+      const atual = !!state.sistemasPorEstrutura[action.estruturaId]?.[action.key]
+      return { ...action, value: !atual }
+    }
+    case 'TOGGLE_RISCO_ESTRUTURA': {
+      if (action.value !== undefined) return action
+      const base = state.riscosEspeciaisPorEstrutura[action.estruturaId] || RISCOS_DEFAULT
+      return { ...action, value: !base[action.key] }
+    }
+    default:
+      return action
+  }
+}
+
+function idParaTipo(tipo) {
+  if (tipo === 'ADD_EXTINTOR')     return idExtintor
+  if (tipo === 'ADD_ILUMINACAO')   return idIluminacao
+  if (tipo === 'ADD_SINALIZACAO')  return idSinalizacao
+  if (tipo === 'ADD_ESTRUTURA')    return idEstrutura
+  return idEspecEquip // ADD_ESPECIFICACAO_EQUIPAMENTO / SET_EQUIPAMENTO_USADO
 }
 
 const Ctx = createContext(null)
@@ -557,7 +626,7 @@ export function ProjetoProvider({ children }) {
   // comunica o problema, dois avisos ao mesmo tempo seria redundante.
   const [syncStatus, setSyncStatus] = useState(null)
 
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (init) => {
+  const [state, rawDispatch] = useReducer(reducer, INITIAL_STATE, (init) => {
     try {
       const s = localStorage.getItem('etos-projeto')
       if (s) {
@@ -576,6 +645,52 @@ export function ProjetoProvider({ children }) {
   })
 
   const definirVersaoConhecida = v => { versaoRef.current = v; setConflito(false) }
+
+  // Estado sempre atual, pra ler dentro do `dispatch` (useCallback com deps
+  // vazias, ver abaixo) sem precisar recriar a função a cada mudança —
+  // mantém a identidade de `dispatch` estável, como era com o dispatch cru
+  // do useReducer.
+  const stateRef = useRef(state)
+  useEffect(() => { stateRef.current = state }, [state])
+
+  // Canal Realtime do projeto aberto — transmite cada ação do reducer pras
+  // outras abas/dispositivos logados na mesma conta e no mesmo projeto, que
+  // aplicam a mesma ação no próprio reducer (ver `dispatch` abaixo). Isso é
+  // o que permite duas pessoas (ou a mesma pessoa em dois computadores)
+  // editarem o mesmo projeto ao mesmo tempo sem se sobrescreverem: cada
+  // ação já nasce granular (por estrutura, por item), então edições em
+  // partes diferentes do projeto nunca colidem. `broadcast.self: false`
+  // evita eco — o remetente não recebe a própria mensagem de volta.
+  // `channelRef` só é preenchido depois que o canal confirma inscrição
+  // ('SUBSCRIBED'); enquanto isso, `dispatch` funciona normalmente, só não
+  // transmite (a ação ainda é salva no Postgres pelo autosave de sempre).
+  const channelRef = useRef(null)
+  useEffect(() => {
+    if (!user || !state.id || !state.saveReady) return
+    const channel = supabase.channel(`projeto:${state.id}`, { config: { broadcast: { self: false } } })
+    channel
+      .on('broadcast', { event: 'action' }, ({ payload }) => {
+        if (payload?.action) rawDispatch(payload.action)
+      })
+      .subscribe(status => { if (status === 'SUBSCRIBED') channelRef.current = channel })
+    return () => { channelRef.current = null; supabase.removeChannel(channel) }
+  }, [user, state.id, state.saveReady])
+
+  // `true` desde a última action local (disparada por esta aba) até o
+  // autosave conseguir persistir — usado pro autosave abaixo saber se tem
+  // algo desta aba pra salvar. Ações que chegam via broadcast (outra aba)
+  // não mexem aqui: quem já mandou a ação também é responsável por
+  // persistir, evitando as duas abas correndo pra salvar o mesmo conteúdo
+  // (o que só aumentaria a chance de falso conflito de versão à toa).
+  const pendingLocalRef = useRef(false)
+
+  const dispatch = useCallback((action) => {
+    pendingLocalRef.current = true
+    if (NAO_BROADCAST.has(action.type)) { rawDispatch(action); return }
+    const resolvida = resolverAcaoLocal(action, stateRef.current)
+    rawDispatch(resolvida)
+    channelRef.current?.send({ type: 'broadcast', event: 'action', payload: { action: resolvida } })
+  }, [])
 
   // Autosave: grava instantâneo no localStorage (cache local/offline) e, se
   // houver usuário logado, sincroniza com o Postgres em background — debounced
@@ -598,10 +713,16 @@ export function ProjetoProvider({ children }) {
       } catch {}
     }
 
+    // Mudança só chegou via broadcast de outra aba (ver `dispatch` acima) —
+    // essa outra aba já é responsável por persistir, nada a fazer aqui além
+    // do cache local já gravado.
+    if (!pendingLocalRef.current) return
+
     if (!user || !state.id || !state.saveReady || conflito || versaoRef.current == null) return
     setSyncStatus('saving')
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
+      pendingLocalRef.current = false
       const versaoLocal = versaoRef.current
       const { data, error } = await supabase
         .from('projetos')
