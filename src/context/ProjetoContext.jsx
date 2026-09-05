@@ -739,8 +739,30 @@ export function ProjetoProvider({ children }) {
       if (!data || data.length === 0) {
         // Nenhuma linha afetada: ou a versão mudou (conflito) ou o projeto
         // ainda não existe no Postgres (primeiro save de um projeto novo).
-        const { data: existente } = await supabase.from('projetos').select('id').eq('id', state.id).maybeSingle()
-        if (existente) { setConflito(true); setSyncStatus(null); return }
+        const { data: existente } = await supabase.from('projetos').select('version').eq('id', state.id).maybeSingle()
+        if (existente) {
+          // A versão que esta aba conhecia ficou pra trás — o caso comum
+          // com o broadcast entre abas é: OUTRA aba desta mesma conta já
+          // salvou uma mudança (talvez até uma que chegou aqui por
+          // broadcast e nós já refletimos no nosso `state`), avançando a
+          // versão sem esta aba saber. Como nosso `toSave` já é o estado
+          // convergido (recebe as mudanças da outra aba ao vivo), tenta
+          // salvar de novo com a versão atual antes de declarar conflito —
+          // sem isso, essa aba entraria em conflito a cada alternância de
+          // edição entre as abas e pararia de salvar pro resto da sessão.
+          const versaoAtual = existente.version
+          const { data: retry, error: retryError } = await supabase
+            .from('projetos')
+            .update({ dados: toSave, nome: state.nome || 'Projeto sem nome', version: versaoAtual + 1, updated_at: toSave.updatedAt })
+            .eq('id', state.id).eq('user_id', user.id).eq('version', versaoAtual)
+            .select('version')
+          if (!retryError && retry && retry.length > 0) {
+            versaoRef.current = retry[0].version
+            setSyncStatus('saved')
+            return
+          }
+          setConflito(true); setSyncStatus(null); return
+        }
         const { error: insertErr } = await supabase.from('projetos').insert({
           id: state.id, user_id: user.id, nome: state.nome || 'Projeto sem nome', dados: toSave, version: 1,
         })
