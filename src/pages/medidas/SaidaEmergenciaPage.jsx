@@ -18,13 +18,15 @@ const uid  = () => `se-${Date.now()}-${++_seq}`
 const fmt  = n  => Number(n).toFixed(2).replace('.', ',')
 const fmtM = n  => `${fmt(n)} m`
 
-function syncPavimentos(projetoPavs, prev = []) {
+// Ambientes ficam no reducer compartilhado (state.pavimentos[].ambientes) —
+// aqui só remodela pro formato que esta página usa (nome/tipo já traduzidos
+// pros valores que se_calc.js espera).
+function derivarPavimentos(projetoPavs) {
   if (!projetoPavs?.length) return []
-  const anteriores = new Map(prev.map(p => [p.id, p]))
   return projetoPavs.map(p => ({
     id: p.id, nome: p.label, estruturaId: p.estruturaId,
     tipo: p.tipo === 'terreo' ? 'descarga' : 'tipo',
-    ambientes: anteriores.get(p.id)?.ambientes || [],
+    ambientes: p.ambientes || [],
   }))
 }
 
@@ -218,20 +220,28 @@ function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes
 // ── PavimentoModal ────────────────────────────────────────────────────
 const MODAL_COL = 'grid-cols-[1.4fr_56px_1.6fr_80px_54px_48px]'
 
-function PavimentoModal({ pav, onClose, onSave, seNorma, ocupacoes }) {
+function PavimentoModal({ pav, onClose, dispatch, seNorma, ocupacoes }) {
   const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS } = seNorma
-  const [ambientes, setAmbientes] = useState(() => pav.ambientes.map(a => ({...a})))
-  const [showAdd,   setShowAdd]   = useState(false)
-  const [editId,    setEditId]    = useState(null)
+  // `pav` vem de `derivarPavimentos(state.pavimentos)`, recalculado a cada
+  // render do componente pai — então `pav.ambientes` já reflete qualquer
+  // mudança que chegue por broadcast de outra aba enquanto o modal está
+  // aberto, sem precisar de um espelho local aqui.
+  const ambientes = pav.ambientes
+  const [showAdd, setShowAdd] = useState(false)
+  const [editId,  setEditId]  = useState(null)
 
   const totalPop  = ambientes.reduce((s,a) => s + calcPopAmb(a, TAXA_POPULACIONAL), 0)
   const totalArea = ambientes.reduce((s,a) => s + (a.popTipo==='area' ? (a.area||0) : 0), 0)
   const divisoes  = [...new Set(ambientes.map(a => a.divisao).filter(Boolean))]
   const notasAtivas = [...new Set(ambientes.flatMap(a => TAXA_POPULACIONAL[a.divisao]?.notas || []))]
 
-  const addAmb  = d => { setAmbientes(p => [...p, {id:uid(),...d}]); setShowAdd(false) }
-  const saveAmb = (id,d) => { setAmbientes(p => p.map(a => a.id===id ? {...a,...d} : a)); setEditId(null) }
-  const delAmb  = id => { setAmbientes(p => p.filter(a => a.id!==id)); if (editId===id) setEditId(null) }
+  // Cada uma destas só dispara no clique do botão correspondente
+  // (Adicionar/Salvar/lixeira) — o que se digita no formulário em si
+  // (AmbienteForm) fica em useState local até esse clique, então não sai
+  // daqui a cada tecla.
+  const addAmb  = d => { dispatch({ type: 'ADD_AMBIENTE_SE', pavimentoId: pav.id, ambiente: d }); setShowAdd(false) }
+  const saveAmb = (id, d) => { dispatch({ type: 'UPDATE_AMBIENTE_SE', pavimentoId: pav.id, ambienteId: id, changes: d }); setEditId(null) }
+  const delAmb  = id => { dispatch({ type: 'REMOVE_AMBIENTE_SE', pavimentoId: pav.id, ambienteId: id }); if (editId===id) setEditId(null) }
 
   return (
     <div className="fixed inset-0 z-[500] bg-black/65 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
@@ -329,7 +339,7 @@ function PavimentoModal({ pav, onClose, onSave, seNorma, ocupacoes }) {
             </div>
             <div className="flex gap-2.5">
               {!showAdd && !editId && <button className="btn-ghost" onClick={() => { setEditId(null); setShowAdd(true) }}><Icon name="plus" size={12}/> Adicionar ambiente</button>}
-              <button className="btn-primary" onClick={() => { onSave({...pav, ambientes}); onClose() }}>Confirmar</button>
+              <button className="btn-primary" onClick={onClose}>Concluir</button>
             </div>
           </div>
         </div>
@@ -401,15 +411,19 @@ function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPaviment
 const MAIN_COL = 'grid-cols-[1fr_80px_130px_1fr]'
 
 export default function SaidaEmergenciaPage() {
-  const { state }       = useProjeto()
+  const { state, dispatch } = useProjeto()
   const { uf, info, ocupacoes } = useNorma()
   const seNorma         = getSE(uf)
   const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS: _, LARGURAS_MINIMAS, BLOCOS_DISTANCIA } = seNorma
 
-  const [pavimentos,   setPavimentos]   = useState(() => syncPavimentos(state.pavimentos))
+  // Ambientes vêm do reducer compartilhado (state.pavimentos[].ambientes) —
+  // ver `derivarPavimentos`. Recalculado a cada render, então reflete tanto
+  // esta aba quanto o que chegar por broadcast de outra.
+  const pavimentos = derivarPavimentos(state.pavimentos)
   const [openId,       setOpenId]       = useState(null)
-  // Chuveiros/detecção são configurados por estrutura, não pro projeto
-  // inteiro — cada prédio pode ter proteção diferente. Chave: estruturaId.
+  // Chuveiros/detecção, largura adotada, saída única e colapso dos cards
+  // ainda são só desta aba/sessão — não fazem parte do que foi pedido pra
+  // sincronizar (ambientes) e continuam como estavam antes.
   const [configEst,    setConfigEst]    = useState({})
   const [largAdotada,  setLargAdotada]  = useState({})
   const [importInfo,   setImportInfo]   = useState(null)
@@ -419,8 +433,33 @@ export default function SaidaEmergenciaPage() {
   const [buscando,     setBuscando]     = useState(false)
   const fileInputRef = useRef(null)
 
+  // Quando a população de um pavimento aumenta (novo ambiente, edição) o
+  // mínimo normativo pode subir além do que foi manualmente adotado — nesse
+  // caso descarta o valor adotado pra recalcular do zero (mesma regra que
+  // já existia em `savePav`, só que agora reage à mudança no reducer
+  // compartilhado em vez de rodar uma vez ao confirmar o modal).
   useEffect(() => {
-    setPavimentos(prev => syncPavimentos(state.pavimentos, prev))
+    setLargAdotada(prev => {
+      let mudou = false
+      const next = { ...prev }
+      pavimentos.forEach(p => {
+        const cur = next[p.id]
+        if (!cur) return
+        const cap = capPavimento(p, TAXA_POPULACIONAL)
+        const pop = calcPopPav(p, TAXA_POPULACIONAL)
+        const ad  = calcAD(pop, cap.AD, LARGURAS_MINIMAS)
+        const pt  = calcPT(pop, cap.PT, LARGURAS_MINIMAS)
+        const er  = calcER(pop, cap.ER, LARGURAS_MINIMAS)
+        const ajustado = {
+          AD: cur.AD !== undefined && cur.AD < ad.la ? undefined : cur.AD,
+          PT: cur.PT !== undefined && cur.PT < pt.la ? undefined : cur.PT,
+          ER: cur.ER !== undefined && cur.ER < er.la ? undefined : cur.ER,
+        }
+        if (ajustado.AD !== cur.AD || ajustado.PT !== cur.PT || ajustado.ER !== cur.ER) { next[p.id] = ajustado; mudou = true }
+      })
+      return mudou ? next : prev
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.pavimentos])
 
   const getSaidaUnica = (pavId, adN) => saidaUnica[pavId] ?? (adN <= 1)
@@ -431,9 +470,9 @@ export default function SaidaEmergenciaPage() {
 
   const toggleColapsada = estId => setColapsadas(prev => ({ ...prev, [estId]: !prev[estId] }))
 
-  // Aplica um lote (arquivo ou linha do Supabase) — mescla nos pavimentos
-  // já existentes, mexendo só nos que foram resolvidos, preservando o
-  // resto (inclusive de outras estruturas). `estruturaId` é null no upload
+  // Aplica um lote (arquivo ou linha do Supabase) — despacha só os
+  // pavimentos resolvidos no lote, preservando o resto (inclusive de outras
+  // estruturas) via IMPORT_AMBIENTES_SE. `estruturaId` é null no upload
   // manual de arquivo — nesse caso não dá pra saber a qual estrutura
   // atribuir chuveiros/detecção, então essas configurações não são tocadas.
   const aplicarSaidas = (payloadSE, estruturaId) => {
@@ -441,7 +480,10 @@ export default function SaidaEmergenciaPage() {
       const { atualizacoes, erros, temChuveiros: tc, temDeteccao: td, timestamp } =
         resolverImportacaoSaidas(payloadSE, estruturaId, state.pavimentos)
       if (atualizacoes.size > 0) {
-        setPavimentos(prev => prev.map(pav => atualizacoes.has(pav.id) ? { ...pav, ...atualizacoes.get(pav.id) } : pav))
+        dispatch({
+          type: 'IMPORT_AMBIENTES_SE',
+          atualizacoes: [...atualizacoes.entries()].map(([pavimentoId, dados]) => ({ pavimentoId, ambientes: dados.ambientes })),
+        })
         setLargAdotada(prev => {
           const next = { ...prev }
           atualizacoes.forEach((_, pavId) => { delete next[pavId] })
@@ -500,19 +542,6 @@ export default function SaidaEmergenciaPage() {
   }, [])
 
   const openPav = pavimentos.find(p => p.id === openId)
-
-  const savePav = updated => {
-    setPavimentos(prev => prev.map(p => p.id===updated.id ? updated : p))
-    setLargAdotada(prev => {
-      const cap = capPavimento(updated, TAXA_POPULACIONAL)
-      const pop = calcPopPav(updated, TAXA_POPULACIONAL)
-      const ad = calcAD(pop, cap.AD, LARGURAS_MINIMAS)
-      const pt = calcPT(pop, cap.PT, LARGURAS_MINIMAS)
-      const er = calcER(pop, cap.ER, LARGURAS_MINIMAS)
-      const cur = prev[updated.id] || {}
-      return { ...prev, [updated.id]: { AD: cur.AD>=ad.la ? cur.AD : undefined, ER: cur.ER>=er.la ? cur.ER : undefined, PT: cur.PT>=pt.la ? cur.PT : undefined } }
-    })
-  }
 
   const dadosPav = pavimentos.map(p => {
     const cfg      = getConfigEstrutura(p.estruturaId)
@@ -799,7 +828,7 @@ export default function SaidaEmergenciaPage() {
         )}
       </div>
 
-      {openPav && <PavimentoModal pav={openPav} onClose={() => setOpenId(null)} onSave={savePav} seNorma={seNorma} ocupacoes={ocupacoes}/>}
+      {openPav && <PavimentoModal pav={openPav} onClose={() => setOpenId(null)} dispatch={dispatch} seNorma={seNorma} ocupacoes={ocupacoes}/>}
     </div>
   )
 }

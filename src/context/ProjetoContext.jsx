@@ -84,6 +84,15 @@ function idSinalizacao() {
   return `sin-${Date.now().toString(36)}-${sinalizacaoSeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
+// Mesma lógica de idExtintor/idIluminacao/idSinalizacao — evita colisão
+// entre ambientes cadastrados no mesmo milissegundo (Saída de Emergência,
+// SaidaEmergenciaPage.jsx).
+let ambienteSESeq = 0
+function idAmbienteSE() {
+  ambienteSESeq += 1
+  return `amb-${Date.now().toString(36)}-${ambienteSESeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
 // Item de sinalização de emergência — granularidade só até pavimento (sem
 // ambiente), conforme NT 20 CBMMA / NBR 13434. `tipoPlaca` referencia a
 // chave do catálogo em normas/MA/sinalizacao.js (TIPOS_PLACA).
@@ -154,6 +163,10 @@ function hydrateState(saved) {
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
     planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
+    // Migração: pavimentos salvos antes de `ambientes` (Saída de Emergência)
+    // existir não têm esse campo — sem isso, o reducer quebraria ao tentar
+    // ler/mapear `p.ambientes` de um pavimento antigo.
+    pavimentos: (saved.pavimentos || INITIAL_STATE.pavimentos).map(p => ({ ambientes: [], ...p })),
     ...migrarParaPorEstrutura(saved),
   }
 }
@@ -198,7 +211,7 @@ function novaEstrutura(nome, id) {
 // REBUILD_PAVIMENTOS, que o reaproveita ao invés de recriar quando os
 // valores mudam).
 function pavimentoTerreo(estruturaId) {
-  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] }
+  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [] }
 }
 
 const INITIAL_STATE = {
@@ -348,14 +361,14 @@ function reducer(state, action) {
       const list = []
       for (let s = nSub; s >= 1; s--) {
         const id = `${estruturaId}-sub-${s}`
-        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [] })
       }
       const terId = `${estruturaId}-P1`
       const ter = find(terId)
       list.push(ter || pavimentoTerreo(estruturaId))
       for (let p = 2; p <= nPav; p++) {
         const id = `${estruturaId}-P${p}`
-        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [] })
       }
       const idsValidos = new Set(list.map(p => p.id))
       return {
@@ -488,6 +501,25 @@ function reducer(state, action) {
     // projeto atual.
     case 'IMPORT_SINALIZACAO':
       return { ...state, sinalizacao: action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() })) }
+    // Ambientes de Saída de Emergência (SaidaEmergenciaPage.jsx) — vivem
+    // dentro do pavimento (population/dimensionamento é por pavimento, não
+    // um cadastro à parte como extintor/iluminação/sinalização). Só são
+    // despachadas ao clicar em "Adicionar"/"Salvar"/lixeira no modal — o
+    // formulário em si (nome, divisão, área...) fica em useState local até
+    // esse clique, então não gera broadcast a cada tecla digitada.
+    case 'ADD_AMBIENTE_SE':
+      return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId ? { ...p, ambientes: [...(p.ambientes || []), { id: action.id, ...action.ambiente }] } : p) }
+    case 'UPDATE_AMBIENTE_SE':
+      return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId ? { ...p, ambientes: (p.ambientes || []).map(a => a.id === action.ambienteId ? { ...a, ...action.changes } : a) } : p) }
+    case 'REMOVE_AMBIENTE_SE':
+      return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId ? { ...p, ambientes: (p.ambientes || []).filter(a => a.id !== action.ambienteId) } : p) }
+    // Importação do Revit/firedata.json (ver resolverImportacaoSaidas em
+    // SaidaEmergenciaPage.jsx) — substitui os ambientes só dos pavimentos
+    // resolvidos no lote, preservando os demais.
+    case 'IMPORT_AMBIENTES_SE': {
+      const porPavimento = new Map(action.atualizacoes.map(a => [a.pavimentoId, a.ambientes]))
+      return { ...state, pavimentos: state.pavimentos.map(p => porPavimento.has(p.id) ? { ...p, ambientes: porPavimento.get(p.id) } : p) }
+    }
     case 'SET_BALIZAMENTO_APLICADO':
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
@@ -580,11 +612,14 @@ function resolverAcaoLocal(action, state) {
     case 'ADD_ESTRUTURA':
     case 'ADD_ESPECIFICACAO_EQUIPAMENTO':
     case 'SET_EQUIPAMENTO_USADO':
+    case 'ADD_AMBIENTE_SE':
       return action.id ? action : { ...action, id: idParaTipo(action.type)() }
     case 'IMPORT_EXTINTORES':
       return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idExtintor() }) }
     case 'IMPORT_SINALIZACAO':
       return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idSinalizacao() }) }
+    case 'IMPORT_AMBIENTES_SE':
+      return { ...action, atualizacoes: action.atualizacoes.map(a => ({ ...a, ambientes: a.ambientes.map(it => it.id ? it : { ...it, id: idAmbienteSE() }) })) }
     case 'TOGGLE_SISTEMA_ESTRUTURA': {
       if (action.value !== undefined) return action
       const atual = !!state.sistemasPorEstrutura[action.estruturaId]?.[action.key]
@@ -605,6 +640,7 @@ function idParaTipo(tipo) {
   if (tipo === 'ADD_ILUMINACAO')   return idIluminacao
   if (tipo === 'ADD_SINALIZACAO')  return idSinalizacao
   if (tipo === 'ADD_ESTRUTURA')    return idEstrutura
+  if (tipo === 'ADD_AMBIENTE_SE')  return idAmbienteSE
   return idEspecEquip // ADD_ESPECIFICACAO_EQUIPAMENTO / SET_EQUIPAMENTO_USADO
 }
 
