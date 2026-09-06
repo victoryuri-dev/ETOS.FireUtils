@@ -404,7 +404,7 @@ export default function SaidaEmergenciaPage() {
   const { state }       = useProjeto()
   const { uf, info, ocupacoes } = useNorma()
   const seNorma         = getSE(uf)
-  const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS: _, LARGURAS_MINIMAS, BLOCOS_DISTANCIA } = seNorma
+  const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS: _, LARGURAS_MINIMAS, DISTANCIAS_MAXIMAS } = seNorma
 
   const [pavimentos,   setPavimentos]   = useState(() => syncPavimentos(state.pavimentos))
   const [openId,       setOpenId]       = useState(null)
@@ -522,7 +522,7 @@ export default function SaidaEmergenciaPage() {
     const pt       = calcPT(pop, cap.PT, LARGURAS_MINIMAS)
     const unica    = getSaidaUnica(p.id, ad.n)
     const nSaidas  = unica ? 1 : 2
-    const dist     = getDistanciaPavimento(p, nSaidas, cfg.temChuveiros, cfg.temDeteccao, BLOCOS_DISTANCIA)
+    const dist     = getDistanciaPavimento(p, nSaidas, cfg.temChuveiros, cfg.temDeteccao, DISTANCIAS_MAXIMAS)
     return { pav:p, pop, cap, ad, pt, dist, unica, laAD: largAdotada[p.id]?.AD ?? ad.la, laPT: largAdotada[p.id]?.PT ?? pt.la }
   })
 
