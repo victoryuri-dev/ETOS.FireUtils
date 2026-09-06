@@ -6,7 +6,7 @@
 
 /** Largura mínima de PT para N UPs (recebe array LARGURAS_MINIMAS.PT) */
 export function getLargMinPT(nUp, ptTable) {
-  return ptTable.find(e => e.nUp === nUp) ?? (nUp > ptTable.at(-1).nUp ? ptTable.at(-1) : ptTable[0])
+  return ptTable.find(e => e.n_up === nUp) ?? (nUp > ptTable.at(-1).n_up ? ptTable.at(-1) : ptTable[0])
 }
 
 /** Capacidades por UP para um pavimento (mínima entre divisões presentes) */
@@ -63,28 +63,30 @@ export function calcPT(pop, capPT, larguras) {
   return { n, lc, la: Math.max(lc, ptInfo.largura), lMin: ptInfo.largura, tipo: ptInfo.tipo }
 }
 
-/** Retorna o bloco de distância para uma divisão */
-export function getBlocoDistancia(divisao, blocosDistancia) {
-  return blocosDistancia.find(b => b.divisoes.includes(divisao)) ?? null
+/** Retorna o grupo de distância (terreo/demais) para uma divisão, a
+ * partir do formato { mapa_ocupacao, grupos } (divisão -> id do grupo -> dados). */
+export function getGrupoDistancia(divisao, distanciasMaximas) {
+  const id = distanciasMaximas?.mapa_ocupacao?.[divisao]
+  return id ? (distanciasMaximas.grupos?.[id] ?? null) : null
 }
 
 /** Distância máxima para uma divisão com os parâmetros dados */
-export function getDistancia(divisao, pisoDescarga, nUpsAD, temChuveiros, temDeteccao, blocosDistancia) {
-  const bloco = getBlocoDistancia(divisao, blocosDistancia)
-  if (!bloco) return null
-  const andar  = pisoDescarga ? bloco.piso_de_descarga : bloco.demais_andares
-  const chuv   = temChuveiros ? 'com_chuveiros' : 'sem_chuveiros'
-  const saidas = nUpsAD > 1 ? 'mais_de_uma_saida' : 'saida_unica'
+export function getDistancia(divisao, pisoDescarga, nUpsAD, temChuveiros, temDeteccao, distanciasMaximas) {
+  const grupo = getGrupoDistancia(divisao, distanciasMaximas)
+  if (!grupo) return null
+  const andar  = pisoDescarga ? grupo.terreo : grupo.demais
+  const chuv   = temChuveiros ? 'com_chuveiro' : 'sem_chuveiro'
+  const saidas = nUpsAD > 1 ? 'mais_saidas' : 'saida_unica'
   const detec  = temDeteccao ? 'com_deteccao' : 'sem_deteccao'
-  return andar[chuv]?.[saidas]?.[detec] ?? null
+  return andar?.[chuv]?.[saidas]?.[detec] ?? null
 }
 
 /** Distância mínima (mais restritiva) para um pavimento inteiro */
-export function getDistanciaPavimento(pav, nUpsAD, temChuveiros, temDeteccao, blocosDistancia) {
+export function getDistanciaPavimento(pav, nUpsAD, temChuveiros, temDeteccao, distanciasMaximas) {
   const divs = [...new Set(pav.ambientes.map(a => a.divisao).filter(Boolean))]
   if (!divs.length) return null
   const vals = divs
-    .map(d => getDistancia(d, pav.tipo === 'descarga', nUpsAD, temChuveiros, temDeteccao, blocosDistancia))
+    .map(d => getDistancia(d, pav.tipo === 'descarga', nUpsAD, temChuveiros, temDeteccao, distanciasMaximas))
     .filter(v => v !== null)
   return vals.length ? Math.min(...vals) : null
 }
