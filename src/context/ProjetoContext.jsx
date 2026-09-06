@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { carregarNormasRemotas } from '../lib/normasRemote'
 import { useAuth } from './AuthContext'
 import { PROCEDIMENTOS_PADRAO } from '../utils/planoEmergencia'
 
@@ -556,6 +557,13 @@ export function ProjetoProvider({ children }) {
   // elegivel, e some de novo se entrar em conflito — o banner de conflito ja
   // comunica o problema, dois avisos ao mesmo tempo seria redundante.
   const [syncStatus, setSyncStatus] = useState(null)
+  // Contador incrementado quando a base normativa central (normas_dados)
+  // termina de carregar em background — os getters em data/normas/index.js
+  // (getSE, etc.) são síncronos e já rodaram no primeiro render das
+  // páginas de medida, antes do fetch completar. Como nada nesta árvore lê
+  // o valor em si, só a mudança de referência do value do Provider já basta
+  // pra re-renderizar os consumidores e eles pegarem o dado novo do cache.
+  const [normasVersion, setNormasVersion] = useState(0)
 
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (init) => {
     try {
@@ -576,6 +584,14 @@ export function ProjetoProvider({ children }) {
   })
 
   const definirVersaoConhecida = v => { versaoRef.current = v; setConflito(false) }
+
+  // Busca a base normativa central (normas_dados) para o UF do projeto —
+  // dispara no boot e de novo se o UF mudar (endereço editado na Etapa 1).
+  useEffect(() => {
+    let cancelado = false
+    carregarNormasRemotas(state.uf).then(() => { if (!cancelado) setNormasVersion(v => v + 1) })
+    return () => { cancelado = true }
+  }, [state.uf])
 
   // Autosave: grava instantâneo no localStorage (cache local/offline) e, se
   // houver usuário logado, sincroniza com o Postgres em background — debounced
@@ -635,7 +651,7 @@ export function ProjetoProvider({ children }) {
   }, [state, user, conflito])
 
   return (
-    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida, syncStatus }}>
+    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida, syncStatus, normasVersion }}>
       {children}
     </Ctx.Provider>
   )
