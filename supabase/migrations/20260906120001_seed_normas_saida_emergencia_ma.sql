@@ -3,9 +3,9 @@
 --   site:   src/data/normas/MA/saida_emergencia.js
 --   plugin: Fire Utils.tab/lib/normas/MA/saidas.py
 --
--- As duas batiam campo a campo em quase tudo. Duas diferenças reais foram
--- encontradas ao reconciliar (registradas também em "_pendencias" dentro
--- do próprio JSON, para não ficarem só neste comentário de migração):
+-- As duas batiam campo a campo em quase tudo. Diferenças reais encontradas
+-- ao reconciliar (registradas também em "_pendencias" dentro do próprio
+-- JSON, para não ficarem só neste comentário de migração):
 --
 --   1. M-3, M-4 e M-5: o site tinha A=null ("consultar norma específica");
 --      o plugin tinha valores numéricos (A=10, 4, 10) já em uso no cálculo
@@ -14,9 +14,16 @@
 --      (também diverge em AD/ER: plugin usa 60/45, site usa 100/60).
 --   2. M-2, M-6, M-7 e M-8: existiam só no site (o plugin nunca teve
 --      essas quatro divisões cadastradas). Incluídas aqui vindas do site.
+--   3. larguras_minimas.LARG_UP (0,55 m/UP): só o site usava isso vindo da
+--      norma do estado (o plugin tem esse valor fixo em código,
+--      hidrantes/saidas/calc.py, igual pra qualquer estado). Incluído
+--      aqui pelo valor que já está em produção nos dois; o plugin não
+--      consome esse campo ainda — PENDENTE, se algum estado futuro tiver
+--      UP diferente de 0,55 m, o cálculo do plugin não vai refletir isso
+--      sozinho, só o do site.
 --
--- distancias_maximas usa o formato mapa_ocupacao + grupos (o que já era
--- o formato do plugin) em vez do array de blocos do site — mesma
+-- distancias_maximas usa o formato mapa_ocupacao + grupos (já era o
+-- formato do plugin) em vez do array de blocos do site — mesma
 -- informação, só reorganizada; nenhum cálculo em produção (nem site nem
 -- plugin) dependia do formato antigo do site para essa parte.
 
@@ -40,6 +47,11 @@ values (
     {
       "campo": "ocupacoes/tabela/distancias_maximas: M-2, M-6, M-7, M-8",
       "descricao": "Existiam só no site; o plugin nunca teve essas 4 divisões cadastradas. Incluídas aqui vindas do site. Conferir se o plugin deveria reconhecê-las (ex.: em 'Identificar Ambiente').",
+      "revisado": false
+    },
+    {
+      "campo": "larguras_minimas.LARG_UP",
+      "descricao": "Só o site lia esse valor da norma do estado; o plugin usa uma constante fixa (0,55 m/UP) em calc.py, igual pra qualquer estado. Hoje os dois valem 0,55, sem efeito prático — mas se um estado futuro tiver UP diferente, o plugin não vai refletir sozinho até calc.py passar a ler estado['larguras_minimas']['LARG_UP'].",
       "revisado": false
     }
   ],
@@ -181,6 +193,7 @@ values (
     "Q": "(Q) Para locais com banco (assento comprido): 1 pessoa por 0,50m linear."
   },
   "larguras_minimas": {
+    "LARG_UP": 0.55,
     "AD": 1.2,
     "ER": 1.2,
     "PT": [
