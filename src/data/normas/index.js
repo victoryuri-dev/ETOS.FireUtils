@@ -20,6 +20,8 @@ import * as MA_EXT  from './MA/extintores'
 import * as MA_ILU  from './MA/iluminacao'
 import * as MA_SIN  from './MA/sinalizacao'
 
+import { getNormaRemota } from '../../lib/normasRemote'
+
 const NORMAS      = { MA, PE, PB }
 const NORMAS_SE   = { MA: MA_SE }
 const NORMAS_MED  = { MA: MA_MED }
@@ -37,7 +39,13 @@ export const ESTADOS_DISPONIVEIS = [
 ]
 
 export function getNorma(uf)       { return NORMAS[uf] ?? null }
-export function getSE(uf)          { return NORMAS_SE[uf] ?? NORMAS_SE['MA'] }
+// getSE: primeiro sistema migrado pra base normativa central
+// (normas_dados no Supabase — ver supabase/migrations/*normas_dados* e
+// src/lib/normasRemote.js). getNormaRemota() devolve null enquanto o fetch
+// não completou (ou se falhar), e cai pro arquivo estático empacotado
+// (./MA/saida_emergencia.js) — que passa a ser só o fallback offline/dev,
+// não mais a fonte de verdade.
+export function getSE(uf)          { return getNormaRemota(uf, 'saida_emergencia') ?? NORMAS_SE[uf] ?? NORMAS_SE['MA'] }
 export function getAV(uf)          { return NORMAS_AV[uf] ?? NORMAS_AV['MA'] }
 export function getTRRF(uf)        { return NORMAS_TRRF[uf] ?? NORMAS_TRRF['MA'] }
 export function getExtintores(uf)  { return NORMAS_EXT[uf] ?? NORMAS_EXT['MA'] }
