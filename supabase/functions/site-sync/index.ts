@@ -14,6 +14,13 @@
 //      CNAE por pavimento) e área construída de UMA estrutura específica
 //      (a vinculada).
 //
+// Não é este o caminho usado pela classificação do Sistema de Hidrantes e
+// Mangotinhos (state.hidrantes) — a dockpane já lê a coluna `dados` inteira
+// direto do Supabase com a sessão do usuário (RLS — ver
+// webapp/src/lib/projectData.js), então `dados.hidrantes` chega lá sem
+// precisar de Edge Function nenhuma. Este arquivo serve só o vínculo por
+// sync_token usado pelos scripts Python (sem sessão de usuário).
+//
 // Só devolve o recorte necessário — nunca o projeto inteiro, que tem dados
 // sensíveis (CPF, dados de proprietário/responsável) que o token não deveria
 // expor.

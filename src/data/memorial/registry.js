@@ -9,6 +9,7 @@ import { textoMemorialExtintores } from './extintores'
 import { textoMemorialIluminacao } from './iluminacao'
 import { textoMemorialSinalizacao } from './sinalizacao'
 import { textoMemorialGerenciamentoRisco } from './gerenciamento_risco'
+import { textoMemorialHidrantes } from './hidrantes'
 
 export const MEMORIAL_BUILDERS = {
   acesso_viatura:      textoMemorialAcessoViatura,
@@ -17,7 +18,8 @@ export const MEMORIAL_BUILDERS = {
   iluminacao:          textoMemorialIluminacao,
   sinalizacao:         textoMemorialSinalizacao,
   gerenciamento_risco: textoMemorialGerenciamentoRisco,
-  // saida_emergencia, hidrantes, ... entram aqui conforme forem implementadas
+  hidrantes:           textoMemorialHidrantes,
+  // saida_emergencia, ... entram aqui conforme forem implementadas
 }
 
 /**
