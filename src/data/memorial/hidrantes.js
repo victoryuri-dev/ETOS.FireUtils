@@ -7,11 +7,6 @@
 import { getHidrantes } from '../normas/index'
 import { dadosDoTipo } from '../hidrantes_calc'
 
-const LABEL_RESERVATORIO = {
-  elevado: 'elevado (por ação da gravidade)',
-  nivel_solo: 'ao nível do solo, semienterrado ou subterrâneo',
-  fonte_natural: 'alimentado por fonte natural (lago, rio, açude ou lagoa)',
-}
 const LABEL_ACIONAMENTO = { eletrico: 'motor elétrico', combustao: 'motor de combustão interna' }
 const LABEL_CONFIG_REDE = { ramal: 'ramal único', malha: 'malha (anel) fechado' }
 const LABEL_RECALQUE = {
@@ -49,8 +44,9 @@ export function textoMemorialHidrantes(state) {
   }
 
   blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
-  if (h.reservatorioTipo) {
-    blocos.push({ tipo: 'paragrafo', texto: `O reservatório de incêndio será ${LABEL_RESERVATORIO[h.reservatorioTipo]}.` })
+  const materialReservatorio = norma.MATERIAIS_RESERVATORIO.find(m => m.key === h.reservatorioMaterial)
+  if (materialReservatorio) {
+    blocos.push({ tipo: 'paragrafo', texto: `O reservatório de incêndio será construído em ${materialReservatorio.label.toLowerCase()}. A posição (elevado, nível do solo, semienterrado ou subterrâneo) consta no projeto executivo (modelo Revit).` })
   }
   blocos.push({
     tipo: 'paragrafo',

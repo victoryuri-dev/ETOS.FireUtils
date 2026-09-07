@@ -288,7 +288,7 @@ const INITIAL_STATE = {
     // (useMedidasObrigatorias-like, ver hidrantes_calc.sugerirClassificacao)
     // ou serem sobrescritos manualmente pelo RT.
     tipo: '', tipoVariante: 0, rti: '',
-    reservatorioTipo: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
+    reservatorioMaterial: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
     bombaExiste: true, bombaAcionamento: 'eletrico', bombaReforco: false, bombaJockey: false,
     bombaReserva: false, bombaReservaTipo: '',
     redeMaterial: '', redeConfiguracao: 'ramal',

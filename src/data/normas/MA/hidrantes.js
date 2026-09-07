@@ -140,10 +140,16 @@ export const MATERIAIS_TUBULACAO = [
   { key: 'cobre',                    label: 'Cobre',                                              fatorC: 150 },
 ]
 
-export const TIPOS_RESERVATORIO = [
-  { key: 'elevado',       label: 'Elevado (ação da gravidade)' },
-  { key: 'nivel_solo',    label: 'Nível do solo / semienterrado / subterrâneo' },
-  { key: 'fonte_natural', label: 'Fonte natural (lago, rio, açude, lagoa)' },
+// Posição do reservatório (elevado/nível do solo/etc.) não é perguntada
+// aqui — vem do modelo Revit (plugin). O site só pergunta o material, que é
+// uma decisão de projeto sem correspondência geométrica no modelo.
+export const MATERIAIS_RESERVATORIO = [
+  { key: 'concreto_armado', label: 'Concreto armado' },
+  { key: 'alvenaria',       label: 'Alvenaria' },
+  { key: 'fibra_vidro',     label: 'Fibra de vidro' },
+  { key: 'aco',             label: 'Aço (metálico)' },
+  { key: 'polietileno',     label: 'Polietileno' },
+  { key: 'outro',           label: 'Outro' },
 ]
 
 export const TIPOS_RECALQUE = [

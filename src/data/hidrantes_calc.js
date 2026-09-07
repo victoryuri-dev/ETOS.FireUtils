@@ -125,6 +125,24 @@ export function sugerirClassificacao(areaTotal, divisoesComCarga, possuiSprinkle
   return { faixaIndex, coluna: restritiva.coluna, divisao: restritiva.divisao, opcoes }
 }
 
+/** RTI tabelada (Tabela 3) para um Tipo específico numa faixa de área —
+ *  usada quando o RT sobrescreve manualmente o Tipo sugerido (item 5.8.10
+ *  permite dimensionamento a critério do projetista) e a RTI precisa
+ *  continuar automática, buscando na própria linha da tabela. Retorna null
+ *  se aquele Tipo não aparecer em nenhuma coluna da faixa (ex.: Tipo 5 numa
+ *  faixa cuja coluna 4 ainda é Tipo 4) — nesse caso não há RTI tabelada
+ *  pronta e o RT precisa justificar o valor por cálculo (item 5.8.10). */
+export function rtiParaTipoNaFaixa(tipo, faixaIndex, norma) {
+  if (faixaIndex < 0 || faixaIndex >= norma.TABELA3.length) return null
+  const linha = norma.TABELA3[faixaIndex]
+  if (linha.col1.tipo === tipo) return linha.col1.rti
+  if (tipo === 2) return linha.col2.tipo2.rti
+  if (tipo === 3) return linha.col2.tipo3.rti
+  if (linha.col3.tipo === tipo) return linha.col3.rti
+  if (linha.col4.tipo === tipo) return linha.col4.rti
+  return null
+}
+
 /** Dados de referência (Tabela 2/4) para um Tipo escolhido — esguicho,
  *  mangueira, componentes obrigatórios. `variante` é o índice dentro de
  *  `TIPOS_SISTEMA[tipo].variantes` (Tipo 4 tem 2; os demais só têm 1). */
