@@ -60,13 +60,20 @@ export function textoMemorialHidrantes(state) {
     blocos.push({ tipo: 'paragrafo', texto: 'O sistema opera sem bomba de incêndio — abastecimento por ação exclusiva da gravidade.' })
   } else {
     const extras = []
-    if (h.bombaReforco) extras.push('bomba de reforço (by-pass)')
     if (h.bombaJockey) extras.push('bomba de pressurização (jockey)')
-    if (h.bombaReserva) extras.push('bomba reserva')
+    if (h.bombaReserva) {
+      extras.push(`bomba reserva${h.bombaReservaAcionamento ? ` acionada por ${LABEL_ACIONAMENTO[h.bombaReservaAcionamento]}` : ''}`)
+    }
     blocos.push({
       tipo: 'paragrafo',
-      texto: `A bomba de incêndio principal é acionada por ${LABEL_ACIONAMENTO[h.bombaAcionamento]}${extras.length ? `, complementada por ${extras.join(', ')}` : ''}.`,
+      texto: `O sistema possui bomba de incêndio principal${extras.length ? `, complementada por ${extras.join(' e ')}` : ''}.`,
     })
+    if (h.bombaReserva && h.bombaReservaAcionamento === 'eletrico') {
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: 'Na falta de energia da concessionária, as bombas de incêndio acionadas por motor elétrico podem ser alimentadas por um gerador diesel, atendendo ao requisito do item C.2.9 da NT 22.',
+      })
+    }
   }
 
   blocos.push({ tipo: 'titulo2', texto: 'Rede de Tubulação' })

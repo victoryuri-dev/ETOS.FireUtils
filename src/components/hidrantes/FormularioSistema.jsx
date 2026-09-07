@@ -221,20 +221,21 @@ export default function FormularioSistema() {
       </FormSection>
 
       {/* C — Bomba de incêndio */}
-      <FormSection title="Bomba de Incêndio">
-        <ToggleRow label="O sistema possui bomba de incêndio?" checked={h.bombaExiste} onChange={v => set({ bombaExiste: v })}/>
+      <FormSection title="Bomba de Incêndio" description="Só identifica quais bombas existem — vazão, pressão e potência são calculadas pelo plugin.">
+        <ToggleRow label="Bomba principal" checked={h.bombaExiste} onChange={v => set({ bombaExiste: v })}/>
         {h.bombaExiste && (
           <>
-            <div className="grid grid-cols-2 gap-2 my-3">
-              {norma.ACIONAMENTOS_BOMBA.map(op => (
-                <Pill key={op.key} active={h.bombaAcionamento === op.key} onClick={() => set({ bombaAcionamento: op.key })}>
-                  {op.label}
-                </Pill>
-              ))}
-            </div>
-            <ToggleRow label="Bomba de reforço (by-pass)" checked={h.bombaReforco} onChange={v => set({ bombaReforco: v })}/>
-            <ToggleRow label="Bomba de pressurização (jockey)" checked={h.bombaJockey} onChange={v => set({ bombaJockey: v })}/>
             <ToggleRow label="Bomba reserva" checked={h.bombaReserva} onChange={v => set({ bombaReserva: v })}/>
+            {h.bombaReserva && (
+              <div className="grid grid-cols-2 gap-2 my-3 pl-4">
+                {norma.ACIONAMENTOS_BOMBA.map(op => (
+                  <Pill key={op.key} active={h.bombaReservaAcionamento === op.key} onClick={() => set({ bombaReservaAcionamento: op.key })}>
+                    {op.label}
+                  </Pill>
+                ))}
+              </div>
+            )}
+            <ToggleRow label="Bomba jockey (pressurização)" checked={h.bombaJockey} onChange={v => set({ bombaJockey: v })}/>
             {reservaSugerida && !h.bombaReserva && (
               <Nota>
                 Risco {risco} classificado — a NT 22 (Anexo C, C.3.12) exige bomba reserva: {reservaSugerida.tipo}.

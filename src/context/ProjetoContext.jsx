@@ -289,8 +289,8 @@ const INITIAL_STATE = {
     // ou serem sobrescritos manualmente pelo RT.
     tipo: '', tipoVariante: 0, rti: '',
     reservatorioMaterial: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
-    bombaExiste: true, bombaAcionamento: 'eletrico', bombaReforco: false, bombaJockey: false,
-    bombaReserva: false, bombaReservaTipo: '',
+    bombaExiste: true, bombaJockey: false,
+    bombaReserva: false, bombaReservaAcionamento: '',
     redeMaterial: '', redeConfiguracao: 'ramal',
     recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
     valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',
