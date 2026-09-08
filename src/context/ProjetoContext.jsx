@@ -344,6 +344,7 @@ const INITIAL_STATE = {
     acesso_viatura:      { obrigatorio: false, ativo: false },
     seg_estrutural:      { obrigatorio: false, ativo: false },
     compart_horizontal:  { obrigatorio: false, ativo: false },
+    compart_vertical:    { obrigatorio: false, ativo: false },
     controle_acabamento: { obrigatorio: false, ativo: false },
     saida_emergencia:    { obrigatorio: true,  ativo: true  },
     gerenciamento_risco: { obrigatorio: false, ativo: false },
@@ -416,6 +417,22 @@ function reducer(state, action) {
     }
     case 'UPDATE_PAV':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, ...action.changes } : p) }
+    // Só pode haver um piso de descarga por estrutura — marcar um como
+    // piso de descarga (valor:true) desmarca automaticamente qualquer
+    // outro pavimento da MESMA estrutura. Desmarcar (valor:false) só afeta
+    // o próprio pavimento (pode deixar a estrutura sem nenhum marcado
+    // temporariamente, enquanto o usuário reconfigura).
+    case 'SET_PISO_DESCARGA': {
+      const { pavimentoId, estruturaId, valor } = action
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => {
+          if (p.id === pavimentoId) return { ...p, pisoDescarga: valor }
+          if (valor && p.estruturaId === estruturaId) return { ...p, pisoDescarga: false }
+          return p
+        }),
+      }
+    }
     case 'REPLICATE_TERREO': {
       const { estruturaId } = action
       const t = state.pavimentos.find(p => p.estruturaId === estruturaId && p.tipo === 'terreo')
