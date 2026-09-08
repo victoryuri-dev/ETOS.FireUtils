@@ -49,18 +49,23 @@ export function pavMaisPopuloso(pavimentos, taxaPopulacional) {
     .reduce((mx, p) => calcPopPav(p, taxaPopulacional) > (mx ? calcPopPav(mx, taxaPopulacional) : -1) ? p : mx, null)
 }
 
-/** Cálculo de AD para um pavimento (ou, na rede de saída, para um nó de Acesso) */
-export function calcAD(pop, capAD, larguras) {
-  const n  = Math.ceil(pop / capAD)
+/** Cálculo de largura/UPs a partir de população e capacidade por UP —
+ * fórmula compartilhada por AD (Acessos/Descarga) e ER (Escadas/Rampas):
+ * só muda qual capacidade e largura mínima entram. */
+function calcLarguraFluxo(pop, cap, minimo, larguras) {
+  const n  = Math.ceil(pop / cap)
   const lc = +(n * larguras.LARG_UP).toFixed(2)
-  return { n, lc, la: Math.max(lc, larguras.AD), lMin: larguras.AD }
+  return { n, lc, la: Math.max(lc, minimo), lMin: minimo }
 }
 
-/** Cálculo de ER para o pavimento mais populoso */
+/** Cálculo de AD (Acessos/Descarga) para um pavimento ou nó de Acesso */
+export function calcAD(pop, capAD, larguras) {
+  return calcLarguraFluxo(pop, capAD, larguras.AD, larguras)
+}
+
+/** Cálculo de ER (Escadas/Rampas) */
 export function calcER(pop, capER, larguras) {
-  const n  = Math.ceil(pop / capER)
-  const lc = +(n * larguras.LARG_UP).toFixed(2)
-  return { n, lc, la: Math.max(lc, larguras.ER), lMin: larguras.ER }
+  return calcLarguraFluxo(pop, capER, larguras.ER, larguras)
 }
 
 /** Cálculo de PT — recebe a população e a capacidade já resolvidas por
@@ -73,9 +78,9 @@ export function calcPT(pop, capPT, larguras) {
   return { n, lc, la: Math.max(lc, ptInfo.largura), lMin: ptInfo.largura, tipo: ptInfo.tipo }
 }
 
-// ── Rede de saída (Ambiente -> Acesso -> Acesso/Descarga) ────────────────────
+// ── Rede de saída (Ambiente -> Acesso -> Acesso/Descarga ou Escada/Rampa) ────
 //
-// Substitui o modelo antigo de "um AD e um PT por pavimento inteiro" por uma
+// Substitui o modelo antigo de "um AD e um ER por pavimento inteiro" por uma
 // árvore montada pelo usuário, sem limite de profundidade:
 //
 //   ambiente.acessoId : string|null
@@ -85,15 +90,22 @@ export function calcPT(pop, capPT, larguras) {
 //   acesso = { id, nome, alimentaEm: string|null }
 //     -- `alimentaEm` aponta pro id de outro acesso (cascata: a população
 //        deste nó soma na do próximo) ou é null quando este acesso É a
-//        raiz da árvore — ou seja, uma Saída do pavimento. Não existe um
-//        tipo de nó separado pra Saída: é só um Acesso com alimentaEm=null.
+//        RAIZ da árvore daquele pavimento.
 //     -- A "quantidade de saídas" do pavimento NÃO é um campo armazenado —
 //        é sempre a contagem de raízes (ver contarSaidasPavimento), já que
-//        a criação de saídas é dinâmica (o usuário monta a árvore do
-//        tamanho que quiser).
+//        a criação de saídas é dinâmica.
 //
-// Escadas/Rampas (ER) continuam calculadas à parte, por pavimento mais
-// populoso da estrutura (pavMaisPopuloso/calcPopPav/calcER), sem mudança.
+// O tipo de cálculo de um nó (ver tipoDoNo) depende só da posição na árvore
+// e de `pavimento.pisoDescarga`:
+//   - Nó raiz (alimentaEm=null) num piso de descarga        -> AD (Saída)
+//   - Nó raiz (alimentaEm=null) num pavimento QUALQUER OUTRO -> ER (a raiz
+//     ali é a escada/rampa que desce até o piso de descarga — cada
+//     pavimento dimensiona a própria escada pela população que chega até
+//     ela pela SUA árvore, não mais pelo "pavimento mais populoso da
+//     estrutura" fixo).
+//   - Qualquer nó que NÃO é raiz (alimenta outro acesso) -> sempre AD,
+//     em qualquer pavimento (é sempre um "acesso" interno, corredor/porta
+//     de passagem, nunca a escada em si).
 //
 // Portas (PT) não passam por essa árvore: são por ambiente, direto —
 // ver calcNoAmbientePT.
@@ -102,6 +114,14 @@ export function calcPT(pop, capPT, larguras) {
  * (acessos com alimentaEm null) — nunca um campo indicado manualmente. */
 export function contarSaidasPavimento(acessos) {
   return (acessos || []).filter(ac => ac.alimentaEm === null).length
+}
+
+/** Decide o tipo de cálculo/rótulo de um nó da árvore — ver explicação
+ * acima. `pisoDescarga` é o campo do pavimento (não do nó). */
+export function tipoDoNo(acesso, pisoDescarga) {
+  const isRaiz = acesso.alimentaEm === null
+  if (isRaiz && !pisoDescarga) return { tipo: 'ER', label: 'ESCADA/RAMPA' }
+  return { tipo: 'AD', label: 'ACESSO/DESCARGA' }
 }
 
 function ambientesDiretosDoAcesso(acessoId, ambientes) {
@@ -114,7 +134,7 @@ function acessosFilhosDiretos(acessoId, acessos) {
 
 /** Todos os ambientes que alimentam um nó de Acesso, direta ou
  * indiretamente (atravessando quantos níveis de cascata houver) — usado
- * pra achar a capacidade (mínimo AD) do nó. */
+ * pra achar a capacidade (mínimo AD/ER) do nó. */
 export function ambientesDoAcesso(acessoId, ambientes, acessos) {
   const diretos = ambientesDiretosDoAcesso(acessoId, ambientes)
   const dosFilhos = acessosFilhosDiretos(acessoId, acessos)
@@ -133,13 +153,15 @@ export function calcPopAcesso(acessoId, ambientes, acessos, taxaPopulacional) {
   return diretos + dosFilhos
 }
 
-/** Pacote pronto (população, capacidade, dimensionamento AD) pra um nó de
- * Acesso da rede de saída. */
-export function calcNoAcesso(acessoId, ambientes, acessos, taxaPopulacional, larguras) {
-  const pop = calcPopAcesso(acessoId, ambientes, acessos, taxaPopulacional)
-  const cap = capAmbientes(ambientesDoAcesso(acessoId, ambientes, acessos), taxaPopulacional)
-  const ad  = calcAD(pop, cap.AD, larguras)
-  return { pop, cap, ad }
+/** Pacote pronto (população, capacidade, dimensionamento) pra um nó de
+ * Acesso da rede de saída. `tipo` ('AD'|'ER') vem de tipoDoNo — decide se
+ * usa a capacidade/largura mínima de Acessos/Descarga ou de Escadas/Rampas. */
+export function calcNoAcesso(acessoId, ambientes, acessos, taxaPopulacional, larguras, tipo = 'AD') {
+  const pop      = calcPopAcesso(acessoId, ambientes, acessos, taxaPopulacional)
+  const cap      = capAmbientes(ambientesDoAcesso(acessoId, ambientes, acessos), taxaPopulacional)
+  const capValor = tipo === 'ER' ? cap.ER : cap.AD
+  const dim      = tipo === 'ER' ? calcER(pop, capValor, larguras) : calcAD(pop, capValor, larguras)
+  return { pop, cap, capValor, dim, tipo }
 }
 
 /** Pacote pronto (população, capacidade, dimensionamento PT) pra um
