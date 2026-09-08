@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import Icon from '../../components/ui/Icon'
-import { AmbienteForm, DivBadge, Toggle, fmtM } from './se_shared'
+import { AmbienteForm, DivBadge, fmtM } from './se_shared'
 import {
   calcPopAmb, calcNoAcesso, calcNoAmbientePT, contarSaidasPavimento, tipoDoNo,
 } from '../../data/se_calc'
@@ -30,7 +30,7 @@ function StatCol({ label, value, big }) {
   return (
     <div className="text-right leading-tight">
       <div className="text-[9px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
-      <div className={`text-[13px] font-bold ${big ? 'text-red' : 'text-ink'}`}>{value}</div>
+      <div className={`text-[13px] font-bold mt-0.5 ${big ? 'text-red' : 'text-ink'}`}>{value}</div>
     </div>
   )
 }
@@ -45,16 +45,16 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove }) {
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
   return (
     <div ref={setNodeRef} style={style}
-      className={`flex items-center justify-between gap-2 py-2 px-2.5 rounded-md border border-solid border-border-2 bg-surface-2 ${isDragging ? 'opacity-40 relative z-50' : ''}`}
+      className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid border-border-2 bg-surface-2 ${isDragging ? 'opacity-40 relative z-50' : ''}`}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-2.5 min-w-0">
         <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente">
           <Icon name="grip" size={13}/>
         </button>
         <button onClick={() => onEdit(amb)} className="text-[13px] font-semibold text-ink truncate hover:underline bg-transparent border-none cursor-pointer p-0 text-left">{amb.nome}</button>
         <DivBadge label={amb.divisao || '?'}/>
       </div>
-      <div className="flex items-center gap-2 shrink-0 text-[11px] text-ink-faint whitespace-nowrap">
+      <div className="flex items-center gap-2.5 shrink-0 text-[11px] text-ink-faint whitespace-nowrap">
         <span className="font-semibold text-ink-muted">PORTA</span>
         <span className="opacity-30">|</span>
         <span>C {capPT}</span>
@@ -110,8 +110,8 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
     <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
       className={`rounded-lg border border-solid bg-surface transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
     >
-      <div className="flex items-center justify-between gap-3 py-3 px-3.5">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center justify-between gap-4 py-3.5 px-4">
+        <div className="flex items-center gap-2.5 min-w-0">
           <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar (leva tudo dentro)">
             <Icon name="grip" size={14}/>
           </button>
@@ -120,8 +120,8 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
           </button>
           <button onClick={renomear} className="text-[15px] font-bold text-ink truncate hover:underline bg-transparent border-none cursor-pointer p-0 text-left">{acesso.nome}</button>
         </div>
-        <div className="flex items-center gap-4 shrink-0">
-          <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-right leading-tight w-[70px]">{label}</div>
+        <div className="flex items-center gap-5 shrink-0">
+          <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-right leading-tight w-[72px]">{label}</div>
           <StatCol label="POP." value={pop}/>
           <StatCol label="C" value={capValor}/>
           <StatCol label="U.P." value={dim.n}/>
@@ -130,7 +130,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
         </div>
       </div>
       {aberto && (
-        <div className="pl-6 pr-3.5 pb-3.5 flex flex-col gap-2.5">
+        <div className="pl-7 pr-4 pb-4 flex flex-col gap-2.5 border-t border-solid border-border-2 pt-3">
           {filhos.map(f => (
             <AcessoCard key={f.id} acesso={f} ambientes={ambientes} acessos={acessos}
               taxaPopulacional={taxaPopulacional} larguras={larguras} pisoDescarga={pisoDescarga} dispatch={dispatch}
@@ -144,7 +144,9 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
             <div className="text-[11px] text-ink-faint italic py-1">Arraste ambientes para cá.</div>
           )}
           {isRaiz && (
-            <button className="btn-ghost w-full justify-center" onClick={criarAcessoFilho}><Icon name="plus" size={12}/> CRIAR ACESSO</button>
+            <div className="flex justify-center pt-1">
+              <button className="btn-ghost" onClick={criarAcessoFilho}><Icon name="plus" size={12}/> CRIAR ACESSO</button>
+            </div>
           )}
         </div>
       )}
@@ -157,7 +159,7 @@ function RootDropZone() {
   const { setNodeRef, isOver } = useDroppable({ id: 'drop-root', data: { kind: 'root' } })
   return (
     <div ref={setNodeRef}
-      className={`border border-dashed rounded-md py-2 px-3 text-[11px] text-center transition-colors ${isOver ? 'border-red text-red bg-[rgba(192,21,42,.05)]' : 'border-border text-ink-faint'}`}
+      className={`border border-dashed rounded-md py-2.5 px-3 text-[11px] text-center transition-colors ${isOver ? 'border-red text-red bg-[rgba(192,21,42,.05)]' : 'border-border text-ink-faint'}`}
     >
       Solte um acesso aqui para desprendê-lo, tornando-o uma nova raiz da árvore
     </div>
@@ -169,7 +171,7 @@ function SemAcessoDropZone({ ambientes, taxaPopulacional, larguras, onEdit, onRe
   const { setNodeRef, isOver } = useDroppable({ id: 'drop-null', data: { kind: 'null' } })
   return (
     <div ref={setNodeRef}
-      className={`flex flex-col gap-2 p-3 rounded-lg border border-dashed min-h-[56px] transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border'}`}
+      className={`flex flex-col gap-2.5 p-3.5 rounded-lg border border-dashed min-h-[56px] transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border'}`}
     >
       {ambientes.length === 0 && <div className="text-[11px] text-ink-faint italic">Todos os ambientes já estão posicionados na árvore.</div>}
       {ambientes.map(a => (
@@ -182,7 +184,7 @@ function SemAcessoDropZone({ ambientes, taxaPopulacional, larguras, onEdit, onRe
 // ── Switch "piso de descarga" no cabeçalho do popup ────────────────────
 function PisoDescargaSwitch({ checked, onChange }) {
   return (
-    <div className="flex items-center gap-2.5 border border-solid border-border rounded-md py-1.5 px-3 shrink-0">
+    <div className="flex items-center gap-3 border border-solid border-border rounded-md py-2 px-3.5 shrink-0">
       <span className="text-xs text-ink-faint whitespace-nowrap">Este pavimento é o <strong className="text-ink font-semibold">piso de descarga</strong>?</span>
       <button onClick={() => onChange(!checked)} className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer p-0 shrink-0">
         <div className={`w-7 h-4 rounded-[8px] shrink-0 relative transition-colors duration-200 ${checked ? 'bg-red' : 'bg-border'}`}>
@@ -196,10 +198,13 @@ function PisoDescargaSwitch({ checked, onChange }) {
 
 // ── Popup principal ─────────────────────────────────────────────────────
 // `pav` é o pavimento CRU (state.pavimentos[i], não o remodelado de
-// derivarPavimentos) — precisamos de `.label`/`.pisoDescarga`/`.temDeteccao`
-// tal como vivem no reducer, pra despachar UPDATE_PAV/SET_PAV_DETECCAO
-// direto sem tradução. CRUD de ambiente (criar/editar/remover) vive aqui —
-// não existe mais uma etapa separada de "Ambientes e População".
+// derivarPavimentos) — precisamos de `.label`/`.pisoDescarga` tal como
+// vivem no reducer, pra despachar UPDATE_PAV direto sem tradução. CRUD de
+// ambiente (criar/editar/remover) vive aqui — não existe mais uma etapa
+// separada de "Ambientes e População". Detecção de incêndio e chuveiros
+// automáticos não aparecem aqui: vêm automáticos das Medidas de Segurança
+// da estrutura (ver SaidaEmergenciaPage.jsx), não são editáveis por
+// pavimento nem dentro desta árvore.
 export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch, onClose }) {
   const { TAXA_POPULACIONAL, LARGURAS_MINIMAS } = seNorma
   const ambientes = pav.ambientes || []
@@ -274,34 +279,35 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
 
         {/* Corpo */}
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <Toggle checked={!!pav.temDeteccao} onChange={v => dispatch({ type: 'SET_PAV_DETECCAO', pavimentoId: pav.id, valor: v })} label="Detecção de incêndio"/>
-              <span className="ml-auto text-[11px] text-ink-faint">Quantidade de saídas (automático): <strong className="text-ink">{nSaidas}</strong></span>
-            </div>
-
-            <RootDropZone/>
+          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
+            <div className="text-[11px] text-ink-faint">Quantidade de saídas (automático): <strong className="text-ink">{nSaidas}</strong></div>
 
             <div className="flex flex-col gap-3">
-              {raizes.map(r => (
-                <AcessoCard key={r.id} acesso={r} ambientes={ambientes} acessos={acessos}
-                  taxaPopulacional={TAXA_POPULACIONAL} larguras={LARGURAS_MINIMAS} pisoDescarga={!!pav.pisoDescarga} dispatch={dispatch}
-                  pavimentoId={pav.id} onEditAmbiente={setEditAmb} onRemoveAmbiente={removerAmbiente}
-                  colapsados={colapsados} toggleColapsado={toggleColapsado}/>
-              ))}
-              {raizes.length === 0 && (
-                <div className="p-8 text-center text-ink-faint text-[13px] border border-dashed border-border rounded-lg">
-                  Nenhuma {rotuloRaiz.toLowerCase()} criada ainda. Clique abaixo para começar a montar a árvore.
-                </div>
-              )}
+              <RootDropZone/>
+
+              <div className="flex flex-col gap-3">
+                {raizes.map(r => (
+                  <AcessoCard key={r.id} acesso={r} ambientes={ambientes} acessos={acessos}
+                    taxaPopulacional={TAXA_POPULACIONAL} larguras={LARGURAS_MINIMAS} pisoDescarga={!!pav.pisoDescarga} dispatch={dispatch}
+                    pavimentoId={pav.id} onEditAmbiente={setEditAmb} onRemoveAmbiente={removerAmbiente}
+                    colapsados={colapsados} toggleColapsado={toggleColapsado}/>
+                ))}
+                {raizes.length === 0 && (
+                  <div className="p-8 text-center text-ink-faint text-[13px] border border-dashed border-border rounded-lg">
+                    Nenhuma {rotuloRaiz.toLowerCase()} criada ainda. Clique abaixo para começar a montar a árvore.
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-center">
+                <button className="btn-ghost" onClick={criarRaiz}>
+                  <Icon name="plus" size={12}/> CRIAR {rotuloRaiz.toUpperCase()}
+                </button>
+              </div>
             </div>
 
-            <button className="btn-ghost w-full justify-center" onClick={criarRaiz}>
-              <Icon name="plus" size={12}/> CRIAR {rotuloRaiz.toUpperCase()}
-            </button>
-
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2.5">
                 <div className="text-[13px] font-semibold text-ink">Ambientes sem acesso atribuído</div>
                 <button className="btn-ghost" onClick={criarAmbiente}><Icon name="plus" size={12}/> Adicionar Ambiente</button>
               </div>
