@@ -106,7 +106,7 @@ function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPaviment
 // ── Page principal ────────────────────────────────────────────────────
 export default function SaidaEmergenciaPage() {
   const { state, dispatch } = useProjeto()
-  const { uf, info } = useNorma()
+  const { uf, info, ocupacoes } = useNorma()
   const seNorma         = getSE(uf)
   const { DISTANCIAS_MAXIMAS } = seNorma
 
@@ -323,7 +323,7 @@ export default function SaidaEmergenciaPage() {
         )}
       </div>
 
-      {viewPav && <AcessosDescargasView pav={viewPav} seNorma={seNorma} ocupacoes={useNorma().ocupacoes} dispatch={dispatch} onClose={() => setViewPavId(null)}/>}
+      {viewPav && <AcessosDescargasView pav={viewPav} seNorma={seNorma} ocupacoes={ocupacoes} dispatch={dispatch} onClose={() => setViewPavId(null)}/>}
     </div>
   )
 }
