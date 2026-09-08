@@ -94,6 +94,15 @@ function idAmbienteSE() {
   return `amb-${Date.now().toString(36)}-${ambienteSESeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
+// Mesma lógica de idAmbienteSE — evita colisão entre nós de Acesso/Saída
+// criados no mesmo milissegundo (árvore de saída, SaidaEmergenciaPage.jsx
+// / tela de Acessos e Descargas).
+let acessoSeq = 0
+function idAcesso() {
+  acessoSeq += 1
+  return `acs-${Date.now().toString(36)}-${acessoSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
 // Item de sinalização de emergência — granularidade só até pavimento (sem
 // ambiente), conforme NT 20 CBMMA / NBR 13434. `tipoPlaca` referencia a
 // chave do catálogo em normas/MA/sinalizacao.js (TIPOS_PLACA).
@@ -165,9 +174,10 @@ function hydrateState(saved) {
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
     planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
     // Migração: pavimentos salvos antes de `ambientes` (Saída de Emergência)
-    // existir não têm esse campo — sem isso, o reducer quebraria ao tentar
-    // ler/mapear `p.ambientes` de um pavimento antigo.
-    pavimentos: (saved.pavimentos || INITIAL_STATE.pavimentos).map(p => ({ ambientes: [], ...p })),
+    // ou de `acessos`/`temDeteccao` (árvore de Acessos e Descargas) existirem
+    // não têm esses campos — sem isso, o reducer quebraria ao tentar
+    // ler/mapear `p.ambientes`/`p.acessos` de um pavimento antigo.
+    pavimentos: (saved.pavimentos || INITIAL_STATE.pavimentos).map(p => ({ ambientes: [], acessos: [], temDeteccao: false, ...p })),
     ...migrarParaPorEstrutura(saved),
   }
 }
@@ -210,9 +220,10 @@ function novaEstrutura(nome, id) {
 // pavimento de saída, em vez de deixar `pavimentos` vazio até o usuário
 // mexer nos campos do Step2 (mesmo formato produzido pelo térreo em
 // REBUILD_PAVIMENTOS, que o reaproveita ao invés de recriar quando os
-// valores mudam).
+// valores mudam). `acessos`/`temDeteccao`: ver árvore de Acessos e
+// Descargas (tela dedicada, dentro de Saída de Emergência).
 function pavimentoTerreo(estruturaId) {
-  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [] }
+  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: [], temDeteccao: false }
 }
 
 const INITIAL_STATE = {
@@ -362,14 +373,14 @@ function reducer(state, action) {
       const list = []
       for (let s = nSub; s >= 1; s--) {
         const id = `${estruturaId}-sub-${s}`
-        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: [], temDeteccao: false })
       }
       const terId = `${estruturaId}-P1`
       const ter = find(terId)
       list.push(ter || pavimentoTerreo(estruturaId))
       for (let p = 2; p <= nPav; p++) {
         const id = `${estruturaId}-P${p}`
-        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: [], temDeteccao: false })
       }
       const idsValidos = new Set(list.map(p => p.id))
       return {
@@ -521,6 +532,77 @@ function reducer(state, action) {
       const porPavimento = new Map(action.atualizacoes.map(a => [a.pavimentoId, a.ambientes]))
       return { ...state, pavimentos: state.pavimentos.map(p => porPavimento.has(p.id) ? { ...p, ambientes: porPavimento.get(p.id) } : p) }
     }
+    // ── Árvore de Acessos e Descargas (Ambiente -> Acesso -> Acesso/Saída) ──
+    // Ver se_calc.js (calcNoAcesso/ambientesDoAcesso) pro motor de cálculo.
+    // Um "Acesso" com alimentaEm=null é uma Saída (raiz da árvore daquele
+    // pavimento) — não existe um tipo de nó separado pra Saída, só a posição
+    // na árvore muda.
+    case 'CRIAR_SAIDA':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: null }] }
+          : p),
+      }
+    case 'CRIAR_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: action.alimentaEm }] }
+          : p),
+      }
+    case 'RENOMEAR_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: (p.acessos || []).map(ac => ac.id === action.acessoId ? { ...ac, nome: action.nome } : ac) }
+          : p),
+      }
+    // Move um ambiente pra outro Acesso — inclusive entre Saídas diferentes
+    // do mesmo pavimento (arrastar o quadradinho do Ambiente).
+    case 'MOVER_AMBIENTE_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, ambientes: (p.ambientes || []).map(a => a.id === action.ambienteId ? { ...a, acessoId: action.novoAcessoId } : a) }
+          : p),
+      }
+    // Move um Acesso (e, por consequência do cálculo recursivo em
+    // se_calc.js, todo o conjunto de ambientes/acessos que já alimentavam
+    // ele) pra alimentar outro nó — ou pra null, virando uma Saída nova.
+    // Validar ciclo (um acesso não pode alimentar seu próprio descendente)
+    // é responsabilidade de quem despacha, não do reducer.
+    case 'MOVER_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: (p.acessos || []).map(ac => ac.id === action.acessoId ? { ...ac, alimentaEm: action.novoAlimentaEm } : ac) }
+          : p),
+      }
+    // Remove um nó de Acesso/Saída sem apagar em cascata: o que alimentava
+    // ele (ambientes e/ou outros acessos) fica órfão (acessoId/alimentaEm
+    // voltam a null) em vez de sumir — o usuário reposiciona depois, mas
+    // não perde nenhum ambiente cadastrado.
+    case 'REMOVER_ACESSO': {
+      const { pavimentoId, acessoId } = action
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => {
+          if (p.id !== pavimentoId) return p
+          return {
+            ...p,
+            acessos: (p.acessos || [])
+              .filter(ac => ac.id !== acessoId)
+              .map(ac => ac.alimentaEm === acessoId ? { ...ac, alimentaEm: null } : ac),
+            ambientes: (p.ambientes || []).map(a => a.acessoId === acessoId ? { ...a, acessoId: null } : a),
+          }
+        }),
+      }
+    }
+    // Detecção de incêndio agora é por pavimento (chuveiros automáticos
+    // continua por estrutura, configEst em SaidaEmergenciaPage.jsx).
+    case 'SET_PAV_DETECCAO':
+      return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId ? { ...p, temDeteccao: action.valor } : p) }
     case 'SET_BALIZAMENTO_APLICADO':
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
@@ -614,6 +696,8 @@ function resolverAcaoLocal(action, state) {
     case 'ADD_ESPECIFICACAO_EQUIPAMENTO':
     case 'SET_EQUIPAMENTO_USADO':
     case 'ADD_AMBIENTE_SE':
+    case 'CRIAR_SAIDA':
+    case 'CRIAR_ACESSO':
       return action.id ? action : { ...action, id: idParaTipo(action.type)() }
     case 'IMPORT_EXTINTORES':
       return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idExtintor() }) }
@@ -642,6 +726,7 @@ function idParaTipo(tipo) {
   if (tipo === 'ADD_SINALIZACAO')  return idSinalizacao
   if (tipo === 'ADD_ESTRUTURA')    return idEstrutura
   if (tipo === 'ADD_AMBIENTE_SE')  return idAmbienteSE
+  if (tipo === 'CRIAR_SAIDA' || tipo === 'CRIAR_ACESSO') return idAcesso
   return idEspecEquip // ADD_ESPECIFICACAO_EQUIPAMENTO / SET_EQUIPAMENTO_USADO
 }
 
