@@ -5,9 +5,10 @@ import { supabase } from '../../lib/supabase'
 import { getSE } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import AcessosDescargasView from './AcessosDescargasView'
 import {
   calcPopAmb, calcPopPav, capPavimento, pavMaisPopuloso,
-  calcAD, calcER, calcPT,
+  calcER, contarSaidasPavimento,
   getDistanciaPavimento,
   taxaOpcoes, popTipoPadrao,
 } from '../../data/se_calc'
@@ -15,18 +16,24 @@ import {
 // ── Helpers ───────────────────────────────────────────────────────────
 let _seq = 0
 const uid  = () => `se-${Date.now()}-${++_seq}`
-const fmt  = n  => Number(n).toFixed(2).replace('.', ',')
-const fmtM = n  => `${fmt(n)} m`
+export const fmt  = n  => Number(n).toFixed(2).replace('.', ',')
+export const fmtM = n  => `${fmt(n)} m`
 
 // Ambientes ficam no reducer compartilhado (state.pavimentos[].ambientes) —
 // aqui só remodela pro formato que esta página usa (nome/tipo já traduzidos
-// pros valores que se_calc.js espera).
+// pros valores que se_calc.js espera). `pisoDescarga`/`temDeteccao`/`acessos`
+// são repassados como estão no reducer — a árvore de Acessos e Descargas
+// (AcessosDescargasView) lê o pavimento cru direto de state.pavimentos, não
+// esta versão remodelada.
 function derivarPavimentos(projetoPavs) {
   if (!projetoPavs?.length) return []
   return projetoPavs.map(p => ({
     id: p.id, nome: p.label, estruturaId: p.estruturaId,
-    tipo: p.tipo === 'terreo' ? 'descarga' : 'tipo',
+    tipo: p.tipo === 'terreo' ? 'descarga' : 'tipo', // só decorativo (badge) — cálculo usa pisoDescarga
+    pisoDescarga: p.pisoDescarga ?? (p.tipo === 'terreo'),
+    temDeteccao: p.temDeteccao || false,
     ambientes: p.ambientes || [],
+    acessos: p.acessos || [],
   }))
 }
 
@@ -35,12 +42,12 @@ const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink 
 function Label({ children }) {
   return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">{children}</div>
 }
-function DivBadge({ label }) {
+export function DivBadge({ label }) {
   return (
     <span className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-1.5 rounded bg-red text-white text-[11px] font-bold">{label || '?'}</span>
   )
 }
-function Toggle({ checked, onChange, label }) {
+export function Toggle({ checked, onChange, label }) {
   return (
     <button onClick={() => onChange(!checked)} className={`flex items-center gap-2 bg-transparent border border-solid border-border rounded-md py-1.5 px-3 cursor-pointer text-xs ${checked ? 'text-ink font-medium' : 'text-ink-faint font-normal'}`}>
       <div className={`w-7 h-4 rounded-[8px] shrink-0 relative transition-colors duration-200 ${checked ? 'bg-red' : 'bg-border'}`}>
@@ -117,7 +124,7 @@ function DivisaoSelect({ value, onChange, ocupacoes }) {
 }
 
 // ── Formulário de ambiente ────────────────────────────────────────────
-function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes }) {
+export function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes }) {
   const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS } = seNorma
   const blank = { nome:'', divisao:'', popTipo:'area', area:'', assentos:'', popManual:'' }
   const [form, setForm] = useState(() => initial ? {
@@ -421,51 +428,49 @@ export default function SaidaEmergenciaPage() {
   // esta aba quanto o que chegar por broadcast de outra.
   const pavimentos = derivarPavimentos(state.pavimentos)
   const [openId,       setOpenId]       = useState(null)
-  // Chuveiros/detecção, largura adotada, saída única e colapso dos cards
-  // ainda são só desta aba/sessão — não fazem parte do que foi pedido pra
-  // sincronizar (ambientes) e continuam como estavam antes.
+  // Pavimento cuja árvore de Acessos e Descargas está aberta (drill-down em
+  // tela cheia, ver AcessosDescargasView) — null = lista normal da Etapa 2.
+  const [viewPavId,    setViewPavId]    = useState(null)
+  // Chuveiros automáticos, largura adotada (só ER agora) e colapso dos
+  // cards ainda são só desta aba/sessão — não fazem parte do que foi
+  // pedido pra sincronizar (ambientes/árvore/detecção) e continuam como
+  // estavam antes.
   const [configEst,    setConfigEst]    = useState({})
   const [largAdotada,  setLargAdotada]  = useState({})
   const [importInfo,   setImportInfo]   = useState(null)
   const [importErro,   setImportErro]   = useState(null)
-  const [saidaUnica,   setSaidaUnica]   = useState({})
   const [colapsadas,   setColapsadas]   = useState({})
   const [buscando,     setBuscando]     = useState(false)
   const fileInputRef = useRef(null)
 
-  // Quando a população de um pavimento aumenta (novo ambiente, edição) o
-  // mínimo normativo pode subir além do que foi manualmente adotado — nesse
-  // caso descarta o valor adotado pra recalcular do zero (mesma regra que
-  // já existia em `savePav`, só que agora reage à mudança no reducer
-  // compartilhado em vez de rodar uma vez ao confirmar o modal).
+  // Só ER ainda usa largura adotada manual aqui — AD (por Acesso) e PT (por
+  // ambiente) agora vivem na árvore de Acessos e Descargas
+  // (AcessosDescargasView), mostrando direto o valor calculado, sem input.
+  // Quando a população do pavimento mais populoso de uma estrutura sobe (novo
+  // ambiente, edição), o mínimo normativo de ER pode superar o que foi
+  // manualmente adotado — nesse caso descarta o valor adotado pra recalcular
+  // do zero.
   useEffect(() => {
     setLargAdotada(prev => {
       let mudou = false
       const next = { ...prev }
-      pavimentos.forEach(p => {
-        const cur = next[p.id]
-        if (!cur) return
-        const cap = capPavimento(p, TAXA_POPULACIONAL)
-        const pop = calcPopPav(p, TAXA_POPULACIONAL)
-        const ad  = calcAD(pop, cap.AD, LARGURAS_MINIMAS)
-        const pt  = calcPT(pop, cap.PT, LARGURAS_MINIMAS)
+      state.estruturas.forEach(est => {
+        const pavsDaEstrutura = pavimentos.filter(p => p.estruturaId === est.id)
+        const govPav = pavMaisPopuloso(pavsDaEstrutura, TAXA_POPULACIONAL)
+        if (!govPav) return
+        const cur = next[govPav.id]
+        if (!cur || cur.ER === undefined) return
+        const pop = calcPopPav(govPav, TAXA_POPULACIONAL)
+        const cap = capPavimento(govPav, TAXA_POPULACIONAL)
         const er  = calcER(pop, cap.ER, LARGURAS_MINIMAS)
-        const ajustado = {
-          AD: cur.AD !== undefined && cur.AD < ad.la ? undefined : cur.AD,
-          PT: cur.PT !== undefined && cur.PT < pt.la ? undefined : cur.PT,
-          ER: cur.ER !== undefined && cur.ER < er.la ? undefined : cur.ER,
-        }
-        if (ajustado.AD !== cur.AD || ajustado.PT !== cur.PT || ajustado.ER !== cur.ER) { next[p.id] = ajustado; mudou = true }
+        if (cur.ER < er.la) { next[govPav.id] = { ...cur, ER: undefined }; mudou = true }
       })
       return mudou ? next : prev
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.pavimentos])
 
-  const getSaidaUnica = (pavId, adN) => saidaUnica[pavId] ?? (adN <= 1)
-  const toggleSaidaUnica = (pavId, val) => setSaidaUnica(prev => ({ ...prev, [pavId]: val }))
-
-  const getConfigEstrutura = estId => configEst[estId] || { temChuveiros: false, temDeteccao: false }
+  const getConfigEstrutura = estId => configEst[estId] || { temChuveiros: false }
   const setConfigEstrutura = (estId, changes) => setConfigEst(prev => ({ ...prev, [estId]: { ...getConfigEstrutura(estId), ...changes } }))
 
   const toggleColapsada = estId => setColapsadas(prev => ({ ...prev, [estId]: !prev[estId] }))
@@ -490,7 +495,16 @@ export default function SaidaEmergenciaPage() {
           return next
         })
       }
-      if (estruturaId) setConfigEstrutura(estruturaId, { temChuveiros: tc, temDeteccao: td })
+      if (estruturaId) {
+        setConfigEstrutura(estruturaId, { temChuveiros: tc })
+        // O plugin ainda manda detecção como um valor só pra estrutura
+        // inteira (formato antigo do firedata.json) — aplica em todos os
+        // pavimentos dela até o lado do plugin também virar por pavimento
+        // (Task pendente: portar a árvore de Acessos e Descargas pro plugin).
+        state.pavimentos
+          .filter(p => p.estruturaId === estruturaId)
+          .forEach(p => dispatch({ type: 'SET_PAV_DETECCAO', pavimentoId: p.id, valor: td }))
+      }
       return { erros, timestamp }
     } catch (err) {
       return { erros: [err.message || 'Dados inválidos.'], timestamp: null }
@@ -542,17 +556,15 @@ export default function SaidaEmergenciaPage() {
   }, [])
 
   const openPav = pavimentos.find(p => p.id === openId)
+  const viewPav = viewPavId ? state.pavimentos.find(p => p.id === viewPavId) : null
 
   const dadosPav = pavimentos.map(p => {
-    const cfg      = getConfigEstrutura(p.estruturaId)
-    const pop      = calcPopPav(p, TAXA_POPULACIONAL)
-    const cap      = capPavimento(p, TAXA_POPULACIONAL)
-    const ad       = calcAD(pop, cap.AD, LARGURAS_MINIMAS)
-    const pt       = calcPT(pop, cap.PT, LARGURAS_MINIMAS)
-    const unica    = getSaidaUnica(p.id, ad.n)
-    const nSaidas  = unica ? 1 : 2
-    const dist     = getDistanciaPavimento(p, nSaidas, cfg.temChuveiros, cfg.temDeteccao, DISTANCIAS_MAXIMAS)
-    return { pav:p, pop, cap, ad, pt, dist, unica, laAD: largAdotada[p.id]?.AD ?? ad.la, laPT: largAdotada[p.id]?.PT ?? pt.la }
+    const cfg             = getConfigEstrutura(p.estruturaId)
+    const pop              = calcPopPav(p, TAXA_POPULACIONAL)
+    const nSaidas           = Math.max(1, contarSaidasPavimento(p.acessos))
+    const dist              = getDistanciaPavimento(p, nSaidas, cfg.temChuveiros, p.temDeteccao, DISTANCIAS_MAXIMAS)
+    const semAcessoCount    = p.ambientes.filter(a => !a.acessoId).length
+    return { pav:p, pop, nSaidas, dist, semAcessoCount }
   })
 
   // Cada estrutura dimensiona suas próprias saídas de forma independente —
@@ -579,6 +591,10 @@ export default function SaidaEmergenciaPage() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
+        {viewPav ? (
+          <AcessosDescargasView pav={viewPav} seNorma={seNorma} ocupacoes={ocupacoes} dispatch={dispatch} onBack={() => setViewPavId(null)}/>
+        ) : (
+        <>
 
         {/* Header */}
         <div className="mb-8">
@@ -706,7 +722,7 @@ export default function SaidaEmergenciaPage() {
         {temPavimentos && (
           <div>
             <StepHeader n={2} label="Dimensionamento das saídas"
-              desc="Larguras de acessos, escadas e portas, e distâncias máximas a percorrer — calculados automaticamente a partir da população de cada pavimento, por estrutura."/>
+              desc="Clique em um pavimento para montar a árvore de Acessos e Descargas — portas por ambiente, acessos por conjunto de ambientes, com cascata de descarga entre acessos. Escadas e rampas continuam pelo pavimento mais populoso da estrutura."/>
 
             {!temPopulacao ? (
               <div className="border border-solid border-border rounded-lg py-12 px-6 text-center bg-surface">
@@ -734,20 +750,32 @@ export default function SaidaEmergenciaPage() {
                   </div>
                   <div className="flex gap-2 shrink-0" onClick={e => e.stopPropagation()}>
                     <Toggle checked={cfg.temChuveiros} onChange={v => setConfigEstrutura(estrutura.id, { temChuveiros: v })} label="Chuveiros automáticos"/>
-                    <Toggle checked={cfg.temDeteccao}  onChange={v => setConfigEstrutura(estrutura.id, { temDeteccao: v })}  label="Detecção de incêndio"/>
                   </div>
                 </div>
 
                 {aberta && (
                 <div className="flex flex-col gap-5 px-5 pb-5">
                   <div>
-                    <SectionTitle label="Acessos e Descargas (AD)" desc={`Todos os pavimentos · ${fmt(LARGURAS_MINIMAS.LARG_UP)} m/UP · mínimo ${fmt(LARGURAS_MINIMAS.AD)} m`}/>
+                    <SectionTitle label="Pavimentos" desc="Clique em um pavimento para montar a árvore de Acessos e Descargas."/>
                     <DimTable>
-                      <thead><tr><TH>Pavimento</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH right>L adotada</TH></tr></thead>
+                      <thead><tr><TH>Pavimento</TH><TH center>Amb.</TH><TH center>Pop.</TH><TH center>Saídas</TH><TH right>Dist. máxima</TH><TH/></tr></thead>
                       <tbody>
-                        {dadosDaEstrutura.map(({ pav,pop,cap,ad,laAD }) => (
-                          <tr key={pav.id}><TD bold>{pav.nome}</TD><TD center red>{pop}</TD><TD center muted>{cap.AD}</TD><TD center red bold>{ad.n} UP</TD><TD right muted>{fmtM(ad.lc)}</TD><TD right muted>{fmtM(ad.lMin)}</TD>
-                            <LargAdotadaInput laMin={ad.la} value={laAD} onChange={v => setLarg(pav.id,'AD',v)}/>
+                        {dadosDaEstrutura.map(({ pav, pop, nSaidas, dist, semAcessoCount }) => (
+                          <tr key={pav.id} onClick={() => setViewPavId(pav.id)} className="cursor-pointer transition-colors duration-100 hover:bg-white/[.025]">
+                            <TD bold>
+                              {pav.nome}
+                              {pav.pisoDescarga && <span className="ml-1.5 align-middle text-[9px] py-0.5 px-1.5 rounded bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>}
+                            </TD>
+                            <TD center muted>
+                              {pav.ambientes.length}
+                              {semAcessoCount > 0 && <div className="text-[9px] text-amber mt-0.5">{semAcessoCount} sem acesso</div>}
+                            </TD>
+                            <TD center red bold>{pop}</TD>
+                            <TD center red bold>{nSaidas}</TD>
+                            <td className="py-2.5 px-3.5 text-right text-[13px] border-b border-solid border-border-2 align-middle">
+                              {dist!==null ? <Chip val={`${dist} m`} green/> : <span className="text-xs text-ink-faint">Consultar NT</span>}
+                            </td>
+                            <td className="py-2.5 px-3.5 text-right border-b border-solid border-border-2 align-middle"><Icon name="right" size={13} color="var(--color-ink-faint)"/></td>
                           </tr>
                         ))}
                       </tbody>
@@ -769,54 +797,6 @@ export default function SaidaEmergenciaPage() {
                       <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span className="text-xs">Nenhum pavimento tipo configurado nesta estrutura. O piso de descarga não é referência para ER.</span></div>
                     )}
                   </div>
-
-                  <div>
-                    <SectionTitle label="Portas (PT)" desc="Todos os pavimentos · 1 UP→0,80 m · 2 UPs→1,00 m · 3 UPs→1,50 m · 4 UPs→2,00 m"/>
-                    <DimTable>
-                      <thead><tr><TH>Pavimento</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH center>Tipo</TH><TH right>L adotada</TH></tr></thead>
-                      <tbody>
-                        {dadosDaEstrutura.map(({ pav,pop,cap,pt,laPT }) => (
-                          <tr key={pav.id}><TD bold>{pav.nome}</TD><TD center red>{pop}</TD><TD center muted>{cap.PT}</TD><TD center red bold>{pt.n} UP</TD><TD right muted>{fmtM(pt.lc)}</TD><TD right muted>{fmtM(pt.lMin)}</TD><TD center muted>{pt.tipo}</TD>
-                            <LargAdotadaInput laMin={pt.la} value={laPT} onChange={v => setLarg(pav.id,'PT',v)}/>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </DimTable>
-                  </div>
-
-                  <div>
-                    <SectionTitle label="Distâncias Máximas a Percorrer" desc="Distância máxima do ponto mais remoto até a saída de emergência (NBR 9077)"/>
-                    <DimTable>
-                      <thead><tr><TH>Pavimento</TH><TH>Tipo</TH><TH center>Saídas</TH><TH>Proteção</TH><TH right>Dist. máxima</TH></tr></thead>
-                      <tbody>
-                        {dadosDaEstrutura.map(({ pav, ad, dist, unica }) => {
-                          const prot = [cfg.temChuveiros&&'Chuveiros', cfg.temDeteccao&&'Detecção'].filter(Boolean)
-                          const minSaidas = ad.n
-                          return (
-                            <tr key={pav.id}>
-                              <TD bold>{pav.nome}</TD>
-                              <TD muted>{pav.tipo==='descarga' ? 'Piso de descarga' : 'Demais andares'}</TD>
-                              <td className="py-2 px-3.5 border-b border-solid border-border-2 align-middle">
-                                <div className="flex items-center gap-2">
-                                  <Toggle checked={unica} onChange={v => toggleSaidaUnica(pav.id, v)} label="Saída única"/>
-                                  {unica && minSaidas > 1 && (
-                                    <span className="text-[10px] text-amber flex items-center gap-[3px]">
-                                      <Icon name="warn" size={10} color="var(--color-amber)"/> mín. {minSaidas} UPs
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <TD muted>{prot.length ? prot.join(' + ') : '—'}</TD>
-                              <td className="py-2.5 px-3.5 text-right border-b border-solid border-border-2">
-                                {dist!==null ? <Chip val={`${dist} m`} green/> : <span className="text-xs text-ink-faint">Consultar NT</span>}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </DimTable>
-                    <div className="text-[11px] text-ink-faint leading-[1.6] mt-1.5">Fonte: NBR 9077 — Saídas de Emergência em Edifícios, Tabelas 1 e 2.</div>
-                  </div>
                 </div>
                 )}
               </div>
@@ -825,6 +805,8 @@ export default function SaidaEmergenciaPage() {
           </div>
             )}
           </div>
+        )}
+        </>
         )}
       </div>
 
