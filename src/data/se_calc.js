@@ -194,16 +194,15 @@ export function getDistancia(divisao, pisoDescarga, nSaidas, temChuveiros, temDe
   return andar?.[chuv]?.[saidas]?.[detec] ?? null
 }
 
-/** Distância mínima (mais restritiva) para um pavimento inteiro.
- * `pav.pisoDescarga` é um booleano explícito por pavimento (não mais
- * inferido de pav.tipo==='descarga') — ver ProjetoContext.jsx. */
+/** Distância máxima de um pavimento — usa a classificação de ocupação já
+ * configurada nele na Etapa 4 (pav.divisao, ver Step4.jsx), não as
+ * divisões dos ambientes cadastrados aqui em Saída de Emergência. Assim
+ * aparece pra qualquer pavimento classificado, mesmo sem nenhum ambiente
+ * ainda cadastrado na árvore de Acessos e Descargas. `pav.pisoDescarga` é
+ * um booleano explícito por pavimento — ver ProjetoContext.jsx. */
 export function getDistanciaPavimento(pav, nSaidas, temChuveiros, temDeteccao, distanciasMaximas) {
-  const divs = [...new Set(pav.ambientes.map(a => a.divisao).filter(Boolean))]
-  if (!divs.length) return null
-  const vals = divs
-    .map(d => getDistancia(d, pav.pisoDescarga, nSaidas, temChuveiros, temDeteccao, distanciasMaximas))
-    .filter(v => v !== null)
-  return vals.length ? Math.min(...vals) : null
+  if (!pav.divisao) return null
+  return getDistancia(pav.divisao, pav.pisoDescarga, nSaidas, temChuveiros, temDeteccao, distanciasMaximas)
 }
 
 /** Retorna as opções de taxa disponíveis para a divisão */
