@@ -17,12 +17,15 @@ const uid  = () => `se-${Date.now()}-${++_seq}`
 // aqui só remodela pro formato que esta página usa. `pisoDescarga`/
 // `acessos` são repassados como estão no reducer — o popup de Acessos e
 // Descargas (AcessosDescargasView) lê o pavimento cru direto de
-// state.pavimentos, não esta versão remodelada.
+// state.pavimentos, não esta versão remodelada. `divisao` é a
+// classificação de ocupação da Etapa 4 (Step4.jsx) — usada pela distância
+// máxima a percorrer, não pelas divisões dos ambientes daqui.
 function derivarPavimentos(projetoPavs) {
   if (!projetoPavs?.length) return []
   return projetoPavs.map(p => ({
     id: p.id, nome: p.label, estruturaId: p.estruturaId,
     pisoDescarga: p.pisoDescarga ?? (p.tipo === 'terreo'),
+    divisao: p.divisao,
     ambientes: p.ambientes || [],
     acessos: p.acessos || [],
   }))
