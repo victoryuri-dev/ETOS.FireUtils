@@ -18,9 +18,12 @@ function Label({ children }) {
   return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">{children}</div>
 }
 
+// Tag de ocupação (código da divisão, ex.: "D-1") — cinza neutro. Vermelho
+// fica reservado pros valores de largura mínima (o que de fato importa
+// dimensionalmente), não pra classificação.
 export function DivBadge({ label }) {
   return (
-    <span className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-1.5 rounded bg-red text-white text-[11px] font-bold">{label || '?'}</span>
+    <span className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-1.5 rounded bg-surface-2 border border-solid border-border text-ink-muted text-[11px] font-bold">{label || '?'}</span>
   )
 }
 
