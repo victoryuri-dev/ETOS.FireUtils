@@ -174,13 +174,15 @@ function hydrateState(saved) {
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
     planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
     // Migração: pavimentos salvos antes de `ambientes` (Saída de Emergência)
-    // ou de `acessos`/`temDeteccao`/`pisoDescarga` (árvore de Acessos e
-    // Descargas) existirem não têm esses campos — sem isso, o reducer
-    // quebraria ao tentar ler/mapear `p.ambientes`/`p.acessos` de um
-    // pavimento antigo. `pisoDescarga` nasce do `tipo` antigo (só o térreo
-    // era considerado piso de descarga), mas agora é um campo independente,
-    // editável por pavimento na tela de Acessos e Descargas.
-    pavimentos: (saved.pavimentos || INITIAL_STATE.pavimentos).map(p => ({ ambientes: [], acessos: [], temDeteccao: false, pisoDescarga: p.tipo === 'terreo', ...p })),
+    // ou de `acessos`/`pisoDescarga` (árvore de Acessos e Descargas)
+    // existirem não têm esses campos — sem isso, o reducer quebraria ao
+    // tentar ler/mapear `p.ambientes`/`p.acessos` de um pavimento antigo.
+    // `pisoDescarga` nasce do `tipo` antigo (só o térreo era considerado
+    // piso de descarga), mas agora é um campo independente, editável por
+    // pavimento na tela de Acessos e Descargas. Detecção de incêndio NÃO é
+    // mais por pavimento — vem de sistemasPorEstrutura (Medidas de
+    // Segurança), igual chuveiros automáticos.
+    pavimentos: (saved.pavimentos || INITIAL_STATE.pavimentos).map(p => ({ ambientes: [], acessos: [], pisoDescarga: p.tipo === 'terreo', ...p })),
     ...migrarParaPorEstrutura(saved),
   }
 }
@@ -223,11 +225,11 @@ function novaEstrutura(nome, id) {
 // pavimento de saída, em vez de deixar `pavimentos` vazio até o usuário
 // mexer nos campos do Step2 (mesmo formato produzido pelo térreo em
 // REBUILD_PAVIMENTOS, que o reaproveita ao invés de recriar quando os
-// valores mudam). `acessos`/`temDeteccao`/`pisoDescarga`: ver árvore de
-// Acessos e Descargas (tela dedicada, dentro de Saída de Emergência) —
-// piso de descarga nasce true aqui (é o térreo), mas fica editável lá.
+// valores mudam). `acessos`/`pisoDescarga`: ver árvore de Acessos e
+// Descargas (tela dedicada, dentro de Saída de Emergência) — piso de
+// descarga nasce true aqui (é o térreo), mas fica editável lá.
 function pavimentoTerreo(estruturaId) {
-  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: [], temDeteccao: false, pisoDescarga: true }
+  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: [], pisoDescarga: true }
 }
 
 const INITIAL_STATE = {
@@ -377,14 +379,14 @@ function reducer(state, action) {
       const list = []
       for (let s = nSub; s >= 1; s--) {
         const id = `${estruturaId}-sub-${s}`
-        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: [], temDeteccao: false, pisoDescarga: false })
+        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: [], pisoDescarga: false })
       }
       const terId = `${estruturaId}-P1`
       const ter = find(terId)
       list.push(ter || pavimentoTerreo(estruturaId))
       for (let p = 2; p <= nPav; p++) {
         const id = `${estruturaId}-P${p}`
-        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: [], temDeteccao: false, pisoDescarga: false })
+        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: [], pisoDescarga: false })
       }
       const idsValidos = new Set(list.map(p => p.id))
       return {
@@ -603,10 +605,6 @@ function reducer(state, action) {
         }),
       }
     }
-    // Detecção de incêndio agora é por pavimento (chuveiros automáticos
-    // continua por estrutura, configEst em SaidaEmergenciaPage.jsx).
-    case 'SET_PAV_DETECCAO':
-      return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId ? { ...p, temDeteccao: action.valor } : p) }
     case 'SET_BALIZAMENTO_APLICADO':
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
