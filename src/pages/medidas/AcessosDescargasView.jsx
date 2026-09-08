@@ -75,7 +75,8 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove }) {
 // `pisoDescarga` (do pavimento) + `acesso.alimentaEm` decidem o tipo via
 // tipoDoNo: raiz num piso de descarga é Saída (AD); raiz em outro
 // pavimento é Escada/Rampa (ER); qualquer nó que não é raiz é sempre
-// Acesso/Descarga (AD).
+// Acesso/Descarga (AD). Só a raiz pode abrir novos Acessos filhos — um
+// Acesso comum não pode virar "pai" de outro Acesso.
 function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga, dispatch, pavimentoId, onEditAmbiente, onRemoveAmbiente, colapsados, toggleColapsado }) {
   const { tipo, label } = tipoDoNo(acesso, pisoDescarga)
   const { pop, capValor, dim } = calcNoAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, tipo)
@@ -140,9 +141,11 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
             <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEditAmbiente} onRemove={onRemoveAmbiente}/>
           ))}
           {filhos.length === 0 && filhosAmbientes.length === 0 && (
-            <div className="text-[11px] text-ink-faint italic py-1">Arraste ambientes ou acessos para cá.</div>
+            <div className="text-[11px] text-ink-faint italic py-1">Arraste ambientes para cá.</div>
           )}
-          <button className="btn-ghost w-full justify-center" onClick={criarAcessoFilho}><Icon name="plus" size={12}/> CRIAR ACESSO</button>
+          {isRaiz && (
+            <button className="btn-ghost w-full justify-center" onClick={criarAcessoFilho}><Icon name="plus" size={12}/> CRIAR ACESSO</button>
+          )}
         </div>
       )}
     </div>
