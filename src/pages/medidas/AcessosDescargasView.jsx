@@ -45,7 +45,7 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove }) {
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
   return (
     <div ref={setNodeRef} style={style}
-      className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid border-border-2 bg-surface-2 ${isDragging ? 'opacity-40 relative z-50' : ''}`}
+      className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid border-border-2 bg-surface-2 transition-colors hover:border-white/20 ${isDragging ? 'opacity-40 relative z-50' : ''}`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
         <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente">
@@ -108,7 +108,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
 
   return (
     <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
-      className={`rounded-lg border border-solid bg-surface transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
+      className={`rounded-lg border border-solid bg-surface transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
     >
       <div className="flex items-center justify-between gap-4 py-3.5 px-4">
         <div className="flex items-center gap-2.5 min-w-0">
