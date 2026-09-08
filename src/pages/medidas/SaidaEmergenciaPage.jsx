@@ -6,18 +6,16 @@ import { getSE } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import AcessosDescargasView from './AcessosDescargasView'
+import { AmbienteForm, DivBadge, Toggle, fmt, fmtM } from './se_shared'
 import {
   calcPopAmb, calcPopPav, capPavimento, pavMaisPopuloso,
   calcER, contarSaidasPavimento,
   getDistanciaPavimento,
-  taxaOpcoes, popTipoPadrao,
 } from '../../data/se_calc'
 
 // ── Helpers ───────────────────────────────────────────────────────────
 let _seq = 0
 const uid  = () => `se-${Date.now()}-${++_seq}`
-export const fmt  = n  => Number(n).toFixed(2).replace('.', ',')
-export const fmtM = n  => `${fmt(n)} m`
 
 // Ambientes ficam no reducer compartilhado (state.pavimentos[].ambientes) —
 // aqui só remodela pro formato que esta página usa (nome/tipo já traduzidos
@@ -38,25 +36,6 @@ function derivarPavimentos(projetoPavs) {
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────
-const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'
-function Label({ children }) {
-  return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">{children}</div>
-}
-export function DivBadge({ label }) {
-  return (
-    <span className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-1.5 rounded bg-red text-white text-[11px] font-bold">{label || '?'}</span>
-  )
-}
-export function Toggle({ checked, onChange, label }) {
-  return (
-    <button onClick={() => onChange(!checked)} className={`flex items-center gap-2 bg-transparent border border-solid border-border rounded-md py-1.5 px-3 cursor-pointer text-xs ${checked ? 'text-ink font-medium' : 'text-ink-faint font-normal'}`}>
-      <div className={`w-7 h-4 rounded-[8px] shrink-0 relative transition-colors duration-200 ${checked ? 'bg-red' : 'bg-border'}`}>
-        <div className={`absolute top-0.5 ${checked ? 'left-3.5' : 'left-0.5'} w-3 h-3 rounded-full bg-white transition-[left] duration-200`}/>
-      </div>
-      {label}
-    </button>
-  )
-}
 function TH({ children, right, center }) {
   return <th className={`text-[10px] text-ink-faint uppercase tracking-[.07em] font-medium py-[9px] px-3.5 border-b border-solid border-border whitespace-nowrap bg-surface-2 ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}>{children}</th>
 }
@@ -104,123 +83,6 @@ function LargAdotadaInput({ laMin, value, onChange }) {
         {err && <div className="absolute top-[calc(100%+4px)] right-0 whitespace-nowrap text-[10px] bg-red text-white py-[3px] px-[7px] rounded z-10">Mín: {fmtM(laMin)}</div>}
       </div>
     </td>
-  )
-}
-
-// ── DivisaoSelect — usa OCUPACOES do estado vigente ───────────────────
-function DivisaoSelect({ value, onChange, ocupacoes }) {
-  return (
-    <select className={inputClass} value={value} onChange={e => onChange(e.target.value)}>
-      <option value="">Selecionar divisão...</option>
-      {Object.keys(ocupacoes).sort().map(grupo => (
-        <optgroup key={grupo} label={`Grupo ${grupo} — ${ocupacoes[grupo]?.descricao || grupo}`}>
-          {Object.keys(ocupacoes[grupo]?.divisoes || {}).map(div => (
-            <option key={div} value={div}>{div} — {ocupacoes[grupo].divisoes[div]}</option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
-  )
-}
-
-// ── Formulário de ambiente ────────────────────────────────────────────
-export function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes }) {
-  const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS } = seNorma
-  const blank = { nome:'', divisao:'', popTipo:'area', area:'', assentos:'', popManual:'' }
-  const [form, setForm] = useState(() => initial ? {
-    nome: initial.nome, divisao: initial.divisao, popTipo: initial.popTipo,
-    area: initial.area ? String(initial.area) : '',
-    assentos: initial.assentos ? String(initial.assentos) : '',
-    popManual: initial.popManual ? String(initial.popManual) : '',
-  } : blank)
-
-  const taxa    = TAXA_POPULACIONAL[form.divisao]
-  const opcoes  = taxaOpcoes(form.divisao, TAXA_POPULACIONAL)
-  const isManual = form.popTipo === 'manual'
-  const isFixo   = form.popTipo === 'fixo'
-  const isArea   = form.popTipo === 'area'
-
-  const popCalc = () => {
-    if (isFixo)   return parseInt(form.assentos)  || 0
-    if (isManual) return parseInt(form.popManual) || 0
-    return taxa?.A && form.area ? Math.ceil(parseFloat(form.area) / taxa.A) : 0
-  }
-
-  const setDivisao = div => setForm(f => ({ ...f, divisao: div, popTipo: popTipoPadrao(div, TAXA_POPULACIONAL), area:'', assentos:'', popManual:'' }))
-  const setTipo    = tipo => setForm(f => ({ ...f, popTipo: tipo, area:'', assentos:'', popManual:'' }))
-
-  const canSave = () => {
-    if (!form.nome || !form.divisao) return false
-    if (isArea && !form.area) return false
-    if (isFixo && !form.assentos) return false
-    if (isManual && !form.popManual) return false
-    return true
-  }
-
-  const handleSave = () => {
-    if (!canSave()) return
-    onSave({ nome: form.nome.trim(), divisao: form.divisao, popTipo: form.popTipo, area: parseFloat(form.area)||0, assentos: parseInt(form.assentos)||0, popManual: parseInt(form.popManual)||0 })
-  }
-
-  const inputLabel = isArea ? 'Área (m²)' : isFixo ? 'N° de assentos' : 'N° de pessoas'
-
-  return (
-    <div className="flex flex-col gap-2.5">
-      <div className="grid grid-cols-[1fr_1.5fr] gap-2.5">
-        <div>
-          <Label>Nome do ambiente</Label>
-          <input className={inputClass} placeholder="ex.: Sala 101, Loja..." autoFocus={autoFocus}
-            value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} onKeyDown={e => e.key==='Enter' && handleSave()}/>
-        </div>
-        <div>
-          <Label>Divisão de ocupação</Label>
-          <DivisaoSelect value={form.divisao} onChange={setDivisao} ocupacoes={ocupacoes}/>
-        </div>
-      </div>
-
-      {form.divisao && (
-        <div className={`grid gap-2.5 items-end ${opcoes.length > 1 ? 'grid-cols-[1.4fr_1fr_100px]' : 'grid-cols-[1.8fr_1fr_100px]'}`}>
-          <div>
-            <Label>Taxa normativa — {form.divisao}</Label>
-            {opcoes.length > 1 ? (
-              <select className={inputClass} value={form.popTipo} onChange={e => setTipo(e.target.value)}>
-                {opcoes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            ) : (
-              <div className={`${inputClass} bg-surface text-ink-faint flex items-center`}>
-                {opcoes[0]?.label || '—'}
-              </div>
-            )}
-          </div>
-          <div>
-            <Label>{inputLabel}</Label>
-            {isArea   && <input className={inputClass} type="number" min="0" placeholder="ex.: 64,5" value={form.area}     onChange={e => setForm(f=>({...f,area:e.target.value}))}     onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
-            {isFixo   && <input className={inputClass} type="number" min="0" placeholder="ex.: 120"  value={form.assentos} onChange={e => setForm(f=>({...f,assentos:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
-            {isManual && <input className={inputClass} type="number" min="0" placeholder="ex.: 8"    value={form.popManual} onChange={e => setForm(f=>({...f,popManual:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
-          </div>
-          <div>
-            <Label>Pop. calculada</Label>
-            <div className={`${inputClass} bg-surface flex items-center justify-center font-bold text-[15px] ${popCalc()>0 ? 'text-red' : 'text-ink-faint'}`}>
-              {popCalc() || '—'}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {taxa?.notas?.length > 0 && taxa.A === null && (
-        <div className="ibox amber mb-0">
-          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-[11px]">{taxa.obs}</span>
-        </div>
-      )}
-
-      <div className="flex gap-1.5 justify-end">
-        <button className="btn-ghost" onClick={onCancel}><Icon name="x" size={12}/> Cancelar</button>
-        <button className={`btn-primary ${canSave() ? 'opacity-100 pointer-events-auto' : 'opacity-45 pointer-events-none'}`} onClick={handleSave}>
-          <Icon name="check" size={12}/> {initial ? 'Salvar' : 'Adicionar'}
-        </button>
-      </div>
-    </div>
   )
 }
 
@@ -287,8 +149,8 @@ function PavimentoModal({ pav, onClose, dispatch, seNorma, ocupacoes }) {
           )}
           {ambientes.map(a => {
             const pop = calcPopAmb(a, TAXA_POPULACIONAL)
-            const opcoes = taxaOpcoes(a.divisao, TAXA_POPULACIONAL)
-            const taxaLabel = opcoes.find(o => o.value===a.popTipo)?.label || TAXA_POPULACIONAL[a.divisao]?.obs || '—'
+            const opcoes = TAXA_POPULACIONAL[a.divisao] ? [] : []
+            const taxaLabel = TAXA_POPULACIONAL[a.divisao]?.obs || '—'
             if (editId === a.id) {
               return (
                 <div key={a.id} className="py-3.5 px-[22px] bg-[rgba(192,21,42,.04)] border-b border-solid border-red-border">
@@ -421,7 +283,7 @@ export default function SaidaEmergenciaPage() {
   const { state, dispatch } = useProjeto()
   const { uf, info, ocupacoes } = useNorma()
   const seNorma         = getSE(uf)
-  const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS: _, LARGURAS_MINIMAS, DISTANCIAS_MAXIMAS } = seNorma
+  const { TAXA_POPULACIONAL, LARGURAS_MINIMAS, DISTANCIAS_MAXIMAS } = seNorma
 
   // Ambientes vêm do reducer compartilhado (state.pavimentos[].ambientes) —
   // ver `derivarPavimentos`. Recalculado a cada render, então reflete tanto
@@ -559,11 +421,11 @@ export default function SaidaEmergenciaPage() {
   const viewPav = viewPavId ? state.pavimentos.find(p => p.id === viewPavId) : null
 
   const dadosPav = pavimentos.map(p => {
-    const cfg             = getConfigEstrutura(p.estruturaId)
-    const pop              = calcPopPav(p, TAXA_POPULACIONAL)
-    const nSaidas           = Math.max(1, contarSaidasPavimento(p.acessos))
-    const dist              = getDistanciaPavimento(p, nSaidas, cfg.temChuveiros, p.temDeteccao, DISTANCIAS_MAXIMAS)
-    const semAcessoCount    = p.ambientes.filter(a => !a.acessoId).length
+    const cfg            = getConfigEstrutura(p.estruturaId)
+    const pop             = calcPopPav(p, TAXA_POPULACIONAL)
+    const nSaidas         = Math.max(1, contarSaidasPavimento(p.acessos))
+    const dist            = getDistanciaPavimento(p, nSaidas, cfg.temChuveiros, p.temDeteccao, DISTANCIAS_MAXIMAS)
+    const semAcessoCount  = p.ambientes.filter(a => !a.acessoId).length
     return { pav:p, pop, nSaidas, dist, semAcessoCount }
   })
 
