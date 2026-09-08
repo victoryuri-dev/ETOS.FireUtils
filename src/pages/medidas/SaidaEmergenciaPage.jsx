@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { supabase } from '../../lib/supabase'
 import { getSE } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import AcessosDescargasView from './AcessosDescargasView'
-import { Toggle } from './se_shared'
 import { calcPopPav, contarSaidasPavimento, getDistanciaPavimento } from '../../data/se_calc'
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -15,18 +15,27 @@ const uid  = () => `se-${Date.now()}-${++_seq}`
 
 // Ambientes ficam no reducer compartilhado (state.pavimentos[].ambientes) —
 // aqui só remodela pro formato que esta página usa. `pisoDescarga`/
-// `temDeteccao`/`acessos` são repassados como estão no reducer — o popup
-// de Acessos e Descargas (AcessosDescargasView) lê o pavimento cru direto
-// de state.pavimentos, não esta versão remodelada.
+// `acessos` são repassados como estão no reducer — o popup de Acessos e
+// Descargas (AcessosDescargasView) lê o pavimento cru direto de
+// state.pavimentos, não esta versão remodelada.
 function derivarPavimentos(projetoPavs) {
   if (!projetoPavs?.length) return []
   return projetoPavs.map(p => ({
     id: p.id, nome: p.label, estruturaId: p.estruturaId,
     pisoDescarga: p.pisoDescarga ?? (p.tipo === 'terreo'),
-    temDeteccao: p.temDeteccao || false,
     ambientes: p.ambientes || [],
     acessos: p.acessos || [],
   }))
+}
+
+// ── Badge informativo (chuveiros/detecção — não editáveis aqui) ────────
+function SistemaBadge({ ativo, label }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[11px] py-1 px-2.5 rounded-md border border-solid ${ativo ? 'border-green-border bg-green-dim text-green' : 'border-border text-ink-faint'}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${ativo ? 'bg-green' : 'bg-border'}`}/>
+      {label}
+    </span>
+  )
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────
@@ -71,6 +80,9 @@ function resolverPavimentoSite(nomeImportado, estruturaId, projetoPavimentos) {
 // projeto), resolve cada pavimento importado contra o cadastro real do
 // site e devolve só as atualizações — quem chama decide como aplicar
 // (mesclar, não substituir), preservando pavimentos de outras estruturas.
+// `temChuveiros`/`temDeteccao` do payload NÃO são mais aplicados — esses
+// dois são Medidas de Segurança da estrutura (Step6), não algo que a
+// importação de ambientes deva sobrescrever silenciosamente.
 function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPavimentos) {
   if (!payloadSE?.pavimentos) throw new Error('Chave "pavimentos" não encontrada nos dados.')
 
@@ -95,67 +107,52 @@ function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPaviment
     })
   })
 
-  return {
-    atualizacoes, erros,
-    temChuveiros: payloadSE.temChuveiros === true || payloadSE.temChuveiros === 'true' || payloadSE.temChuveiros === 'True',
-    temDeteccao:  payloadSE.temDeteccao  === true || payloadSE.temDeteccao  === 'true' || payloadSE.temDeteccao  === 'True',
-    timestamp:    payloadSE._timestamp   || null,
-  }
+  return { atualizacoes, erros, timestamp: payloadSE._timestamp || null }
 }
 
 // ── Page principal ────────────────────────────────────────────────────
 export default function SaidaEmergenciaPage() {
   const { state, dispatch } = useProjeto()
   const { uf, info, ocupacoes } = useNorma()
+  const { porEstrutura: medidasPorEstrutura } = useMedidasObrigatorias()
   const seNorma         = getSE(uf)
   const { DISTANCIAS_MAXIMAS } = seNorma
+
+  // Chuveiros automáticos e detecção de incêndio não são configuráveis
+  // aqui — vêm das Medidas de Segurança de cada estrutura (Step6):
+  // obrigatório pela norma OU habilitado manualmente lá.
+  const sistemasPorEst = Object.fromEntries(medidasPorEstrutura.map(pe => [pe.estrutura.id, pe.sistemas]))
+  const getTemChuveiros = estId => !!sistemasPorEst[estId]?.sprinklers?.ativo
+  const getTemDeteccao  = estId => !!sistemasPorEst[estId]?.deteccao?.ativo
 
   // Ambientes/acessos vêm do reducer compartilhado (state.pavimentos) — ver
   // `derivarPavimentos`. Recalculado a cada render, então reflete tanto
   // esta aba quanto o que chegar por broadcast de outra.
   const pavimentos = derivarPavimentos(state.pavimentos)
   // Pavimento cujo popup de Acessos e Descargas está aberto — null = fechado.
-  // Ambientes, acessos/saídas, piso de descarga e detecção são todos
-  // editados ali dentro; esta página só lista os pavimentos.
+  // Ambientes, acessos/saídas e piso de descarga são todos editados ali
+  // dentro; esta página só lista os pavimentos.
   const [viewPavId,    setViewPavId]    = useState(null)
-  // Chuveiros automáticos e colapso dos cards ainda são só desta
-  // aba/sessão — não fazem parte do que foi pedido pra sincronizar.
-  const [configEst,    setConfigEst]    = useState({})
+  // Colapso dos cards é só desta aba/sessão.
   const [importInfo,   setImportInfo]   = useState(null)
   const [importErro,   setImportErro]   = useState(null)
   const [colapsadas,   setColapsadas]   = useState({})
   const [buscando,     setBuscando]     = useState(false)
   const fileInputRef = useRef(null)
 
-  const getConfigEstrutura = estId => configEst[estId] || { temChuveiros: false }
-  const setConfigEstrutura = (estId, changes) => setConfigEst(prev => ({ ...prev, [estId]: { ...getConfigEstrutura(estId), ...changes } }))
-
   const toggleColapsada = estId => setColapsadas(prev => ({ ...prev, [estId]: !prev[estId] }))
 
   // Aplica um lote (arquivo ou linha do Supabase) — despacha só os
   // pavimentos resolvidos no lote, preservando o resto (inclusive de outras
-  // estruturas) via IMPORT_AMBIENTES_SE. `estruturaId` é null no upload
-  // manual de arquivo — nesse caso não dá pra saber a qual estrutura
-  // atribuir chuveiros/detecção, então essas configurações não são tocadas.
+  // estruturas) via IMPORT_AMBIENTES_SE.
   const aplicarSaidas = (payloadSE, estruturaId) => {
     try {
-      const { atualizacoes, erros, temChuveiros: tc, temDeteccao: td, timestamp } =
-        resolverImportacaoSaidas(payloadSE, estruturaId, state.pavimentos)
+      const { atualizacoes, erros, timestamp } = resolverImportacaoSaidas(payloadSE, estruturaId, state.pavimentos)
       if (atualizacoes.size > 0) {
         dispatch({
           type: 'IMPORT_AMBIENTES_SE',
           atualizacoes: [...atualizacoes.entries()].map(([pavimentoId, dados]) => ({ pavimentoId, ambientes: dados.ambientes })),
         })
-      }
-      if (estruturaId) {
-        setConfigEstrutura(estruturaId, { temChuveiros: tc })
-        // O plugin ainda manda detecção como um valor só pra estrutura
-        // inteira (formato antigo do firedata.json) — aplica em todos os
-        // pavimentos dela até o lado do plugin também virar por pavimento
-        // (Task pendente: portar a árvore de Acessos e Descargas pro plugin).
-        state.pavimentos
-          .filter(p => p.estruturaId === estruturaId)
-          .forEach(p => dispatch({ type: 'SET_PAV_DETECCAO', pavimentoId: p.id, valor: td }))
       }
       return { erros, timestamp }
     } catch (err) {
@@ -206,10 +203,11 @@ export default function SaidaEmergenciaPage() {
   const viewPav = viewPavId ? state.pavimentos.find(p => p.id === viewPavId) : null
 
   const dadosPav = pavimentos.map(p => {
-    const cfg            = getConfigEstrutura(p.estruturaId)
+    const temChuveiros    = getTemChuveiros(p.estruturaId)
+    const temDeteccao     = getTemDeteccao(p.estruturaId)
     const pop             = calcPopPav(p, seNorma.TAXA_POPULACIONAL)
     const nSaidas         = Math.max(1, contarSaidasPavimento(p.acessos))
-    const dist            = getDistanciaPavimento(p, nSaidas, cfg.temChuveiros, p.temDeteccao, DISTANCIAS_MAXIMAS)
+    const dist            = getDistanciaPavimento(p, nSaidas, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)
     const semAcessoCount  = p.ambientes.filter(a => !a.acessoId).length
     return { pav:p, pop, nSaidas, dist, semAcessoCount }
   })
@@ -272,7 +270,6 @@ export default function SaidaEmergenciaPage() {
         ) : (
           <div className="flex flex-col gap-4">
             {porEstrutura.filter(g => g.dadosPav.length > 0).map(({ estrutura, dadosPav: dadosDaEstrutura }) => {
-              const cfg = getConfigEstrutura(estrutura.id)
               const aberta = !colapsadas[estrutura.id]
               return (
               <div key={estrutura.id} className="border border-solid border-border rounded-lg bg-surface overflow-hidden">
@@ -284,8 +281,9 @@ export default function SaidaEmergenciaPage() {
                     <Icon name={aberta ? 'chevD' : 'chevR'} size={13} color="var(--color-ink-faint)" className="shrink-0"/>
                     <Icon name="newbld" size={14} color="var(--color-red)"/> {estrutura.nome}
                   </div>
-                  <div className="flex gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                    <Toggle checked={cfg.temChuveiros} onChange={v => setConfigEstrutura(estrutura.id, { temChuveiros: v })} label="Chuveiros automáticos"/>
+                  <div className="flex gap-2 shrink-0">
+                    <SistemaBadge ativo={getTemChuveiros(estrutura.id)} label="Chuveiros automáticos"/>
+                    <SistemaBadge ativo={getTemDeteccao(estrutura.id)} label="Detecção de incêndio"/>
                   </div>
                 </div>
 
