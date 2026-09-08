@@ -272,7 +272,7 @@ export default function SaidaEmergenciaPage() {
             {porEstrutura.filter(g => g.dadosPav.length > 0).map(({ estrutura, dadosPav: dadosDaEstrutura }) => {
               const aberta = !colapsadas[estrutura.id]
               return (
-              <div key={estrutura.id} className="border border-solid border-border rounded-lg bg-surface overflow-hidden">
+              <div key={estrutura.id} className="border border-solid border-border rounded-lg bg-surface overflow-hidden transition-colors hover:border-white/20">
                 <div
                   className="flex items-center justify-between gap-4 py-3.5 px-5 cursor-pointer select-none"
                   onClick={() => toggleColapsada(estrutura.id)}
