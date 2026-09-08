@@ -9,7 +9,7 @@ import AcessosDescargasView from './AcessosDescargasView'
 import { AmbienteForm, DivBadge, Toggle, fmt, fmtM } from './se_shared'
 import {
   calcPopAmb, calcPopPav, capPavimento, pavMaisPopuloso,
-  calcER, contarSaidasPavimento,
+  calcER, contarSaidasPavimento, taxaOpcoes,
   getDistanciaPavimento,
 } from '../../data/se_calc'
 
@@ -149,8 +149,8 @@ function PavimentoModal({ pav, onClose, dispatch, seNorma, ocupacoes }) {
           )}
           {ambientes.map(a => {
             const pop = calcPopAmb(a, TAXA_POPULACIONAL)
-            const opcoes = TAXA_POPULACIONAL[a.divisao] ? [] : []
-            const taxaLabel = TAXA_POPULACIONAL[a.divisao]?.obs || '—'
+            const opcoes = taxaOpcoes(a.divisao, TAXA_POPULACIONAL)
+            const taxaLabel = opcoes.find(o => o.value===a.popTipo)?.label || TAXA_POPULACIONAL[a.divisao]?.obs || '—'
             if (editId === a.id) {
               return (
                 <div key={a.id} className="py-3.5 px-[22px] bg-[rgba(192,21,42,.04)] border-b border-solid border-red-border">
