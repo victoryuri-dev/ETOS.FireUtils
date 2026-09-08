@@ -82,18 +82,27 @@ export function calcPT(pop, capPT, larguras) {
 //     -- a qual nó de Acesso este ambiente alimenta (null = ainda não
 //        posicionado na árvore).
 //
-//   acesso = { id, nome, alimentaEm: string|null, quantidadeSaidas }
+//   acesso = { id, nome, alimentaEm: string|null }
 //     -- `alimentaEm` aponta pro id de outro acesso (cascata: a população
 //        deste nó soma na do próximo) ou é null quando este acesso É a
-//        saída final do pavimento (descarga, ou o ponto que alimenta a
-//        Escada/Rampa da estrutura — ER continua calculado à parte, por
-//        pavMaisPopuloso/calcPopPav/calcER, sem mudança).
-//     -- `quantidadeSaidas` é indicado manualmente pelo usuário (não é
-//        calculado por nada aqui) — usado em getDistancia/getDistanciaPavimento
-//        no lugar de inferir "saída única" a partir do n de UPs.
+//        raiz da árvore — ou seja, uma Saída do pavimento. Não existe um
+//        tipo de nó separado pra Saída: é só um Acesso com alimentaEm=null.
+//     -- A "quantidade de saídas" do pavimento NÃO é um campo armazenado —
+//        é sempre a contagem de raízes (ver contarSaidasPavimento), já que
+//        a criação de saídas é dinâmica (o usuário monta a árvore do
+//        tamanho que quiser).
+//
+// Escadas/Rampas (ER) continuam calculadas à parte, por pavimento mais
+// populoso da estrutura (pavMaisPopuloso/calcPopPav/calcER), sem mudança.
 //
 // Portas (PT) não passam por essa árvore: são por ambiente, direto —
 // ver calcNoAmbientePT.
+
+/** Quantidade de saídas de um pavimento = quantidade de raízes da árvore
+ * (acessos com alimentaEm null) — nunca um campo indicado manualmente. */
+export function contarSaidasPavimento(acessos) {
+  return (acessos || []).filter(ac => ac.alimentaEm === null).length
+}
 
 function ambientesDiretosDoAcesso(acessoId, ambientes) {
   return ambientes.filter(a => a.acessoId === acessoId)
@@ -151,8 +160,8 @@ export function getGrupoDistancia(divisao, distanciasMaximas) {
 
 /** Distância máxima para uma divisão com os parâmetros dados.
  * `nSaidas`: quantidade de saídas do ponto em questão — no modelo de
- * rede, vem de `acesso.quantidadeSaidas` (indicado pelo usuário), não
- * mais inferido do número de UPs do AD. */
+ * rede, vem de contarSaidasPavimento (raízes da árvore daquele
+ * pavimento), não mais indicado manualmente nem inferido do n de UPs. */
 export function getDistancia(divisao, pisoDescarga, nSaidas, temChuveiros, temDeteccao, distanciasMaximas) {
   const grupo = getGrupoDistancia(divisao, distanciasMaximas)
   if (!grupo) return null
@@ -163,12 +172,14 @@ export function getDistancia(divisao, pisoDescarga, nSaidas, temChuveiros, temDe
   return andar?.[chuv]?.[saidas]?.[detec] ?? null
 }
 
-/** Distância mínima (mais restritiva) para um pavimento inteiro */
+/** Distância mínima (mais restritiva) para um pavimento inteiro.
+ * `pav.pisoDescarga` é um booleano explícito por pavimento (não mais
+ * inferido de pav.tipo==='descarga') — ver ProjetoContext.jsx. */
 export function getDistanciaPavimento(pav, nSaidas, temChuveiros, temDeteccao, distanciasMaximas) {
   const divs = [...new Set(pav.ambientes.map(a => a.divisao).filter(Boolean))]
   if (!divs.length) return null
   const vals = divs
-    .map(d => getDistancia(d, pav.tipo === 'descarga', nSaidas, temChuveiros, temDeteccao, distanciasMaximas))
+    .map(d => getDistancia(d, pav.pisoDescarga, nSaidas, temChuveiros, temDeteccao, distanciasMaximas))
     .filter(v => v !== null)
   return vals.length ? Math.min(...vals) : null
 }
