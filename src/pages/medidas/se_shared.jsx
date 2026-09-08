@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState } from 'react'
 import Icon from '../../components/ui/Icon'
-import { taxaOpcoes, popTipoPadrao } from '../../data/se_calc'
+import { taxaOpcoes, popTipoPadrao, calcPT } from '../../data/se_calc'
 
 export const fmt  = n => Number(n).toFixed(2).replace('.', ',')
 export const fmtM = n => `${fmt(n)} m`
@@ -43,7 +43,7 @@ function DivisaoSelect({ value, onChange, ocupacoes }) {
       {Object.keys(ocupacoes).sort().map(grupo => (
         <optgroup key={grupo} label={`Grupo ${grupo} — ${ocupacoes[grupo]?.descricao || grupo}`}>
           {Object.keys(ocupacoes[grupo]?.divisoes || {}).map(div => (
-            <option key={div} value={div}>{div} — {ocupacoes[grupo].divisoes[div]}</option>
+            <option key={div} value={div}>{div}: {ocupacoes[grupo].divisoes[div]}</option>
           ))}
         </optgroup>
       ))}
@@ -52,11 +52,16 @@ function DivisaoSelect({ value, onChange, ocupacoes }) {
 }
 
 // ── Formulário de ambiente ────────────────────────────────────────────
-export function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes }) {
-  const { TAXA_POPULACIONAL } = seNorma
-  const blank = { nome:'', divisao:'', popTipo:'area', area:'', assentos:'', popManual:'' }
+// Sem campo de nome — o nome do ambiente é editado pelo lápis no título do
+// modal que envolve este formulário (ver AcessosDescargasView.jsx), não
+// aqui. `larguras`, se informado, habilita o cálculo de N° UP (porta) no
+// rodapé — omitir pra esconder esse número (ex.: uso fora do contexto da
+// árvore de Acessos e Descargas, onde ele não faz sentido).
+export function AmbienteForm({ initial, onSave, onCancel, seNorma, ocupacoes, larguras }) {
+  const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS } = seNorma
+  const blank = { divisao:'', popTipo:'area', area:'', assentos:'', popManual:'' }
   const [form, setForm] = useState(() => initial ? {
-    nome: initial.nome, divisao: initial.divisao, popTipo: initial.popTipo,
+    divisao: initial.divisao, popTipo: initial.popTipo,
     area: initial.area ? String(initial.area) : '',
     assentos: initial.assentos ? String(initial.assentos) : '',
     popManual: initial.popManual ? String(initial.popManual) : '',
@@ -78,7 +83,7 @@ export function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, oc
   const setTipo    = tipo => setForm(f => ({ ...f, popTipo: tipo, area:'', assentos:'', popManual:'' }))
 
   const canSave = () => {
-    if (!form.nome || !form.divisao) return false
+    if (!form.divisao) return false
     if (isArea && !form.area) return false
     if (isFixo && !form.assentos) return false
     if (isManual && !form.popManual) return false
@@ -87,29 +92,24 @@ export function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, oc
 
   const handleSave = () => {
     if (!canSave()) return
-    onSave({ nome: form.nome.trim(), divisao: form.divisao, popTipo: form.popTipo, area: parseFloat(form.area)||0, assentos: parseInt(form.assentos)||0, popManual: parseInt(form.popManual)||0 })
+    onSave({ divisao: form.divisao, popTipo: form.popTipo, area: parseFloat(form.area)||0, assentos: parseInt(form.assentos)||0, popManual: parseInt(form.popManual)||0 })
   }
 
-  const inputLabel = isArea ? 'Área (m²)' : isFixo ? 'N° de assentos' : 'N° de pessoas'
+  const inputLabel = isArea ? 'Área (m²)' : isFixo ? 'Assentos' : 'N° de pessoas'
+  const pop = popCalc()
+  const nUP = larguras ? calcPT(pop, taxa?.PT ?? 100, larguras).n : null
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <div className="grid grid-cols-[1fr_1.5fr] gap-2.5">
-        <div>
-          <Label>Nome do ambiente</Label>
-          <input className={inputClass} placeholder="ex.: Sala 101, Loja..." autoFocus={autoFocus}
-            value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} onKeyDown={e => e.key==='Enter' && handleSave()}/>
-        </div>
-        <div>
-          <Label>Divisão de ocupação</Label>
-          <DivisaoSelect value={form.divisao} onChange={setDivisao} ocupacoes={ocupacoes}/>
-        </div>
+    <div className="flex flex-col gap-3.5">
+      <div>
+        <Label>Divisão</Label>
+        <DivisaoSelect value={form.divisao} onChange={setDivisao} ocupacoes={ocupacoes}/>
       </div>
 
       {form.divisao && (
-        <div className={`grid gap-2.5 items-end ${opcoes.length > 1 ? 'grid-cols-[1.4fr_1fr_100px]' : 'grid-cols-[1.8fr_1fr_100px]'}`}>
+        <div className="grid grid-cols-2 gap-3.5">
           <div>
-            <Label>Taxa normativa — {form.divisao}</Label>
+            <Label>Taxa normativa</Label>
             {opcoes.length > 1 ? (
               <select className={inputClass} value={form.popTipo} onChange={e => setTipo(e.target.value)}>
                 {opcoes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -126,27 +126,39 @@ export function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, oc
             {isFixo   && <input className={inputClass} type="number" min="0" placeholder="ex.: 120"  value={form.assentos} onChange={e => setForm(f=>({...f,assentos:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
             {isManual && <input className={inputClass} type="number" min="0" placeholder="ex.: 8"    value={form.popManual} onChange={e => setForm(f=>({...f,popManual:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
           </div>
-          <div>
-            <Label>Pop. calculada</Label>
-            <div className={`${inputClass} bg-surface flex items-center justify-center font-bold text-[15px] ${popCalc()>0 ? 'text-red' : 'text-ink-faint'}`}>
-              {popCalc() || '—'}
-            </div>
+        </div>
+      )}
+
+      {taxa?.notas?.length > 0 && (
+        <div>
+          <Label>Notas</Label>
+          <div className="flex flex-col gap-1">
+            {taxa.notas.map(k => NOTAS_NORMATIVAS[k] && (
+              <div key={k} className="text-[11px] text-ink-faint leading-[1.5]">{NOTAS_NORMATIVAS[k]}</div>
+            ))}
           </div>
         </div>
       )}
 
-      {taxa?.notas?.length > 0 && taxa.A === null && (
-        <div className="ibox amber mb-0">
-          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-[11px]">{taxa.obs}</span>
+      <div className="flex items-center justify-between pt-3 mt-1 border-t border-solid border-border-2">
+        <div className="flex gap-6">
+          <div>
+            <div className="text-[9px] text-ink-faint uppercase tracking-[.07em] mb-0.5">População</div>
+            <div className={`text-lg font-bold ${pop>0 ? 'text-red' : 'text-ink-faint'}`}>{pop} Pessoas</div>
+          </div>
+          {nUP !== null && (
+            <div>
+              <div className="text-[9px] text-ink-faint uppercase tracking-[.07em] mb-0.5">U.P.</div>
+              <div className="text-lg font-bold text-ink">{nUP} UP</div>
+            </div>
+          )}
         </div>
-      )}
-
-      <div className="flex gap-1.5 justify-end">
-        <button className="btn-ghost" onClick={onCancel}><Icon name="x" size={12}/> Cancelar</button>
-        <button className={`btn-primary ${canSave() ? 'opacity-100 pointer-events-auto' : 'opacity-45 pointer-events-none'}`} onClick={handleSave}>
-          <Icon name="check" size={12}/> {initial ? 'Salvar' : 'Adicionar'}
-        </button>
+        <div className="flex gap-1.5">
+          <button className="btn-ghost" onClick={onCancel}><Icon name="x" size={12}/> Cancelar</button>
+          <button className={`btn-primary ${canSave() ? 'opacity-100 pointer-events-auto' : 'opacity-45 pointer-events-none'}`} onClick={handleSave}>
+            <Icon name="check" size={12}/> Salvar
+          </button>
+        </div>
       </div>
     </div>
   )
