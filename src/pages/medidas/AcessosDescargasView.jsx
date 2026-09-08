@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import Icon from '../../components/ui/Icon'
-import { AmbienteForm, DivBadge, Toggle, fmt, fmtM } from './SaidaEmergenciaPage'
+import { AmbienteForm, DivBadge, Toggle, fmtM } from './se_shared'
 import {
   calcPopAmb, calcNoAcesso, calcNoAmbientePT, contarSaidasPavimento,
 } from '../../data/se_calc'
