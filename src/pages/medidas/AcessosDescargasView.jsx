@@ -152,9 +152,11 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
     >
       <div className="flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none" onClick={() => toggleColapsado(acesso.id)}>
         <div className="flex items-center gap-2 min-w-0">
-          <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar (leva tudo dentro)">
-            <Icon name="grip" size={14}/>
-          </button>
+          {!isRaiz && (
+            <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar (leva tudo dentro)">
+              <Icon name="grip" size={14}/>
+            </button>
+          )}
           <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
           <InlineEditableNome value={acesso.nome} onCommit={renomear} textClassName="text-[15px] font-bold text-ink"/>
         </div>
