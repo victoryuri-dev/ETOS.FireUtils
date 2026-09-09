@@ -19,6 +19,7 @@ import * as MA_TRRF from './MA/trrf'
 import * as MA_EXT  from './MA/extintores'
 import * as MA_ILU  from './MA/iluminacao'
 import * as MA_SIN  from './MA/sinalizacao'
+import * as MA_NTS  from './MA/nts'
 
 import { getNormaRemota } from '../../lib/normasRemote'
 
@@ -30,6 +31,11 @@ const NORMAS_TRRF = { MA: MA_TRRF }
 const NORMAS_EXT  = { MA: MA_EXT }
 const NORMAS_ILU  = { MA: MA_ILU }
 const NORMAS_SIN  = { MA: MA_SIN }
+// getNts() não é parametrizado por UF hoje (só existe o MA_NTS estático,
+// e o único consumidor — MemorialDescritivoPage.jsx — sempre foi
+// hardcoded pro MA também); mantido assim pra não inventar comportamento
+// novo nesta migração, só trocar de onde o dado vem.
+const NTS_PADRAO  = MA_NTS
 
 // Estados listados no seletor — ativo:false = aparece mas nao pode selecionar
 export const ESTADOS_DISPONIVEIS = [
@@ -38,19 +44,27 @@ export const ESTADOS_DISPONIVEIS = [
   { uf: 'PB', nome: 'Paraiba — PB',    ativo: false },
 ]
 
-export function getNorma(uf)       { return NORMAS[uf] ?? null }
-
 // A tabela `normas_dados` (ver supabase/migrations/*normas_dados*) guarda
-// as chaves em minúsculo (tabela/notas/larguras_minimas/distancias_maximas
-// — mesma convenção que o lado Python já usava, ver
-// Fire Utils.tab/lib/normas/__init__.py._CHAVES_SAIDAS), enquanto todo o
-// resto do site (se_calc.js, se_shared.jsx, SaidaEmergenciaPage.jsx,
-// AcessosDescargasView.jsx) sempre esperou os nomes em maiúsculo do
-// arquivo estático (./MA/saida_emergencia.js: TAXA_POPULACIONAL,
-// NOTAS_NORMATIVAS, LARGURAS_MINIMAS, DISTANCIAS_MAXIMAS) — sem esse
-// adaptador, a estrutura da linha remota batia campo a campo mas com um
-// nome de chave diferente, e o app quebrava (`Cannot read properties of
-// undefined`) assim que a base central respondesse pela primeira vez.
+// as chaves em minúsculo, enquanto todo o resto do site sempre esperou os
+// nomes SCREAMING_SNAKE_CASE que `import * as X from './UF/sistema'`
+// produz a partir dos arquivos estáticos — sem esse adaptador, a
+// estrutura da linha remota bate campo a campo mas com nomes de chave
+// diferentes, e o app quebra (`Cannot read properties of undefined`)
+// assim que a base central responde pela primeira vez. Convenção: cada
+// chave devolvida é o nome em maiúsculo, lido de `remoto[chave em
+// minúsculo]` (ex.: DISTANCIA_MAXIMA <- remoto.distancia_maxima).
+function renomearDaBaseCentral(remoto, chaves) {
+  const out = {}
+  for (const chave of chaves) out[chave] = remoto[chave.toLowerCase()]
+  return out
+}
+
+// saida_emergencia é a única exceção a essa convenção — foi o primeiro
+// sistema migrado, e herdou os nomes mais curtos que o lado Python já
+// usava antes de a base central existir (ver
+// Fire Utils.tab/lib/normas/__init__.py._CHAVES_SAIDAS): tabela, notas,
+// larguras_minimas, distancias_maximas em vez de TAXA_POPULACIONAL,
+// NOTAS_NORMATIVAS, LARGURAS_MINIMAS, DISTANCIAS_MAXIMAS.
 function adaptarSEDaBaseCentral(remoto) {
   return {
     ...remoto,
@@ -58,6 +72,56 @@ function adaptarSEDaBaseCentral(remoto) {
     NOTAS_NORMATIVAS: remoto.notas,
     LARGURAS_MINIMAS: remoto.larguras_minimas,
     DISTANCIAS_MAXIMAS: remoto.distancias_maximas,
+  }
+}
+
+const CHAVES_AV   = ['GATILHO', 'NOTAS', 'VIA_ACESSO']
+const CHAVES_TRRF = ['CLASSES_ALTURA', 'CLASSES_SUBSOLO', 'DIVISOES_SEM_OCUPACAO_SUBSOLO', 'METODOLOGIA_POR_MATERIAL', 'NOTAS_ANEXO_B', 'TABELA_TRRF']
+const CHAVES_EXT  = ['ALTURA_INSTALACAO', 'AREA_LIMITE_UNIDADE_UNICA', 'DISTANCIA_ENTRADA_ESCADA', 'DISTANCIA_MAXIMA', 'LIMIARES_RISCO', 'LOCAIS_RISCO_ESPECIAL', 'NOTAS', 'PROPORCAO_RISCO_SECUNDARIO', 'TIPOS_PORTATIL', 'TIPOS_SOBRE_RODAS']
+const CHAVES_ILU  = ['AUTONOMIA_MINIMA_HORAS', 'CAMPOS_EQUIPAMENTO', 'EQUIPAMENTOS_ACLARAMENTO', 'ILUMINANCIA_MINIMA', 'NOTAS', 'PONTOS_BALIZAMENTO', 'PRESETS_EQUIPAMENTO', 'RAZAO_UNIFORMIDADE_MAX', 'TEMPO_RESPOSTA_MAX_S', 'TIPOS_SISTEMA']
+const CHAVES_SIN  = ['CATEGORIAS', 'NOTAS', 'TIPOS_PLACA']
+const CHAVES_MED  = ['LIMIARES', 'MEDIDAS', 'NOTAS_ESPECIFICAS', 'TABELA_SIMPLIFICADA']
+const CHAVES_NTS  = ['NTS_PADRAO_MA', 'NTS_POR_SISTEMA', 'NT_CARGA_INCENDIO']
+
+// JSON não serializa `Infinity` (vira `null`) — CLASSES_SUBSOLO usa
+// Infinity pra "sem teto" (S2 = profundidade > 10m). A migração grava
+// esse valor como a string "Infinity"; desfaz aqui antes de entregar pro
+// trrf_calc.js, que compara `profundidade <= classe.max` — com `null` em
+// vez de `Infinity`, subsolos > 10m nunca bateriam com nenhuma classe.
+function comInfinidade(classes) {
+  return classes.map((c) => (c.max === 'Infinity' ? { ...c, max: Infinity } : c))
+}
+
+// getSinalizacao: TIPOS_PLACA da base central não carrega `img` (é um
+// módulo de asset do bundler — Vite resolve o import pra uma URL em
+// build, não dá pra serializar em JSON), então o pictograma continua
+// vindo do bundle local (src/assets/sinalizacao/*), casado de volta pelo
+// `key` depois do fetch. Sempre usa o catálogo de imagens do MA porque os
+// pictogramas seguem a NBR 13434 (nacional) — não variam por estado, só o
+// texto normativo ao redor (categoria, local de instalação) pode variar.
+function anexarImagens(tiposPlacaRemoto) {
+  const imagemPorKey = new Map(MA_SIN.TIPOS_PLACA.map((t) => [t.key, t.img]))
+  return tiposPlacaRemoto.map((t) => ({ ...t, img: imagemPorKey.get(t.key) }))
+}
+
+// getNorma: ocupacoes.js virou DUAS linhas na base central (sistema
+// 'ocupacoes' = NORMA+OCUPACOES; sistema 'carga_incendio' = o mapa de
+// CNAEs — CARGADEINCENDIO) por serem duas coisas de natureza bem
+// diferente (a primeira pequena e estável, a segunda grande e mais
+// sujeita a correção pontual) — mas os consumidores abaixo (getOcupacoes,
+// getCargaMap, getNormaInfo) continuam lendo os três campos de um dict
+// só, como sempre foi. Não retorna null só por faltar o módulo estático:
+// um estado 100% novo (sem arquivo .js local, só linhas na base central)
+// também precisa funcionar.
+export function getNorma(uf) {
+  const base = NORMAS[uf] ?? null
+  const remotoOcup  = getNormaRemota(uf, 'ocupacoes')
+  const remotoCarga = getNormaRemota(uf, 'carga_incendio')
+  if (!base && !remotoOcup && !remotoCarga) return null
+  return {
+    ...base,
+    ...(remotoOcup  ? { NORMA: remotoOcup.norma, OCUPACOES: remotoOcup.ocupacoes } : null),
+    ...(remotoCarga ? { CARGADEINCENDIO: remotoCarga.cargadeincendio } : null),
   }
 }
 
@@ -71,11 +135,37 @@ export function getSE(uf) {
   const remoto = getNormaRemota(uf, 'saida_emergencia')
   return remoto ? adaptarSEDaBaseCentral(remoto) : (NORMAS_SE[uf] ?? NORMAS_SE['MA'])
 }
-export function getAV(uf)          { return NORMAS_AV[uf] ?? NORMAS_AV['MA'] }
-export function getTRRF(uf)        { return NORMAS_TRRF[uf] ?? NORMAS_TRRF['MA'] }
-export function getExtintores(uf)  { return NORMAS_EXT[uf] ?? NORMAS_EXT['MA'] }
-export function getIluminacao(uf)  { return NORMAS_ILU[uf] ?? NORMAS_ILU['MA'] }
-export function getSinalizacao(uf) { return NORMAS_SIN[uf] ?? NORMAS_SIN['MA'] }
+export function getAV(uf) {
+  const remoto = getNormaRemota(uf, 'acesso_viatura')
+  return remoto ? renomearDaBaseCentral(remoto, CHAVES_AV) : (NORMAS_AV[uf] ?? NORMAS_AV['MA'])
+}
+export function getTRRF(uf) {
+  const remoto = getNormaRemota(uf, 'trrf')
+  if (!remoto) return NORMAS_TRRF[uf] ?? NORMAS_TRRF['MA']
+  const adaptado = renomearDaBaseCentral(remoto, CHAVES_TRRF)
+  return {
+    ...adaptado,
+    CLASSES_ALTURA: comInfinidade(adaptado.CLASSES_ALTURA),
+    CLASSES_SUBSOLO: comInfinidade(adaptado.CLASSES_SUBSOLO),
+  }
+}
+export function getExtintores(uf) {
+  const remoto = getNormaRemota(uf, 'extintores')
+  return remoto ? renomearDaBaseCentral(remoto, CHAVES_EXT) : (NORMAS_EXT[uf] ?? NORMAS_EXT['MA'])
+}
+export function getIluminacao(uf) {
+  const remoto = getNormaRemota(uf, 'iluminacao')
+  return remoto ? renomearDaBaseCentral(remoto, CHAVES_ILU) : (NORMAS_ILU[uf] ?? NORMAS_ILU['MA'])
+}
+export function getSinalizacao(uf) {
+  const remoto = getNormaRemota(uf, 'sinalizacao')
+  if (!remoto) return NORMAS_SIN[uf] ?? NORMAS_SIN['MA']
+  return { ...renomearDaBaseCentral(remoto, CHAVES_SIN), TIPOS_PLACA: anexarImagens(remoto.tipos_placa) }
+}
+export function getNts(uf) {
+  const remoto = getNormaRemota(uf, 'nts')
+  return remoto ? renomearDaBaseCentral(remoto, CHAVES_NTS) : NTS_PADRAO
+}
 export function getOcupacoes(uf)   { return getNorma(uf)?.OCUPACOES ?? {} }
 export function getGrupos(uf)      {
   const oc = getOcupacoes(uf)
@@ -119,7 +209,12 @@ export function temCNAECadastrado(uf, divisao) {
 // ── Medidas de segurança ─────────────────────────────────────────────────────
 
 export function getMedidas(uf) {
-  return NORMAS_MED[uf] ?? null
+  const remoto = getNormaRemota(uf, 'medidas_seguranca')
+  // Diferente dos outros getters, não cai pro MA quando `uf` não tem dado
+  // — sem regra cadastrada pro estado, aplicar a do MA por engano seria
+  // pior que simplesmente admitir que a norma ainda não foi cadastrada
+  // (comportamento já era esse antes desta migração, mantido de propósito).
+  return remoto ? renomearDaBaseCentral(remoto, CHAVES_MED) : (NORMAS_MED[uf] ?? null)
 }
 
 /**

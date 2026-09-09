@@ -1,9 +1,8 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial } from '../../data/memorial/registry'
-import { NTS_PADRAO_MA, NT_CARGA_INCENDIO, NTS_POR_SISTEMA } from '../../data/normas/MA/nts'
 import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS } from '../../utils/anexoB'
-import { getCNAEsDivisao, getOcupacoes } from '../../data/normas/index'
+import { getCNAEsDivisao, getOcupacoes, getNts } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
 
 // Memorial descritivo: um documento para impressão, uma pagina A4 por medida
@@ -119,7 +118,8 @@ function Sumario({ topicos, totalPaginas }) {
   )
 }
 
-function Introducao({ sistemas, totalPaginas }) {
+function Introducao({ sistemas, totalPaginas, uf }) {
+  const { NTS_PADRAO_MA, NT_CARGA_INCENDIO, NTS_POR_SISTEMA } = getNts(uf)
   const nts = Object.entries(sistemas || {})
     .filter(([, s]) => s.ativo || s.obrigatorio)
     .map(([key]) => NTS_POR_SISTEMA[key])
@@ -502,7 +502,7 @@ export default function MemorialDescritivoPage({ onBack }) {
           <div className="print-area print-area-memorial">
             <Capa state={state} totalPaginas={totalPaginas}/>
             <Sumario topicos={topicos} totalPaginas={totalPaginas}/>
-            <Introducao sistemas={sistemas} totalPaginas={totalPaginas}/>
+            <Introducao sistemas={sistemas} totalPaginas={totalPaginas} uf={state.uf}/>
             <SobreEdificacao state={state} totalPaginas={totalPaginas}/>
             <Caracterizacao state={state} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
             <MedidasAplicadas state={state} sistemas={sistemas} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
