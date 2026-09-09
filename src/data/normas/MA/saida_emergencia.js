@@ -1,7 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Dados normativos de Saídas de Emergência — Maranhão
 // Fonte: NT 42/2019 CBMMA / NBR 9077
-// Apenas dados. Funções de cálculo em src/data/se_calc.js
+//
+// FALLBACK OFFLINE/DEV: a fonte de verdade é a tabela `normas_dados`
+// (uf='MA', sistema='saida_emergencia') no Supabase — ver
+// supabase/migrations/*normas_dados* e src/lib/normasRemote.js. Este
+// arquivo só é usado quando a busca remota ainda não completou ou falha
+// (sem rede). Editar a norma? Edite a linha no Supabase, não aqui — este
+// arquivo só precisa ser atualizado de vez em quando, pra não ficar
+// defasado como fallback.
+//
+// Funções de cálculo em src/data/se_calc.js
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Taxa populacional por divisão ─────────────────────────────────────
@@ -62,11 +71,15 @@ export const TAXA_POPULACIONAL = {
   'L-1': { A: 3,    AD: 100, ER: 60, PT: 100, obs: '1 pessoa por 3m²',                                  notas: []              },
   'L-2': { A: 10,   AD: 100, ER: 60, PT: 100, obs: '1 pessoa por 10m²',                                 notas: []              },
   'L-3': { A: 10,   AD: 100, ER: 60, PT: 100, obs: '1 pessoa por 10m²',                                 notas: []              },
+  // M-3/M-4/M-5: valores numéricos adotados do plugin (já em uso real no
+  // cálculo Python) no lugar do "consultar norma específica" que só
+  // existia aqui. PENDENTE revisar com o CBM-MA — ver "_pendencias" na
+  // linha normas_dados no Supabase.
   'M-1': { A: null, AD: 100, ER: 75, PT: 100, obs: 'Consultar NT específica (Túnel)',                   notas: ['I']           },
   'M-2': { A: null, AD: 100, ER: 75, PT: 100, obs: 'Consultar NT específica (Líquido/gás inflamável)',  notas: ['I']           },
-  'M-3': { A: null, AD: 100, ER: 60, PT: 100, obs: 'Consultar NT específica (Central de comunicação)',  notas: ['I']           },
-  'M-4': { A: null, AD: 100, ER: 60, PT: 100, obs: 'Consultar NT específica (Canteiro de obras)',       notas: ['I']           },
-  'M-5': { A: null, AD: 100, ER: 60, PT: 100, obs: 'Consultar NT específica (Silos)',                   notas: ['I']           },
+  'M-3': { A: 10,   AD: 100, ER: 60, PT: 100, obs: '1 pessoa por 10m²',                                 notas: []              },
+  'M-4': { A: 4,    AD: 60,  ER: 45, PT: 100, obs: '1 pessoa por 4m²',                                  notas: []              },
+  'M-5': { A: 10,   AD: 100, ER: 60, PT: 100, obs: '1 pessoa por 10m²',                                 notas: []              },
   'M-6': { A: null, AD: 100, ER: 60, PT: 100, obs: 'Consultar NT específica (Floresta)',                notas: ['I']           },
   'M-7': { A: null, AD: 100, ER: 60, PT: 100, obs: 'Consultar NT específica (Pátio de contêineres)',   notas: ['I']           },
   'M-8': { A: null, AD: 100, ER: 60, PT: 100, obs: 'Consultar NT específica (Torres de telefonia)',    notas: ['I']           },
@@ -95,69 +108,75 @@ export const LARGURAS_MINIMAS = {
   AD: 1.20,
   ER: 1.20,
   PT: [
-    { nUp: 1, largura: 0.80, tipo: '1 folha'  },
-    { nUp: 2, largura: 1.00, tipo: '1 folha'  },
-    { nUp: 3, largura: 1.50, tipo: '2 folhas' },
-    { nUp: 4, largura: 2.00, tipo: '2 folhas' },
+    { n_up: 1, largura: 0.80, tipo: '1 folha'  },
+    { n_up: 2, largura: 1.00, tipo: '1 folha'  },
+    { n_up: 3, largura: 1.50, tipo: '2 folhas' },
+    { n_up: 4, largura: 2.00, tipo: '2 folhas' },
   ],
 }
 
 // ── Distâncias máximas (NBR 9077) ─────────────────────────────────────
+// Formato mapa_ocupacao (divisão -> id do grupo) + grupos (id -> dados) —
+// igual ao que o plugin já usava, no lugar do array de blocos com
+// "divisoes" embutido que existia aqui antes. Mesma informação.
 const _dist = (sem_su, sem_ms, com_su, com_ms) => ({
-  sem_chuveiros: {
-    saida_unica:       { sem_deteccao: sem_su[0], com_deteccao: sem_su[1] },
-    mais_de_uma_saida: { sem_deteccao: sem_ms[0], com_deteccao: sem_ms[1] },
+  sem_chuveiro: {
+    saida_unica: { sem_deteccao: sem_su[0], com_deteccao: sem_su[1] },
+    mais_saidas: { sem_deteccao: sem_ms[0], com_deteccao: sem_ms[1] },
   },
-  com_chuveiros: {
-    saida_unica:       { sem_deteccao: com_su[0], com_deteccao: com_su[1] },
-    mais_de_uma_saida: { sem_deteccao: com_ms[0], com_deteccao: com_ms[1] },
+  com_chuveiro: {
+    saida_unica: { sem_deteccao: com_su[0], com_deteccao: com_su[1] },
+    mais_saidas: { sem_deteccao: com_ms[0], com_deteccao: com_ms[1] },
   },
 })
 
-export const BLOCOS_DISTANCIA = [
-  {
-    id: 'A_B',
-    label: 'Grupos A e B',
-    divisoes: ['A-1','A-2','A-3','B-1','B-2'],
-    piso_de_descarga: _dist([45,55],[55,65],[60,70],[80,95]),
-    demais_andares:   _dist([40,45],[50,60],[55,65],[75,90]),
+export const DISTANCIAS_MAXIMAS = {
+  mapa_ocupacao: {
+    'A-1': 'AB', 'A-2': 'AB', 'A-3': 'AB',
+    'B-1': 'AB', 'B-2': 'AB',
+    'C-1': 'CDFG', 'C-2': 'CDFG', 'C-3': 'CDFG',
+    'D-1': 'CDFG', 'D-2': 'CDFG', 'D-3': 'CDFG', 'D-4': 'CDFG',
+    'E-1': 'CDFG', 'E-2': 'CDFG', 'E-3': 'CDFG', 'E-4': 'CDFG', 'E-5': 'CDFG', 'E-6': 'CDFG',
+    'F-1': 'CDFG', 'F-2': 'CDFG', 'F-3': 'CDFG', 'F-4': 'CDFG', 'F-5': 'CDFG',
+    'F-6': 'CDFG', 'F-7': 'CDFG', 'F-8': 'CDFG', 'F-9': 'CDFG', 'F-10': 'CDFG', 'F-11': 'CDFG',
+    'G-1': 'G1G2J2', 'G-2': 'G1G2J2',
+    'G-3': 'CDFG', 'G-4': 'CDFG', 'G-5': 'CDFG',
+    'H-1': 'CDFG', 'H-2': 'CDFG', 'H-3': 'CDFG', 'H-4': 'CDFG', 'H-5': 'CDFG', 'H-6': 'CDFG',
+    'I-1': 'I1J1',
+    'I-2': 'I2I3J3J4', 'I-3': 'I2I3J3J4',
+    'J-1': 'G1G2J2',
+    'J-2': 'G1G2J2',
+    'J-3': 'I2I3J3J4', 'J-4': 'I2I3J3J4',
+    'K-1': 'CDFG',
+    'L-1': 'CDFG', 'L-2': 'CDFG', 'L-3': 'CDFG',
+    'M-1': 'CDFG', 'M-2': 'CDFG', 'M-3': 'CDFG', 'M-4': 'CDFG',
+    'M-5': 'CDFG', 'M-6': 'CDFG', 'M-7': 'CDFG', 'M-8': 'CDFG',
   },
-  {
-    id: 'C_D_E_F_G345_H_K_L_M',
-    label: 'Grupos C, D, E, F, G-3~5, H, K, L, M',
-    divisoes: [
-      'C-1','C-2','C-3',
-      'D-1','D-2','D-3','D-4',
-      'E-1','E-2','E-3','E-4','E-5','E-6',
-      'F-1','F-2','F-3','F-4','F-5','F-6','F-7','F-8','F-9','F-10','F-11',
-      'G-3','G-4','G-5',
-      'H-1','H-2','H-3','H-4','H-5','H-6',
-      'K-1',
-      'L-1','L-2','L-3',
-      'M-1','M-2','M-3','M-4','M-5','M-6','M-7','M-8',
-    ],
-    piso_de_descarga: _dist([40,45],[50,60],[55,65],[75,90]),
-    demais_andares:   _dist([30,35],[40,45],[45,55],[65,75]),
+  grupos: {
+    AB: {
+      descricao: 'A e B',
+      terreo: _dist([45,55],[55,65],[60,70],[80,95]),
+      demais: _dist([40,45],[50,60],[55,65],[75,90]),
+    },
+    CDFG: {
+      descricao: 'C, D, E, F, G-3, G-4, G-5, H, K, L e M',
+      terreo: _dist([40,45],[50,60],[55,65],[75,90]),
+      demais: _dist([30,35],[40,45],[45,55],[65,75]),
+    },
+    I1J1: {
+      descricao: 'I-1 e J-1',
+      terreo: _dist([80,95],[120,140],[null,null],[null,null]),
+      demais: _dist([70,80],[110,130],[null,null],[null,null]),
+    },
+    G1G2J2: {
+      descricao: 'G-1, G-2 e J-2',
+      terreo: _dist([50,60],[60,70],[80,95],[120,140]),
+      demais: _dist([45,55],[55,65],[70,80],[110,130]),
+    },
+    I2I3J3J4: {
+      descricao: 'I-2, I-3, J-3 e J-4',
+      terreo: _dist([40,45],[50,60],[60,70],[100,120]),
+      demais: _dist([30,35],[40,45],[50,65],[80,95]),
+    },
   },
-  {
-    id: 'I1_J1',
-    label: 'Grupos I-1 e J-1',
-    divisoes: ['I-1','J-1'],
-    piso_de_descarga: _dist([80,95],[120,140],[null,null],[null,null]),
-    demais_andares:   _dist([70,80],[110,130],[null,null],[null,null]),
-  },
-  {
-    id: 'G1_G2_J2',
-    label: 'Grupos G-1, G-2 e J-2',
-    divisoes: ['G-1','G-2','J-2'],
-    piso_de_descarga: _dist([50,60],[60,70],[80,95],[120,140]),
-    demais_andares:   _dist([45,55],[55,65],[70,80],[110,130]),
-  },
-  {
-    id: 'I2_I3_J3_J4',
-    label: 'Grupos I-2, I-3, J-3 e J-4',
-    divisoes: ['I-2','I-3','J-3','J-4'],
-    piso_de_descarga: _dist([40,45],[50,60],[60,70],[100,120]),
-    demais_andares:   _dist([30,35],[40,45],[50,65],[80,95]),
-  },
-]
+}

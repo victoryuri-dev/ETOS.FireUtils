@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { carregarNormasRemotas } from '../lib/normasRemote'
 import { useAuth } from './AuthContext'
 import { PROCEDIMENTOS_PADRAO } from '../utils/planoEmergencia'
 
@@ -93,6 +94,30 @@ function idAmbienteSE() {
   return `amb-${Date.now().toString(36)}-${ambienteSESeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
+// Mesma lógica de idAmbienteSE — evita colisão entre nós de Acesso/Saída
+// criados no mesmo milissegundo (árvore de saída, SaidaEmergenciaPage.jsx
+// / tela de Acessos e Descargas).
+let acessoSeq = 0
+function idAcesso() {
+  acessoSeq += 1
+  return `acs-${Date.now().toString(36)}-${acessoSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Árvore inicial de todo pavimento novo: uma raiz (Saída, se o pavimento
+// nasce como piso de descarga; Escada/Rampa nos demais — ver tipoDoNo em
+// se_calc.js, que decide isso pela posição na árvore + `pisoDescarga` do
+// pavimento, não por um campo aqui) já com um Acesso dentro dela, pronto
+// pra receber ambientes. Evita a tela vazia "Nenhuma saída criada ainda"
+// no primeiro uso — o usuário sempre pode renomear, criar mais raízes/
+// acessos ou remover estes, como qualquer outro nó da árvore.
+function acessosPadrao(pisoDescarga) {
+  const raizId = idAcesso()
+  return [
+    { id: raizId, nome: pisoDescarga ? 'Saída 01' : 'Escada/Rampa 01', alimentaEm: null },
+    { id: idAcesso(), nome: 'Acesso 1', alimentaEm: raizId },
+  ]
+}
+
 // Item de sinalização de emergência — granularidade só até pavimento (sem
 // ambiente), conforme NT 20 CBMMA / NBR 13434. `tipoPlaca` referencia a
 // chave do catálogo em normas/MA/sinalizacao.js (TIPOS_PLACA).
@@ -164,9 +189,18 @@ function hydrateState(saved) {
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
     planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
     // Migração: pavimentos salvos antes de `ambientes` (Saída de Emergência)
-    // existir não têm esse campo — sem isso, o reducer quebraria ao tentar
-    // ler/mapear `p.ambientes` de um pavimento antigo.
-    pavimentos: (saved.pavimentos || INITIAL_STATE.pavimentos).map(p => ({ ambientes: [], ...p })),
+    // ou de `acessos`/`pisoDescarga` (árvore de Acessos e Descargas)
+    // existirem não têm esses campos — sem isso, o reducer quebraria ao
+    // tentar ler/mapear `p.ambientes`/`p.acessos` de um pavimento antigo.
+    // `pisoDescarga` nasce do `tipo` antigo (só o térreo era considerado
+    // piso de descarga), mas agora é um campo independente, editável por
+    // pavimento na tela de Acessos e Descargas. Detecção de incêndio NÃO é
+    // mais por pavimento — vem de sistemasPorEstrutura (Medidas de
+    // Segurança), igual chuveiros automáticos. Pavimentos antigos sem
+    // acessos ficam com `[]` mesmo (não ganham a árvore padrão
+    // retroativamente) — só pavimentos criados a partir de agora nascem com
+    // ela, ver acessosPadrao.
+    pavimentos: (saved.pavimentos || INITIAL_STATE.pavimentos).map(p => ({ ambientes: [], acessos: [], pisoDescarga: p.tipo === 'terreo', ...p })),
     ...migrarParaPorEstrutura(saved),
   }
 }
@@ -209,9 +243,11 @@ function novaEstrutura(nome, id) {
 // pavimento de saída, em vez de deixar `pavimentos` vazio até o usuário
 // mexer nos campos do Step2 (mesmo formato produzido pelo térreo em
 // REBUILD_PAVIMENTOS, que o reaproveita ao invés de recriar quando os
-// valores mudam).
+// valores mudam). `acessos`/`pisoDescarga`: ver árvore de Acessos e
+// Descargas (tela dedicada, dentro de Saída de Emergência) — piso de
+// descarga nasce true aqui (é o térreo), mas fica editável lá.
 function pavimentoTerreo(estruturaId) {
-  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [] }
+  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(true), pisoDescarga: true }
 }
 
 const INITIAL_STATE = {
@@ -361,14 +397,14 @@ function reducer(state, action) {
       const list = []
       for (let s = nSub; s >= 1; s--) {
         const id = `${estruturaId}-sub-${s}`
-        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
       }
       const terId = `${estruturaId}-P1`
       const ter = find(terId)
       list.push(ter || pavimentoTerreo(estruturaId))
       for (let p = 2; p <= nPav; p++) {
         const id = `${estruturaId}-P${p}`
-        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
       }
       const idsValidos = new Set(list.map(p => p.id))
       return {
@@ -381,6 +417,22 @@ function reducer(state, action) {
     }
     case 'UPDATE_PAV':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, ...action.changes } : p) }
+    // Só pode haver um piso de descarga por estrutura — marcar um como
+    // piso de descarga (valor:true) desmarca automaticamente qualquer
+    // outro pavimento da MESMA estrutura. Desmarcar (valor:false) só afeta
+    // o próprio pavimento (pode deixar a estrutura sem nenhum marcado
+    // temporariamente, enquanto o usuário reconfigura).
+    case 'SET_PISO_DESCARGA': {
+      const { pavimentoId, estruturaId, valor } = action
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => {
+          if (p.id === pavimentoId) return { ...p, pisoDescarga: valor }
+          if (valor && p.estruturaId === estruturaId) return { ...p, pisoDescarga: false }
+          return p
+        }),
+      }
+    }
     case 'REPLICATE_TERREO': {
       const { estruturaId } = action
       const t = state.pavimentos.find(p => p.estruturaId === estruturaId && p.tipo === 'terreo')
@@ -520,6 +572,73 @@ function reducer(state, action) {
       const porPavimento = new Map(action.atualizacoes.map(a => [a.pavimentoId, a.ambientes]))
       return { ...state, pavimentos: state.pavimentos.map(p => porPavimento.has(p.id) ? { ...p, ambientes: porPavimento.get(p.id) } : p) }
     }
+    // ── Árvore de Acessos e Descargas (Ambiente -> Acesso -> Acesso/Saída) ──
+    // Ver se_calc.js (calcNoAcesso/ambientesDoAcesso) pro motor de cálculo.
+    // Um "Acesso" com alimentaEm=null é uma Saída (raiz da árvore daquele
+    // pavimento) — não existe um tipo de nó separado pra Saída, só a posição
+    // na árvore muda.
+    case 'CRIAR_SAIDA':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: null }] }
+          : p),
+      }
+    case 'CRIAR_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: action.alimentaEm }] }
+          : p),
+      }
+    case 'RENOMEAR_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: (p.acessos || []).map(ac => ac.id === action.acessoId ? { ...ac, nome: action.nome } : ac) }
+          : p),
+      }
+    // Move um ambiente pra outro Acesso — inclusive entre Saídas diferentes
+    // do mesmo pavimento (arrastar o quadradinho do Ambiente).
+    case 'MOVER_AMBIENTE_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, ambientes: (p.ambientes || []).map(a => a.id === action.ambienteId ? { ...a, acessoId: action.novoAcessoId } : a) }
+          : p),
+      }
+    // Move um Acesso (e, por consequência do cálculo recursivo em
+    // se_calc.js, todo o conjunto de ambientes/acessos que já alimentavam
+    // ele) pra alimentar outro nó — ou pra null, virando uma Saída nova.
+    // Validar ciclo (um acesso não pode alimentar seu próprio descendente)
+    // é responsabilidade de quem despacha, não do reducer.
+    case 'MOVER_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: (p.acessos || []).map(ac => ac.id === action.acessoId ? { ...ac, alimentaEm: action.novoAlimentaEm } : ac) }
+          : p),
+      }
+    // Remove um nó de Acesso/Saída sem apagar em cascata: o que alimentava
+    // ele (ambientes e/ou outros acessos) fica órfão (acessoId/alimentaEm
+    // voltam a null) em vez de sumir — o usuário reposiciona depois, mas
+    // não perde nenhum ambiente cadastrado.
+    case 'REMOVER_ACESSO': {
+      const { pavimentoId, acessoId } = action
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => {
+          if (p.id !== pavimentoId) return p
+          return {
+            ...p,
+            acessos: (p.acessos || [])
+              .filter(ac => ac.id !== acessoId)
+              .map(ac => ac.alimentaEm === acessoId ? { ...ac, alimentaEm: null } : ac),
+            ambientes: (p.ambientes || []).map(a => a.acessoId === acessoId ? { ...a, acessoId: null } : a),
+          }
+        }),
+      }
+    }
     case 'SET_BALIZAMENTO_APLICADO':
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
@@ -613,6 +732,8 @@ function resolverAcaoLocal(action, state) {
     case 'ADD_ESPECIFICACAO_EQUIPAMENTO':
     case 'SET_EQUIPAMENTO_USADO':
     case 'ADD_AMBIENTE_SE':
+    case 'CRIAR_SAIDA':
+    case 'CRIAR_ACESSO':
       return action.id ? action : { ...action, id: idParaTipo(action.type)() }
     case 'IMPORT_EXTINTORES':
       return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idExtintor() }) }
@@ -641,6 +762,7 @@ function idParaTipo(tipo) {
   if (tipo === 'ADD_SINALIZACAO')  return idSinalizacao
   if (tipo === 'ADD_ESTRUTURA')    return idEstrutura
   if (tipo === 'ADD_AMBIENTE_SE')  return idAmbienteSE
+  if (tipo === 'CRIAR_SAIDA' || tipo === 'CRIAR_ACESSO') return idAcesso
   return idEspecEquip // ADD_ESPECIFICACAO_EQUIPAMENTO / SET_EQUIPAMENTO_USADO
 }
 
@@ -661,6 +783,13 @@ export function ProjetoProvider({ children }) {
   // elegivel, e some de novo se entrar em conflito — o banner de conflito ja
   // comunica o problema, dois avisos ao mesmo tempo seria redundante.
   const [syncStatus, setSyncStatus] = useState(null)
+  // Contador incrementado quando a base normativa central (normas_dados)
+  // termina de carregar em background — os getters em data/normas/index.js
+  // (getSE, etc.) são síncronos e já rodaram no primeiro render das
+  // páginas de medida, antes do fetch completar. Como nada nesta árvore lê
+  // o valor em si, só a mudança de referência do value do Provider já basta
+  // pra re-renderizar os consumidores e eles pegarem o dado novo do cache.
+  const [normasVersion, setNormasVersion] = useState(0)
 
   const [state, rawDispatch] = useReducer(reducer, INITIAL_STATE, (init) => {
     try {
@@ -681,6 +810,14 @@ export function ProjetoProvider({ children }) {
   })
 
   const definirVersaoConhecida = v => { versaoRef.current = v; setConflito(false) }
+
+  // Busca a base normativa central (normas_dados) para o UF do projeto —
+  // dispara no boot e de novo se o UF mudar (endereço editado na Etapa 1).
+  useEffect(() => {
+    let cancelado = false
+    carregarNormasRemotas(state.uf).then(() => { if (!cancelado) setNormasVersion(v => v + 1) })
+    return () => { cancelado = true }
+  }, [state.uf])
 
   // Estado sempre atual, pra ler dentro do `dispatch` (useCallback com deps
   // vazias, ver abaixo) sem precisar recriar a função a cada mudança —
@@ -814,7 +951,7 @@ export function ProjetoProvider({ children }) {
   }, [state, user, conflito])
 
   return (
-    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida, syncStatus }}>
+    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida, syncStatus, normasVersion }}>
       {children}
     </Ctx.Provider>
   )

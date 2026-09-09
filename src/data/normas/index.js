@@ -20,6 +20,8 @@ import * as MA_EXT  from './MA/extintores'
 import * as MA_ILU  from './MA/iluminacao'
 import * as MA_SIN  from './MA/sinalizacao'
 
+import { getNormaRemota } from '../../lib/normasRemote'
+
 const NORMAS      = { MA, PE, PB }
 const NORMAS_SE   = { MA: MA_SE }
 const NORMAS_MED  = { MA: MA_MED }
@@ -37,7 +39,38 @@ export const ESTADOS_DISPONIVEIS = [
 ]
 
 export function getNorma(uf)       { return NORMAS[uf] ?? null }
-export function getSE(uf)          { return NORMAS_SE[uf] ?? NORMAS_SE['MA'] }
+
+// A tabela `normas_dados` (ver supabase/migrations/*normas_dados*) guarda
+// as chaves em minúsculo (tabela/notas/larguras_minimas/distancias_maximas
+// — mesma convenção que o lado Python já usava, ver
+// Fire Utils.tab/lib/normas/__init__.py._CHAVES_SAIDAS), enquanto todo o
+// resto do site (se_calc.js, se_shared.jsx, SaidaEmergenciaPage.jsx,
+// AcessosDescargasView.jsx) sempre esperou os nomes em maiúsculo do
+// arquivo estático (./MA/saida_emergencia.js: TAXA_POPULACIONAL,
+// NOTAS_NORMATIVAS, LARGURAS_MINIMAS, DISTANCIAS_MAXIMAS) — sem esse
+// adaptador, a estrutura da linha remota batia campo a campo mas com um
+// nome de chave diferente, e o app quebrava (`Cannot read properties of
+// undefined`) assim que a base central respondesse pela primeira vez.
+function adaptarSEDaBaseCentral(remoto) {
+  return {
+    ...remoto,
+    TAXA_POPULACIONAL: remoto.tabela,
+    NOTAS_NORMATIVAS: remoto.notas,
+    LARGURAS_MINIMAS: remoto.larguras_minimas,
+    DISTANCIAS_MAXIMAS: remoto.distancias_maximas,
+  }
+}
+
+// getSE: primeiro sistema migrado pra base normativa central
+// (normas_dados no Supabase — ver supabase/migrations/*normas_dados* e
+// src/lib/normasRemote.js). getNormaRemota() devolve null enquanto o fetch
+// não completou (ou se falhar), e cai pro arquivo estático empacotado
+// (./MA/saida_emergencia.js) — que passa a ser só o fallback offline/dev,
+// não mais a fonte de verdade.
+export function getSE(uf) {
+  const remoto = getNormaRemota(uf, 'saida_emergencia')
+  return remoto ? adaptarSEDaBaseCentral(remoto) : (NORMAS_SE[uf] ?? NORMAS_SE['MA'])
+}
 export function getAV(uf)          { return NORMAS_AV[uf] ?? NORMAS_AV['MA'] }
 export function getTRRF(uf)        { return NORMAS_TRRF[uf] ?? NORMAS_TRRF['MA'] }
 export function getExtintores(uf)  { return NORMAS_EXT[uf] ?? NORMAS_EXT['MA'] }

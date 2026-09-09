@@ -1,55 +1,47 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { supabase } from '../../lib/supabase'
 import { getSE } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
-import {
-  calcPopAmb, calcPopPav, capPavimento, pavMaisPopuloso,
-  calcAD, calcER, calcPT,
-  getDistanciaPavimento,
-  taxaOpcoes, popTipoPadrao,
-} from '../../data/se_calc'
+import AcessosDescargasView from './AcessosDescargasView'
+import { calcPopPav, contarSaidasPavimento, getDistanciaPavimento } from '../../data/se_calc'
 
 // ── Helpers ───────────────────────────────────────────────────────────
 let _seq = 0
 const uid  = () => `se-${Date.now()}-${++_seq}`
-const fmt  = n  => Number(n).toFixed(2).replace('.', ',')
-const fmtM = n  => `${fmt(n)} m`
 
 // Ambientes ficam no reducer compartilhado (state.pavimentos[].ambientes) —
-// aqui só remodela pro formato que esta página usa (nome/tipo já traduzidos
-// pros valores que se_calc.js espera).
+// aqui só remodela pro formato que esta página usa. `pisoDescarga`/
+// `acessos` são repassados como estão no reducer — o popup de Acessos e
+// Descargas (AcessosDescargasView) lê o pavimento cru direto de
+// state.pavimentos, não esta versão remodelada. `divisao` é a
+// classificação de ocupação da Etapa 4 (Step4.jsx) — usada pela distância
+// máxima a percorrer, não pelas divisões dos ambientes daqui.
 function derivarPavimentos(projetoPavs) {
   if (!projetoPavs?.length) return []
   return projetoPavs.map(p => ({
     id: p.id, nome: p.label, estruturaId: p.estruturaId,
-    tipo: p.tipo === 'terreo' ? 'descarga' : 'tipo',
+    pisoDescarga: p.pisoDescarga ?? (p.tipo === 'terreo'),
+    divisao: p.divisao,
     ambientes: p.ambientes || [],
+    acessos: p.acessos || [],
   }))
 }
 
-// ── Shared UI ─────────────────────────────────────────────────────────
-const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'
-function Label({ children }) {
-  return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">{children}</div>
-}
-function DivBadge({ label }) {
+// ── Badge informativo (chuveiros/detecção — não editáveis aqui) ────────
+function SistemaBadge({ ativo, label }) {
   return (
-    <span className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-1.5 rounded bg-red text-white text-[11px] font-bold">{label || '?'}</span>
-  )
-}
-function Toggle({ checked, onChange, label }) {
-  return (
-    <button onClick={() => onChange(!checked)} className={`flex items-center gap-2 bg-transparent border border-solid border-border rounded-md py-1.5 px-3 cursor-pointer text-xs ${checked ? 'text-ink font-medium' : 'text-ink-faint font-normal'}`}>
-      <div className={`w-7 h-4 rounded-[8px] shrink-0 relative transition-colors duration-200 ${checked ? 'bg-red' : 'bg-border'}`}>
-        <div className={`absolute top-0.5 ${checked ? 'left-3.5' : 'left-0.5'} w-3 h-3 rounded-full bg-white transition-[left] duration-200`}/>
-      </div>
+    <span className={`inline-flex items-center gap-1.5 text-[11px] py-1 px-2.5 rounded-md border border-solid ${ativo ? 'border-green-border bg-green-dim text-green' : 'border-border text-ink-faint'}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${ativo ? 'bg-green' : 'bg-border'}`}/>
       {label}
-    </button>
+    </span>
   )
 }
+
+// ── Shared UI ─────────────────────────────────────────────────────────
 function TH({ children, right, center }) {
   return <th className={`text-[10px] text-ink-faint uppercase tracking-[.07em] font-medium py-[9px] px-3.5 border-b border-solid border-border whitespace-nowrap bg-surface-2 ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}>{children}</th>
 }
@@ -62,290 +54,6 @@ function Chip({ val, green }) {
 }
 function DimTable({ children }) {
   return <div className="border border-solid border-border rounded-md overflow-hidden mb-1"><table className="w-full border-collapse">{children}</table></div>
-}
-function SectionTitle({ label, desc }) {
-  return (
-    <div className={desc ? 'mb-2' : 'mb-3'}>
-      <h3 className="text-[13px] font-semibold text-ink mt-0 mx-0 mb-1">{label}</h3>
-      {desc && <p className="text-[11px] text-ink-faint m-0 leading-[1.5]">{desc}</p>}
-    </div>
-  )
-}
-function StepHeader({ n, label, desc }) {
-  return (
-    <div className="flex items-start gap-3 mb-4">
-      <div className="w-6 h-6 rounded-full bg-red text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5">{n}</div>
-      <div>
-        <h3 className="text-[15px] font-bold text-ink m-0 mb-1">{label}</h3>
-        {desc && <p className="text-[12px] text-ink-faint leading-[1.6] m-0 max-w-[620px]">{desc}</p>}
-      </div>
-    </div>
-  )
-}
-function LargAdotadaInput({ laMin, value, onChange }) {
-  const [err, setErr] = useState(false)
-  const display = value != null ? value : laMin
-  return (
-    <td className="py-1.5 px-3.5 border-b border-solid border-border-2 text-right align-middle">
-      <div className="relative inline-flex items-center gap-1">
-        <input type="number" step="0.05" min={laMin} value={display}
-          onChange={e => { const v = parseFloat(e.target.value); if (isNaN(v)||v<laMin){setErr(true);onChange(laMin)}else{setErr(false);onChange(+v.toFixed(2))} }}
-          onBlur={e => { const v = parseFloat(e.target.value); if (isNaN(v)||v<laMin){setErr(false);onChange(laMin)} }}
-          className={`w-[90px] bg-surface border border-solid rounded-md text-green font-bold text-[13px] py-1 px-2 text-right outline-none font-mono ${err ? 'border-red' : 'border-border'}`}
-        />
-        <span className="text-[11px] text-ink-faint">m</span>
-        {err && <div className="absolute top-[calc(100%+4px)] right-0 whitespace-nowrap text-[10px] bg-red text-white py-[3px] px-[7px] rounded z-10">Mín: {fmtM(laMin)}</div>}
-      </div>
-    </td>
-  )
-}
-
-// ── DivisaoSelect — usa OCUPACOES do estado vigente ───────────────────
-function DivisaoSelect({ value, onChange, ocupacoes }) {
-  return (
-    <select className={inputClass} value={value} onChange={e => onChange(e.target.value)}>
-      <option value="">Selecionar divisão...</option>
-      {Object.keys(ocupacoes).sort().map(grupo => (
-        <optgroup key={grupo} label={`Grupo ${grupo} — ${ocupacoes[grupo]?.descricao || grupo}`}>
-          {Object.keys(ocupacoes[grupo]?.divisoes || {}).map(div => (
-            <option key={div} value={div}>{div} — {ocupacoes[grupo].divisoes[div]}</option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
-  )
-}
-
-// ── Formulário de ambiente ────────────────────────────────────────────
-function AmbienteForm({ initial, onSave, onCancel, autoFocus, seNorma, ocupacoes }) {
-  const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS } = seNorma
-  const blank = { nome:'', divisao:'', popTipo:'area', area:'', assentos:'', popManual:'' }
-  const [form, setForm] = useState(() => initial ? {
-    nome: initial.nome, divisao: initial.divisao, popTipo: initial.popTipo,
-    area: initial.area ? String(initial.area) : '',
-    assentos: initial.assentos ? String(initial.assentos) : '',
-    popManual: initial.popManual ? String(initial.popManual) : '',
-  } : blank)
-
-  const taxa    = TAXA_POPULACIONAL[form.divisao]
-  const opcoes  = taxaOpcoes(form.divisao, TAXA_POPULACIONAL)
-  const isManual = form.popTipo === 'manual'
-  const isFixo   = form.popTipo === 'fixo'
-  const isArea   = form.popTipo === 'area'
-
-  const popCalc = () => {
-    if (isFixo)   return parseInt(form.assentos)  || 0
-    if (isManual) return parseInt(form.popManual) || 0
-    return taxa?.A && form.area ? Math.ceil(parseFloat(form.area) / taxa.A) : 0
-  }
-
-  const setDivisao = div => setForm(f => ({ ...f, divisao: div, popTipo: popTipoPadrao(div, TAXA_POPULACIONAL), area:'', assentos:'', popManual:'' }))
-  const setTipo    = tipo => setForm(f => ({ ...f, popTipo: tipo, area:'', assentos:'', popManual:'' }))
-
-  const canSave = () => {
-    if (!form.nome || !form.divisao) return false
-    if (isArea && !form.area) return false
-    if (isFixo && !form.assentos) return false
-    if (isManual && !form.popManual) return false
-    return true
-  }
-
-  const handleSave = () => {
-    if (!canSave()) return
-    onSave({ nome: form.nome.trim(), divisao: form.divisao, popTipo: form.popTipo, area: parseFloat(form.area)||0, assentos: parseInt(form.assentos)||0, popManual: parseInt(form.popManual)||0 })
-  }
-
-  const inputLabel = isArea ? 'Área (m²)' : isFixo ? 'N° de assentos' : 'N° de pessoas'
-
-  return (
-    <div className="flex flex-col gap-2.5">
-      <div className="grid grid-cols-[1fr_1.5fr] gap-2.5">
-        <div>
-          <Label>Nome do ambiente</Label>
-          <input className={inputClass} placeholder="ex.: Sala 101, Loja..." autoFocus={autoFocus}
-            value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} onKeyDown={e => e.key==='Enter' && handleSave()}/>
-        </div>
-        <div>
-          <Label>Divisão de ocupação</Label>
-          <DivisaoSelect value={form.divisao} onChange={setDivisao} ocupacoes={ocupacoes}/>
-        </div>
-      </div>
-
-      {form.divisao && (
-        <div className={`grid gap-2.5 items-end ${opcoes.length > 1 ? 'grid-cols-[1.4fr_1fr_100px]' : 'grid-cols-[1.8fr_1fr_100px]'}`}>
-          <div>
-            <Label>Taxa normativa — {form.divisao}</Label>
-            {opcoes.length > 1 ? (
-              <select className={inputClass} value={form.popTipo} onChange={e => setTipo(e.target.value)}>
-                {opcoes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            ) : (
-              <div className={`${inputClass} bg-surface text-ink-faint flex items-center`}>
-                {opcoes[0]?.label || '—'}
-              </div>
-            )}
-          </div>
-          <div>
-            <Label>{inputLabel}</Label>
-            {isArea   && <input className={inputClass} type="number" min="0" placeholder="ex.: 64,5" value={form.area}     onChange={e => setForm(f=>({...f,area:e.target.value}))}     onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
-            {isFixo   && <input className={inputClass} type="number" min="0" placeholder="ex.: 120"  value={form.assentos} onChange={e => setForm(f=>({...f,assentos:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
-            {isManual && <input className={inputClass} type="number" min="0" placeholder="ex.: 8"    value={form.popManual} onChange={e => setForm(f=>({...f,popManual:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
-          </div>
-          <div>
-            <Label>Pop. calculada</Label>
-            <div className={`${inputClass} bg-surface flex items-center justify-center font-bold text-[15px] ${popCalc()>0 ? 'text-red' : 'text-ink-faint'}`}>
-              {popCalc() || '—'}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {taxa?.notas?.length > 0 && taxa.A === null && (
-        <div className="ibox amber mb-0">
-          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-[11px]">{taxa.obs}</span>
-        </div>
-      )}
-
-      <div className="flex gap-1.5 justify-end">
-        <button className="btn-ghost" onClick={onCancel}><Icon name="x" size={12}/> Cancelar</button>
-        <button className={`btn-primary ${canSave() ? 'opacity-100 pointer-events-auto' : 'opacity-45 pointer-events-none'}`} onClick={handleSave}>
-          <Icon name="check" size={12}/> {initial ? 'Salvar' : 'Adicionar'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ── PavimentoModal ────────────────────────────────────────────────────
-const MODAL_COL = 'grid-cols-[1.4fr_56px_1.6fr_80px_54px_48px]'
-
-function PavimentoModal({ pav, onClose, dispatch, seNorma, ocupacoes }) {
-  const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS } = seNorma
-  // `pav` vem de `derivarPavimentos(state.pavimentos)`, recalculado a cada
-  // render do componente pai — então `pav.ambientes` já reflete qualquer
-  // mudança que chegue por broadcast de outra aba enquanto o modal está
-  // aberto, sem precisar de um espelho local aqui.
-  const ambientes = pav.ambientes
-  const [showAdd, setShowAdd] = useState(false)
-  const [editId,  setEditId]  = useState(null)
-
-  const totalPop  = ambientes.reduce((s,a) => s + calcPopAmb(a, TAXA_POPULACIONAL), 0)
-  const totalArea = ambientes.reduce((s,a) => s + (a.popTipo==='area' ? (a.area||0) : 0), 0)
-  const divisoes  = [...new Set(ambientes.map(a => a.divisao).filter(Boolean))]
-  const notasAtivas = [...new Set(ambientes.flatMap(a => TAXA_POPULACIONAL[a.divisao]?.notas || []))]
-
-  // Cada uma destas só dispara no clique do botão correspondente
-  // (Adicionar/Salvar/lixeira) — o que se digita no formulário em si
-  // (AmbienteForm) fica em useState local até esse clique, então não sai
-  // daqui a cada tecla.
-  const addAmb  = d => { dispatch({ type: 'ADD_AMBIENTE_SE', pavimentoId: pav.id, ambiente: d }); setShowAdd(false) }
-  const saveAmb = (id, d) => { dispatch({ type: 'UPDATE_AMBIENTE_SE', pavimentoId: pav.id, ambienteId: id, changes: d }); setEditId(null) }
-  const delAmb  = id => { dispatch({ type: 'REMOVE_AMBIENTE_SE', pavimentoId: pav.id, ambienteId: id }); if (editId===id) setEditId(null) }
-
-  return (
-    <div className="fixed inset-0 z-[500] bg-black/65 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-surface border border-solid border-border rounded-lg w-[900px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]">
-
-        {/* Header */}
-        <div className="flex items-start justify-between py-[18px] px-[22px] border-b border-solid border-border shrink-0">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-base font-bold text-ink">{pav.nome}</span>
-              {pav.tipo === 'descarga'
-                ? <span className="text-[10px] py-[3px] px-2 rounded bg-amber-dim border border-solid border-amber-border text-amber font-semibold">PISO DE DESCARGA</span>
-                : <span className="text-[10px] py-[3px] px-2 rounded bg-surface-2 border border-solid border-border text-ink-faint font-medium">PAVIMENTO TIPO</span>}
-            </div>
-            <div className="flex flex-wrap gap-x-3.5 gap-y-[5px] text-[11px] text-ink-faint">
-              <span>{ambientes.length} ambiente{ambientes.length!==1?'s':''}</span>
-              <span className="opacity-25">·</span>
-              <span>Pop. total: <strong className="text-red font-bold">{totalPop} pessoas</strong></span>
-              {divisoes.length > 0 && <><span className="opacity-25">·</span><span className="flex items-center gap-1">Divisões: {divisoes.map(d=><DivBadge key={d} label={d}/>)}</span></>}
-            </div>
-          </div>
-          <button className="btn-ghost p-1.5 ml-3" onClick={onClose}><Icon name="x" size={14}/></button>
-        </div>
-
-        {/* Col headers */}
-        <div className={`grid ${MODAL_COL} gap-2 py-2 px-[22px] bg-surface-2 border-b border-solid border-border shrink-0 text-[10px] text-ink-faint uppercase tracking-[.06em]`}>
-          <span>Nome</span><span>Div.</span><span>Taxa / Entrada</span><span>Valor</span><span className="text-right">Pop.</span><span/>
-        </div>
-
-        {/* Rows */}
-        <div className="flex-1 overflow-y-auto">
-          {ambientes.length === 0 && !showAdd && (
-            <div className="p-10 text-center text-ink-faint text-[13px]">
-              Nenhum ambiente adicionado. Clique em "Adicionar ambiente".
-            </div>
-          )}
-          {ambientes.map(a => {
-            const pop = calcPopAmb(a, TAXA_POPULACIONAL)
-            const opcoes = taxaOpcoes(a.divisao, TAXA_POPULACIONAL)
-            const taxaLabel = opcoes.find(o => o.value===a.popTipo)?.label || TAXA_POPULACIONAL[a.divisao]?.obs || '—'
-            if (editId === a.id) {
-              return (
-                <div key={a.id} className="py-3.5 px-[22px] bg-[rgba(192,21,42,.04)] border-b border-solid border-red-border">
-                  <div className="text-[10px] text-red font-semibold uppercase tracking-[.07em] mb-2.5">Editando: {a.nome}</div>
-                  <AmbienteForm initial={a} autoFocus onSave={d => saveAmb(a.id,d)} onCancel={() => setEditId(null)} seNorma={seNorma} ocupacoes={ocupacoes}/>
-                </div>
-              )
-            }
-            return (
-              <div key={a.id}
-                onClick={() => { setShowAdd(false); setEditId(a.id) }}
-                className={`grid ${MODAL_COL} gap-2 items-center py-[11px] px-[22px] border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.025]`}
-              >
-                <span className="text-[13px] font-medium text-ink overflow-hidden text-ellipsis whitespace-nowrap">{a.nome}</span>
-                <DivBadge label={a.divisao||'?'}/>
-                <div>
-                  <div className="text-[11px] text-ink-faint leading-[1.3]">{taxaLabel}</div>
-                  {a.popTipo==='manual' && <div className="text-[10px] text-amber mt-px">Manual</div>}
-                </div>
-                <span className="text-xs text-ink-muted">
-                  {a.popTipo==='area' ? `${a.area} m²` : a.popTipo==='fixo' ? `${a.assentos} assentos` : `${a.popManual} pess.`}
-                </span>
-                <span className="text-sm font-bold text-red text-right">{pop}</span>
-                <div className="flex justify-end">
-                  <button onClick={e => { e.stopPropagation(); delAmb(a.id) }}
-                    className="bg-transparent border border-solid border-transparent rounded-md text-ink-faint cursor-pointer py-1 px-[5px] flex hover:border-red-border hover:text-red"
-                  ><Icon name="trash" size={12}/></button>
-                </div>
-              </div>
-            )
-          })}
-          {showAdd && (
-            <div className="py-4 px-[22px] bg-[rgba(192,21,42,.05)] border-t border-solid border-red-border">
-              <div className="text-[10px] text-red font-semibold uppercase tracking-[.07em] mb-3">Novo ambiente</div>
-              <AmbienteForm autoFocus onSave={addAmb} onCancel={() => setShowAdd(false)} seNorma={seNorma} ocupacoes={ocupacoes}/>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="shrink-0">
-          {notasAtivas.length > 0 && (
-            <div className="py-2 px-[22px] bg-surface-2 border-t border-solid border-border">
-              {notasAtivas.map(k => NOTAS_NORMATIVAS[k] && <div key={k} className="text-[10px] text-ink-faint leading-[1.5]">{NOTAS_NORMATIVAS[k]}</div>)}
-            </div>
-          )}
-          <div className="flex items-center justify-between py-3.5 px-[22px] border-t border-solid border-border">
-            <div className="flex gap-6">
-              {[{ label:'Ambientes', val:String(ambientes.length), red:false },{ label:'Área (m²)', val:totalArea.toLocaleString('pt-BR'), red:false },{ label:'Pop. total', val:`${totalPop} pess.`, red:true }].map(s => (
-                <div key={s.label}>
-                  <div className="text-[9px] text-ink-faint uppercase tracking-[.07em] mb-0.5">{s.label}</div>
-                  <div className={`text-lg font-bold ${s.red ? 'text-red' : 'text-ink'}`}>{s.val}</div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2.5">
-              {!showAdd && !editId && <button className="btn-ghost" onClick={() => { setEditId(null); setShowAdd(true) }}><Icon name="plus" size={12}/> Adicionar ambiente</button>}
-              <button className="btn-primary" onClick={onClose}>Concluir</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 // ── Importação do firedata.json (plugin Revit) ────────────────────────
@@ -375,6 +83,9 @@ function resolverPavimentoSite(nomeImportado, estruturaId, projetoPavimentos) {
 // projeto), resolve cada pavimento importado contra o cadastro real do
 // site e devolve só as atualizações — quem chama decide como aplicar
 // (mesclar, não substituir), preservando pavimentos de outras estruturas.
+// `temChuveiros`/`temDeteccao` do payload NÃO são mais aplicados — esses
+// dois são Medidas de Segurança da estrutura (Step6), não algo que a
+// importação de ambientes deva sobrescrever silenciosamente.
 function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPavimentos) {
   if (!payloadSE?.pavimentos) throw new Error('Chave "pavimentos" não encontrada nos dados.')
 
@@ -399,98 +110,53 @@ function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPaviment
     })
   })
 
-  return {
-    atualizacoes, erros,
-    temChuveiros: payloadSE.temChuveiros === true || payloadSE.temChuveiros === 'true' || payloadSE.temChuveiros === 'True',
-    temDeteccao:  payloadSE.temDeteccao  === true || payloadSE.temDeteccao  === 'true' || payloadSE.temDeteccao  === 'True',
-    timestamp:    payloadSE._timestamp   || null,
-  }
+  return { atualizacoes, erros, timestamp: payloadSE._timestamp || null }
 }
 
 // ── Page principal ────────────────────────────────────────────────────
-const MAIN_COL = 'grid-cols-[1fr_80px_130px_1fr]'
-
 export default function SaidaEmergenciaPage() {
   const { state, dispatch } = useProjeto()
   const { uf, info, ocupacoes } = useNorma()
+  const { porEstrutura: medidasPorEstrutura } = useMedidasObrigatorias()
   const seNorma         = getSE(uf)
-  const { TAXA_POPULACIONAL, NOTAS_NORMATIVAS: _, LARGURAS_MINIMAS, BLOCOS_DISTANCIA } = seNorma
+  const { DISTANCIAS_MAXIMAS } = seNorma
 
-  // Ambientes vêm do reducer compartilhado (state.pavimentos[].ambientes) —
-  // ver `derivarPavimentos`. Recalculado a cada render, então reflete tanto
+  // Chuveiros automáticos e detecção de incêndio não são configuráveis
+  // aqui — vêm das Medidas de Segurança de cada estrutura (Step6):
+  // obrigatório pela norma OU habilitado manualmente lá.
+  const sistemasPorEst = Object.fromEntries(medidasPorEstrutura.map(pe => [pe.estrutura.id, pe.sistemas]))
+  const getTemChuveiros = estId => !!sistemasPorEst[estId]?.sprinklers?.ativo
+  const getTemDeteccao  = estId => !!sistemasPorEst[estId]?.deteccao?.ativo
+
+  // Ambientes/acessos vêm do reducer compartilhado (state.pavimentos) — ver
+  // `derivarPavimentos`. Recalculado a cada render, então reflete tanto
   // esta aba quanto o que chegar por broadcast de outra.
   const pavimentos = derivarPavimentos(state.pavimentos)
-  const [openId,       setOpenId]       = useState(null)
-  // Chuveiros/detecção, largura adotada, saída única e colapso dos cards
-  // ainda são só desta aba/sessão — não fazem parte do que foi pedido pra
-  // sincronizar (ambientes) e continuam como estavam antes.
-  const [configEst,    setConfigEst]    = useState({})
-  const [largAdotada,  setLargAdotada]  = useState({})
+  // Pavimento cujo popup de Acessos e Descargas está aberto — null = fechado.
+  // Ambientes, acessos/saídas e piso de descarga são todos editados ali
+  // dentro; esta página só lista os pavimentos.
+  const [viewPavId,    setViewPavId]    = useState(null)
+  // Colapso dos cards é só desta aba/sessão.
   const [importInfo,   setImportInfo]   = useState(null)
   const [importErro,   setImportErro]   = useState(null)
-  const [saidaUnica,   setSaidaUnica]   = useState({})
   const [colapsadas,   setColapsadas]   = useState({})
   const [buscando,     setBuscando]     = useState(false)
   const fileInputRef = useRef(null)
-
-  // Quando a população de um pavimento aumenta (novo ambiente, edição) o
-  // mínimo normativo pode subir além do que foi manualmente adotado — nesse
-  // caso descarta o valor adotado pra recalcular do zero (mesma regra que
-  // já existia em `savePav`, só que agora reage à mudança no reducer
-  // compartilhado em vez de rodar uma vez ao confirmar o modal).
-  useEffect(() => {
-    setLargAdotada(prev => {
-      let mudou = false
-      const next = { ...prev }
-      pavimentos.forEach(p => {
-        const cur = next[p.id]
-        if (!cur) return
-        const cap = capPavimento(p, TAXA_POPULACIONAL)
-        const pop = calcPopPav(p, TAXA_POPULACIONAL)
-        const ad  = calcAD(pop, cap.AD, LARGURAS_MINIMAS)
-        const pt  = calcPT(pop, cap.PT, LARGURAS_MINIMAS)
-        const er  = calcER(pop, cap.ER, LARGURAS_MINIMAS)
-        const ajustado = {
-          AD: cur.AD !== undefined && cur.AD < ad.la ? undefined : cur.AD,
-          PT: cur.PT !== undefined && cur.PT < pt.la ? undefined : cur.PT,
-          ER: cur.ER !== undefined && cur.ER < er.la ? undefined : cur.ER,
-        }
-        if (ajustado.AD !== cur.AD || ajustado.PT !== cur.PT || ajustado.ER !== cur.ER) { next[p.id] = ajustado; mudou = true }
-      })
-      return mudou ? next : prev
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.pavimentos])
-
-  const getSaidaUnica = (pavId, adN) => saidaUnica[pavId] ?? (adN <= 1)
-  const toggleSaidaUnica = (pavId, val) => setSaidaUnica(prev => ({ ...prev, [pavId]: val }))
-
-  const getConfigEstrutura = estId => configEst[estId] || { temChuveiros: false, temDeteccao: false }
-  const setConfigEstrutura = (estId, changes) => setConfigEst(prev => ({ ...prev, [estId]: { ...getConfigEstrutura(estId), ...changes } }))
 
   const toggleColapsada = estId => setColapsadas(prev => ({ ...prev, [estId]: !prev[estId] }))
 
   // Aplica um lote (arquivo ou linha do Supabase) — despacha só os
   // pavimentos resolvidos no lote, preservando o resto (inclusive de outras
-  // estruturas) via IMPORT_AMBIENTES_SE. `estruturaId` é null no upload
-  // manual de arquivo — nesse caso não dá pra saber a qual estrutura
-  // atribuir chuveiros/detecção, então essas configurações não são tocadas.
+  // estruturas) via IMPORT_AMBIENTES_SE.
   const aplicarSaidas = (payloadSE, estruturaId) => {
     try {
-      const { atualizacoes, erros, temChuveiros: tc, temDeteccao: td, timestamp } =
-        resolverImportacaoSaidas(payloadSE, estruturaId, state.pavimentos)
+      const { atualizacoes, erros, timestamp } = resolverImportacaoSaidas(payloadSE, estruturaId, state.pavimentos)
       if (atualizacoes.size > 0) {
         dispatch({
           type: 'IMPORT_AMBIENTES_SE',
           atualizacoes: [...atualizacoes.entries()].map(([pavimentoId, dados]) => ({ pavimentoId, ambientes: dados.ambientes })),
         })
-        setLargAdotada(prev => {
-          const next = { ...prev }
-          atualizacoes.forEach((_, pavId) => { delete next[pavId] })
-          return next
-        })
       }
-      if (estruturaId) setConfigEstrutura(estruturaId, { temChuveiros: tc, temDeteccao: td })
       return { erros, timestamp }
     } catch (err) {
       return { erros: [err.message || 'Dados inválidos.'], timestamp: null }
@@ -537,44 +203,24 @@ export default function SaidaEmergenciaPage() {
     setImportInfo(timestampMaisRecente)
   }
 
-  const setLarg = useCallback((pavId, tipo, val) => {
-    setLargAdotada(prev => ({ ...prev, [pavId]: { ...prev[pavId], [tipo]: val } }))
-  }, [])
-
-  const openPav = pavimentos.find(p => p.id === openId)
+  const viewPav = viewPavId ? state.pavimentos.find(p => p.id === viewPavId) : null
 
   const dadosPav = pavimentos.map(p => {
-    const cfg      = getConfigEstrutura(p.estruturaId)
-    const pop      = calcPopPav(p, TAXA_POPULACIONAL)
-    const cap      = capPavimento(p, TAXA_POPULACIONAL)
-    const ad       = calcAD(pop, cap.AD, LARGURAS_MINIMAS)
-    const pt       = calcPT(pop, cap.PT, LARGURAS_MINIMAS)
-    const unica    = getSaidaUnica(p.id, ad.n)
-    const nSaidas  = unica ? 1 : 2
-    const dist     = getDistanciaPavimento(p, nSaidas, cfg.temChuveiros, cfg.temDeteccao, BLOCOS_DISTANCIA)
-    return { pav:p, pop, cap, ad, pt, dist, unica, laAD: largAdotada[p.id]?.AD ?? ad.la, laPT: largAdotada[p.id]?.PT ?? pt.la }
+    const temChuveiros    = getTemChuveiros(p.estruturaId)
+    const temDeteccao     = getTemDeteccao(p.estruturaId)
+    const pop             = calcPopPav(p, seNorma.TAXA_POPULACIONAL)
+    const nSaidas         = Math.max(1, contarSaidasPavimento(p.acessos))
+    const dist            = getDistanciaPavimento(p, nSaidas, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)
+    const semAcessoCount  = p.ambientes.filter(a => !a.acessoId).length
+    return { pav:p, pop, nSaidas, dist, semAcessoCount }
   })
 
-  // Cada estrutura dimensiona suas próprias saídas de forma independente —
-  // em especial ER (Escadas e Rampas), que usa o pavimento mais populoso
-  // como referência. Antes disso considerava o pavimento mais populoso do
-  // PROJETO INTEIRO, então um prédio poderia ter a escada dimensionada pela
-  // população de outro prédio do mesmo projeto.
-  const porEstrutura = state.estruturas.map(est => {
-    const pavsDaEstrutura   = pavimentos.filter(p => p.estruturaId === est.id)
-    const dadosDaEstrutura  = dadosPav.filter(d => d.pav.estruturaId === est.id)
-    const govPav            = pavMaisPopuloso(pavsDaEstrutura, TAXA_POPULACIONAL)
-    const erDados = govPav ? (() => {
-      const pop = calcPopPav(govPav, TAXA_POPULACIONAL)
-      const cap = capPavimento(govPav, TAXA_POPULACIONAL)
-      const er  = calcER(pop, cap.ER, LARGURAS_MINIMAS)
-      return { pop, capER: cap.ER, ...er, laER: largAdotada[govPav.id]?.ER ?? er.la }
-    })() : null
-    return { estrutura: est, pavimentos: pavsDaEstrutura, dadosPav: dadosDaEstrutura, govPav, erDados }
-  })
+  const porEstrutura = state.estruturas.map(est => ({
+    estrutura: est,
+    dadosPav: dadosPav.filter(d => d.pav.estruturaId === est.id),
+  }))
 
   const temPavimentos = pavimentos.length > 0
-  const temPopulacao  = dadosPav.some(d => d.pop > 0)
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -590,7 +236,7 @@ export default function SaidaEmergenciaPage() {
                 Saídas de Emergência
               </h2>
               <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-                Cadastre os ambientes de cada pavimento (1) para calcular a população e dimensionar as saídas (2), conforme {info?.nome || 'NT vigente'} / NBR 9077.
+                Clique em um pavimento para cadastrar os ambientes e montar a árvore de acessos, saídas e escadas/rampas, conforme {info?.nome || 'NT vigente'} / NBR 9077.
               </p>
             </div>
             <div className="shrink-0 flex flex-col items-end gap-1.5">
@@ -608,7 +254,7 @@ export default function SaidaEmergenciaPage() {
           {importInfo && (
             <div className="ibox green mb-0">
               <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-              <span className="text-xs">Dados importados do Revit — última exportação: <strong>{importInfo}</strong>. Confira os nomes dos ambientes e ajuste se necessário.</span>
+              <span className="text-xs">Dados importados do Revit — última exportação: <strong>{importInfo}</strong>. Confira os ambientes e ajuste se necessário.</span>
             </div>
           )}
           {importErro && (
@@ -619,111 +265,17 @@ export default function SaidaEmergenciaPage() {
           )}
         </div>
 
-        {/* Etapa 1 — Ambientes e população */}
-        <div className="mb-10">
-          <StepHeader n={1} label="Ambientes e população"
-            desc="Cadastre os ambientes de cada pavimento e sua divisão de ocupação — a população é calculada automaticamente pela taxa normativa da divisão, por estrutura."/>
-
-          {porEstrutura.map(({ estrutura, pavimentos: pavsDaEstrutura, govPav }) => {
-            const aberta = !colapsadas[estrutura.id]
-            return (
-            <div key={estrutura.id} className="mb-4">
-              <div className="bg-surface border border-solid border-border rounded-lg overflow-hidden">
-                <div
-                  className="py-3.5 px-5 border-b border-solid border-border flex items-center justify-between cursor-pointer select-none"
-                  onClick={() => toggleColapsada(estrutura.id)}
-                >
-                  <div className="text-sm font-semibold text-ink flex items-center gap-2">
-                    <Icon name={aberta ? 'chevD' : 'chevR'} size={13} color="var(--color-ink-faint)" className="shrink-0"/>
-                    {estrutura.nome}
-                    {govPav && <span className="text-[11px] font-normal text-ink-faint">— Mais populoso: <span className="text-red font-semibold">{govPav.nome} ({calcPopPav(govPav, TAXA_POPULACIONAL)} pess.)</span></span>}
-                  </div>
-                </div>
-
-                {aberta && <>
-                {pavsDaEstrutura.length > 0 && (
-                  <div className={`grid ${MAIN_COL} gap-3.5 py-2 px-5 bg-surface-2 border-b border-solid border-border text-[10px] text-ink-faint uppercase tracking-[.06em]`}>
-                    <span>Pavimento</span><span className="text-center">Amb.</span><span className="text-center">Pop.</span><span>Divisões</span>
-                  </div>
-                )}
-
-                {pavsDaEstrutura.map(p => {
-                  const pop  = calcPopPav(p, TAXA_POPULACIONAL)
-                  const divs = [...new Set(p.ambientes.map(a => a.divisao).filter(Boolean))]
-                  const isGov = govPav?.id === p.id
-                  const pendente = p.ambientes.length === 0
-                  return (
-                    <div key={p.id}
-                      onClick={() => setOpenId(p.id)}
-                      className={`grid ${MAIN_COL} gap-3.5 items-center py-[13px] px-5 border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.025] ${pendente ? 'border-l-2 border-l-amber-border' : 'border-l-2 border-l-green-border'}`}
-                    >
-                      <div>
-                        <div className="flex items-center gap-[7px]">
-                          <span className="text-[13px] font-semibold text-ink">{p.nome}</span>
-                          {p.tipo==='descarga'
-                            ? <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>
-                            : <span className="text-[9px] py-0.5 px-1.5 rounded-[3px] bg-surface-2 border border-solid border-border text-ink-faint">TIPO</span>}
-                        </div>
-                        {isGov ? (
-                          <div className="text-[10px] text-red font-medium mt-0.5">Mais populoso · referência para ER</div>
-                        ) : pendente ? (
-                          <div className="text-[10px] text-amber font-medium mt-0.5">Pendente — clique para cadastrar ambientes</div>
-                        ) : null}
-                      </div>
-                      <div className={`text-center text-[15px] font-bold ${p.ambientes.length ? 'text-red' : 'text-ink-faint'}`}>{p.ambientes.length}</div>
-                      <div className={`text-center text-sm font-bold ${pop>0 ? 'text-red' : 'text-ink-faint'}`}>{pop>0 ? `${pop} pess.` : <span className="text-[11px] font-normal">—</span>}</div>
-                      <div className="flex gap-1 flex-wrap">{divs.map(d=><DivBadge key={d} label={d}/>)}{!divs.length && <span className="text-[11px] text-ink-faint">—</span>}</div>
-                    </div>
-                  )
-                })}
-
-                {pavsDaEstrutura.length === 0 && (
-                  <div className="p-9 text-center text-ink-faint text-[13px]">
-                    Nenhum pavimento configurado para esta estrutura. Cadastre na Etapa 2 (Edificação).
-                  </div>
-                )}
-                </>}
-              </div>
-
-              {aberta && pavsDaEstrutura.length > 0 && !pavsDaEstrutura.some(p => p.tipo==='descarga') && (
-                <div className="ibox amber mb-0 mt-3">
-                  <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-                  <span className="text-xs">Nenhum piso de descarga definido em {estrutura.nome}. Marque o pavimento térreo na Etapa 2 (Edificação) para o cálculo correto das distâncias máximas.</span>
-                </div>
-              )}
-            </div>
-            )
-          })}
-
-          {!temPavimentos && (
-            <div className="p-9 text-center text-ink-faint text-[13px] bg-surface border border-solid border-border rounded-lg">
-              Nenhum pavimento configurado. Cadastre os pavimentos da edificação na Etapa 2 (Edificação).
-            </div>
-          )}
-        </div>
-
-        {/* Etapa 2 — Dimensionamento das saídas */}
-        {temPavimentos && (
-          <div>
-            <StepHeader n={2} label="Dimensionamento das saídas"
-              desc="Larguras de acessos, escadas e portas, e distâncias máximas a percorrer — calculados automaticamente a partir da população de cada pavimento, por estrutura."/>
-
-            {!temPopulacao ? (
-              <div className="border border-solid border-border rounded-lg py-12 px-6 text-center bg-surface">
-                <Icon name="stair" size={28} className="mx-auto mb-3 block text-ink-faint opacity-40"/>
-                <div className="text-[13px] font-medium text-ink-muted mb-1">Aguardando dados da Etapa 1</div>
-                <div className="text-[12px] text-ink-faint leading-[1.6] max-w-[380px] mx-auto">
-                  Cadastre pelo menos um ambiente com população em algum pavimento para ver o dimensionamento das saídas aqui.
-                </div>
-              </div>
-            ) : (
+        {/* Pavimentos */}
+        {!temPavimentos ? (
+          <div className="p-9 text-center text-ink-faint text-[13px] bg-surface border border-solid border-border rounded-lg">
+            Nenhum pavimento configurado. Cadastre os pavimentos da edificação na Etapa 2 (Edificação).
+          </div>
+        ) : (
           <div className="flex flex-col gap-4">
-
-            {porEstrutura.filter(g => g.pavimentos.length > 0).map(({ estrutura, dadosPav: dadosDaEstrutura, govPav, erDados }) => {
-              const cfg = getConfigEstrutura(estrutura.id)
+            {porEstrutura.filter(g => g.dadosPav.length > 0).map(({ estrutura, dadosPav: dadosDaEstrutura }) => {
               const aberta = !colapsadas[estrutura.id]
               return (
-              <div key={estrutura.id} className="border border-solid border-border rounded-lg bg-surface overflow-hidden">
+              <div key={estrutura.id} className="border border-solid border-border rounded-lg bg-surface overflow-hidden transition-colors hover:border-white/20">
                 <div
                   className="flex items-center justify-between gap-4 py-3.5 px-5 cursor-pointer select-none"
                   onClick={() => toggleColapsada(estrutura.id)}
@@ -732,103 +284,47 @@ export default function SaidaEmergenciaPage() {
                     <Icon name={aberta ? 'chevD' : 'chevR'} size={13} color="var(--color-ink-faint)" className="shrink-0"/>
                     <Icon name="newbld" size={14} color="var(--color-red)"/> {estrutura.nome}
                   </div>
-                  <div className="flex gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                    <Toggle checked={cfg.temChuveiros} onChange={v => setConfigEstrutura(estrutura.id, { temChuveiros: v })} label="Chuveiros automáticos"/>
-                    <Toggle checked={cfg.temDeteccao}  onChange={v => setConfigEstrutura(estrutura.id, { temDeteccao: v })}  label="Detecção de incêndio"/>
+                  <div className="flex gap-2 shrink-0">
+                    <SistemaBadge ativo={getTemChuveiros(estrutura.id)} label="Chuveiros automáticos"/>
+                    <SistemaBadge ativo={getTemDeteccao(estrutura.id)} label="Detecção de incêndio"/>
                   </div>
                 </div>
 
                 {aberta && (
-                <div className="flex flex-col gap-5 px-5 pb-5">
-                  <div>
-                    <SectionTitle label="Acessos e Descargas (AD)" desc={`Todos os pavimentos · ${fmt(LARGURAS_MINIMAS.LARG_UP)} m/UP · mínimo ${fmt(LARGURAS_MINIMAS.AD)} m`}/>
-                    <DimTable>
-                      <thead><tr><TH>Pavimento</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH right>L adotada</TH></tr></thead>
-                      <tbody>
-                        {dadosDaEstrutura.map(({ pav,pop,cap,ad,laAD }) => (
-                          <tr key={pav.id}><TD bold>{pav.nome}</TD><TD center red>{pop}</TD><TD center muted>{cap.AD}</TD><TD center red bold>{ad.n} UP</TD><TD right muted>{fmtM(ad.lc)}</TD><TD right muted>{fmtM(ad.lMin)}</TD>
-                            <LargAdotadaInput laMin={ad.la} value={laAD} onChange={v => setLarg(pav.id,'AD',v)}/>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </DimTable>
-                  </div>
-
-                  <div>
-                    <SectionTitle label="Escadas e Rampas (ER)" desc={`Pavimento mais populoso desta estrutura (excl. piso de descarga) · mínimo ${fmt(LARGURAS_MINIMAS.ER)} m`}/>
-                    {erDados ? (
-                      <DimTable>
-                        <thead><tr><TH>Pav. mais populoso</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH right>L adotada</TH></tr></thead>
-                        <tbody>
-                          <tr><TD bold>{govPav.nome}</TD><TD center red>{erDados.pop}</TD><TD center muted>{erDados.capER}</TD><TD center red bold>{erDados.n} UP</TD><TD right muted>{fmtM(erDados.lc)}</TD><TD right muted>{fmtM(erDados.lMin)}</TD>
-                            <LargAdotadaInput laMin={erDados.la} value={erDados.laER} onChange={v => setLarg(govPav.id,'ER',v)}/>
-                          </tr>
-                        </tbody>
-                      </DimTable>
-                    ) : (
-                      <div className="ibox amber"><Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/><span className="text-xs">Nenhum pavimento tipo configurado nesta estrutura. O piso de descarga não é referência para ER.</span></div>
-                    )}
-                  </div>
-
-                  <div>
-                    <SectionTitle label="Portas (PT)" desc="Todos os pavimentos · 1 UP→0,80 m · 2 UPs→1,00 m · 3 UPs→1,50 m · 4 UPs→2,00 m"/>
-                    <DimTable>
-                      <thead><tr><TH>Pavimento</TH><TH center>Pop.</TH><TH center>Cap./UP</TH><TH center>N° UPs</TH><TH right>L calculada</TH><TH right>L mínima</TH><TH center>Tipo</TH><TH right>L adotada</TH></tr></thead>
-                      <tbody>
-                        {dadosDaEstrutura.map(({ pav,pop,cap,pt,laPT }) => (
-                          <tr key={pav.id}><TD bold>{pav.nome}</TD><TD center red>{pop}</TD><TD center muted>{cap.PT}</TD><TD center red bold>{pt.n} UP</TD><TD right muted>{fmtM(pt.lc)}</TD><TD right muted>{fmtM(pt.lMin)}</TD><TD center muted>{pt.tipo}</TD>
-                            <LargAdotadaInput laMin={pt.la} value={laPT} onChange={v => setLarg(pav.id,'PT',v)}/>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </DimTable>
-                  </div>
-
-                  <div>
-                    <SectionTitle label="Distâncias Máximas a Percorrer" desc="Distância máxima do ponto mais remoto até a saída de emergência (NBR 9077)"/>
-                    <DimTable>
-                      <thead><tr><TH>Pavimento</TH><TH>Tipo</TH><TH center>Saídas</TH><TH>Proteção</TH><TH right>Dist. máxima</TH></tr></thead>
-                      <tbody>
-                        {dadosDaEstrutura.map(({ pav, ad, dist, unica }) => {
-                          const prot = [cfg.temChuveiros&&'Chuveiros', cfg.temDeteccao&&'Detecção'].filter(Boolean)
-                          const minSaidas = ad.n
-                          return (
-                            <tr key={pav.id}>
-                              <TD bold>{pav.nome}</TD>
-                              <TD muted>{pav.tipo==='descarga' ? 'Piso de descarga' : 'Demais andares'}</TD>
-                              <td className="py-2 px-3.5 border-b border-solid border-border-2 align-middle">
-                                <div className="flex items-center gap-2">
-                                  <Toggle checked={unica} onChange={v => toggleSaidaUnica(pav.id, v)} label="Saída única"/>
-                                  {unica && minSaidas > 1 && (
-                                    <span className="text-[10px] text-amber flex items-center gap-[3px]">
-                                      <Icon name="warn" size={10} color="var(--color-amber)"/> mín. {minSaidas} UPs
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <TD muted>{prot.length ? prot.join(' + ') : '—'}</TD>
-                              <td className="py-2.5 px-3.5 text-right border-b border-solid border-border-2">
-                                {dist!==null ? <Chip val={`${dist} m`} green/> : <span className="text-xs text-ink-faint">Consultar NT</span>}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </DimTable>
-                    <div className="text-[11px] text-ink-faint leading-[1.6] mt-1.5">Fonte: NBR 9077 — Saídas de Emergência em Edifícios, Tabelas 1 e 2.</div>
-                  </div>
+                <div className="px-5 pb-5">
+                  <DimTable>
+                    <thead><tr><TH>Pavimento</TH><TH center>Amb.</TH><TH center>Pop.</TH><TH center>Saídas</TH><TH right>Dist. máxima</TH><TH/></tr></thead>
+                    <tbody>
+                      {dadosDaEstrutura.map(({ pav, pop, nSaidas, dist, semAcessoCount }) => (
+                        <tr key={pav.id} onClick={() => setViewPavId(pav.id)} className="cursor-pointer transition-colors duration-100 hover:bg-white/[.025]">
+                          <TD bold>
+                            {pav.nome}
+                            {pav.pisoDescarga && <span className="ml-1.5 align-middle text-[9px] py-0.5 px-1.5 rounded bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>}
+                          </TD>
+                          <TD center muted>
+                            {pav.ambientes.length}
+                            {semAcessoCount > 0 && <div className="text-[9px] text-amber mt-0.5">{semAcessoCount} sem acesso</div>}
+                          </TD>
+                          <TD center red bold>{pop}</TD>
+                          <TD center red bold>{nSaidas}</TD>
+                          <td className="py-2.5 px-3.5 text-right text-[13px] border-b border-solid border-border-2 align-middle">
+                            {dist!==null ? <Chip val={`${dist} m`} green/> : <span className="text-xs text-ink-faint">Consultar NT</span>}
+                          </td>
+                          <td className="py-2.5 px-3.5 text-right border-b border-solid border-border-2 align-middle"><Icon name="right" size={13} color="var(--color-ink-faint)"/></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </DimTable>
                 </div>
                 )}
               </div>
               )
             })}
           </div>
-            )}
-          </div>
         )}
       </div>
 
-      {openPav && <PavimentoModal pav={openPav} onClose={() => setOpenId(null)} dispatch={dispatch} seNorma={seNorma} ocupacoes={ocupacoes}/>}
+      {viewPav && <AcessosDescargasView pav={viewPav} seNorma={seNorma} ocupacoes={ocupacoes} dispatch={dispatch} onClose={() => setViewPavId(null)}/>}
     </div>
   )
 }
