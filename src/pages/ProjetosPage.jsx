@@ -99,6 +99,9 @@ function pad2(n) {
 // tabela de cores mantida à mão pra cada uma das 27 UFs.
 function ufColor(uf) {
   if (!uf) return { bg: 'rgba(255,255,255,.06)', border: 'rgba(255,255,255,.16)', text: 'var(--color-ink-faint)' }
+  // MA é o estado principal do app — usa o vermelho da marca em vez da cor
+  // derivada do hash, que fica só pras demais UFs.
+  if (uf === 'MA') return { bg: 'var(--color-red-dim)', border: 'var(--color-red-border)', text: 'var(--color-red)' }
   let hash = 0
   for (let i = 0; i < uf.length; i++) hash = uf.charCodeAt(i) + ((hash << 5) - hash)
   const hue = Math.abs(hash) % 360
@@ -186,7 +189,7 @@ function CardActions({ onDelete, onDuplicate, className = '' }) {
       onClick={e => e.stopPropagation()}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
-      className={`relative h-[26px] w-[26px] shrink-0 ${className}`}
+      className={`h-[26px] w-[26px] shrink-0 ${className}`}
     >
       <div
         className={`absolute right-0 top-0 flex items-center gap-1 py-0.5 pl-9 rounded-md transition-opacity duration-150 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
@@ -352,7 +355,7 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
 
       {/* Ações */}
       <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-        <CardActions onDelete={() => onDelete(proj)} onDuplicate={() => onDuplicate(proj)}/>
+        <CardActions className="relative" onDelete={() => onDelete(proj)} onDuplicate={() => onDuplicate(proj)}/>
       </div>
     </div>
   )
@@ -492,7 +495,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
   const [sort,        setSort]        = useState('recent')
   const [filterUF,     setFilterUF]     = useState('')
   const [filterGrupo,  setFilterGrupo]  = useState('')
-  const [filterStatus, setFilterStatus] = useState(null)
+  const [filterStatus, setFilterStatus] = useState([]) // multiselect: 'concluidos' | 'andamento' | 'rascunhos'
   const [allProjects, setAllProjects] = useState([])
   const [loading,     setLoading]     = useState(true)
 
@@ -572,13 +575,11 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
     }
     if (filterUF)    list = list.filter(p => p.uf === filterUF)
     if (filterGrupo) list = list.filter(p => p.pavimentos?.some(pav => pav.grupo === filterGrupo))
-    if (filterStatus) {
+    if (filterStatus.length) {
       list = list.filter(p => {
         const pct = calcCompletude(p)
-        if (filterStatus === 'concluidos') return pct === 100
-        if (filterStatus === 'andamento')  return pct >= 25 && pct < 100
-        if (filterStatus === 'rascunhos')  return pct < 25
-        return true
+        const key = pct === 100 ? 'concluidos' : pct >= 25 ? 'andamento' : 'rascunhos'
+        return filterStatus.includes(key)
       })
     }
 
@@ -594,7 +595,10 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
     return list
   }, [allProjects, search, sort, filterUF, filterGrupo, filterStatus])
 
-  const hasFilter = !!(search || filterUF || filterGrupo || filterStatus)
+  const hasFilter = !!(search || filterUF || filterGrupo || filterStatus.length)
+
+  const toggleFilterStatus = key =>
+    setFilterStatus(v => v.includes(key) ? v.filter(x => x !== key) : [...v, key])
 
   // Classes do botão de view toggle
   const viewBtnClass = (active) =>
@@ -691,24 +695,24 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
                 <StatusPill
                   dot="bg-green" tone="green"
                   label={`${stats.concluidos} Concluído${stats.concluidos !== 1 ? 's' : ''}`}
-                  active={filterStatus === 'concluidos'}
-                  onClick={() => setFilterStatus(v => v === 'concluidos' ? null : 'concluidos')}
+                  active={filterStatus.includes('concluidos')}
+                  onClick={() => toggleFilterStatus('concluidos')}
                 />
               )}
               {stats.andamento > 0 && (
                 <StatusPill
                   dot="bg-amber" tone="amber"
                   label={`${stats.andamento} Em andamento`}
-                  active={filterStatus === 'andamento'}
-                  onClick={() => setFilterStatus(v => v === 'andamento' ? null : 'andamento')}
+                  active={filterStatus.includes('andamento')}
+                  onClick={() => toggleFilterStatus('andamento')}
                 />
               )}
               {stats.rascunhos > 0 && (
                 <StatusPill
                   dot="bg-ink-faint" tone="muted"
                   label={`${stats.rascunhos} Rascunho${stats.rascunhos !== 1 ? 's' : ''}`}
-                  active={filterStatus === 'rascunhos'}
-                  onClick={() => setFilterStatus(v => v === 'rascunhos' ? null : 'rascunhos')}
+                  active={filterStatus.includes('rascunhos')}
+                  onClick={() => toggleFilterStatus('rascunhos')}
                 />
               )}
             </div>
