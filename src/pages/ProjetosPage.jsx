@@ -85,6 +85,30 @@ function fmtArea(v) {
   return Number(v).toLocaleString('pt-BR') + ' m²'
 }
 
+function fmtDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('pt-BR')
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0')
+}
+
+// Cor determinística por UF (mesmo hash sempre gera a mesma cor pra mesma
+// sigla) — dá pra identificar o estado de relance sem precisar de uma
+// tabela de cores mantida à mão pra cada uma das 27 UFs.
+function ufColor(uf) {
+  if (!uf) return { bg: 'rgba(255,255,255,.06)', border: 'rgba(255,255,255,.16)', text: 'var(--color-ink-faint)' }
+  let hash = 0
+  for (let i = 0; i < uf.length; i++) hash = uf.charCodeAt(i) + ((hash << 5) - hash)
+  const hue = Math.abs(hash) % 360
+  return {
+    bg: `hsla(${hue}, 70%, 55%, .16)`,
+    border: `hsla(${hue}, 70%, 55%, .4)`,
+    text: `hsl(${hue}, 85%, 72%)`,
+  }
+}
+
 function primaryGrupo(pavimentos) {
   if (!pavimentos?.length) return null
   const count = {}
@@ -95,13 +119,6 @@ function primaryGrupo(pavimentos) {
 function primaryDivisao(pavimentos) {
   if (!pavimentos?.length) return null
   return [...pavimentos].sort((a, b) => (parseFloat(b.area) || 0) - (parseFloat(a.area) || 0))[0]?.divisao || null
-}
-
-function maxCarga(cargaState) {
-  return Object.values(cargaState || {}).flatMap(porEst => Object.values(porEst || {})).reduce((acc, c) => {
-    const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0
-    return Math.max(acc, q)
-  }, 0)
 }
 
 // ── Ícones inline ─────────────────────────────────────────────────────
@@ -121,18 +138,25 @@ const IcoList = ({ active }) => (
   </svg>
 )
 
-// ── Stat card ─────────────────────────────────────────────────────────
-
-function StatCard({ dot, label, value, sub }) {
+// ── Pill de status (filtro clicável) ────────────────────────────────────
+// Substitui os antigos quadrados grandes de estatística: agora é um filtro
+// — clicar ativa (borda + fundo na cor do status) e filtra a lista; clicar
+// de novo desativa.
+function StatusPill({ dot, tone, label, active, onClick }) {
+  const activeClass = {
+    green: 'border-green-border bg-green-dim text-green',
+    amber: 'border-amber-border bg-amber-dim text-amber',
+    muted: 'border-white/25 bg-white/[.08] text-ink',
+  }[tone]
   return (
-    <div className="flex-1 bg-surface-2 border border-solid border-border rounded-lg py-[18px] px-[22px]">
-      <div className="flex items-center gap-1.5 mb-2.5">
-        <div className={`w-[7px] h-[7px] rounded-full shrink-0 ${dot}`}/>
-        <span className="text-[11px] text-ink-faint">{label}</span>
-      </div>
-      <div className="font-heading text-[32px] font-bold text-ink leading-none">{value}</div>
-      {sub && <div className="text-[11px] text-ink-faint mt-1.5">{sub}</div>}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 text-[11px] py-1 px-2.5 rounded-[20px] border border-solid whitespace-nowrap cursor-pointer transition-colors duration-150 ${active ? activeClass : 'border-border bg-transparent text-ink-faint hover:border-white/20 hover:text-ink-muted'}`}
+    >
+      <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${dot}`}/>
+      {label}
+    </button>
   )
 }
 
@@ -196,17 +220,16 @@ function CardActions({ onDelete, onDuplicate, className = '' }) {
 // ── Project card (grid) ───────────────────────────────────────────────
 
 function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
-  const pct    = calcCompletude(proj)
-  const st     = statusInfo(pct)
-  const grupo  = primaryGrupo(proj.pavimentos)
-  const div    = primaryDivisao(proj.pavimentos)
-  const q      = maxCarga(proj.cargaState)
-  const bar    = barToneClasses(pct)
+  const pct   = calcCompletude(proj)
+  const bar   = barToneClasses(pct)
+  const grupo = primaryGrupo(proj.pavimentos)
+  const div   = primaryDivisao(proj.pavimentos)
+  const uf    = ufColor(proj.uf)
 
   return (
     <div
       onClick={() => onOpen(proj)}
-      className="group relative bg-surface-2 hover:bg-surface border border-solid border-border hover:border-white/13 rounded-lg p-4 cursor-pointer transition-colors duration-150 flex flex-col gap-3"
+      className="group relative bg-surface-2 hover:bg-surface border border-solid border-border hover:border-white/13 rounded-lg p-4 cursor-pointer transition-colors duration-150 flex flex-col gap-3.5"
     >
       {/* Ações (excluir / duplicar) */}
       <CardActions
@@ -215,60 +238,45 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
         onDuplicate={() => onDuplicate(proj)}
       />
 
-      {/* Nome */}
-      <div className="font-heading text-[15px] font-semibold text-ink leading-[1.3] min-h-[38px]">
-        {proj.nome || <span className="text-ink-faint">Sem nome</span>}
+      {/* Nome + UF */}
+      <div className="flex items-center gap-2 pr-7">
+        <span className="font-heading text-[15px] font-bold text-ink uppercase tracking-[.01em] leading-[1.3] truncate">
+          {proj.nome || <span className="text-ink-faint normal-case">Sem nome</span>}
+        </span>
+        <span
+          className="text-[10px] font-bold py-0.5 px-2.5 rounded-[20px] whitespace-nowrap border border-solid shrink-0"
+          style={{ background: uf.bg, borderColor: uf.border, color: uf.text }}
+        >
+          {proj.uf || '—'}
+        </span>
       </div>
 
-      {/* Badges */}
-      <div className="flex gap-1.5 flex-wrap">
-        <Badge {...st}/>
-        {proj.exemploFixo && (
-          <Badge label="Exemplo" tone="amber"/>
-        )}
-        {q > 1200 && (
-          <Badge label="Risco especial" tone="red"/>
-        )}
-        {grupo && (
-          <Badge label={`${grupo} · ${div || '—'}`} tone="red"/>
-        )}
+      {/* Edificações / Ocupação / A.C.T. */}
+      <div className="flex items-center justify-between gap-2">
+        <StatInline label="Edificações" value={pad2(proj.estruturas?.length || 0)}/>
+        <StatInline label="Ocup." value={div || grupo || '—'}/>
+        <StatInline label="A.C.T." value={fmtArea(totalArea(proj))}/>
       </div>
 
-      {/* Divisor */}
-      <div className="h-px bg-border"/>
-
-      {/* Info em 3 colunas */}
-      <div className="grid grid-cols-[1fr_auto_auto] gap-y-0 gap-x-[18px]">
-        <InfoCol label="Grupo · Div" value={grupo ? `${grupo} · ${div || '—'}` : '—'}/>
-        <InfoCol label="UF"   value={proj.uf || '—'}/>
-        <InfoCol label="Área" value={fmtArea(totalArea(proj))} align="right"/>
-      </div>
-
-      {/* Barra de completude */}
-      <div>
-        <div className="flex justify-between items-center mb-[5px]">
-          <span className="text-[10px] text-ink-faint">Completude</span>
-          <span className={`text-[11px] font-bold ${bar.text}`}>{pct}%</span>
-        </div>
-        <div className="h-[3px] bg-border rounded-full overflow-hidden">
-          <div className={`h-full rounded-full transition-[width] duration-400 ${bar.bg}`} style={{width:`${pct}%`}}/>
-        </div>
+      {/* Barra de status */}
+      <div className="h-[3px] bg-border rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-[width] duration-400 ${bar.bg}`} style={{width:`${pct}%`}}/>
       </div>
 
       {/* Rodapé */}
-      <div className="text-[10px] text-ink-faint flex items-center gap-[5px]">
-        <Icon name="file" size={10}/>
-        Editado {timeAgo(proj.updatedAt)}
+      <div className="flex items-center justify-between text-[10px] text-ink-faint">
+        <span>Criado em {fmtDate(proj.createdAt)}</span>
+        <span>Editado {timeAgo(proj.updatedAt)}</span>
       </div>
     </div>
   )
 }
 
-function InfoCol({ label, value, align }) {
+function StatInline({ label, value }) {
   return (
-    <div className={align === 'right' ? 'text-right' : 'text-left'}>
-      <div className="text-[10px] text-ink-faint mb-0.5">{label}</div>
-      <div className="text-[13px] font-semibold text-ink">{value}</div>
+    <div className="text-[11px] whitespace-nowrap">
+      <span className="text-ink-faint uppercase tracking-wide">{label}: </span>
+      <span className="font-heading text-ink font-bold">{value}</span>
     </div>
   )
 }
@@ -441,11 +449,14 @@ function NovoProjetoBotao({ onNewProject }) {
 
   return (
     <div ref={ref} className="relative flex">
-      <button className="btn-primary rounded-r-none text-black hover:text-white transition-colors duration-150" onClick={() => onNewProject('completo')}>
-        <Icon name="plus" size={13}/> Novo projeto
+      <button
+        className="btn-primary btn-primary-novo rounded-r-none uppercase tracking-wide font-heading font-bold"
+        onClick={() => onNewProject('completo')}
+      >
+        <Icon name="plus" size={13}/> Criar novo projeto
       </button>
       <button
-        className="btn-primary rounded-l-none border-l border-solid border-white/20 px-2 shrink-0"
+        className="btn-primary btn-primary-novo rounded-l-none border-l border-solid border-white/20 px-2 shrink-0"
         onClick={() => setAberto(v => !v)}
         title="Outros tipos de projeto"
       >
@@ -479,8 +490,9 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
   const [toDuplicate, setToDuplicate] = useState(null)
   const [search,      setSearch]      = useState('')
   const [sort,        setSort]        = useState('recent')
-  const [filterUF,    setFilterUF]    = useState('')
-  const [filterGrupo, setFilterGrupo] = useState('')
+  const [filterUF,     setFilterUF]     = useState('')
+  const [filterGrupo,  setFilterGrupo]  = useState('')
+  const [filterStatus, setFilterStatus] = useState(null)
   const [allProjects, setAllProjects] = useState([])
   const [loading,     setLoading]     = useState(true)
 
@@ -560,6 +572,15 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
     }
     if (filterUF)    list = list.filter(p => p.uf === filterUF)
     if (filterGrupo) list = list.filter(p => p.pavimentos?.some(pav => pav.grupo === filterGrupo))
+    if (filterStatus) {
+      list = list.filter(p => {
+        const pct = calcCompletude(p)
+        if (filterStatus === 'concluidos') return pct === 100
+        if (filterStatus === 'andamento')  return pct >= 25 && pct < 100
+        if (filterStatus === 'rascunhos')  return pct < 25
+        return true
+      })
+    }
 
     list.sort((a, b) => {
       if (sort === 'recent')  return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
@@ -571,9 +592,9 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
     })
 
     return list
-  }, [allProjects, search, sort, filterUF, filterGrupo])
+  }, [allProjects, search, sort, filterUF, filterGrupo, filterStatus])
 
-  const hasFilter = !!(search || filterUF || filterGrupo)
+  const hasFilter = !!(search || filterUF || filterGrupo || filterStatus)
 
   // Classes do botão de view toggle
   const viewBtnClass = (active) =>
@@ -598,34 +619,6 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
               )}
               <NovoProjetoBotao onNewProject={onNewProject}/>
             </div>
-          </div>
-
-          {/* ── Stats ── */}
-          <div className="flex gap-3 mb-6">
-            <StatCard
-              dot="bg-ink-muted"
-              label="Total de projetos"
-              value={stats.total}
-              sub={stats.total > 0 ? `${stats.andamento + stats.concluidos} ativos` : 'Nenhum projeto ainda'}
-            />
-            <StatCard
-              dot="bg-amber"
-              label="Em andamento"
-              value={stats.andamento}
-              sub={stats.andamento > 0 ? 'Com prazo em aberto' : 'Nenhum em progresso'}
-            />
-            <StatCard
-              dot="bg-green"
-              label="Concluídos"
-              value={stats.concluidos}
-              sub={stats.concluidos > 0 ? `Último: ${timeAgo(allProjects.filter(p => calcCompletude(p) === 100).sort((a, b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0))[0]?.updatedAt)}` : 'Nenhum concluído'}
-            />
-            <StatCard
-              dot="bg-ink-faint"
-              label="Rascunhos"
-              value={stats.rascunhos}
-              sub="Aguardando dados"
-            />
           </div>
 
           {/* ── Toolbar ── */}
@@ -656,16 +649,16 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
               <option value="pct">Mais completos</option>
             </select>
 
-            {/* Estado */}
-            <select value={filterUF} onChange={e => setFilterUF(e.target.value)} className="w-auto">
-              <option value="">Todos os estados</option>
-              {ufsDisponiveis.map(uf => <option key={uf} value={uf}>{uf}</option>)}
-            </select>
-
             {/* Grupo */}
             <select value={filterGrupo} onChange={e => setFilterGrupo(e.target.value)} className="w-auto">
-              <option value="">Todos os grupos</option>
-              {gruposDisponiveis.map(g => <option key={g} value={g}>{g} — {grupos[g] || g}</option>)}
+              <option value="">Grupos: TODOS</option>
+              {gruposDisponiveis.map(g => <option key={g} value={g}>Grupo: {g} — {grupos[g] || g}</option>)}
+            </select>
+
+            {/* Estado */}
+            <select value={filterUF} onChange={e => setFilterUF(e.target.value)} className="w-auto">
+              <option value="">UF: TODOS</option>
+              {ufsDisponiveis.map(uf => <option key={uf} value={uf}>UF: {uf}</option>)}
             </select>
 
             {/* Separador */}
@@ -682,15 +675,43 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
             </div>
           </div>
 
-          {/* Contagem + filtros ativos */}
-          <div className="flex items-center gap-2 mb-[18px] text-xs text-ink-faint">
-            <span>{filtered.length} projeto{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}</span>
-            {filterUF && (
-              <FilterChip label={filterUF} onRemove={() => setFilterUF('')}/>
-            )}
-            {filterGrupo && (
-              <FilterChip label={`Grupo ${filterGrupo} — ${grupos[filterGrupo] || filterGrupo}`} onRemove={() => setFilterGrupo('')}/>
-            )}
+          {/* Contagem + filtros ativos + filtro de status */}
+          <div className="flex items-center justify-between gap-2 mb-[18px] flex-wrap">
+            <div className="flex items-center gap-2 text-xs text-ink-faint">
+              <span>{filtered.length} projeto{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}</span>
+              {filterUF && (
+                <FilterChip label={filterUF} onRemove={() => setFilterUF('')}/>
+              )}
+              {filterGrupo && (
+                <FilterChip label={`Grupo ${filterGrupo} — ${grupos[filterGrupo] || filterGrupo}`} onRemove={() => setFilterGrupo('')}/>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {stats.concluidos > 0 && (
+                <StatusPill
+                  dot="bg-green" tone="green"
+                  label={`${stats.concluidos} Concluído${stats.concluidos !== 1 ? 's' : ''}`}
+                  active={filterStatus === 'concluidos'}
+                  onClick={() => setFilterStatus(v => v === 'concluidos' ? null : 'concluidos')}
+                />
+              )}
+              {stats.andamento > 0 && (
+                <StatusPill
+                  dot="bg-amber" tone="amber"
+                  label={`${stats.andamento} Em andamento`}
+                  active={filterStatus === 'andamento'}
+                  onClick={() => setFilterStatus(v => v === 'andamento' ? null : 'andamento')}
+                />
+              )}
+              {stats.rascunhos > 0 && (
+                <StatusPill
+                  dot="bg-ink-faint" tone="muted"
+                  label={`${stats.rascunhos} Rascunho${stats.rascunhos !== 1 ? 's' : ''}`}
+                  active={filterStatus === 'rascunhos'}
+                  onClick={() => setFilterStatus(v => v === 'rascunhos' ? null : 'rascunhos')}
+                />
+              )}
+            </div>
           </div>
 
           {/* ── Conteúdo ── */}
