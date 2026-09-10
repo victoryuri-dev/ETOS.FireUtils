@@ -38,6 +38,13 @@
 @layer components {
   .btn-primary{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;background:var(--color-red);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-md)}
   .btn-primary:hover{background:#a01122}
+  /* Variante do botão "Criar novo projeto": mesmo vermelho, mas o texto
+     nasce preto e só vira branco no hover — como Tailwind gera as
+     utilities depois do layer components, uma utility (text-black) não
+     conseguiria sobrescrever o color:#fff acima, então a regra vai direto
+     aqui, no mesmo layer, depois de .btn-primary (vence por ordem). */
+  .btn-primary-novo{color:#000}
+  .btn-primary-novo:hover{color:#fff}
   .btn-success{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;background:var(--color-green);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-md)}
   .btn-success:hover{background:#178a65}
   .btn-ghost{display:inline-flex;align-items:center;gap:6px;font-size:12px;background:transparent;color:var(--color-ink-muted);border:.5px solid var(--color-border);padding:7px 15px;border-radius:var(--radius-md)}
