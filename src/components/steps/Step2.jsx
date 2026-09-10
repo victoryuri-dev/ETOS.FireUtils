@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
+import { ESTADOS_DISPONIVEIS } from '../../data/normas/index'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
 import SwitchToggle from '../ui/SwitchToggle'
@@ -215,8 +216,9 @@ function EstruturaCard({ est, index, canRemove, dispatch, onOpen }) {
   )
 }
 
-export default function Step2() {
+export default function Step2({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
+  const dimensionamento = state.tipoProjeto === 'dimensionamento'
   const [openId, setOpenId] = useState(null)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
 
@@ -255,10 +257,33 @@ export default function Step2() {
   return (
     <div className={S.section}>
       <div className={S.header}>
-        <div className={S.stepLbl}>Etapa 2 de 7</div>
+        <div className={S.stepLbl}>Etapa {step} de {totalSteps}</div>
         <h2 className={S.title}>Edificacao</h2>
         <p className={S.desc}>Situacao da edificacao e as estruturas (torres/blocos) que a compoem. Clique em uma estrutura para editar suas dimensoes e sistema construtivo — o numero de pavimentos de cada uma gera automaticamente os cards de classificacao na etapa 4.</p>
       </div>
+
+      {/* Projeto "apenas dimensionamento" pula Identificacao (Step1) — nome
+          do projeto e estado (usado pra escolher a norma) entram aqui. */}
+      {dimensionamento && (
+        <FormSection title="Identificacao">
+          <div className="g2 mb-3">
+            <div className="fg">
+              <label>Nome do projeto <span className="req">*</span></label>
+              <input value={state.nome} onChange={set('nome')} placeholder="Ex: Edificio Comercial Centro"/>
+            </div>
+            <div className="fg">
+              <label>Estado <span className="req">*</span></label>
+              <select value={state.uf} onChange={set('uf')}>
+                {ESTADOS_DISPONIVEIS.map(e => (
+                  <option key={e.uf} value={e.uf} disabled={!e.ativo}>
+                    {e.nome}{!e.ativo ? ' — em breve' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </FormSection>
+      )}
 
       {/* Situacao: nova ou existente */}
       <FormSection title="Situacao">

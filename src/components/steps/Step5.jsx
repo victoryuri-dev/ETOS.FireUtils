@@ -152,7 +152,7 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
   )
 }
 
-export default function Step5() {
+export default function Step5({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
   const { ocupacoes, cnaesDiv } = useNorma()
 
@@ -203,7 +203,7 @@ export default function Step5() {
   return (
     <div className={S.section}>
       <div className={S.header}>
-        <div className={S.stepLbl}>Etapa 5 de 7</div>
+        <div className={S.stepLbl}>Etapa {step} de {totalSteps}</div>
         <h2 className={S.title}>Carga de Incendio</h2>
         <p className={S.desc}>A carga de incendio de cada divisao e determinada pelo CNAE configurado na etapa anterior, classificada por estrutura. Por tabela: valor normativo automatico. Por levantamento: campo livre.</p>
       </div>

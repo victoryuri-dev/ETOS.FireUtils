@@ -458,7 +458,7 @@ function PavCard({ pav, onOpen }) {
 }
 
 // ── Step 4 principal ──────────────────────────────────────────────────
-export default function Step4() {
+export default function Step4({ step, totalSteps }) {
   const { state }    = useProjeto()
   const [openId, setOpenId] = useState(null)
 
@@ -467,7 +467,7 @@ export default function Step4() {
   return (
     <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
       <div className="mb-[26px]">
-        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 4 de 7</div>
+        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa {step} de {totalSteps}</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Classificacao por pavimento</h2>
         <p className="text-[13px] text-ink-faint leading-[1.6]">Clique em um pavimento para classificar sua ocupacao principal e ocupacoes subsidiarias.</p>
       </div>

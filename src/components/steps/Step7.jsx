@@ -3,7 +3,7 @@ import { useNorma } from '../../hooks/useNorma'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
 const getLbl = q => q<=300?'Baixo — Classe I':q<=1200?'Medio — Classe II':'Alto — Classe III/IV'
-export default function Step7() {
+export default function Step7({ step, totalSteps }) {
   const {state}=useProjeto()
   const {ocupacoes,cnaesDiv}=useNorma()
   const maxQ=Object.values(state.cargaState).flatMap(porEst=>Object.values(porEst||{})).reduce((acc,c)=>{
@@ -14,7 +14,7 @@ export default function Step7() {
   return (
     <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
       <div className="mb-8">
-        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 7 de 7</div>
+        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa {step} de {totalSteps}</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Revisao e confirmacao</h2>
         <p className="text-[13px] text-ink-faint leading-[1.6]">Verifique todos os dados antes de salvar.</p>
       </div>

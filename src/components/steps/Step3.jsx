@@ -1,12 +1,12 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import FormSection from '../ui/FormSection'
 const S={section:'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',header:'mb-8',stepLbl:'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',title:'text-[22px] font-semibold text-ink mb-[5px]',desc:'text-[13px] text-ink-faint leading-[1.6]'}
-export default function Step3() {
+export default function Step3({ step, totalSteps }) {
   const {state,dispatch}=useProjeto()
   const set=f=>e=>dispatch({type:'SET_FIELD',field:f,value:e.target.value})
   return (
     <div className={S.section}>
-      <div className={S.header}><div className={S.stepLbl}>Etapa 3 de 7</div><h2 className={S.title}>Responsavel tecnico</h2><p className={S.desc}>Dados do engenheiro ou arquiteto responsavel pelo PPCI e informacoes da ART.</p></div>
+      <div className={S.header}><div className={S.stepLbl}>Etapa {step} de {totalSteps}</div><h2 className={S.title}>Responsavel tecnico</h2><p className={S.desc}>Dados do engenheiro ou arquiteto responsavel pelo PPCI e informacoes da ART.</p></div>
       <FormSection title="Projetista">
         <div className="g2 mb-3">
           <div className="fg"><label>Nome completo <span className="req">*</span></label><input value={state.rtNome} onChange={set('rtNome')}/></div>

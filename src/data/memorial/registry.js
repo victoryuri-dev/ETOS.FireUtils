@@ -9,6 +9,7 @@ import { textoMemorialExtintores } from './extintores'
 import { textoMemorialIluminacao } from './iluminacao'
 import { textoMemorialSinalizacao } from './sinalizacao'
 import { textoMemorialGerenciamentoRisco } from './gerenciamento_risco'
+import { textoMemorialSaidaEmergencia } from './saida_emergencia'
 
 export const MEMORIAL_BUILDERS = {
   acesso_viatura:      textoMemorialAcessoViatura,
@@ -17,18 +18,22 @@ export const MEMORIAL_BUILDERS = {
   iluminacao:          textoMemorialIluminacao,
   sinalizacao:         textoMemorialSinalizacao,
   gerenciamento_risco: textoMemorialGerenciamentoRisco,
-  // saida_emergencia, hidrantes, ... entram aqui conforme forem implementadas
+  saida_emergencia:    textoMemorialSaidaEmergencia,
+  // hidrantes, ... entram aqui conforme forem implementadas
 }
 
 /**
  * Monta as seções do memorial a partir das medidas ativas/obrigatórias do
  * projeto. `sistemas` é o resultado derivado de useMedidasObrigatorias() —
- * mesma fonte usada pelo Anexo B — não o `state.sistemas` bruto.
+ * mesma fonte usada pelo Anexo B — não o `state.sistemas` bruto. `porEstrutura`
+ * (mesmo hook) só é repassado pra frente — necessário pros builders que
+ * precisam de dado por-estrutura (ex.: saida_emergencia.js, pra chuveiros/
+ * detecção na distância máxima a percorrer), não pelo agregado do projeto.
  */
-export function buildMemorial(state, sistemas) {
+export function buildMemorial(state, sistemas, porEstrutura) {
   const src = sistemas || state.sistemas || {}
   return Object.entries(src)
     .filter(([, s]) => s.ativo || s.obrigatorio)
-    .map(([key]) => MEMORIAL_BUILDERS[key]?.(state, src))
+    .map(([key]) => MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura))
     .filter(Boolean)
 }
