@@ -36,8 +36,7 @@
 }
 
 @layer components {
-  .btn-primary{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;background:var(--color-red);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-md)}
-  .btn-primary:hover{background:#a01122}
+  .btn-primary{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;background:var(--color-red);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-md);transitio:.3s}
   /* Variante do botão "Criar novo projeto": mesmo vermelho, mas o texto
      nasce preto e só vira branco no hover — como Tailwind gera as
      utilities depois do layer components, uma utility (text-black) não
