@@ -66,7 +66,15 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
   const handleClear  = () => { setQuery(''); onSelect({ cnae:'', descricao:'', cargaIncendio:null }); setOpen(false) }
 
   const selectedData = value ? cnaesDiv(divisao)[value] : null
-  const naoEncontrado = query.length >= 3 && results.length === 0
+  // `results` só é populado quando o usuário interage com o campo (foco/
+  // digitação — ver populate()) — quando o CNAE chega por fora (ex.: botão
+  // "Usar esta classificação" de BuscaCnaePorCnpj, que despacha direto no
+  // pavimento sem passar por este componente), `results` fica vazio mesmo
+  // com um `value` válido, e sem o `!selectedData` aqui "CNAE não
+  // encontrado" aparecia por engano pra CNAEs que já estavam corretamente
+  // catalogados (o texto da carga de incêndio ficava certo, só a mensagem
+  // de erro que era falsa).
+  const naoEncontrado = !selectedData && query.length >= 3 && results.length === 0
 
   return (
     <div ref={ref} className="relative">
