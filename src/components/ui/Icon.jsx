@@ -19,8 +19,8 @@ const ICONS = {
   grip: GripVertical, copy: Copy, moreVert: MoreVertical,
 }
 
-export default function Icon({ name, size=16, color, className='' }) {
+export default function Icon({ name, size=16, color, strokeWidth, className='' }) {
   const Cmp = ICONS[name]
   if (!Cmp) return null
-  return <Cmp size={size} color={color || 'currentColor'} className={`inline-block align-middle shrink-0 ${className}`}/>
+  return <Cmp size={size} color={color || 'currentColor'} strokeWidth={strokeWidth} className={`inline-block align-middle shrink-0 ${className}`}/>
 }
