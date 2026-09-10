@@ -274,11 +274,14 @@ export default function Step2({ step, totalSteps }) {
             <div className="fg">
               <label>Estado <span className="req">*</span></label>
               <select value={state.uf} onChange={set('uf')}>
-                {ESTADOS_DISPONIVEIS.map(e => (
-                  <option key={e.uf} value={e.uf} disabled={!e.ativo}>
-                    {e.nome}{!e.ativo ? ' — em breve' : ''}
-                  </option>
-                ))}
+                {ESTADOS_DISPONIVEIS.map(e => {
+                  const habilitado = e.ativo || e.ativoDimensionamento
+                  return (
+                    <option key={e.uf} value={e.uf} disabled={!habilitado}>
+                      {e.nome}{!habilitado ? ' — em breve' : ''}
+                    </option>
+                  )
+                })}
               </select>
             </div>
           </div>

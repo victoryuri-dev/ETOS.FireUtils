@@ -21,10 +21,12 @@ import * as MA_ILU  from './MA/iluminacao'
 import * as MA_SIN  from './MA/sinalizacao'
 import * as MA_NTS  from './MA/nts'
 
+import * as PB_SE   from './PB/saida_emergencia'
+
 import { getNormaRemota } from '../../lib/normasRemote'
 
 const NORMAS      = { MA, PE, PB }
-const NORMAS_SE   = { MA: MA_SE }
+const NORMAS_SE   = { MA: MA_SE, PB: PB_SE }
 const NORMAS_MED  = { MA: MA_MED }
 const NORMAS_AV   = { MA: MA_AV }
 const NORMAS_TRRF = { MA: MA_TRRF }
@@ -38,10 +40,15 @@ const NORMAS_SIN  = { MA: MA_SIN }
 const NTS_PADRAO  = MA_NTS
 
 // Estados listados no seletor — ativo:false = aparece mas nao pode selecionar
+// em projetos completos. ativoDimensionamento:true libera o estado SÓ pro
+// seletor de projetos "Apenas dimensionamento" (Step2.jsx) — caso da
+// Paraíba: só tem dados de saída de emergência (NT 12/2025 CBMPB) por
+// enquanto, nenhuma das outras medidas de segurança (extintores,
+// iluminação, sinalização, TRRF, carga de incêndio por CNAE etc.).
 export const ESTADOS_DISPONIVEIS = [
   { uf: 'MA', nome: 'Maranhao — MA',   ativo: true  },
   { uf: 'PE', nome: 'Pernambuco — PE', ativo: false },
-  { uf: 'PB', nome: 'Paraiba — PB',    ativo: false },
+  { uf: 'PB', nome: 'Paraiba — PB',    ativo: false, ativoDimensionamento: true },
 ]
 
 // A tabela `normas_dados` (ver supabase/migrations/*normas_dados*) guarda
