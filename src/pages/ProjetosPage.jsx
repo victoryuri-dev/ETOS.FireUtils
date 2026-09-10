@@ -121,7 +121,7 @@ const CHIP_TONE = {
 
 function Chip({ tone = 'neutral', icon, children }) {
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase py-0.5 px-2.5 rounded-[20px] whitespace-nowrap border border-solid shrink-0 ${CHIP_TONE[tone]}`}>
+    <span className={`inline-flex items-center w-fit gap-1 text-[10px] font-bold uppercase py-0.5 px-2.5 rounded-[20px] whitespace-nowrap border border-solid shrink-0 ${CHIP_TONE[tone]}`}>
       {icon && <Icon name={icon} size={11}/>}
       {children}
     </span>
@@ -236,7 +236,7 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
       </div>
 
       {/* Ocupação / Risco / UF / A.C.T. */}
-      <div className="flex items-center flex-wrap gap-2">
+      <div className="flex items-center flex-wrap justify-between">
         <Chip tone="red">{ocup}</Chip>
         <Chip tone={risco.tone} icon="flame">{risco.label}</Chip>
         <StatInline label="UF" value={proj.uf || '—'}/>
