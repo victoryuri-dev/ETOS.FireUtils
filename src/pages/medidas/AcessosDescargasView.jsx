@@ -155,7 +155,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
     <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
       className={`rounded-lg border border-solid bg-surface transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
     >
-      <div className="flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none" onClick={() => toggleColapsado(acesso.id)}>
+      <div className="relative flex items-center justify-between gap-4 py-3 pl-3.5 pr-10 cursor-pointer select-none" onClick={() => toggleColapsado(acesso.id)}>
         <div className="flex items-center gap-2 min-w-0">
           {!isRaiz && (
             <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar (leva tudo dentro)">
@@ -165,16 +165,22 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
           <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
           <InlineEditableNome value={acesso.nome} onCommit={renomear} textClassName="text-[15px] font-bold text-ink"/>
         </div>
-        <div className="flex items-center gap-3.5 shrink-0">
+        {/* Duas linhas alinhadas em grid — Acesso/Descarga (ou Escada/Rampa)
+            em cima, Portas embaixo — em vez de espremer as duas dimensões
+            (fluxo + porta) numa linha só com rótulos "C (PORTA)"/"PORTA". */}
+        <div className="grid grid-cols-[70px_44px_40px_40px_76px] items-center gap-x-3.5 gap-y-1 shrink-0">
           <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-right leading-tight">{label}</div>
           <StatCol label="POP." value={pop}/>
           <StatCol label="C" value={capValor}/>
           <StatCol label="U.P." value={dim.n}/>
           <StatCol label="LARGURA MÍN." value={fmtM(dim.la)} big/>
-          <StatCol label="C (PORTA)" value={cap.PT}/>
-          <StatCol label="PORTA" value={fmtM(porta.la)} big/>
-          <button onClick={remover} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1"><Icon name="trash" size={12}/></button>
+          <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-right leading-tight">Portas</div>
+          <StatCol label="POP." value={pop}/>
+          <StatCol label="C" value={cap.PT}/>
+          <StatCol label="U.P." value={dim.n}/>
+          <StatCol label="LARGURA MÍN." value={fmtM(porta.la)} big/>
         </div>
+        <button onClick={remover} className="absolute top-2 right-2 bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1"><Icon name="trash" size={12}/></button>
       </div>
       {aberto && (
         <div className="pl-7 pr-3.5 pb-3.5 flex flex-col gap-2.5 border-t border-solid border-border-2 pt-3">
