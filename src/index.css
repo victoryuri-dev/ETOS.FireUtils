@@ -45,6 +45,12 @@
      aqui, no mesmo layer, depois de .btn-primary (vence por ordem). */
   .btn-primary-novo{color:#000}
   .btn-primary-novo:hover{color:#fff}
+  /* Pelo mesmo motivo, rounded-r-none/rounded-l-none (utilities) não
+     conseguem zerar o border-radius herdado de .btn-primary — os dois
+     metades do botão split ficavam com canto arredondado por dentro,
+     abrindo uma "fresta" do fundo da página entre elas. */
+  .btn-primary-novo-l{border-top-right-radius:0;border-bottom-right-radius:0}
+  .btn-primary-novo-r{border-top-left-radius:0;border-bottom-left-radius:0}
   .btn-success{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;background:var(--color-green);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-md)}
   .btn-success:hover{background:#178a65}
   .btn-ghost{display:inline-flex;align-items:center;gap:6px;font-size:12px;background:transparent;color:var(--color-ink-muted);border:.5px solid var(--color-border);padding:7px 15px;border-radius:var(--radius-md)}

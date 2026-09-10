@@ -84,38 +84,48 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('pt-BR')
 }
 
-function pad2(n) {
-  return String(n).padStart(2, '0')
+// Ocupação do projeto: uma única divisão em comum, ou "Mista" quando há
+// mais de uma divisão diferente entre os pavimentos.
+function ocupacaoInfo(pavimentos) {
+  const divs = [...new Set((pavimentos || []).map(p => p.divisao).filter(Boolean))]
+  if (divs.length > 1) return 'Mista'
+  if (divs.length === 1) return divs[0]
+  return '—'
 }
 
-// Cor determinística por UF (mesmo hash sempre gera a mesma cor pra mesma
-// sigla) — dá pra identificar o estado de relance sem precisar de uma
-// tabela de cores mantida à mão pra cada uma das 27 UFs.
-function ufColor(uf) {
-  if (!uf) return { bg: 'rgba(255,255,255,.06)', border: 'rgba(255,255,255,.16)', text: 'var(--color-ink-faint)' }
-  // MA é o estado principal do app — usa o vermelho da marca em vez da cor
-  // derivada do hash, que fica só pras demais UFs.
-  if (uf === 'MA') return { bg: 'var(--color-red-dim)', border: 'var(--color-red-border)', text: 'var(--color-red)' }
-  let hash = 0
-  for (let i = 0; i < uf.length; i++) hash = uf.charCodeAt(i) + ((hash << 5) - hash)
-  const hue = Math.abs(hash) % 360
-  return {
-    bg: `hsla(${hue}, 70%, 55%, .16)`,
-    border: `hsla(${hue}, 70%, 55%, .4)`,
-    text: `hsl(${hue}, 85%, 72%)`,
-  }
+// Maior carga de incêndio entre todas as estruturas/divisões do projeto —
+// mesma leitura direta do cargaState usada antes da Etapa 5 resolver por
+// CNAE (não depende de contexto de norma carregado).
+function maxCarga(cargaState) {
+  return Object.values(cargaState || {}).flatMap(porEst => Object.values(porEst || {})).reduce((acc, c) => {
+    const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0
+    return Math.max(acc, q)
+  }, 0)
 }
 
-function primaryGrupo(pavimentos) {
-  if (!pavimentos?.length) return null
-  const count = {}
-  pavimentos.forEach(p => { if (p.grupo) count[p.grupo] = (count[p.grupo] || 0) + 1 })
-  return Object.entries(count).sort((a, b) => b[1] - a[1])[0]?.[0] || null
+// Mesmos limiares de risco (300/1200 MJ/m²) usados no resto do app
+// (Etapa 5, Dashboard, EstruturaHeaderInfo).
+function riscoInfo(q) {
+  if (!q) return { label: '—', tone: 'neutral' }
+  if (q <= 300)  return { label: 'Baixo', tone: 'green' }
+  if (q <= 1200) return { label: 'Médio', tone: 'amber' }
+  return { label: 'Alto', tone: 'red' }
 }
 
-function primaryDivisao(pavimentos) {
-  if (!pavimentos?.length) return null
-  return [...pavimentos].sort((a, b) => (parseFloat(b.area) || 0) - (parseFloat(a.area) || 0))[0]?.divisao || null
+const CHIP_TONE = {
+  green:   'bg-green-dim border-green-border text-green',
+  amber:   'bg-amber-dim border-amber-border text-amber',
+  red:     'bg-red-dim border-red-border text-red',
+  neutral: 'bg-white/[.04] border-border text-ink-faint',
+}
+
+function Chip({ tone = 'neutral', icon, children }) {
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase py-0.5 px-2.5 rounded-[20px] whitespace-nowrap border border-solid shrink-0 ${CHIP_TONE[tone]}`}>
+      {icon && <Icon name={icon} size={11}/>}
+      {children}
+    </span>
+  )
 }
 
 // ── Ícones inline ─────────────────────────────────────────────────────
@@ -203,11 +213,10 @@ function CardActions({ onDelete, onDuplicate, className = '' }) {
 // ── Project card (grid) ───────────────────────────────────────────────
 
 function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
-  const pct   = calcCompletude(proj)
-  const bar   = barToneClasses(pct)
-  const grupo = primaryGrupo(proj.pavimentos)
-  const div   = primaryDivisao(proj.pavimentos)
-  const uf    = ufColor(proj.uf)
+  const pct    = calcCompletude(proj)
+  const bar    = barToneClasses(pct)
+  const ocup   = ocupacaoInfo(proj.pavimentos)
+  const risco  = riscoInfo(maxCarga(proj.cargaState))
 
   return (
     <div
@@ -221,27 +230,20 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
         onDuplicate={() => onDuplicate(proj)}
       />
 
-      {/* Nome + UF */}
-      <div className="flex items-center gap-2 pr-7">
-        <span className="font-heading text-[15px] font-bold text-ink uppercase tracking-[.01em] leading-[1.3] truncate">
-          {proj.nome || <span className="text-ink-faint normal-case">Sem nome</span>}
-        </span>
-        <span
-          className="text-[10px] font-bold py-0.5 px-2.5 rounded-[20px] whitespace-nowrap border border-solid shrink-0"
-          style={{ background: uf.bg, borderColor: uf.border, color: uf.text }}
-        >
-          {proj.uf || '—'}
-        </span>
+      {/* Nome — exatamente como foi digitado, sem forçar caixa alta */}
+      <div className="font-heading text-[15px] font-bold text-ink leading-[1.3] pr-7 truncate">
+        {proj.nome || <span className="text-ink-faint font-normal">Sem nome</span>}
       </div>
 
-      {/* Edificações / Ocupação / A.C.T. */}
-      <div className="flex items-center justify-between gap-2">
-        <StatInline label="Edificações" value={pad2(proj.estruturas?.length || 0)}/>
-        <StatInline label="Ocup." value={div || grupo || '—'}/>
+      {/* Ocupação / Risco / UF / A.C.T. */}
+      <div className="flex items-center flex-wrap gap-2">
+        <Chip tone="red">{ocup}</Chip>
+        <Chip tone={risco.tone} icon="flame">{risco.label}</Chip>
+        <StatInline label="UF" value={proj.uf || '—'}/>
         <StatInline label="A.C.T." value={fmtArea(totalArea(proj))}/>
       </div>
 
-      {/* Barra de status */}
+      {/* Completude */}
       <div className="h-[3px] bg-border rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-[width] duration-400 ${bar.bg}`} style={{width:`${pct}%`}}/>
       </div>
@@ -265,18 +267,19 @@ function StatInline({ label, value }) {
 }
 
 // ── Project row (list) ────────────────────────────────────────────────
-// Mesmas informações do card da grade (nome+UF, Edificações/Ocup./A.C.T.,
-// barra de status, Criado/Editado), só que em linha — os rótulos dos
-// campos saem daqui e vão só uma vez pro cabeçalho da lista.
+// Mesmos campos do card da grade (Nome, Risco, Ocupação, UF, A.C.T.,
+// Completude), só que em linha — cada linha é seu próprio card com borda
+// e espaço entre elas, e o cabeçalho nomeia as colunas uma única vez (sem
+// repetir rótulo por linha).
 
-const LIST_GRID_COLS = 'grid-cols-[1fr_90px_80px_110px_220px_32px]'
+const LIST_GRID_COLS = 'grid-cols-[1fr_110px_110px_60px_130px_1fr_32px]'
 
 function ListHeader() {
-  const cols = ['Nome do projeto', 'Edificações', 'Ocupação', 'A.C.T.', 'Criado / Editado', '']
+  const cols = ['Nome do projeto', 'Risco', 'Ocupação', 'UF', 'A.C.T.', 'Completude', '']
   return (
-    <div className={`grid ${LIST_GRID_COLS} gap-3.5 items-center py-2 px-4 border-b border-solid border-border bg-surface sticky top-0`}>
+    <div className={`grid ${LIST_GRID_COLS} gap-3.5 items-center px-4`}>
       {cols.map((h, i) => (
-        <span key={i} className="text-[10px] text-ink-faint uppercase tracking-[.07em] whitespace-nowrap">
+        <span key={i} className="text-[11px] text-ink-faint uppercase tracking-[.05em] whitespace-nowrap">
           {h}
         </span>
       ))}
@@ -287,52 +290,34 @@ function ListHeader() {
 function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
   const pct   = calcCompletude(proj)
   const bar   = barToneClasses(pct)
-  const grupo = primaryGrupo(proj.pavimentos)
-  const div   = primaryDivisao(proj.pavimentos)
-  const uf    = ufColor(proj.uf)
+  const ocup  = ocupacaoInfo(proj.pavimentos)
+  const risco = riscoInfo(maxCarga(proj.cargaState))
 
   return (
     <div
       onClick={() => onOpen(proj)}
-      className={`group grid ${LIST_GRID_COLS} gap-3.5 items-center py-[11px] px-4 border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.02]`}
+      className={`group grid ${LIST_GRID_COLS} gap-3.5 items-center py-3.5 px-4 bg-surface-2 hover:bg-surface border border-solid border-border hover:border-white/13 rounded-lg cursor-pointer transition-colors duration-150`}
     >
-      {/* Nome + UF */}
-      <span className="flex items-center gap-2 min-w-0">
-        <span className="font-heading text-[13px] font-bold text-ink uppercase tracking-[.01em] overflow-hidden text-ellipsis whitespace-nowrap">
-          {proj.nome || <span className="text-ink-faint normal-case">Sem nome</span>}
-        </span>
-        <span
-          className="text-[10px] font-bold py-0.5 px-2.5 rounded-[20px] whitespace-nowrap border border-solid shrink-0"
-          style={{ background: uf.bg, borderColor: uf.border, color: uf.text }}
-        >
-          {proj.uf || '—'}
-        </span>
+      {/* Nome — exatamente como foi digitado */}
+      <span className="font-heading text-[13px] font-bold text-ink overflow-hidden text-ellipsis whitespace-nowrap">
+        {proj.nome || <span className="text-ink-faint font-normal">Sem nome</span>}
       </span>
 
-      {/* Edificações */}
-      <span className="font-heading text-[12px] font-bold text-ink whitespace-nowrap">
-        {pad2(proj.estruturas?.length || 0)}
-      </span>
+      {/* Risco */}
+      <Chip tone={risco.tone} icon="flame">{risco.label}</Chip>
 
       {/* Ocupação */}
-      <span className="font-heading text-[12px] font-bold text-ink whitespace-nowrap">
-        {div || grupo || '—'}
-      </span>
+      <Chip tone="red">{ocup}</Chip>
+
+      {/* UF */}
+      <span className="text-[13px] font-bold text-ink whitespace-nowrap">{proj.uf || '—'}</span>
 
       {/* A.C.T. */}
-      <span className="font-heading text-[12px] font-bold text-ink whitespace-nowrap">
-        {fmtArea(totalArea(proj))}
-      </span>
+      <span className="text-[13px] font-bold text-ink whitespace-nowrap">{fmtArea(totalArea(proj))}</span>
 
-      {/* Barra de status + datas */}
-      <div className="flex flex-col gap-1.5">
-        <div className="h-[3px] bg-border rounded-full overflow-hidden">
-          <div className={`h-full rounded-full ${bar.bg}`} style={{width:`${pct}%`}}/>
-        </div>
-        <div className="flex items-center justify-between text-[10px] text-ink-faint">
-          <span>Criado em {fmtDate(proj.createdAt)}</span>
-          <span>Editado {timeAgo(proj.updatedAt)}</span>
-        </div>
+      {/* Completude */}
+      <div className="h-[3px] bg-border rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${bar.bg}`} style={{width:`${pct}%`}}/>
       </div>
 
       {/* Ações */}
@@ -435,17 +420,17 @@ function NovoProjetoBotao({ onNewProject }) {
   return (
     <div ref={ref} className="relative flex">
       <button
-        className="btn-primary btn-primary-novo rounded-r-none uppercase tracking-wide font-heading font-bold"
+        className="btn-primary btn-primary-novo btn-primary-novo-l uppercase tracking-wide font-heading font-bold"
         onClick={() => onNewProject('completo')}
       >
-        <Icon name="plus" size={13}/> Criar novo projeto
+        <Icon name="plus" size={18} strokeWidth={3}/> Criar novo projeto
       </button>
       <button
-        className="btn-primary btn-primary-novo rounded-l-none border-l border-solid border-white/20 px-2 shrink-0"
+        className="btn-primary btn-primary-novo btn-primary-novo-r border-l border-solid border-black/20 px-2.5 shrink-0"
         onClick={() => setAberto(v => !v)}
         title="Outros tipos de projeto"
       >
-        <Icon name="chevD" size={11}/>
+        <Icon name="chevD" size={17} strokeWidth={3}/>
       </button>
       {aberto && (
         <div className="absolute top-full right-0 mt-1.5 min-w-[240px] bg-surface-2 border border-solid border-border rounded-lg shadow-[0_12px_32px_rgba(0,0,0,.4)] z-50 py-1.5 overflow-hidden">
@@ -767,7 +752,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
               ))}
             </div>
           ) : (
-            <div className="bg-surface-2 border border-solid border-border rounded-lg overflow-hidden">
+            <div className="flex flex-col gap-2.5">
               <ListHeader/>
               {filtered.map(proj => (
                 <ProjectRow key={proj.id} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}/>
