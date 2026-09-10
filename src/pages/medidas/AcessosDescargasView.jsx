@@ -3,7 +3,7 @@ import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSe
 import Icon from '../../components/ui/Icon'
 import { AmbienteForm, DivBadge, fmtM } from './se_shared'
 import {
-  calcPopAmb, calcNoAcesso, calcNoAmbientePT, contarSaidasPavimento, tipoDoNo,
+  calcPopAmb, calcNoAcesso, calcNoAmbientePT, calcPortaNoAcesso, contarSaidasPavimento, tipoDoNo,
 } from '../../data/se_calc'
 
 // ── Árvore: helpers puros (leem ambientes/acessos, não mutam nada) ─────
@@ -121,7 +121,12 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove }) {
 // receber ambientes direto (+ Adicionar Ambiente).
 function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga, dispatch, pavimentoId, onEditAmbiente, onRemoveAmbiente, onCreateAmbiente, colapsados, toggleColapsado }) {
   const { tipo, label } = tipoDoNo(acesso, pisoDescarga)
-  const { pop, capValor, dim } = calcNoAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, tipo)
+  const { pop, cap, capValor, dim } = calcNoAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, tipo)
+  // Porta do box: reaproveita o mesmo N de UP do AD/ER (não recalcula
+  // população) — só a capacidade de unidade de passagem (C) usada pra
+  // achar a largura mínima é a normativa de PORTA (cap.PT), não a de
+  // AD/ER já mostrada acima.
+  const porta = calcPortaNoAcesso(dim.n, larguras)
   const filhos = acessosFilhos(acessos, acesso.id)
   const filhosAmbientes = ambientesDe(ambientes, acesso.id)
   const isRaiz = acesso.alimentaEm === null
@@ -166,6 +171,8 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
           <StatCol label="C" value={capValor}/>
           <StatCol label="U.P." value={dim.n}/>
           <StatCol label="LARGURA MÍN." value={fmtM(dim.la)} big/>
+          <StatCol label="C (PORTA)" value={cap.PT}/>
+          <StatCol label="PORTA" value={fmtM(porta.la)} big/>
           <button onClick={remover} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1"><Icon name="trash" size={12}/></button>
         </div>
       </div>
