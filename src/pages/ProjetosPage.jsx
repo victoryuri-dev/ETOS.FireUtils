@@ -121,7 +121,7 @@ const CHIP_TONE = {
 
 function Chip({ tone = 'neutral', icon, children }) {
   return (
-    <span className={`inline-flex items-center w-fit m-auto gap-1 text-[10px] font-bold uppercase py-0.5 px-2.5 rounded-[20px] whitespace-nowrap border border-solid shrink-0 ${CHIP_TONE[tone]}`}>
+    <span className={`inline-flex items-center w-fit gap-1 text-[10px] font-bold uppercase py-0.5 px-2.5 rounded-[20px] whitespace-nowrap border border-solid shrink-0 ${CHIP_TONE[tone]}`}>
       {icon && <Icon name={icon} size={11}/>}
       {children}
     </span>
