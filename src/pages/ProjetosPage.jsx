@@ -3,6 +3,7 @@ import Icon from '../components/ui/Icon'
 import { useNorma } from '../hooks/useNorma'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+import { newIds } from '../context/ProjetoContext'
 import { criarProjetoExemploFixo, EXEMPLO_FIXO_ID } from '../data/projetoExemplo'
 import { temCNAECadastrado } from '../data/normas/index'
 
@@ -129,7 +130,7 @@ function StatCard({ dot, label, value, sub }) {
         <div className={`w-[7px] h-[7px] rounded-full shrink-0 ${dot}`}/>
         <span className="text-[11px] text-ink-faint">{label}</span>
       </div>
-      <div className="text-[32px] font-bold text-ink leading-none">{value}</div>
+      <div className="font-heading text-[32px] font-bold text-ink leading-none">{value}</div>
       {sub && <div className="text-[11px] text-ink-faint mt-1.5">{sub}</div>}
     </div>
   )
@@ -149,9 +150,52 @@ function Badge({ label, tone }) {
   )
 }
 
+// ── Menu de ações do card (excluir / duplicar) ─────────────────────────
+// Botão de "3 pontos" que, ao ser hovereado, se transforma numa bandeja com
+// os dois ícones de ação — a bandeja tem um fundo em degradê que vai de
+// opaco (perto dos ícones, à direita) a transparente (à esquerda).
+function CardActions({ onDelete, onDuplicate, className = '' }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      className={`relative h-[26px] w-[26px] shrink-0 ${className}`}
+    >
+      <div
+        className={`absolute right-0 top-0 flex items-center gap-1 py-0.5 pl-9 rounded-md transition-opacity duration-150 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        style={{ background: 'linear-gradient(to left, var(--color-surface-2) 55%, transparent 100%)' }}
+      >
+        <button
+          onClick={onDuplicate}
+          title="Duplicar projeto"
+          className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-white/[.07] hover:text-ink hover:border-border"
+        >
+          <Icon name="copy" size={12}/>
+        </button>
+        <button
+          onClick={onDelete}
+          title="Excluir projeto"
+          className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-red-dim hover:text-red hover:border-red-border"
+        >
+          <Icon name="trash" size={12}/>
+        </button>
+      </div>
+      <button
+        title="Mais opções"
+        className={`flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-opacity duration-150 ${open ? 'opacity-0 pointer-events-none' : ''}`}
+      >
+        <Icon name="moreVert" size={14}/>
+      </button>
+    </div>
+  )
+}
+
 // ── Project card (grid) ───────────────────────────────────────────────
 
-function ProjectCard({ proj, onOpen, onDelete }) {
+function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
   const pct    = calcCompletude(proj)
   const st     = statusInfo(pct)
   const grupo  = primaryGrupo(proj.pavimentos)
@@ -164,16 +208,15 @@ function ProjectCard({ proj, onOpen, onDelete }) {
       onClick={() => onOpen(proj)}
       className="group relative bg-surface-2 hover:bg-surface border border-solid border-border hover:border-white/13 rounded-lg p-4 cursor-pointer transition-colors duration-150 flex flex-col gap-3"
     >
-      {/* Botão excluir */}
-      <button
-        onClick={e => { e.stopPropagation(); onDelete(proj) }}
-        className="absolute top-2.5 right-2.5 flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer opacity-0 group-hover:opacity-100 transition-[opacity,background-color,color,border-color] duration-150 hover:bg-red-dim hover:text-red hover:border-red-border"
-      >
-        <Icon name="trash" size={12}/>
-      </button>
+      {/* Ações (excluir / duplicar) */}
+      <CardActions
+        className="absolute top-2.5 right-2.5 z-10 opacity-0 group-hover:opacity-100"
+        onDelete={() => onDelete(proj)}
+        onDuplicate={() => onDuplicate(proj)}
+      />
 
       {/* Nome */}
-      <div className="text-[15px] font-semibold text-ink leading-[1.3] min-h-[38px]">
+      <div className="font-heading text-[15px] font-semibold text-ink leading-[1.3] min-h-[38px]">
         {proj.nome || <span className="text-ink-faint">Sem nome</span>}
       </div>
 
@@ -247,7 +290,7 @@ function ListHeader() {
   )
 }
 
-function ProjectRow({ proj, onOpen, onDelete }) {
+function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
   const pct   = calcCompletude(proj)
   const st    = statusInfo(pct)
   const grupo = primaryGrupo(proj.pavimentos)
@@ -263,7 +306,7 @@ function ProjectRow({ proj, onOpen, onDelete }) {
       <div className={`w-[7px] h-[7px] rounded-full shrink-0 ${st.tone === 'green' ? 'bg-green' : st.tone === 'amber' ? 'bg-amber' : 'bg-ink-faint'}`}/>
 
       {/* Nome */}
-      <span className="text-[13px] font-medium text-ink overflow-hidden text-ellipsis whitespace-nowrap flex items-center gap-1.5">
+      <span className="font-heading text-[13px] font-medium text-ink overflow-hidden text-ellipsis whitespace-nowrap flex items-center gap-1.5">
         {proj.nome || <span className="text-ink-faint italic">Sem nome</span>}
         {proj.exemploFixo && <Badge label="Exemplo" tone="amber"/>}
       </span>
@@ -300,24 +343,22 @@ function ProjectRow({ proj, onOpen, onDelete }) {
       </span>
 
       {/* Ações */}
-      <div
-        onClick={e => e.stopPropagation()}
-        className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-      >
-        <button
-          onClick={() => onDelete(proj)}
-          className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer hover:bg-red-dim hover:text-red hover:border-red-border"
-        >
-          <Icon name="trash" size={12}/>
-        </button>
+      <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        <CardActions onDelete={() => onDelete(proj)} onDuplicate={() => onDuplicate(proj)}/>
       </div>
     </div>
   )
 }
 
-// ── Modal de confirmação de exclusão ──────────────────────────────────
+// ── Modal de confirmação (excluir / duplicar) ──────────────────────────
+// Ambas as ações do card (excluir e duplicar) passam por aqui antes de
+// acontecer — o usuário sempre precisa confirmar.
 
-function DeleteModal({ proj, onConfirm, onCancel }) {
+function ConfirmModal({ tone, icon, title, message, confirmLabel, onConfirm, onCancel }) {
+  const toneClass = tone === 'red'
+    ? { dot: 'bg-red-dim border-red-border text-red', btn: 'bg-red hover:bg-[#a01122]' }
+    : { dot: 'bg-blue-dim border-blue-border text-ink', btn: 'bg-ink-muted hover:bg-ink text-bg' }
+
   return (
     <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={onCancel}>
       <div
@@ -325,35 +366,28 @@ function DeleteModal({ proj, onConfirm, onCancel }) {
         className="bg-surface border border-solid border-border rounded-lg py-7 px-8 w-[400px] max-w-[90vw] shadow-[0_20px_60px_rgba(0,0,0,.5)]"
       >
         {/* Ícone */}
-        <div className="w-11 h-11 rounded-full bg-red-dim border border-solid border-red-border flex items-center justify-center mx-auto mb-[18px]">
-          <Icon name="trash" size={18} className="text-red"/>
+        <div className={`w-11 h-11 rounded-full border border-solid flex items-center justify-center mx-auto mb-[18px] ${toneClass.dot}`}>
+          <Icon name={icon} size={18}/>
         </div>
 
         <div className="text-center mb-5">
-          <div className="text-base font-semibold text-ink mb-2">
-            Excluir projeto?
+          <div className="font-heading text-base font-semibold text-ink mb-2">
+            {title}
           </div>
           <div className="text-[13px] text-ink-faint leading-[1.6]">
-            O projeto{' '}
-            <strong className="text-ink">
-              {proj.nome || 'Sem nome'}
-            </strong>{' '}
-            será excluído permanentemente. Esta ação não pode ser desfeita.
+            {message}
           </div>
         </div>
 
         <div className="flex gap-2.5">
-          <button
-            className="btn-ghost flex-1"
-            onClick={onCancel}
-          >
+          <button className="btn-ghost flex-1" onClick={onCancel}>
             Cancelar
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 flex items-center justify-center gap-1.5 px-4 h-9 rounded-md bg-red border-none text-white text-[13px] font-medium cursor-pointer"
+            className={`flex-1 flex items-center justify-center gap-1.5 px-4 h-9 rounded-md border-none text-white text-[13px] font-medium cursor-pointer transition-colors duration-150 ${toneClass.btn}`}
           >
-            <Icon name="trash" size={12}/> Excluir permanentemente
+            <Icon name={icon} size={12}/> {confirmLabel}
           </button>
         </div>
       </div>
@@ -407,7 +441,7 @@ function NovoProjetoBotao({ onNewProject }) {
 
   return (
     <div ref={ref} className="relative flex">
-      <button className="btn-primary rounded-r-none" onClick={() => onNewProject('completo')}>
+      <button className="btn-primary rounded-r-none text-black hover:text-white transition-colors duration-150" onClick={() => onNewProject('completo')}>
         <Icon name="plus" size={13}/> Novo projeto
       </button>
       <button
@@ -423,8 +457,8 @@ function NovoProjetoBotao({ onNewProject }) {
             className="w-full text-left px-3.5 py-2.5 bg-transparent border-none cursor-pointer hover:bg-white/[.04] flex flex-col gap-0.5"
             onClick={() => { setAberto(false); onNewProject('dimensionamento') }}
           >
-            <span className="text-[13px] font-medium text-ink">Apenas dimensionamento</span>
-            <span className="text-[11px] text-ink-faint leading-[1.4]">Saída de emergência, hidrantes e chuveiros automáticos — sem dados de responsável ou localização</span>
+            <span className="font-heading text-[13px] font-medium text-ink">Apenas dimensionamento</span>
+            <span className="text-[11px] text-ink-faint leading-[1.4]">Gera apenas memorial de cálculo</span>
           </button>
         </div>
       )}
@@ -442,6 +476,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
   const [view,        setView]        = useState('grid')
   const [tick,        setTick]        = useState(0)
   const [toDelete,    setToDelete]    = useState(null)
+  const [toDuplicate, setToDuplicate] = useState(null)
   const [search,      setSearch]      = useState('')
   const [sort,        setSort]        = useState('recent')
   const [filterUF,    setFilterUF]    = useState('')
@@ -470,6 +505,22 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
     if (!toDelete) return
     await supabase.from('projetos').delete().eq('id', toDelete.id)
     setToDelete(null)
+    setTick(t => t + 1)
+  }
+
+  const handleDuplicateConfirm = async () => {
+    if (!toDuplicate || !user) return
+    const { id, createdAt } = newIds()
+    const dados = {
+      ...toDuplicate,
+      id,
+      createdAt,
+      updatedAt: createdAt,
+      nome: `${toDuplicate.nome || 'Sem nome'} (cópia)`,
+      exemploFixo: false,
+    }
+    await supabase.from('projetos').insert({ id, user_id: user.id, nome: dados.nome, dados })
+    setToDuplicate(null)
     setTick(t => t + 1)
   }
 
@@ -536,7 +587,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
           {/* Título + botão */}
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-ink mb-1">Meus projetos</h1>
+              <h1 className="font-heading text-2xl font-bold text-ink mb-1">Meus projetos</h1>
               <p className="text-[13px] text-ink-faint">Todos os memoriais descritivos e dimensionamentos</p>
             </div>
             <div className="flex gap-2">
@@ -650,14 +701,14 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
           ) : view === 'grid' ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-3">
               {filtered.map(proj => (
-                <ProjectCard key={proj.id} proj={proj} onOpen={onOpenProject} onDelete={setToDelete}/>
+                <ProjectCard key={proj.id} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}/>
               ))}
             </div>
           ) : (
             <div className="bg-surface-2 border border-solid border-border rounded-lg overflow-hidden">
               <ListHeader/>
               {filtered.map(proj => (
-                <ProjectRow key={proj.id} proj={proj} onOpen={onOpenProject} onDelete={setToDelete}/>
+                <ProjectRow key={proj.id} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}/>
               ))}
             </div>
           )}
@@ -665,12 +716,39 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
         </div>
       </div>
 
-      {/* Modal de confirmação */}
+      {/* Modais de confirmação */}
       {toDelete && (
-        <DeleteModal
-          proj={toDelete}
+        <ConfirmModal
+          tone="red"
+          icon="trash"
+          title="Excluir projeto?"
+          message={(
+            <>
+              O projeto{' '}
+              <strong className="text-ink">{toDelete.nome || 'Sem nome'}</strong>{' '}
+              será excluído permanentemente. Esta ação não pode ser desfeita.
+            </>
+          )}
+          confirmLabel="Excluir permanentemente"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setToDelete(null)}
+        />
+      )}
+      {toDuplicate && (
+        <ConfirmModal
+          tone="blue"
+          icon="copy"
+          title="Duplicar projeto?"
+          message={(
+            <>
+              Uma cópia do projeto{' '}
+              <strong className="text-ink">{toDuplicate.nome || 'Sem nome'}</strong>{' '}
+              será criada com os mesmos dados.
+            </>
+          )}
+          confirmLabel="Duplicar projeto"
+          onConfirm={handleDuplicateConfirm}
+          onCancel={() => setToDuplicate(null)}
         />
       )}
     </div>
