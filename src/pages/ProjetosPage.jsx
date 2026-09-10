@@ -54,12 +54,6 @@ function calcCompletude(s) {
   return Math.round(checks.filter(Boolean).length / checks.length * 100)
 }
 
-function statusInfo(pct) {
-  if (pct === 100) return { label:'Concluído',   tone:'green' }
-  if (pct >= 25)  return { label:'Em andamento', tone:'amber' }
-                  return { label:'Rascunho',      tone:'muted' }
-}
-
 function barToneClasses(pct) {
   if (pct === 100) return { text:'text-green', bg:'bg-green' }
   if (pct >= 30)   return { text:'text-amber', bg:'bg-amber' }
@@ -160,20 +154,6 @@ function StatusPill({ dot, tone, label, active, onClick }) {
       <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${dot}`}/>
       {label}
     </button>
-  )
-}
-
-// ── Badge ─────────────────────────────────────────────────────────────
-
-function Badge({ label, tone }) {
-  const toneClass = {
-    green: 'bg-green-dim border-green-border text-green',
-    amber: 'bg-amber-dim border-amber-border text-amber',
-    red:   'bg-red-dim border-red-border text-red',
-    muted: 'bg-white/[.04] border-border text-ink-faint',
-  }[tone] || 'bg-white/[.04] border-border text-ink-faint'
-  return (
-    <span className={`text-[10px] font-semibold py-0.5 px-2 rounded-[20px] whitespace-nowrap border border-solid ${toneClass}`}>{label}</span>
   )
 }
 
@@ -285,11 +265,14 @@ function StatInline({ label, value }) {
 }
 
 // ── Project row (list) ────────────────────────────────────────────────
+// Mesmas informações do card da grade (nome+UF, Edificações/Ocup./A.C.T.,
+// barra de status, Criado/Editado), só que em linha — os rótulos dos
+// campos saem daqui e vão só uma vez pro cabeçalho da lista.
 
-const LIST_GRID_COLS = 'grid-cols-[8px_1fr_110px_90px_52px_90px_140px_110px_32px]'
+const LIST_GRID_COLS = 'grid-cols-[1fr_90px_80px_110px_220px_32px]'
 
 function ListHeader() {
-  const cols = ['', 'Nome do projeto', 'Status', 'Grupo · Div', 'UF', 'Área', 'Completude', 'Editado', '']
+  const cols = ['Nome do projeto', 'Edificações', 'Ocupação', 'A.C.T.', 'Criado / Editado', '']
   return (
     <div className={`grid ${LIST_GRID_COLS} gap-3.5 items-center py-2 px-4 border-b border-solid border-border bg-surface sticky top-0`}>
       {cols.map((h, i) => (
@@ -303,55 +286,54 @@ function ListHeader() {
 
 function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
   const pct   = calcCompletude(proj)
-  const st    = statusInfo(pct)
+  const bar   = barToneClasses(pct)
   const grupo = primaryGrupo(proj.pavimentos)
   const div   = primaryDivisao(proj.pavimentos)
-  const bar   = barToneClasses(pct)
+  const uf    = ufColor(proj.uf)
 
   return (
     <div
       onClick={() => onOpen(proj)}
       className={`group grid ${LIST_GRID_COLS} gap-3.5 items-center py-[11px] px-4 border-b border-solid border-border-2 cursor-pointer transition-colors duration-100 hover:bg-white/[.02]`}
     >
-      {/* Dot status */}
-      <div className={`w-[7px] h-[7px] rounded-full shrink-0 ${st.tone === 'green' ? 'bg-green' : st.tone === 'amber' ? 'bg-amber' : 'bg-ink-faint'}`}/>
-
-      {/* Nome */}
-      <span className="font-heading text-[13px] font-medium text-ink overflow-hidden text-ellipsis whitespace-nowrap flex items-center gap-1.5">
-        {proj.nome || <span className="text-ink-faint italic">Sem nome</span>}
-        {proj.exemploFixo && <Badge label="Exemplo" tone="amber"/>}
+      {/* Nome + UF */}
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="font-heading text-[13px] font-bold text-ink uppercase tracking-[.01em] overflow-hidden text-ellipsis whitespace-nowrap">
+          {proj.nome || <span className="text-ink-faint normal-case">Sem nome</span>}
+        </span>
+        <span
+          className="text-[10px] font-bold py-0.5 px-2.5 rounded-[20px] whitespace-nowrap border border-solid shrink-0"
+          style={{ background: uf.bg, borderColor: uf.border, color: uf.text }}
+        >
+          {proj.uf || '—'}
+        </span>
       </span>
 
-      {/* Status badge */}
-      <Badge {...st}/>
-
-      {/* Grupo · Div */}
-      <span className="text-[11px] font-bold text-red whitespace-nowrap">
-        {grupo ? `${grupo} · ${div || '—'}` : '—'}
+      {/* Edificações */}
+      <span className="font-heading text-[12px] font-bold text-ink whitespace-nowrap">
+        {pad2(proj.estruturas?.length || 0)}
       </span>
 
-      {/* UF */}
-      <span className="text-xs font-semibold text-ink text-center">
-        {proj.uf || '—'}
+      {/* Ocupação */}
+      <span className="font-heading text-[12px] font-bold text-ink whitespace-nowrap">
+        {div || grupo || '—'}
       </span>
 
-      {/* Área */}
-      <span className="text-xs text-ink text-right whitespace-nowrap">
+      {/* A.C.T. */}
+      <span className="font-heading text-[12px] font-bold text-ink whitespace-nowrap">
         {fmtArea(totalArea(proj))}
       </span>
 
-      {/* Barra + % */}
-      <div className="flex items-center gap-[7px]">
-        <div className="flex-1 h-[3px] bg-border rounded-full overflow-hidden">
+      {/* Barra de status + datas */}
+      <div className="flex flex-col gap-1.5">
+        <div className="h-[3px] bg-border rounded-full overflow-hidden">
           <div className={`h-full rounded-full ${bar.bg}`} style={{width:`${pct}%`}}/>
         </div>
-        <span className={`text-[11px] font-bold w-7 text-right ${bar.text}`}>{pct}%</span>
+        <div className="flex items-center justify-between text-[10px] text-ink-faint">
+          <span>Criado em {fmtDate(proj.createdAt)}</span>
+          <span>Editado {timeAgo(proj.updatedAt)}</span>
+        </div>
       </div>
-
-      {/* Editado */}
-      <span className="text-[11px] text-ink-faint whitespace-nowrap">
-        {timeAgo(proj.updatedAt)}
-      </span>
 
       {/* Ações */}
       <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
