@@ -480,6 +480,51 @@ function NovoProjetoBotao({ onNewProject }) {
   )
 }
 
+// ── Dropdown de filtro (prefixo fixo no botão, lista só com os valores) ─
+// Um <select> nativo usa o mesmo texto da opção tanto fechado quanto na
+// lista aberta — não dá pra ter "UF: MA" fechado e só "MA" nos itens. Por
+// isso os filtros de Grupo/UF usam este dropdown customizado.
+function FilterDropdown({ prefix, value, options, onChange }) {
+  const [aberto, setAberto] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!aberto) return
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setAberto(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [aberto])
+
+  const atual = options.find(o => o.value === value) || options[0]
+
+  return (
+    <div ref={ref} className="relative w-auto shrink-0">
+      <button
+        type="button"
+        onClick={() => setAberto(v => !v)}
+        className="flex items-center gap-2 bg-surface-2 border border-solid border-border text-ink text-[13px] py-[9px] px-3 rounded-md cursor-pointer whitespace-nowrap"
+      >
+        {prefix}: {atual.label}
+        <Icon name="chevD" size={11} className="text-ink-faint"/>
+      </button>
+      {aberto && (
+        <div className="absolute top-full left-0 mt-1.5 min-w-full bg-surface-2 border border-solid border-border rounded-lg shadow-[0_12px_32px_rgba(0,0,0,.4)] z-50 py-1.5 overflow-hidden">
+          {options.map(o => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => { onChange(o.value); setAberto(false) }}
+              className={`w-full text-left px-3.5 py-2 bg-transparent border-none cursor-pointer whitespace-nowrap hover:bg-white/[.04] text-[13px] ${o.value === value ? 'text-ink font-semibold' : 'text-ink-muted'}`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Header Logo ───────────────────────────────────────────────────────
 
 // ── ProjetosPage ──────────────────────────────────────────────────────
@@ -654,16 +699,26 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
             </select>
 
             {/* Grupo */}
-            <select value={filterGrupo} onChange={e => setFilterGrupo(e.target.value)} className="w-auto">
-              <option value="">Grupos: TODOS</option>
-              {gruposDisponiveis.map(g => <option key={g} value={g}>Grupo: {g} — {grupos[g] || g}</option>)}
-            </select>
+            <FilterDropdown
+              prefix="Grupos"
+              value={filterGrupo}
+              onChange={setFilterGrupo}
+              options={[
+                { value: '', label: 'TODOS' },
+                ...gruposDisponiveis.map(g => ({ value: g, label: `${g} — ${grupos[g] || g}` })),
+              ]}
+            />
 
             {/* Estado */}
-            <select value={filterUF} onChange={e => setFilterUF(e.target.value)} className="w-auto">
-              <option value="">UF: TODOS</option>
-              {ufsDisponiveis.map(uf => <option key={uf} value={uf}>UF: {uf}</option>)}
-            </select>
+            <FilterDropdown
+              prefix="UF"
+              value={filterUF}
+              onChange={setFilterUF}
+              options={[
+                { value: '', label: 'TODOS' },
+                ...ufsDisponiveis.map(uf => ({ value: uf, label: uf })),
+              ]}
+            />
 
             {/* Separador */}
             <div className="w-px h-6 bg-border shrink-0"/>
