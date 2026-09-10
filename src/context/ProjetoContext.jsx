@@ -253,6 +253,12 @@ function pavimentoTerreo(estruturaId) {
 const INITIAL_STATE = {
   id: '', createdAt: '', saveReady: false,
   configStep: 1, configUnlocked: 1,
+  // 'completo' = wizard cheio (Etapas 1-7); 'dimensionamento' = wizard
+  // reduzido (Edificação/Classificação/Carga de Incêndio/Medidas), sem
+  // responsável pelo uso, localização nem responsável técnico — só o
+  // necessário pra dimensionar Saída de Emergência, Hidrantes e Chuveiros
+  // Automáticos (ver ConfiguracaoPage.jsx e Step6.jsx).
+  tipoProjeto: 'completo',
   nome: '', dataInicio: '', fase: 'Em desenvolvimento',
   endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'MA', cep: '',
   situacao: 'nova', anoAlvara: '', numeroAlvara: '',
@@ -698,7 +704,12 @@ function reducer(state, action) {
       return { ...hydrateState(action.payload), saveReady: true }
     case 'NEW_PROJECT': {
       const est = novaEstrutura('Estrutura 1')
-      return { ...INITIAL_STATE, id: action.id, createdAt: action.createdAt, estruturas: [est], pavimentos: [pavimentoTerreo(est.id)], saveReady: true }
+      return {
+        ...INITIAL_STATE,
+        id: action.id, createdAt: action.createdAt,
+        tipoProjeto: action.tipo || 'completo',
+        estruturas: [est], pavimentos: [pavimentoTerreo(est.id)], saveReady: true,
+      }
     }
     default: return state
   }

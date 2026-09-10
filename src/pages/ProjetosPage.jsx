@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import Icon from '../components/ui/Icon'
 import { useNorma } from '../hooks/useNorma'
 import { useAuth } from '../context/AuthContext'
@@ -389,6 +389,49 @@ function EmptyState({ hasFilter, onNew }) {
   )
 }
 
+// ── Botão "Novo projeto" com atalho pra "Apenas dimensionamento" ───────
+// A seta abre um dropdown com o segundo modo de criação — um projeto sem
+// responsável pelo uso/localização/responsável técnico, só com o
+// necessário pra dimensionar Saída de Emergência, Hidrantes e Chuveiros
+// Automáticos (ver ConfiguracaoPage.jsx).
+function NovoProjetoBotao({ onNewProject }) {
+  const [aberto, setAberto] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!aberto) return
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setAberto(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [aberto])
+
+  return (
+    <div ref={ref} className="relative flex">
+      <button className="btn-primary rounded-r-none" onClick={() => onNewProject('completo')}>
+        <Icon name="plus" size={13}/> Novo projeto
+      </button>
+      <button
+        className="btn-primary rounded-l-none border-l border-solid border-white/20 px-2 shrink-0"
+        onClick={() => setAberto(v => !v)}
+        title="Outros tipos de projeto"
+      >
+        <Icon name="chevD" size={11}/>
+      </button>
+      {aberto && (
+        <div className="absolute top-full right-0 mt-1.5 min-w-[240px] bg-surface-2 border border-solid border-border rounded-lg shadow-[0_12px_32px_rgba(0,0,0,.4)] z-50 py-1.5 overflow-hidden">
+          <button
+            className="w-full text-left px-3.5 py-2.5 bg-transparent border-none cursor-pointer hover:bg-white/[.04] flex flex-col gap-0.5"
+            onClick={() => { setAberto(false); onNewProject('dimensionamento') }}
+          >
+            <span className="text-[13px] font-medium text-ink">Apenas dimensionamento</span>
+            <span className="text-[11px] text-ink-faint leading-[1.4]">Saída de emergência, hidrantes e chuveiros automáticos — sem dados de responsável ou localização</span>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Header Logo ───────────────────────────────────────────────────────
 
 // ── ProjetosPage ──────────────────────────────────────────────────────
@@ -502,9 +545,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
                   <Icon name="file" size={13}/> Projeto de teste
                 </button>
               )}
-              <button className="btn-primary" onClick={onNewProject}>
-                <Icon name="plus" size={13}/> Novo projeto
-              </button>
+              <NovoProjetoBotao onNewProject={onNewProject}/>
             </div>
           </div>
 

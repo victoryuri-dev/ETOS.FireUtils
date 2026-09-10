@@ -22,7 +22,7 @@ function maskCNPJ(raw) {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
 }
 
-export default function Step1() {
+export default function Step1({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
   const { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco } = useCnpjLookup()
   const [mesmoResponsavel, setMesmoResponsavel] = useState(false)
@@ -42,7 +42,7 @@ export default function Step1() {
   return (
     <div className={S.section}>
       <div className={S.header}>
-        <div className={S.stepLbl}>Etapa 1 de 7</div>
+        <div className={S.stepLbl}>Etapa {step} de {totalSteps}</div>
         <h2 className={S.title}>Identificacao do projeto</h2>
         <p className={S.desc}>Comece pelo CNPJ da empresa para pre-preencher os dados — depois confirme o endereco da obra e os demais responsaveis.</p>
       </div>
