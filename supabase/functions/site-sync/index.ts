@@ -2,9 +2,9 @@
 //
 // Caminho inverso do revit-sync: em vez do plugin empurrar dados pro site,
 // aqui o plugin PUXA dados de ocupação/área que o usuário já preencheu no
-// site. Somente leitura — nunca grava nada. Usa o mesmo sync_token por
-// projeto (tabela `projetos`) como credencial, já que o plugin não tem
-// sessão de usuário.
+// site. Somente leitura — nunca grava nada. Identifica o projeto por
+// `projetoId` (id escolhido no Dashboard da dockpane, ver revit-sync) —
+// mesmo esquema, sem token secreto.
 //
 // Duas ações (mesmo body, campo "acao"):
 //   1. listar_estruturas — lista as estruturas do projeto, pro plugin
@@ -15,8 +15,7 @@
 //      (a vinculada).
 //
 // Só devolve o recorte necessário — nunca o projeto inteiro, que tem dados
-// sensíveis (CPF, dados de proprietário/responsável) que o token não deveria
-// expor.
+// sensíveis (CPF, dados de proprietário/responsável).
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
@@ -44,9 +43,9 @@ Deno.serve(async (req) => {
     return json({ error: 'json invalido' }, 400)
   }
 
-  const { token, acao, estruturaId } = body || {}
+  const { projetoId, acao, estruturaId } = body || {}
 
-  if (!token || typeof token !== 'string') return json({ error: 'token obrigatorio' }, 400)
+  if (!projetoId || typeof projetoId !== 'string') return json({ error: 'projetoId obrigatorio' }, 400)
   if (acao !== 'listar_estruturas' && acao !== 'ocupacao_area') {
     return json({ error: 'acao invalida — use "listar_estruturas" ou "ocupacao_area"' }, 400)
   }
@@ -57,9 +56,9 @@ Deno.serve(async (req) => {
   )
 
   const { data: projeto } = await supabase
-    .from('projetos').select('nome, dados').eq('sync_token', token).maybeSingle()
+    .from('projetos').select('nome, dados').eq('id', projetoId).maybeSingle()
 
-  if (!projeto) return json({ error: 'token invalido' }, 401)
+  if (!projeto) return json({ error: 'projetoId invalido' }, 401)
 
   const dados = projeto.dados || {}
   const estruturas = dados.estruturas || []

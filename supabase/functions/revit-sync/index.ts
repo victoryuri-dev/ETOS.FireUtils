@@ -1,24 +1,24 @@
 // Edge Function: revit-sync
 //
-// Recebe POST { token, medida, estruturaId, payload } do plugin Revit e
+// Recebe POST { projetoId, medida, estruturaId, payload } do plugin Revit e
 // grava em `revit_syncs_latest`, substituindo o firedata.json como
-// transporte. O `token` é o sync_token gerado por projeto (tabela
-// `projetos`, exposto no card "Integração Revit" do dashboard) — funciona
-// como uma API key escopada, já que o plugin nunca tem uma sessão de
-// usuário de verdade.
+// transporte. `projetoId` é o id do projeto (tabela `projetos`) escolhido
+// direto no Dashboard da dockpane, consultando o Supabase com a sessão do
+// usuário logado (RLS) — não existe mais um token secreto colado
+// manualmente (ver Fire Utils.tab/lib/sync.py, lado do plugin).
 //
 // `estruturaId` identifica QUAL estrutura do projeto esse envio pertence —
 // um projeto pode ter várias, cada uma modelada num arquivo Revit
-// diferente (mesmo token, estrutura escolhida na configuração do plugin).
-// Obrigatório pra extintores/saídas de emergência; hidrantes é a única
-// medida que fica geral (compartilhada entre estruturas do projeto), então
-// ignora estruturaId e grava sempre com estrutura_id = '' (chave fixa,
-// única linha por projeto).
+// diferente (mesmo projeto, estrutura escolhida na configuração do
+// plugin). Obrigatório pra extintores/saídas de emergência; hidrantes é a
+// única medida que fica geral (compartilhada entre estruturas do
+// projeto), então ignora estruturaId e grava sempre com estrutura_id = ''
+// (chave fixa, única linha por projeto).
 //
 // Usa a service_role key (injetada automaticamente pelo Supabase em toda
 // Edge Function, não precisa configurar) porque o RLS de `revit_syncs_latest`
-// não libera insert/update para ninguém além desta function — a validação
-// do token É a autorização aqui.
+// não libera insert/update para ninguém além desta function — só exige que
+// `projetoId` corresponda a um projeto existente, sem segredo adicional.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
@@ -49,9 +49,9 @@ Deno.serve(async (req) => {
     return json({ error: 'json invalido' }, 400)
   }
 
-  const { token, medida, estruturaId, payload } = body || {}
+  const { projetoId, medida, estruturaId, payload } = body || {}
 
-  if (!token || typeof token !== 'string') return json({ error: 'token obrigatorio' }, 400)
+  if (!projetoId || typeof projetoId !== 'string') return json({ error: 'projetoId obrigatorio' }, 400)
   if (!MEDIDAS_VALIDAS.includes(medida)) return json({ error: `medida invalida — use uma de: ${MEDIDAS_VALIDAS.join(', ')}` }, 400)
   if (!payload || typeof payload !== 'object') return json({ error: 'payload obrigatorio' }, 400)
 
@@ -66,11 +66,11 @@ Deno.serve(async (req) => {
   )
 
   const { data: projeto } = await supabase
-    .from('projetos').select('id, dados').eq('sync_token', token).maybeSingle()
-  // Qualquer falha aqui — token não encontrado ou nem sequer um UUID válido —
-  // é tratada como falha de autenticação, não erro de servidor.
+    .from('projetos').select('id, dados').eq('id', projetoId).maybeSingle()
+  // Qualquer falha aqui — projeto não encontrado — é tratada como falha de
+  // autenticação, não erro de servidor.
 
-  if (!projeto) return json({ error: 'token invalido' }, 401)
+  if (!projeto) return json({ error: 'projetoId invalido' }, 401)
 
   let estrutura_id = ''
   let estrutura_nome = null
