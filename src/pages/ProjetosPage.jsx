@@ -426,7 +426,7 @@ function NovoProjetoBotao({ onNewProject }) {
         <Icon name="plus" size={18} strokeWidth={3}/> Criar novo projeto
       </button>
       <button
-        className="btn-primary btn-primary-novo btn-primary-novo-r border-l border-solid border-black/20 px-2.5 shrink-0"
+        className="btn-primary btn-primary-novo btn-primary-novo-r ml-2.5 px-2.5 shrink-0"
         onClick={() => setAberto(v => !v)}
         title="Outros tipos de projeto"
       >
