@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { carregarNormasRemotas } from '../lib/normasRemote'
 import { useAuth } from './AuthContext'
 import { PROCEDIMENTOS_PADRAO } from '../utils/planoEmergencia'
+import { dimsPadrao } from '../data/se_calc'
 
 // Gera um ID interno único
 export function newIds() {
@@ -587,14 +588,28 @@ function reducer(state, action) {
       return {
         ...state,
         pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
-          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: null }] }
+          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: null, dims: dimsPadrao({ alimentaEm: null }, !!p.pisoDescarga) }] }
           : p),
       }
     case 'CRIAR_ACESSO':
       return {
         ...state,
         pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
-          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: action.alimentaEm }] }
+          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: action.alimentaEm, dims: dimsPadrao({ alimentaEm: action.alimentaEm }, !!p.pisoDescarga) }] }
+          : p),
+      }
+    // Liga/desliga um dimensionamento (AD/ER/PT) de um nó específico da
+    // árvore — um nó pode precisar de mais de um ao mesmo tempo (ex.: o
+    // ponto de descarga que é ao mesmo tempo corredor de saída e chegada
+    // da escada que desce até ali). Ver dimsPadrao/calcDimsAcesso em
+    // se_calc.js.
+    case 'SET_ACESSO_DIM':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: (p.acessos || []).map(ac => ac.id === action.acessoId
+              ? { ...ac, dims: { ...(ac.dims || {}), [action.dim]: action.valor } }
+              : ac) }
           : p),
       }
     case 'RENOMEAR_ACESSO':

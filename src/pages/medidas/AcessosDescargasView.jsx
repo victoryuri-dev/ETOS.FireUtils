@@ -3,7 +3,7 @@ import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSe
 import Icon from '../../components/ui/Icon'
 import { AmbienteForm, DivBadge, fmtM } from './se_shared'
 import {
-  calcPopAmb, calcNoAcesso, calcNoAmbientePT, calcPortaNoAcesso, contarSaidasPavimento, tipoDoNo,
+  calcPopAmb, calcNoAmbientePT, calcDimsAcesso, dimsDoAcesso, contarSaidasPavimento,
 } from '../../data/se_calc'
 
 // ── Árvore: helpers puros (leem ambientes/acessos, não mutam nada) ─────
@@ -75,23 +75,16 @@ function LabelQuebrado({ texto }) {
   return <>{partes[0]}/<br/>{partes[1]}</>
 }
 
-// ── Coluna de estatística (POP./C/U.P./LARGURA MÍN.) ───────────────────
-function StatCol({ label, value, big }) {
-  return (
-    <div className="text-center leading-tight">
-      <div className="text-[9px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
-      <div className={`text-[13px] font-bold mt-0.5 ${big ? 'text-red' : 'text-ink'}`}>{value}</div>
-    </div>
-  )
-}
-
 // ── Ambiente (folha da árvore) — arrastável, card inteiro clicável ─────
+// Só mostra UP (no lugar da ocupação, no cabeçalho) + população + largura
+// mínima da porta — capacidade (C) e o código de divisão saíram do card
+// (continuam editáveis no formulário, só não aparecem mais aqui).
 function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `amb:${amb.id}`, data: { kind: 'amb', id: amb.id },
   })
   const pop = calcPopAmb(amb, taxaPopulacional)
-  const { capPT, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
+  const { pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
   return (
     <div ref={setNodeRef} style={style} onClick={() => onEdit(amb)}
@@ -102,40 +95,68 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove }) {
           <Icon name="grip" size={13}/>
         </button>
         <span className="text-[13px] font-semibold text-ink truncate">{amb.nome}</span>
-        <DivBadge label={amb.divisao || '?'}/>
+        <DivBadge label={`${pt.n} UP`}/>
       </div>
       <div className="flex items-center gap-2.5 shrink-0 text-[11px] text-ink-faint whitespace-nowrap">
-        <span className="font-semibold text-ink-muted">PORTA</span>
-        <span className="opacity-30">|</span>
-        <span>C {capPT}</span>
-        <span className="opacity-30">|</span>
         <span>{pop} pessoas</span>
         <span className="opacity-30">|</span>
-        <span className="font-bold text-red">{pt.n} UP</span>
-        <span className="opacity-30">|</span>
-        <span>L. MÍN.: <strong className="text-red">{fmtM(pt.la)}</strong></span>
+        <span>PORTAS: <strong className="text-red">{fmtM(pt.la)}</strong></span>
         <button onClick={e => { e.stopPropagation(); onRemove(amb.id) }} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1"><Icon name="trash" size={12}/></button>
       </div>
     </div>
   )
 }
 
+// ── Botão de dimensionamento (AD/ER/PT) no cabeçalho de Acesso/Saída —
+// liga/desliga qual dimensionamento se aplica àquele nó especificamente
+// (um nó pode precisar de mais de um ao mesmo tempo, ex.: o piso de
+// descarga que é corredor de saída E chegada da escada). Vermelho
+// preenchido = ligado; cinza neutro = desligado.
+function DimButton({ label, ativo, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={e => { e.stopPropagation(); onClick() }}
+      className={`text-[10px] font-bold uppercase tracking-wide py-1 px-2.5 rounded border border-solid transition-colors ${
+        ativo ? 'bg-red border-red text-white' : 'bg-surface-2 border-border text-ink-faint'
+      }`}
+    >
+      {label}
+    </button>
+  )
+}
+
+// ── Um par rótulo+valor da linha de larguras mínimas (ex.: "ACESSO/
+// DESCARGA  1,20 m") — só aparece quando o dimensionamento correspondente
+// está ligado (ver DimButton).
+function DimEntry({ label, value }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight"><LabelQuebrado texto={label}/></div>
+      <div className="text-[15px] font-bold text-red whitespace-nowrap">{value}</div>
+    </div>
+  )
+}
+
 // ── Acesso/Saída/Escada-Rampa (nó da árvore) — arrastável (o nó inteiro),
 // soltável (recebe ambientes e outros acessos), cabeçalho inteiro retrai/
-// expande. `pisoDescarga` (do pavimento) + `acesso.alimentaEm` decidem o
-// tipo via tipoDoNo: raiz num piso de descarga é Saída (AD); raiz em outro
-// pavimento é Escada/Rampa (ER); qualquer nó que não é raiz é sempre
-// Acesso/Descarga (AD). Só a raiz pode abrir novos Acessos filhos — um
-// Acesso comum não pode virar "pai" de outro Acesso, mas qualquer um pode
-// receber ambientes direto (+ Adicionar Ambiente).
+// expande. Cada nó decide independentemente quais dimensionamentos (AD/
+// ER/PT) se aplicam a ele via `acesso.dims` (ver DimButton) — um nó pode
+// precisar de mais de um ao mesmo tempo (ex.: o piso de descarga que é ao
+// mesmo tempo corredor de saída e chegada da escada que desce até ali).
+// `dimsDoAcesso` resolve o padrão (mesmo critério que a antiga tipoDoNo)
+// quando o nó ainda não tem `dims` gravado (projetos antigos). Só a raiz
+// pode abrir novos Acessos filhos — um Acesso comum não pode virar "pai"
+// de outro Acesso, mas qualquer um pode receber ambientes direto (+
+// Adicionar Ambiente).
 function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga, dispatch, pavimentoId, onEditAmbiente, onRemoveAmbiente, onCreateAmbiente, colapsados, toggleColapsado }) {
-  const { tipo, label } = tipoDoNo(acesso, pisoDescarga)
-  const { pop, cap, capValor, dim } = calcNoAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, tipo)
-  // Porta do box: reaproveita o mesmo N de UP do AD/ER (não recalcula
-  // população) — só a capacidade de unidade de passagem (C) usada pra
-  // achar a largura mínima é a normativa de PORTA (cap.PT), não a de
-  // AD/ER já mostrada acima.
-  const porta = calcPortaNoAcesso(dim.n, larguras)
+  const dims = dimsDoAcesso(acesso, pisoDescarga)
+  const { ad, er, pt, nPorta } = calcDimsAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, dims)
+  const entradas = [
+    ad && { label: 'ACESSO/DESCARGA', value: fmtM(ad.la) },
+    pt && { label: 'PORTAS', value: fmtM(pt.la) },
+    er && { label: 'ESCADA/RAMPA', value: fmtM(er.la) },
+  ].filter(Boolean)
   const filhos = acessosFilhos(acessos, acesso.id)
   const filhosAmbientes = ambientesDe(ambientes, acesso.id)
   const isRaiz = acesso.alimentaEm === null
@@ -159,6 +180,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
   const criarAcessoFilho = () => {
     dispatch({ type: 'CRIAR_ACESSO', pavimentoId, alimentaEm: acesso.id, nome: `Acesso ${filhos.length + 1}` })
   }
+  const toggleDim = d => dispatch({ type: 'SET_ACESSO_DIM', pavimentoId, acessoId: acesso.id, dim: d, valor: !dims[d] })
 
   return (
     <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
@@ -173,27 +195,23 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
           )}
           <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
           <InlineEditableNome value={acesso.nome} onCommit={renomear} textClassName="text-[15px] font-bold text-ink"/>
+          <DivBadge label={`${nPorta} UP`}/>
         </div>
-        {/* Duas linhas alinhadas em grid — Acesso/Descarga (ou Escada/Rampa)
-            em cima, Portas embaixo — em vez de espremer as duas dimensões
-            (fluxo + porta) numa linha só com rótulos "C (PORTA)"/"PORTA".
-            O botão de lixeira volta a fazer parte do flex (em vez de
-            absolute) — com justify-between no header, a grid fica
-            centralizada entre o nome (esquerda) e a lixeira (direita). */}
-        <div className="grid grid-cols-[70px_44px_40px_40px_76px] items-center gap-x-3.5 gap-y-1 shrink-0">
-          <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight"><LabelQuebrado texto={label}/></div>
-          <StatCol label="POP." value={pop}/>
-          <StatCol label="C" value={capValor}/>
-          <StatCol label="U.P." value={dim.n}/>
-          <StatCol label="LARGURA MÍN." value={fmtM(dim.la)} big/>
-          <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight">Portas</div>
-          <StatCol label="POP." value={pop}/>
-          <StatCol label="C" value={cap.PT}/>
-          <StatCol label="U.P." value={dim.n}/>
-          <StatCol label="LARGURA MÍN." value={fmtM(porta.la)} big/>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <DimButton label="AD" ativo={dims.AD} onClick={() => toggleDim('AD')}/>
+          <DimButton label="ER" ativo={dims.ER} onClick={() => toggleDim('ER')}/>
+          <DimButton label="PT" ativo={dims.PT} onClick={() => toggleDim('PT')}/>
+          <button onClick={remover} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1"><Icon name="trash" size={12}/></button>
         </div>
-        <button onClick={remover} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 shrink-0"><Icon name="trash" size={12}/></button>
       </div>
+      {entradas.length > 0 && (
+        <div className="flex items-center justify-center gap-4 pb-3.5 px-3.5 flex-wrap">
+          {entradas.flatMap((e, i) => [
+            i > 0 && <span key={`sep-${i}`} className="text-ink-faint opacity-30">|</span>,
+            <DimEntry key={e.label} label={e.label} value={e.value}/>,
+          ]).filter(Boolean)}
+        </div>
+      )}
       {aberto && (
         <div className="pl-7 pr-3.5 pb-3.5 flex flex-col gap-2.5 border-t border-solid border-border-2 pt-3">
           {filhos.map(f => (
