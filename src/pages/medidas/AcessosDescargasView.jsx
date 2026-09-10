@@ -66,10 +66,19 @@ function InlineEditableNome({ value, onCommit, textClassName }) {
   )
 }
 
+// Quebra "ACESSO/DESCARGA" -> "ACESSO/" + quebra de linha + "DESCARGA"
+// (idem "ESCADA/RAMPA") — os únicos rótulos com "/" que chegam aqui
+// (ver tipoDoNo em se_calc.js). Sem "/", mostra o texto como veio (ex.: "Portas").
+function LabelQuebrado({ texto }) {
+  const partes = texto.split('/')
+  if (partes.length !== 2) return texto
+  return <>{partes[0]}/<br/>{partes[1]}</>
+}
+
 // ── Coluna de estatística (POP./C/U.P./LARGURA MÍN.) ───────────────────
 function StatCol({ label, value, big }) {
   return (
-    <div className="text-right leading-tight">
+    <div className="text-center leading-tight">
       <div className="text-[9px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
       <div className={`text-[13px] font-bold mt-0.5 ${big ? 'text-red' : 'text-ink'}`}>{value}</div>
     </div>
@@ -155,7 +164,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
     <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
       className={`rounded-lg border border-solid bg-surface transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
     >
-      <div className="relative flex items-center justify-between gap-4 py-3 pl-3.5 pr-10 cursor-pointer select-none" onClick={() => toggleColapsado(acesso.id)}>
+      <div className="flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none" onClick={() => toggleColapsado(acesso.id)}>
         <div className="flex items-center gap-2 min-w-0">
           {!isRaiz && (
             <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar (leva tudo dentro)">
@@ -167,20 +176,23 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
         </div>
         {/* Duas linhas alinhadas em grid — Acesso/Descarga (ou Escada/Rampa)
             em cima, Portas embaixo — em vez de espremer as duas dimensões
-            (fluxo + porta) numa linha só com rótulos "C (PORTA)"/"PORTA". */}
+            (fluxo + porta) numa linha só com rótulos "C (PORTA)"/"PORTA".
+            O botão de lixeira volta a fazer parte do flex (em vez de
+            absolute) — com justify-between no header, a grid fica
+            centralizada entre o nome (esquerda) e a lixeira (direita). */}
         <div className="grid grid-cols-[70px_44px_40px_40px_76px] items-center gap-x-3.5 gap-y-1 shrink-0">
-          <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-right leading-tight">{label}</div>
+          <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight"><LabelQuebrado texto={label}/></div>
           <StatCol label="POP." value={pop}/>
           <StatCol label="C" value={capValor}/>
           <StatCol label="U.P." value={dim.n}/>
           <StatCol label="LARGURA MÍN." value={fmtM(dim.la)} big/>
-          <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-right leading-tight">Portas</div>
+          <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight">Portas</div>
           <StatCol label="POP." value={pop}/>
           <StatCol label="C" value={cap.PT}/>
           <StatCol label="U.P." value={dim.n}/>
           <StatCol label="LARGURA MÍN." value={fmtM(porta.la)} big/>
         </div>
-        <button onClick={remover} className="absolute top-2 right-2 bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1"><Icon name="trash" size={12}/></button>
+        <button onClick={remover} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 shrink-0"><Icon name="trash" size={12}/></button>
       </div>
       {aberto && (
         <div className="pl-7 pr-3.5 pb-3.5 flex flex-col gap-2.5 border-t border-solid border-border-2 pt-3">
