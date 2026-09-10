@@ -1,23 +1,29 @@
 // memorial/saida_emergencia.js — texto do memorial descritivo pro sistema
-// de Saída de Emergência (NT 14 CBMMA / NBR 9077), narrando a árvore de
-// Acessos e Descargas de cada pavimento (ver pages/medidas/
-// AcessosDescargasView.jsx) — mesmo motor de cálculo (se_calc.js) que
-// alimenta a tela de dimensionamento, nunca duplicando a lógica aqui.
+// de Saída de Emergência (NT 14 CBMMA / NBR 9077). Estrutura definida pelo
+// usuário a partir de um modelo .docx (Generalidades padrão + parametrizada
+// pelas larguras mínimas da norma; uma tabela de distância máxima a
+// percorrer por estrutura; por pavimento, um organograma da árvore de
+// Acessos e Descargas seguido do dimensionamento de cada nó em pré-ordem
+// — Saída, depois cada Acesso e os ambientes que ele alimenta, antes de
+// passar pro próximo Acesso). Mesmo motor de cálculo (se_calc.js) que
+// alimenta pages/medidas/AcessosDescargasView.jsx — nunca duplica a
+// lógica aqui, só narra o resultado.
 //
 // Diferente dos builders mais antigos (extintores.js, seg_estrutural.js),
 // precisa saber chuveiros automáticos/detecção de incêndio POR ESTRUTURA
-// pra resolver a distância máxima a percorrer (getDistanciaPavimento) —
-// por isso recebe `porEstrutura` (useMedidasObrigatorias().porEstrutura),
-// não só o `sistemas` agregado do projeto que os outros builders usam.
+// pra resolver a distância máxima a percorrer (getDistancia) — por isso
+// recebe `porEstrutura` (useMedidasObrigatorias().porEstrutura), não só o
+// `sistemas` agregado do projeto que os outros builders usam.
 
 import { getSE } from '../normas/index'
 import {
-  calcPopPav, contarSaidasPavimento, getDistanciaPavimento,
+  contarSaidasPavimento, getDistancia,
   calcNoAcesso, calcNoAmbientePT, calcPortaNoAcesso, tipoDoNo,
 } from '../se_calc'
 
 const fmt  = n => Number(n).toFixed(2).replace('.', ',')
 const fmtM = n => `${fmt(n)} m`
+const fmtEnxuto = n => Number(n).toFixed(2).replace(/,?0+$/, '').replace(/\.$/, '').replace('.', ',') || '0'
 
 function acessosFilhos(acessos, parentId) {
   return acessos.filter(a => a.alimentaEm === parentId)
@@ -26,34 +32,97 @@ function ambientesDe(ambientes, acessoId) {
   return ambientes.filter(a => a.acessoId === acessoId)
 }
 
-// Item de ambiente (folha da árvore) pro bloco 'lista' — porta calculada
-// por população/capacidade normativa de PORTA da própria divisão do
-// ambiente (calcNoAmbientePT), igual à tela de dimensionamento.
-function itemDoAmbiente(amb, taxaPopulacional, larguras) {
-  const { pop, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
+// ── Generalidades — mesmo texto pra qualquer projeto, só as larguras
+// mínimas (parágrafo de fluxo + tabela de portas) vêm da norma do estado. ──
+function fmtLarguraPorta(m) {
+  return m < 1 ? `${Math.round(m * 100)} cm` : `${fmtEnxuto(m)} m`
+}
+
+function blocosGeneralidades(larguras) {
+  const { AD, ER, PT } = larguras
+  const textoFluxo = AD === ER
+    ? `devem ser de ${fmtM(AD)}`
+    : `devem ser de ${fmtM(AD)} para acessos e descargas, e de ${fmtM(ER)} para escadas e rampas`
+
+  const letras = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+  const bulletsPortas = (PT || []).map((linha, i) => {
+    const folhas = linha.tipo && linha.tipo !== '1 folha' ? `, em ${linha.tipo}` : ''
+    const unidade = linha.n_up === 1 ? 'unidade' : 'unidades'
+    return `${letras[i] || i + 1}) ${fmtLarguraPorta(linha.largura)}${folhas}, valendo por ${linha.n_up} ${unidade} de passagem;`
+  })
+
+  return [
+    { tipo: 'titulo2', texto: 'Generalidades' },
+    { tipo: 'titulo2', texto: 'Acessos' },
+    { tipo: 'paragrafo', texto: 'Os acessos devem satisfazer às seguintes condições:' },
+    { tipo: 'lista', estilo: 'lettered', itens: [
+      'a) permitir o escoamento fácil de todos os ocupantes da edificação;',
+      'b) permanecer desobstruídos em todos os pavimentos;',
+      'c) ter larguras conforme o estabelecido na NT;',
+      'd) ter pé-direito mínimo de 2,30 m, com exceção de obstáculos representados por vigas, vergas de portas e outros, cuja altura mínima livre deve ser de 2,10 m;',
+      'e) ser sinalizados e iluminados (iluminação de emergência) com indicação clara do sentido da saída.',
+    ]},
+    { tipo: 'paragrafo', texto: 'Os acessos devem permanecer livres de quaisquer obstáculos, tais como móveis, divisórias, locais para exposição de mercadorias e outros, de forma permanente, mesmo quando a edificação esteja, supostamente, fora de uso.' },
+    { tipo: 'titulo2', texto: 'Larguras Mínimas a Serem Adotadas' },
+    { tipo: 'paragrafo', texto: `As larguras mínimas das saídas de emergência para acessos, escadas, rampas ou descargas ${textoFluxo}.` },
+    { tipo: 'paragrafo', texto: 'A largura das portas, comuns ou corta-fogo, utilizadas nas rotas de saídas de emergência, devem ter as seguintes dimensões mínimas de vão livre:' },
+    { tipo: 'lista', estilo: 'lettered', itens: bulletsPortas },
+    { tipo: 'campo', label: 'Notas', valor: '1) Porta com dimensão maior que 1,2 m deve ter duas folhas;\n2) Porta com dimensão maior ou igual a 2,2 m exige coluna central.' },
+    { tipo: 'titulo2', texto: 'Distâncias Máximas a Percorrer' },
+    { tipo: 'paragrafo', texto: 'As distâncias máximas a serem percorridas para atingir as portas de acesso às saídas das edificações e o acesso às escadas ou às portas das escadas (nos pavimentos) constam nas tabelas abaixo e devem ser consideradas a partir da porta de acesso da unidade autônoma mais distante, desde que o seu caminhamento interno não ultrapasse 10 m.' },
+    { tipo: 'titulo2', texto: 'Dimensionamento das Saídas de Emergência' },
+  ]
+}
+
+// ── Organograma (só nomes, em árvore) ───────────────────────────────────
+function organogramaDoAcesso(acesso, ambientes, acessos, pisoDescarga) {
+  const { label } = tipoDoNo(acesso, pisoDescarga)
+  const filhosAcesso = acessosFilhos(acessos, acesso.id)
+    .map(a => organogramaDoAcesso(a, ambientes, acessos, pisoDescarga))
+  const filhosAmbiente = ambientesDe(ambientes, acesso.id).map(amb => ({ texto: amb.nome }))
+  return { texto: `${acesso.nome} (${label})`, sub: [...filhosAcesso, ...filhosAmbiente] }
+}
+
+// ── Dimensionamento (uma tabela por nó, em pré-ordem: o próprio nó,
+// depois cada Acesso filho recursivamente, depois os ambientes que
+// alimentam ESTE nó direto — mesma ordem do organograma acima e da
+// árvore em AcessosDescargasView.jsx). ──────────────────────────────────
+function tabelaDoAcesso(acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga) {
+  const { tipo, label } = tipoDoNo(acesso, pisoDescarga)
+  const { pop, cap, capValor, dim } = calcNoAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, tipo)
+  const porta = calcPortaNoAcesso(dim.n, larguras)
   return {
-    label: `${amb.nome} (${amb.divisao || '?'})`,
-    valor: `Porta · população ${pop} · ${pt.n} UP · largura mínima ${fmtM(pt.la)}`,
+    tipo: 'tabela',
+    centralizado: true,
+    linhasCabecalho: [
+      [{ texto: acesso.nome.toUpperCase(), colSpan: 7 }],
+      [{ texto: 'POPULAÇÃO' }, { texto: label, colSpan: 3 }, { texto: 'PORTAS', colSpan: 3 }],
+      [{ texto: '' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
+    ],
+    linhas: [[pop, capValor, dim.n, fmt(dim.la), cap.PT, porta.n, fmt(porta.la)]],
   }
 }
 
-// Item de nó Acesso/Saída/Escada-Rampa (recursivo — ver AcessosDescargasView.jsx
-// pro mesmo desenho de árvore) pro bloco 'lista'. A porta do PRÓPRIO box
-// reaproveita o N de UP já calculado pro AD/ER (calcPortaNoAcesso) — não
-// recalcula população, só troca a capacidade pela normativa de porta.
-function itemDoAcesso(acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga) {
-  const { tipo, label } = tipoDoNo(acesso, pisoDescarga)
-  const { pop, capValor, dim } = calcNoAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, tipo)
-  const porta = calcPortaNoAcesso(dim.n, larguras)
-  const filhosAcesso = acessosFilhos(acessos, acesso.id).map(a =>
-    itemDoAcesso(a, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga)
-  )
-  const filhosAmbiente = ambientesDe(ambientes, acesso.id).map(amb => itemDoAmbiente(amb, taxaPopulacional, larguras))
+function tabelaDoAmbiente(amb, taxaPopulacional, larguras) {
+  const { pop, capPT, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
   return {
-    label: `${acesso.nome} (${label})`,
-    valor: `População ${pop} · capacidade ${capValor}/UP · ${dim.n} UP · largura ${fmtM(dim.la)} · porta mínima ${fmtM(porta.la)}`,
-    sub: [...filhosAcesso, ...filhosAmbiente],
+    tipo: 'tabela',
+    centralizado: true,
+    linhasCabecalho: [
+      [{ texto: amb.nome.toUpperCase(), colSpan: 4 }],
+      [{ texto: 'POPULAÇÃO' }, { texto: 'PORTAS', colSpan: 3 }],
+      [{ texto: '' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
+    ],
+    linhas: [[pop, capPT, pt.n, fmt(pt.la)]],
   }
+}
+
+function tabelasDoAcesso(acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga) {
+  const propria = tabelaDoAcesso(acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga)
+  const filhosAcesso = acessosFilhos(acessos, acesso.id)
+    .flatMap(a => tabelasDoAcesso(a, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga))
+  const filhosAmbiente = ambientesDe(ambientes, acesso.id).map(amb => tabelaDoAmbiente(amb, taxaPopulacional, larguras))
+  return [propria, ...filhosAcesso, ...filhosAmbiente]
 }
 
 function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
@@ -61,34 +130,40 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
   const acessos = pav.acessos || []
   const ambientes = pav.ambientes || []
   const raizes = acessosFilhos(acessos, null)
-  const nSaidas = Math.max(1, contarSaidasPavimento(acessos))
   const rotuloRaiz = pav.pisoDescarga ? 'saída' : 'escada/rampa'
 
-  const blocos = [{ tipo: 'titulo2', texto: pav.label }]
+  const blocos = [{ tipo: 'titulo2', texto: pav.pisoDescarga ? `${pav.label} (Piso de Descarga)` : pav.label }]
 
   if (!pav.divisao) {
-    blocos.push({ tipo: 'paragrafo', texto: `Ocupação de ${pav.label} ainda não classificada (Etapa de Classificação) — população e distância máxima a percorrer pendentes.` })
+    blocos.push({ tipo: 'paragrafo', texto: `Ocupação de ${pav.label} ainda não classificada (Etapa de Classificação) — dimensionamento pendente.` })
+    return blocos
+  }
+  if (raizes.length === 0) {
+    blocos.push({ tipo: 'paragrafo', texto: `Nenhuma ${rotuloRaiz} cadastrada em ${pav.label} até o momento — árvore de acessos e descargas pendente.` })
     return blocos
   }
 
-  const pop = calcPopPav(pav, TAXA_POPULACIONAL)
-  const dist = getDistanciaPavimento(pav, nSaidas, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)
-
-  blocos.push({
-    tipo: 'campo',
-    label: pav.pisoDescarga ? 'Piso de descarga' : 'Pavimento',
-    valor: `População ${pop} pessoas · ${nSaidas} ${rotuloRaiz}(s)`
-      + (dist != null ? ` · distância máxima a percorrer ${fmtM(dist)}` : ' · distância máxima a percorrer: consultar CBMMA (combinação não tabelada)'),
-  })
-
-  if (raizes.length === 0) {
-    blocos.push({ tipo: 'paragrafo', texto: `Nenhuma ${rotuloRaiz} cadastrada em ${pav.label} até o momento — árvore de acessos e descargas pendente.` })
-  } else {
+  // A tabela de distância máxima da estrutura (ver blocosDaEstrutura) só
+  // cobre a referência de saída única — pavimentos com mais de uma saída
+  // têm distância admissível maior, avisado aqui (não repete o valor de
+  // referência quando a saída já é única, pra não poluir o documento).
+  const nSaidas = Math.max(1, contarSaidasPavimento(acessos))
+  if (nSaidas > 1) {
+    const dist = getDistancia(pav.divisao, !!pav.pisoDescarga, nSaidas, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)
     blocos.push({
-      tipo: 'lista',
-      itens: raizes.map(r => itemDoAcesso(r, ambientes, acessos, TAXA_POPULACIONAL, LARGURAS_MINIMAS, !!pav.pisoDescarga)),
+      tipo: 'campo',
+      label: 'Distância máxima aplicável',
+      valor: `${pav.label} tem ${nSaidas} saídas — distância máxima a percorrer de ${dist != null ? fmtM(dist) : 'consultar NT (combinação não tabelada)'} (maior que a referência de saída única da tabela acima).`,
     })
   }
+
+  blocos.push({ tipo: 'titulo2', texto: 'Organograma' })
+  blocos.push({ tipo: 'lista', itens: raizes.map(r => organogramaDoAcesso(r, ambientes, acessos, !!pav.pisoDescarga)) })
+
+  blocos.push({ tipo: 'titulo2', texto: 'Larguras Mínimas' })
+  raizes.forEach(r => {
+    blocos.push(...tabelasDoAcesso(r, ambientes, acessos, TAXA_POPULACIONAL, LARGURAS_MINIMAS, !!pav.pisoDescarga))
+  })
 
   const semAcesso = ambientes.filter(a => !a.acessoId)
   if (semAcesso.length > 0) {
@@ -102,27 +177,53 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
   return blocos
 }
 
+function blocosDaEstrutura(est, pavs, seNorma, temChuveiros, temDeteccao) {
+  const { DISTANCIAS_MAXIMAS } = seNorma
+  const divisoes = [...new Set(pavs.map(p => p.divisao).filter(Boolean))]
+
+  const blocos = [{ tipo: 'titulo2', texto: est.nome || 'Estrutura' }]
+
+  if (divisoes.length > 0) {
+    blocos.push({
+      tipo: 'tabela',
+      centralizado: true,
+      linhasCabecalho: [
+        [{ texto: 'DISTÂNCIAS MÁXIMA A PERCORRER', colSpan: 3 }],
+        [{ texto: 'DIVISÃO' }, { texto: 'ANDAR' }, { texto: `${temChuveiros ? 'COM' : 'SEM'} CHUVEIROS AUTOMÁTICOS · ${temDeteccao ? 'COM' : 'SEM'} DETECÇÃO · SAÍDA ÚNICA` }],
+      ],
+      linhas: divisoes.flatMap(divisao => [
+        [divisao, 'Piso de descarga', fmtDistOuConsultar(getDistancia(divisao, true, 1, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS))],
+        [divisao, 'Demais andares', fmtDistOuConsultar(getDistancia(divisao, false, 1, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS))],
+      ]),
+    })
+  }
+
+  blocos.push(...pavs.flatMap(pav => blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao)))
+  return blocos
+}
+
+function fmtDistOuConsultar(valor) {
+  return valor != null ? fmtM(valor) : 'Consultar NT'
+}
+
 export function textoMemorialSaidaEmergencia(state, sistemas, porEstrutura) {
   const seNorma = getSE(state.uf)
   const sistemasPorEst = Object.fromEntries((porEstrutura || []).map(pe => [pe.estrutura.id, pe.sistemas]))
 
-  const blocos = (state.estruturas || []).flatMap(est => {
+  const blocosEstruturas = (state.estruturas || []).flatMap(est => {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     if (pavs.length === 0) return []
-
     const temChuveiros = !!sistemasPorEst[est.id]?.sprinklers?.ativo
     const temDeteccao  = !!sistemasPorEst[est.id]?.deteccao?.ativo
-
-    return [
-      { tipo: 'titulo2', texto: est.nome || 'Estrutura' },
-      { tipo: 'campo', label: 'Sistemas considerados na distância máxima a percorrer', valor: `Chuveiros automáticos: ${temChuveiros ? 'sim' : 'não'} · Detecção de incêndio: ${temDeteccao ? 'sim' : 'não'}` },
-      ...pavs.flatMap(pav => blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao)),
-    ]
+    return blocosDaEstrutura(est, pavs, seNorma, temChuveiros, temDeteccao)
   })
 
-  if (blocos.length === 0) {
-    blocos.push({ tipo: 'paragrafo', texto: 'Nenhum pavimento cadastrado — dimensionamento de saída de emergência pendente.' })
-  }
+  const blocos = [
+    ...blocosGeneralidades(seNorma.LARGURAS_MINIMAS),
+    ...(blocosEstruturas.length > 0
+      ? blocosEstruturas
+      : [{ tipo: 'paragrafo', texto: 'Nenhum pavimento cadastrado — dimensionamento de saída de emergência pendente.' }]),
+  ]
 
   return { titulo: 'Saída de Emergência', blocos }
 }

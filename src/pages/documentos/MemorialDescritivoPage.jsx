@@ -419,6 +419,10 @@ function ListaLi({ item, estilo }) {
     <li className={
       estilo === 'alerta'
         ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
+        // 'lettered': o próprio texto já traz o prefixo ("a) ..." — ver
+        // memorial/saida_emergencia.js), então sem marcador "•" duplicado.
+        : estilo === 'lettered'
+        ? 'text-[12px] text-black leading-[1.6] mb-1 pl-4'
         : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
     }>
       <ListaItemTexto item={item}/>
@@ -443,7 +447,11 @@ function BlocoMedida({ bloco }) {
       return <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{bloco.texto}</p>
     case 'campo':
       return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:</strong> <span className="whitespace-pre-line">{bloco.valor}</span></div>
-    case 'tabela':
+    case 'tabela': {
+      // th/td alinhados ao centro quando a tabela é majoritariamente
+      // numérica (ex.: dimensionamento de Acesso/Saída) — colunas de
+      // texto livre continuam usando `colunas`/alinhamento à esquerda.
+      const alinhamento = bloco.centralizado ? 'text-center' : 'text-left'
       return (
         <table className="w-full border-collapse text-[11px] text-black mb-4" style={bloco.larguras ? { tableLayout: 'fixed' } : undefined}>
           {bloco.larguras && (
@@ -452,15 +460,31 @@ function BlocoMedida({ bloco }) {
             </colgroup>
           )}
           <thead>
-            <tr>
-              {bloco.colunas.map((c, i) => <th key={i} className="border border-solid border-[#c9c9cb] px-2 py-1 text-left">{c}</th>)}
-            </tr>
+            {/* `linhasCabecalho` (opcional) permite um cabeçalho com mais de
+                uma linha e células mescladas horizontalmente (colSpan) — ex.:
+                "POPULAÇÃO" | "ACESSO/DESCARGA" (3 colunas) | "PORTAS" (3
+                colunas) numa linha, com CAPACIDADE/UP/LARGURA MÍNIMA embaixo
+                de cada bloco na linha seguinte (ver memorial/saida_emergencia.js).
+                Sem isso, cai no `colunas` de sempre (uma linha só). */}
+            {bloco.linhasCabecalho
+              ? bloco.linhasCabecalho.map((linha, i) => (
+                  <tr key={i}>
+                    {linha.map((c, j) => (
+                      <th key={j} colSpan={c.colSpan} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>{c.texto}</th>
+                    ))}
+                  </tr>
+                ))
+              : (
+                <tr>
+                  {bloco.colunas.map((c, i) => <th key={i} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>{c}</th>)}
+                </tr>
+              )}
           </thead>
           <tbody>
             {bloco.linhas.map((linha, i) => (
               <tr key={i}>
                 {linha.map((cel, j) => (
-                  <td key={j} className="border border-solid border-[#c9c9cb] px-2 py-1">
+                  <td key={j} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>
                     {cel && typeof cel === 'object' && cel.tipo === 'imagem'
                       ? <img src={cel.src} alt={cel.alt || ''} className="w-9 h-9 object-contain block"/>
                       : cel}
@@ -471,6 +495,7 @@ function BlocoMedida({ bloco }) {
           </tbody>
         </table>
       )
+    }
     case 'lista':
       return (
         <ul className="list-none mb-4">
