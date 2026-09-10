@@ -64,9 +64,13 @@ function numeroPagina(atual, total) {
 }
 
 function Capa({ state, totalPaginas }) {
-  const edificacao = state.respFantasia || state.respRazaoSocial || state.nome || '[Nome Fantasia da Empresa ou Condomínio]'
-  const enderecoCompleto = enderecoCompletoDe(state)
-  const proprietario = state.propNome || '[Nome Completo ou Razão Social]'
+  // Nome do projeto é o único campo garantido em qualquer modo de projeto
+  // (ver ProjetoContext.jsx tipoProjeto) — os demais só aparecem se
+  // preenchidos, sem placeholder entre colchetes no documento final.
+  const edificacao = state.respFantasia || state.respRazaoSocial || state.nome || ''
+  const enderecoCompleto = enderecoCompletoDe(state, '')
+  const proprietario = state.propNome || ''
+  const temContato = state.respCNPJ || state.respTelefone
 
   return (
     <div className={FOLHA}>
@@ -74,10 +78,12 @@ function Capa({ state, totalPaginas }) {
         <div className="w-[150px] h-[60px] border border-dashed border-[#c9c9cb] bg-[#eeeeef] flex items-center justify-center text-center px-2">
           <span className="text-[10px] font-bold text-[#8a8a8c] uppercase tracking-[.04em]">Logo da empresa</span>
         </div>
-        <div className="text-[10.5px] text-black leading-relaxed">
-          <div>CNPJ: {state.respCNPJ || 'XX.XXX.XXX/0001-XX'}</div>
-          <div>Telefone: {state.respTelefone || '(XX) XXXXX-XXXX'}</div>
-        </div>
+        {temContato && (
+          <div className="text-[10.5px] text-black leading-relaxed">
+            {state.respCNPJ && <div>CNPJ: {state.respCNPJ}</div>}
+            {state.respTelefone && <div>Telefone: {state.respTelefone}</div>}
+          </div>
+        )}
       </div>
 
       <div className="text-center my-auto py-16">
@@ -88,9 +94,9 @@ function Capa({ state, totalPaginas }) {
       </div>
 
       <div className="text-center text-[12px] text-black flex flex-col gap-1.5 pb-8">
-        <div><strong>Edificação:</strong> {edificacao}</div>
-        <div><strong>Endereço:</strong> {enderecoCompleto}</div>
-        <div><strong>Proprietário:</strong> {proprietario}</div>
+        {edificacao && <div><strong>Edificação:</strong> {edificacao}</div>}
+        {enderecoCompleto && <div><strong>Endereço:</strong> {enderecoCompleto}</div>}
+        {proprietario && <div><strong>Proprietário:</strong> {proprietario}</div>}
       </div>
 
       <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(1, totalPaginas)}</div>
@@ -154,45 +160,71 @@ function Introducao({ sistemas, totalPaginas, uf }) {
   )
 }
 
+// Sem valor, o campo nem aparece — evita linhas tipo "Endereço: " em
+// branco num documento que projetos "apenas dimensionamento" nunca
+// preenchem (ver ProjetoContext.jsx tipoProjeto).
 function CampoDiscriminado({ label, value }) {
+  if (!value) return null
   return <div><strong>{label}:</strong> {value}</div>
 }
 
 function SobreEdificacao({ state, totalPaginas }) {
+  const temRT = state.rtNome || state.rtConselho || state.artNumero
+  const temResp = state.respRazaoSocial || state.respFantasia || state.respCNPJ || state.respTelefone || state.respEmail
+  const temProp = state.propNome || state.propDocumento || state.propTelefone || state.propEmail
+  const endereco = enderecoCompletoDe(state, '')
+  const temImovel = endereco || state.areaConstruidaTotal || state.areaTerreno
+
   return (
     <div className={FOLHA}>
       <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6">Sobre a Edificação</h1>
 
-      <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Responsável Técnico</h2>
-      <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
-        <CampoDiscriminado label="Responsável Técnico" value={state.rtNome}/>
-        <CampoDiscriminado label="Registro Profissional" value={state.rtConselho}/>
-        <CampoDiscriminado label="Número da ART / RRT" value={state.artNumero}/>
-      </div>
+      {temRT && (
+        <>
+          <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Responsável Técnico</h2>
+          <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
+            <CampoDiscriminado label="Responsável Técnico" value={state.rtNome}/>
+            <CampoDiscriminado label="Registro Profissional" value={state.rtConselho}/>
+            <CampoDiscriminado label="Número da ART / RRT" value={state.artNumero}/>
+          </div>
+        </>
+      )}
 
-      <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Responsável pelo Uso</h2>
-      <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
-        <CampoDiscriminado label="Razão Social" value={state.respRazaoSocial}/>
-        <CampoDiscriminado label="Nome Fantasia" value={state.respFantasia}/>
-        <CampoDiscriminado label="CNPJ" value={state.respCNPJ}/>
-        <CampoDiscriminado label="Telefone" value={state.respTelefone}/>
-        <CampoDiscriminado label="E-mail" value={state.respEmail}/>
-      </div>
+      {temResp && (
+        <>
+          <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Responsável pelo Uso</h2>
+          <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
+            <CampoDiscriminado label="Razão Social" value={state.respRazaoSocial}/>
+            <CampoDiscriminado label="Nome Fantasia" value={state.respFantasia}/>
+            <CampoDiscriminado label="CNPJ" value={state.respCNPJ}/>
+            <CampoDiscriminado label="Telefone" value={state.respTelefone}/>
+            <CampoDiscriminado label="E-mail" value={state.respEmail}/>
+          </div>
+        </>
+      )}
 
-      <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Proprietário do Imóvel</h2>
-      <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
-        <CampoDiscriminado label="Nome / Razão Social" value={state.propNome}/>
-        <CampoDiscriminado label="CPF / CNPJ" value={state.propDocumento}/>
-        <CampoDiscriminado label="Telefone" value={state.propTelefone}/>
-        <CampoDiscriminado label="E-mail" value={state.propEmail}/>
-      </div>
+      {temProp && (
+        <>
+          <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Proprietário do Imóvel</h2>
+          <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
+            <CampoDiscriminado label="Nome / Razão Social" value={state.propNome}/>
+            <CampoDiscriminado label="CPF / CNPJ" value={state.propDocumento}/>
+            <CampoDiscriminado label="Telefone" value={state.propTelefone}/>
+            <CampoDiscriminado label="E-mail" value={state.propEmail}/>
+          </div>
+        </>
+      )}
 
-      <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Dados do Imóvel</h2>
-      <div className="text-[12px] text-black leading-[1.9] pl-6">
-        <CampoDiscriminado label="Endereço" value={enderecoCompletoDe(state, '')}/>
-        <CampoDiscriminado label="Área construída total" value={state.areaConstruidaTotal ? `${state.areaConstruidaTotal} m²` : ''}/>
-        <CampoDiscriminado label="Área do terreno" value={state.areaTerreno ? `${state.areaTerreno} m²` : ''}/>
-      </div>
+      {temImovel && (
+        <>
+          <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Dados do Imóvel</h2>
+          <div className="text-[12px] text-black leading-[1.9] pl-6">
+            <CampoDiscriminado label="Endereço" value={endereco}/>
+            <CampoDiscriminado label="Área construída total" value={state.areaConstruidaTotal ? `${state.areaConstruidaTotal} m²` : ''}/>
+            <CampoDiscriminado label="Área do terreno" value={state.areaTerreno ? `${state.areaTerreno} m²` : ''}/>
+          </div>
+        </>
+      )}
 
       <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_SOBRE_EDIFICACAO, totalPaginas)}</div>
     </div>

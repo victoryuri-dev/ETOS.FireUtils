@@ -229,11 +229,16 @@ export default function Step6({ step, totalSteps }) {
               <MedidasGrid pe={pe} dispatch={dispatch} sistConfig={sistConfig}/>
             </div>
 
-            <div>
-              <div className={blockTitle}>Riscos especiais</div>
-              <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes nesta estrutura ou area de risco, conforme Anexo B da NT 01.</p>
-              <RiscosGrid estruturaId={est.id} riscos={riscos} outrosDesc={outrosDesc} dispatch={dispatch}/>
-            </div>
+            {/* Riscos especiais alimentam o Anexo B (NT 01) — sem sentido
+                num projeto "apenas dimensionamento", que nem gera esse
+                documento (ver DocumentosPage.jsx). */}
+            {!dimensionamento && (
+              <div>
+                <div className={blockTitle}>Riscos especiais</div>
+                <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes nesta estrutura ou area de risco, conforme Anexo B da NT 01.</p>
+                <RiscosGrid estruturaId={est.id} riscos={riscos} outrosDesc={outrosDesc} dispatch={dispatch}/>
+              </div>
+            )}
           </EstruturaSection>
         )
       })}

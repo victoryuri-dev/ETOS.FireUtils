@@ -285,66 +285,74 @@ export default function Step2({ step, totalSteps }) {
         </FormSection>
       )}
 
-      {/* Situacao: nova ou existente */}
-      <FormSection title="Situacao">
-        <div className="grid grid-cols-2 gap-2 mb-3.5">
-          {[
-            { k:'nova',      icon:'newbld', t:'Edificacao nova',      s:'Em projeto ou construcao' },
-            { k:'existente', icon:'oldbld', t:'Edificacao existente', s:'Regularizacao / adequacao' },
-          ].map(o => (
-            <div key={o.k} className={optClass(state.situacao === o.k)}
-              onClick={() => dispatch({ type:'SET_FIELD', field:'situacao', value:o.k })}>
-              <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${state.situacao===o.k ? 'bg-red-dim text-red' : 'bg-white/5 text-ink-faint'}`}>
-                <Icon name={o.icon} size={17}/>
+      {/* Situacao: nova ou existente — nao se aplica a um projeto que so
+          dimensiona sistemas, sem gerar o Anexo B/PPCI completo. */}
+      {!dimensionamento && (
+        <FormSection title="Situacao">
+          <div className="grid grid-cols-2 gap-2 mb-3.5">
+            {[
+              { k:'nova',      icon:'newbld', t:'Edificacao nova',      s:'Em projeto ou construcao' },
+              { k:'existente', icon:'oldbld', t:'Edificacao existente', s:'Regularizacao / adequacao' },
+            ].map(o => (
+              <div key={o.k} className={optClass(state.situacao === o.k)}
+                onClick={() => dispatch({ type:'SET_FIELD', field:'situacao', value:o.k })}>
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${state.situacao===o.k ? 'bg-red-dim text-red' : 'bg-white/5 text-ink-faint'}`}>
+                  <Icon name={o.icon} size={17}/>
+                </div>
+                <div>
+                  <div className={`text-[13px] font-medium ${state.situacao===o.k ? 'text-red' : 'text-ink-muted'}`}>{o.t}</div>
+                  <div className="text-[11px] text-ink-faint mt-0.5">{o.s}</div>
+                </div>
               </div>
-              <div>
-                <div className={`text-[13px] font-medium ${state.situacao===o.k ? 'text-red' : 'text-ink-muted'}`}>{o.t}</div>
-                <div className="text-[11px] text-ink-faint mt-0.5">{o.s}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {state.situacao === 'nova' && (
-          <div className="g2">
-            <div className="fg"><label>Ano previsto de conclusao</label><input type="number" value={state.anoAlvara} onChange={set('anoAlvara')} placeholder="2027"/></div>
-            <div className="fg"><label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/></div>
+            ))}
           </div>
-        )}
 
-        {state.situacao === 'existente' && (
-          <>
-            <div className="ibox amber mt-2">
-              <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-              <span>Para edificacoes existentes o CBMMA pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
+          {state.situacao === 'nova' && (
+            <div className="g2">
+              <div className="fg"><label>Ano previsto de conclusao</label><input type="number" value={state.anoAlvara} onChange={set('anoAlvara')} placeholder="2027"/></div>
+              <div className="fg"><label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/></div>
             </div>
-            <div className="g2 mb-3">
-              <div className="fg"><label>Ano de construcao</label><input type="number" value={state.anoConstrucao} onChange={set('anoConstrucao')} placeholder="Ex: 1998"/></div>
-              <div className="fg"><label>Situacao perante o CBMMA</label>
-                <select value={state.situacaoCBM} onChange={set('situacaoCBM')}>
-                  <option>Sem AVCB anterior</option>
-                  <option>AVCB vencido</option>
-                  <option>AVCB em vigor — renovacao</option>
-                  <option>Em regularizacao</option>
-                </select>
+          )}
+
+          {state.situacao === 'existente' && (
+            <>
+              <div className="ibox amber mt-2">
+                <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+                <span>Para edificacoes existentes o CBMMA pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
               </div>
-            </div>
-            <div className="g2 mb-3">
-              <div className="fg"><label>No do AVCB anterior</label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
-              <div className="fg"><label>Validade do AVCB</label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
-            </div>
-            <div className="fg">
-              <label>Condicoes atuais relevantes para o PPCI</label>
-              <textarea value={state.condicoesAtuais} onChange={set('condicoesAtuais')} placeholder="Descreva brevemente..."/>
-            </div>
-          </>
-        )}
-      </FormSection>
+              <div className="g2 mb-3">
+                <div className="fg"><label>Ano de construcao</label><input type="number" value={state.anoConstrucao} onChange={set('anoConstrucao')} placeholder="Ex: 1998"/></div>
+                <div className="fg"><label>Situacao perante o CBMMA</label>
+                  <select value={state.situacaoCBM} onChange={set('situacaoCBM')}>
+                    <option>Sem AVCB anterior</option>
+                    <option>AVCB vencido</option>
+                    <option>AVCB em vigor — renovacao</option>
+                    <option>Em regularizacao</option>
+                  </select>
+                </div>
+              </div>
+              <div className="g2 mb-3">
+                <div className="fg"><label>No do AVCB anterior</label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
+                <div className="fg"><label>Validade do AVCB</label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
+              </div>
+              <div className="fg">
+                <label>Condicoes atuais relevantes para o PPCI</label>
+                <textarea value={state.condicoesAtuais} onChange={set('condicoesAtuais')} placeholder="Descreva brevemente..."/>
+              </div>
+            </>
+          )}
+        </FormSection>
+      )}
 
-      {/* Terreno e area construida (parametros globais do projeto) */}
-      <FormSection title="Terreno e area construida">
-        <div className="g2 mb-3">
-          <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
+      {/* Terreno e area construida (parametros globais do projeto) — no modo
+          dimensionamento so a area construida total interessa (nenhum
+          calculo de saida/hidrante/sprinkler usa terreno, publico ou area
+          complementar). */}
+      <FormSection title={dimensionamento ? 'Area construida' : 'Terreno e area construida'}>
+        <div className={dimensionamento ? '' : 'g2 mb-3'}>
+          {!dimensionamento && (
+            <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
+          )}
           <div className="fg">
             <label>
               Area construida total (m2)
@@ -363,10 +371,12 @@ export default function Step2({ step, totalSteps }) {
             />
           </div>
         </div>
-        <div className="g2">
-          <div className="fg"><label>Quantidade de publico</label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
-          <div className="fg"><label>Area complementar (m2)</label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
-        </div>
+        {!dimensionamento && (
+          <div className="g2">
+            <div className="fg"><label>Quantidade de publico</label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
+            <div className="fg"><label>Area complementar (m2)</label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
+          </div>
+        )}
       </FormSection>
 
       {/* Estruturas */}
