@@ -93,7 +93,9 @@ function resolverPavimentoSite(nomeImportado, estruturaId, projetoPavimentos) {
 // que soltava (órfão) qualquer ambiente que já estivesse dentro de um
 // Acesso/Saída a cada nova importação. `assentos` não vem do Revit
 // (ver montar_payload_ambientes no plugin): preserva o valor já
-// cadastrado no site em vez de zerar.
+// cadastrado no site em vez de zerar. `origem: 'revit'` marca todo
+// ambiente que passa por aqui — distingue do `origem: 'manual'` de quem
+// nasce pelo botão "Adicionar Ambiente" (ver AcessosDescargasView.jsx).
 function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPavimentos) {
   if (!payloadSE?.pavimentos) throw new Error('Chave "pavimentos" não encontrada nos dados.')
 
@@ -119,6 +121,7 @@ function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPaviment
           popTipo:   a.popTipo   || 'area',
           assentos:  a.assentos  ?? existente?.assentos ?? 0,
           popManual: a.popManual ?? 0,
+          origem:    'revit',
         }
       }),
     })
