@@ -184,9 +184,9 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
 
   return (
     <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
-      className={`rounded-lg border border-solid bg-surface transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
+      className={`rounded-lg border border-solid bg-surface overflow-hidden transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
     >
-      <div className="flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none" onClick={() => toggleColapsado(acesso.id)}>
+      <div className="flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none bg-surface-2" onClick={() => toggleColapsado(acesso.id)}>
         <div className="flex items-center gap-2 min-w-0">
           {!isRaiz && (
             <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar (leva tudo dentro)">
@@ -205,7 +205,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
         </div>
       </div>
       {entradas.length > 0 && (
-        <div className="flex items-center justify-center gap-4 pb-3.5 px-3.5 flex-wrap">
+        <div className="flex items-center justify-center gap-4 pb-3.5 px-3.5 flex-wrap bg-surface-2">
           {entradas.flatMap((e, i) => [
             i > 0 && <span key={`sep-${i}`} className="text-ink-faint opacity-30">|</span>,
             <DimEntry key={e.label} label={e.label} value={e.value}/>,
