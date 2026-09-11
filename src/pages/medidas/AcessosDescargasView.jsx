@@ -87,6 +87,20 @@ function LabelQuebrado({ texto }) {
   return <>{partes[0]}/<br/>{partes[1]}</>
 }
 
+// Checkbox próprio (botão + ícone) em vez de <input type="checkbox"> nativo
+// — o nativo herda a cor de fundo do tema do sistema operacional (fica
+// branco em vez de escuro), sem jeito confiável de sobrescrever entre
+// navegadores só com CSS.
+function Checkbox({ checked, onChange, title }) {
+  return (
+    <button type="button" onClick={e => { e.stopPropagation(); onChange() }} title={title}
+      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border border-solid flex items-center justify-center transition-colors ${checked ? 'bg-red border-red' : 'bg-surface border-border-2 hover:border-white/30'}`}
+    >
+      {checked && <Icon name="check" size={10} className="text-white"/>}
+    </button>
+  )
+}
+
 // ── Ambiente (folha da árvore) — arrastável, card inteiro clicável ─────
 // Só mostra UP (no lugar da ocupação, no cabeçalho) + população + largura
 // mínima da porta — capacidade (C) e o código de divisão saíram do card
@@ -106,8 +120,7 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, selec
       className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''}`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <input type="checkbox" checked={selecionado} onChange={() => onToggleSelecao(amb.id)} onClick={e => e.stopPropagation()}
-          className="w-auto accent-red cursor-pointer shrink-0" title="Selecionar pra mover em massa"/>
+        <Checkbox checked={selecionado} onChange={() => onToggleSelecao(amb.id)} title="Selecionar pra mover em massa"/>
         <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente">
           <Icon name="grip" size={13}/>
         </button>
@@ -231,16 +244,19 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
       )}
       {aberto && (
         <div className="pl-7 pr-3.5 pb-3.5 flex flex-col gap-2.5 border-t border-solid border-border-2 pt-3">
+          {/* Ambientes direto deste Acesso vêm antes dos Acessos filhos —
+              o que pertence a ele fica visualmente "em cima" do próximo
+              nível da árvore, em vez de misturado depois. */}
+          {filhosAmbientes.map(a => (
+            <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEditAmbiente} onRemove={onRemoveAmbiente}
+              selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente}/>
+          ))}
           {filhos.map(f => (
             <AcessoCard key={f.id} acesso={f} ambientes={ambientes} acessos={acessos}
               taxaPopulacional={taxaPopulacional} larguras={larguras} pisoDescarga={pisoDescarga} dispatch={dispatch}
               pavimentoId={pavimentoId} onEditAmbiente={onEditAmbiente} onRemoveAmbiente={onRemoveAmbiente} onCreateAmbiente={onCreateAmbiente}
               colapsados={colapsados} toggleColapsado={toggleColapsado}
               selecionados={selecionados} onToggleSelecaoAmbiente={onToggleSelecaoAmbiente}/>
-          ))}
-          {filhosAmbientes.map(a => (
-            <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEditAmbiente} onRemove={onRemoveAmbiente}
-              selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente}/>
           ))}
           {filhos.length === 0 && filhosAmbientes.length === 0 && (
             <div className="text-[11px] text-ink-faint italic py-1">Arraste ambientes para cá.</div>
@@ -375,7 +391,14 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
 
     if (activeData.kind === 'amb') {
       const novoAcessoId = (overData.kind === 'acesso') ? overData.id : null
-      dispatch({ type: 'MOVER_AMBIENTE_ACESSO', pavimentoId: pav.id, ambienteId: activeData.id, novoAcessoId })
+      // Arrastar um ambiente que faz parte da seleção em massa leva o
+      // conjunto inteiro junto, não só o card que a mão pegou.
+      if (selecionados.size > 1 && selecionados.has(activeData.id)) {
+        dispatch({ type: 'MOVER_AMBIENTES_ACESSO', pavimentoId: pav.id, ambienteIds: [...selecionados], novoAcessoId })
+        limparSelecao()
+      } else {
+        dispatch({ type: 'MOVER_AMBIENTE_ACESSO', pavimentoId: pav.id, ambienteId: activeData.id, novoAcessoId })
+      }
       return
     }
     if (activeData.kind === 'acs') {
