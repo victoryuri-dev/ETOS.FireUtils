@@ -30,6 +30,10 @@
   ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.15)}
   input,select,textarea{width:100%;background:var(--color-surface-2);border:.5px solid var(--color-border);color:var(--color-ink);font-size:13px;padding:9px 12px;border-radius:var(--radius-md);outline:none;font-family:var(--font-sans);transition:border-color .15s}
   input:focus,select:focus,textarea:focus{border-color:var(--color-red-border)}
+  /* Lista suspensa nativa do <select> não herda estilo do elemento pai —
+     sem isso, o menu abre com fundo branco do sistema operacional mesmo
+     com o <select> em si transparente/escuro. */
+  select option{background:var(--color-surface-2);color:var(--color-ink)}
   input[readonly]{opacity:.45;cursor:default}
   textarea{resize:vertical;min-height:70px}
   button{font-family:var(--font-sans);cursor:pointer}

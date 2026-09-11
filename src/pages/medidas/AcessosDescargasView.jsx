@@ -94,7 +94,7 @@ function LabelQuebrado({ texto }) {
 function Checkbox({ checked, onChange, title }) {
   return (
     <button type="button" onClick={e => { e.stopPropagation(); onChange() }} title={title}
-      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border border-solid flex items-center justify-center transition-colors ${checked ? 'bg-red border-red' : 'bg-surface border-border-2 hover:border-white/30'}`}
+      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border border-solid flex items-center justify-center transition-colors ${checked ? 'bg-red border-red' : 'bg-surface border-ink-faint hover:border-ink-muted'}`}
     >
       {checked && <Icon name="check" size={10} className="text-white"/>}
     </button>
@@ -124,13 +124,13 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
   return (
     <div ref={setNodeRef} style={style} onClick={() => modoSelecao ? onToggleSelecao(amb.id) : onEdit(amb)}
-      className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''}`}
+      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''}`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <Checkbox checked={selecionado} onChange={() => onToggleSelecao(amb.id)} title="Selecionar pra mover em massa"/>
-        <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente">
+        <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente">
           <Icon name="grip" size={13}/>
         </button>
+        <Checkbox checked={selecionado} onChange={() => onToggleSelecao(amb.id)} title="Selecionar pra mover em massa"/>
         <span className="text-[13px] font-semibold text-ink truncate">{amb.nome}</span>
         <DivBadge label={`${pt.n} UP`}/>
         {amb.origem === 'manual' && (
@@ -142,7 +142,10 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
       <div className="flex items-center gap-2.5 shrink-0 text-[11px] text-ink-faint whitespace-nowrap">
         <span>{pop} pessoas</span>
         <span className="opacity-30">|</span>
-        <span>PORTAS: <strong className="text-red">{fmtM(pt.la)}</strong></span>
+        <span className="flex items-center gap-1.5">
+          <span className="text-[9px] uppercase tracking-[.06em]">Portas</span>
+          <strong className="text-[18px] font-bold text-red leading-none">{fmtM(pt.la)}</strong>
+        </span>
         {orfao ? (
           <button onClick={e => { e.stopPropagation(); onRemove(amb.id) }} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1" title="Excluir ambiente">
             <Icon name="trash" size={12}/>
@@ -183,7 +186,7 @@ function DimEntry({ label, value }) {
   return (
     <div className="flex items-center gap-2">
       <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight"><LabelQuebrado texto={label}/></div>
-      <div className="text-[15px] font-bold text-red whitespace-nowrap">{value}</div>
+      <div className="text-[18px] font-bold text-red leading-none whitespace-nowrap">{value}</div>
     </div>
   )
 }
@@ -234,12 +237,12 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
 
   return (
     <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
-      className={`rounded-lg border border-solid bg-surface overflow-hidden transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
+      className={`group rounded-lg border border-solid bg-surface overflow-hidden transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
     >
       <div className="flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none bg-surface-2" onClick={() => toggleColapsado(acesso.id)}>
         <div className="flex items-center gap-2 min-w-0">
           {!isRaiz && (
-            <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar (leva tudo dentro)">
+            <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar (leva tudo dentro)">
               <Icon name="grip" size={14}/>
             </button>
           )}
