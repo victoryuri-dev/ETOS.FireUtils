@@ -406,7 +406,7 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
           <div className="flex items-center gap-3 py-2.5 px-5 border-b border-solid border-border bg-[rgba(192,21,42,.08)] shrink-0">
             <span className="text-xs font-semibold text-ink whitespace-nowrap">{selecionados.size} ambiente{selecionados.size > 1 ? 's' : ''} selecionado{selecionados.size > 1 ? 's' : ''}</span>
             <select value={alvoSelecao} onChange={e => setAlvoSelecao(e.target.value)}
-              className="w-auto flex-1 max-w-[320px] text-xs py-1.5"
+              className="w-auto flex-1 max-w-[320px] text-xs py-1.5 bg-transparent"
             >
               <option value="">Mover para...</option>
               <option value={ALVO_SEM_ACESSO}>— Sem acesso atribuído —</option>
