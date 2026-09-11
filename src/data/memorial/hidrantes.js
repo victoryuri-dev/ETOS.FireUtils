@@ -74,6 +74,12 @@ export function textoMemorialHidrantes(state) {
         texto: 'Na falta de energia da concessionária, as bombas de incêndio acionadas por motor elétrico podem ser alimentadas por um gerador diesel, atendendo ao requisito do item C.2.9 da NT 22.',
       })
     }
+    if (h.bombaAlimentaSprinklers) {
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: 'O sistema de bombeamento de incêndio também alimenta o sistema de chuveiros automáticos (sprinklers), mediante interligação das tubulações dos reservatórios, conforme item 5.9.2 da NT 22, atendendo aos parâmetros da NT 23 — Sistema de Chuveiros Automáticos.',
+      })
+    }
   }
 
   blocos.push({ tipo: 'titulo2', texto: 'Rede de Tubulação' })

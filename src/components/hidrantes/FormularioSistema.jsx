@@ -133,16 +133,6 @@ export default function FormularioSistema() {
           </Field>
         </div>
 
-        <div className="flex items-center justify-between gap-3 py-1 mb-3">
-          <span className="text-xs text-ink">Edificação possui chuveiros automáticos (sprinklers)?</span>
-          <span className={`text-[11px] font-bold py-1 px-2.5 rounded border border-solid ${temSprinklers ? 'bg-green-dim border-green-border text-green' : 'bg-surface-2 border-border text-ink-faint'}`}>
-            {temSprinklers ? 'SIM' : 'NÃO'}
-          </span>
-        </div>
-        <div className="text-[11px] text-ink-faint -mt-2 mb-3">
-          Detectado automaticamente da Etapa 6 (Medidas de Segurança) — não editável aqui.
-        </div>
-
         {sugestao.opcoes.length > 1 && (
           <div className="mb-4">
             <Field label="A norma permite dois sistemas para esta ocupação — escolha qual adotar" />
@@ -236,6 +226,9 @@ export default function FormularioSistema() {
               </div>
             )}
             <ToggleRow label="Bomba jockey (pressurização)" checked={h.bombaJockey} onChange={v => set({ bombaJockey: v })}/>
+            {temSprinklers && (
+              <ToggleRow label="O sistema de bombeamento também alimenta os chuveiros automáticos (sprinklers)?" checked={h.bombaAlimentaSprinklers} onChange={v => set({ bombaAlimentaSprinklers: v })}/>
+            )}
             {reservaSugerida && !h.bombaReserva && (
               <Nota>
                 Risco {risco} classificado — a NT 22 (Anexo C, C.3.12) exige bomba reserva: {reservaSugerida.tipo}.

@@ -291,6 +291,7 @@ const INITIAL_STATE = {
     reservatorioMaterial: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
     bombaExiste: true, bombaJockey: false,
     bombaReserva: false, bombaReservaAcionamento: '',
+    bombaAlimentaSprinklers: false,
     redeMaterial: '', redeConfiguracao: 'ramal',
     recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
     valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',
