@@ -8,7 +8,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { cargaDaDivisao, classificarRisco } from '../../data/extintores_calc'
-import { sugerirClassificacao, dadosDoTipo, exigeRecalqueDuplo, bombaReservaObrigatoria, rtiParaTipoNaFaixa } from '../../data/hidrantes_calc'
+import { sugerirClassificacao, dadosDoTipo, exigeRecalqueDuplo, bombaReservaObrigatoria } from '../../data/hidrantes_calc'
 import SwitchToggle from '../ui/SwitchToggle'
 import FormSection from '../ui/FormSection'
 import Icon from '../ui/Icon'
@@ -174,11 +174,6 @@ export default function FormularioSistema() {
 
   const escolherOpcao = opcao => set({ tipo: opcao.tipo, rti: opcao.rti, tipoVariante: 0 })
 
-  const escolherTipoManual = tipo => {
-    const rti = rtiParaTipoNaFaixa(tipo, sugestao.faixaIndex, norma)
-    set({ tipo, rti, tipoVariante: 0 })
-  }
-
   // RTI é sempre automática (Tabela 3) — assim que a classificação vira uma
   // sugestão sem ambiguidade (uma única opção de Tipo), grava direto no
   // projeto sem esperar o RT clicar em nada. Quando há 2 opções (coluna 1 —
@@ -232,31 +227,9 @@ export default function FormularioSistema() {
           <Nota>{sugestao.opcoes[0].nota}</Nota>
         )}
 
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <Field label="Tipo de sistema adotado" hint={sugestao.opcoes[0] ? `sugerido: Tipo ${sugestao.opcoes[0].tipo}` : undefined}>
-            <select className={inputClass} value={tipoAtual} onChange={e => escolherTipoManual(Number(e.target.value))}>
-              <option value="">Selecione...</option>
-              {[1, 2, 3, 4, 5].map(t => <option key={t} value={t}>Tipo {t}</option>)}
-            </select>
-          </Field>
-          <Field label="Reserva Técnica de Incêndio (RTI)" hint="automática — Tabela 3, NT 22">
-            <ReadOnly>{h.rti ? `${h.rti} m³` : '—'}</ReadOnly>
-          </Field>
-        </div>
-
-        {dadosTipo && (
-          <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-solid border-border">
-            <Field label="Esguicho regulável"><ReadOnly>DN{dadosTipo.esguicho}</ReadOnly></Field>
-            <Field label="Mangueira de incêndio"><ReadOnly>DN{dadosTipo.mangueiraDn} — {dadosTipo.mangueiraComprimento} m</ReadOnly></Field>
-            <Field label="Nº de expedições"><ReadOnly className="capitalize">{dadosTipo.expedicoes}</ReadOnly></Field>
-            <Field label="Vazão mínima na válvula"><ReadOnly>{dadosTipo.vazaoMin} L/min</ReadOnly></Field>
-            <Field label="Pressão mínima na válvula"><ReadOnly>{dadosTipo.pressaoMin} mca</ReadOnly></Field>
-          </div>
-        )}
-
-        {dadosTipo?.esguicho && norma.TIPOS_SISTEMA[tipoAtual]?.variantes.length > 1 && (
-          <div className="mt-4">
-            <Field label="Variante do Tipo 4"/>
+        {dadosTipo && norma.TIPOS_SISTEMA[tipoAtual]?.variantes.length > 1 && (
+          <div className="mb-4">
+            <Field label="Mangueira do Tipo 4"/>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {norma.TIPOS_SISTEMA[tipoAtual].variantes.map((v, i) => (
                 <Pill key={i} active={(h.tipoVariante || 0) === i} onClick={() => set({ tipoVariante: i })}>
@@ -266,10 +239,24 @@ export default function FormularioSistema() {
             </div>
           </div>
         )}
+
+        <div className="grid grid-cols-7 gap-3 mt-4 pt-4 border-t border-solid border-border">
+          <Field label="Tipo"><ReadOnly>{tipoAtual ? `Tipo ${tipoAtual}` : '—'}</ReadOnly></Field>
+          <Field label="RTI"><ReadOnly>{h.rti ? `${h.rti} m³` : '—'}</ReadOnly></Field>
+          {dadosTipo && (
+            <>
+              <Field label="Esguicho"><ReadOnly>DN{dadosTipo.esguicho}</ReadOnly></Field>
+              <Field label="Mangueira"><ReadOnly>DN{dadosTipo.mangueiraDn} — {dadosTipo.mangueiraComprimento} m</ReadOnly></Field>
+              <Field label="Expedições"><ReadOnly className="capitalize">{dadosTipo.expedicoes}</ReadOnly></Field>
+              <Field label="Vazão mín."><ReadOnly>{dadosTipo.vazaoMin} L/min</ReadOnly></Field>
+              <Field label="Pressão mín."><ReadOnly>{dadosTipo.pressaoMin} mca</ReadOnly></Field>
+            </>
+          )}
+        </div>
       </FormSection>
 
       {/* B — RTI e reservatório */}
-      <FormSection title="Reservatório" description="A posição (elevado, nível do solo etc.) vem do modelo Revit — aqui só o material e o regime de uso.">
+      <FormSection title="Reservatório">
         <div className="mb-3">
           <Field label="Material do reservatório">
             <select className={inputClass} value={h.reservatorioMaterial} onChange={e => set({ reservatorioMaterial: e.target.value })}>
@@ -344,7 +331,7 @@ export default function FormularioSistema() {
 
       {/* E — Dispositivo de recalque */}
       <FormSection title="Dispositivo de Recalque (Corpo de Bombeiros)">
-        <div className="grid grid-cols-1 gap-2 mb-3">
+        <div className="flex flex-wrap gap-2 mb-3">
           {norma.TIPOS_RECALQUE.map(op => (
             <Pill key={op.key} active={h.recalqueTipo === op.key} onClick={() => set({ recalqueTipo: op.key })}>
               {op.label}
