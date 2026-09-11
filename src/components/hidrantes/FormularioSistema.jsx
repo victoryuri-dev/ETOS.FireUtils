@@ -28,8 +28,19 @@ function Field({ label, hint, children }) {
     </div>
   )
 }
-function ReadOnly({ children, className = '' }) {
-  return <div className={`${inputClass} bg-surface-2 flex items-center font-bold text-ink ${className}`}>{children}</div>
+// Resultado calculado (não editável) — visual deliberadamente diferente de
+// um campo de formulário (sem borda/caixa de input): rótulo pequeno em
+// cima, valor em destaque embaixo, como um dado, não uma pergunta.
+function Resultado({ label, value, hint, className = '' }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
+        {hint && <div className="text-[10px] text-ink-faint font-mono whitespace-nowrap">{hint}</div>}
+      </div>
+      <div className={`text-sm font-bold text-ink ${className}`}>{value}</div>
+    </div>
+  )
 }
 function Pill({ active, onClick, children }) {
   return (
@@ -201,13 +212,11 @@ export default function FormularioSistema() {
 
       {/* A — Classificação do sistema */}
       <FormSection title="Classificação do Sistema" description="Cruzamento área construída × ocupação, conforme Tabela 3 da NT 22 CBMMA.">
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <Field label="Área total construída (estruturas selecionadas acima)">
-            <ReadOnly>{areaTotal ? `${areaTotal.toLocaleString('pt-BR')} m²` : '—'}</ReadOnly>
-          </Field>
-          <Field label="Ocupação usada na classificação" hint={sugestao.divisao ? `coluna ${sugestao.coluna} da Tabela 3` : undefined}>
-            <ReadOnly>{sugestao.divisao || 'Nenhuma divisão classificada ainda (Etapa 4/5)'}</ReadOnly>
-          </Field>
+        <div className="grid grid-cols-2 gap-4 bg-surface-2 border border-solid border-border rounded-lg p-4 mb-4">
+          <Resultado label="Área total construída (estruturas selecionadas acima)"
+            value={areaTotal ? `${areaTotal.toLocaleString('pt-BR')} m²` : '—'}/>
+          <Resultado label="Ocupação usada na classificação" hint={sugestao.divisao ? `coluna ${sugestao.coluna} da Tabela 3` : undefined}
+            value={sugestao.divisao || 'Nenhuma divisão classificada ainda (Etapa 4/5)'}/>
         </div>
 
         {sugestao.opcoes.length > 1 && (
@@ -240,16 +249,16 @@ export default function FormularioSistema() {
           </div>
         )}
 
-        <div className="grid grid-cols-7 gap-3 mt-4 pt-4 border-t border-solid border-border">
-          <Field label="Tipo"><ReadOnly>{tipoAtual ? `Tipo ${tipoAtual}` : '—'}</ReadOnly></Field>
-          <Field label="RTI"><ReadOnly>{h.rti ? `${h.rti} m³` : '—'}</ReadOnly></Field>
+        <div className="grid grid-cols-7 gap-3 bg-surface-2 border border-solid border-border rounded-lg p-4 mt-4">
+          <Resultado label="Tipo" value={tipoAtual ? `Tipo ${tipoAtual}` : '—'}/>
+          <Resultado label="RTI" value={h.rti ? `${h.rti} m³` : '—'}/>
           {dadosTipo && (
             <>
-              <Field label="Esguicho"><ReadOnly>DN{dadosTipo.esguicho}</ReadOnly></Field>
-              <Field label="Mangueira"><ReadOnly>DN{dadosTipo.mangueiraDn} — {dadosTipo.mangueiraComprimento} m</ReadOnly></Field>
-              <Field label="Expedições"><ReadOnly className="capitalize">{dadosTipo.expedicoes}</ReadOnly></Field>
-              <Field label="Vazão mín."><ReadOnly>{dadosTipo.vazaoMin} L/min</ReadOnly></Field>
-              <Field label="Pressão mín."><ReadOnly>{dadosTipo.pressaoMin} mca</ReadOnly></Field>
+              <Resultado label="Esguicho" value={`DN${dadosTipo.esguicho}`}/>
+              <Resultado label="Mangueira" value={`DN${dadosTipo.mangueiraDn} — ${dadosTipo.mangueiraComprimento} m`}/>
+              <Resultado label="Expedições" value={dadosTipo.expedicoes} className="capitalize"/>
+              <Resultado label="Vazão mín." value={`${dadosTipo.vazaoMin} L/min`}/>
+              <Resultado label="Pressão mín." value={`${dadosTipo.pressaoMin} mca`}/>
             </>
           )}
         </div>
