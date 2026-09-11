@@ -110,7 +110,7 @@ export default function FormularioSistema() {
 
   // RTI é sempre automática (Tabela 3) — assim que a classificação vira uma
   // sugestão sem ambiguidade (uma única opção de Tipo), grava direto no
-  // projeto sem esperar o RT clicar em nada. Quando há 2 opções (coluna 2 —
+  // projeto sem esperar o RT clicar em nada. Quando há 2 opções (coluna 1 —
   // ver escolherOpcao), o RT decide qual das duas adotar.
   useEffect(() => {
     if (!h.tipo && sugestao.opcoes.length === 1) {

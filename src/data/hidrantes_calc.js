@@ -35,8 +35,8 @@ export function faixaAreaIndex(areaTotal, norma) {
 /** Opções de classificação (Tipo + RTI) para uma coluna/faixa, já
  *  aplicando o rebaixamento automático por chuveiros automáticos (Notas 1
  *  e 2 da Tabela 3) quando `possuiSprinklers` é true. Retorna uma lista —
- *  normalmente 1 opção, mas 2 quando a coluna 2 permite ao projetista
- *  escolher entre Tipo 2 e Tipo 3.
+ *  normalmente 1 opção, mas 2 quando a coluna 1 permite ao projetista
+ *  escolher entre Tipo 1 e Tipo 2.
  *
  *  Cada opção: { tipo, rti, origem: 'normal'|'nota1'|'nota2', nota? } —
  *  `nota` traz o texto a exibir/citar no memorial quando o rebaixamento
@@ -47,21 +47,21 @@ export function opcoesClassificacao(coluna, faixaIndex, possuiSprinklers, norma)
   const linha = norma.TABELA3[faixaIndex]
 
   if (coluna === 1) {
-    return [{ tipo: linha.col1.tipo, rti: linha.col1.rti, origem: 'normal' }]
+    return [
+      { tipo: 1, rti: linha.col1.tipo1.rti, origem: 'normal' },
+      { tipo: 2, rti: linha.col1.tipo2.rti, origem: 'normal' },
+    ]
   }
 
   if (coluna === 2) {
-    return [
-      { tipo: 2, rti: linha.col2.tipo2.rti, origem: 'normal' },
-      { tipo: 3, rti: linha.col2.tipo3.rti, origem: 'normal' },
-    ]
+    return [{ tipo: linha.col2.tipo, rti: linha.col2.rti, origem: 'normal' }]
   }
 
   if (coluna === 3) {
     const base = { tipo: linha.col3.tipo, rti: linha.col3.rti, origem: 'normal' }
     if (possuiSprinklers) {
       return [{
-        tipo: 3, rti: linha.col2.tipo3.rti, origem: 'nota2',
+        tipo: 3, rti: linha.col2.rti, origem: 'nota2',
         nota: 'Rebaixado de Tipo 4 para Tipo 3 (Nota 2 da Tabela 3, NT 22) — edificação possui chuveiros automáticos.',
       }]
     }
@@ -79,7 +79,7 @@ export function opcoesClassificacao(coluna, faixaIndex, possuiSprinklers, norma)
     }
     // já era Tipo 4 na própria tabela — Nota 2 permite rebaixar mais um nível, pra Tipo 3
     return [{
-      tipo: 3, rti: linha.col2.tipo3.rti, origem: 'nota2',
+      tipo: 3, rti: linha.col2.rti, origem: 'nota2',
       nota: 'Rebaixado de Tipo 4 para Tipo 3 (Nota 2 da Tabela 3, NT 22) — edificação possui chuveiros automáticos.',
     }]
   }
@@ -135,9 +135,9 @@ export function sugerirClassificacao(areaTotal, divisoesComCarga, possuiSprinkle
 export function rtiParaTipoNaFaixa(tipo, faixaIndex, norma) {
   if (faixaIndex < 0 || faixaIndex >= norma.TABELA3.length) return null
   const linha = norma.TABELA3[faixaIndex]
-  if (linha.col1.tipo === tipo) return linha.col1.rti
-  if (tipo === 2) return linha.col2.tipo2.rti
-  if (tipo === 3) return linha.col2.tipo3.rti
+  if (tipo === 1) return linha.col1.tipo1.rti
+  if (tipo === 2) return linha.col1.tipo2.rti
+  if (linha.col2.tipo === tipo) return linha.col2.rti
   if (linha.col3.tipo === tipo) return linha.col3.rti
   if (linha.col4.tipo === tipo) return linha.col4.rti
   return null

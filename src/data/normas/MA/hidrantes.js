@@ -86,16 +86,17 @@ export const FAIXAS_AREA = [
 ]
 
 // ── Tabela 3 — Colunas de risco (por linha/faixa de área) ───────────────
-// col1: Tipo 1 fixo. col2: Tipo 2 OU Tipo 3 (projetista escolhe — mesma
-// ocupação admite os dois). col3: Tipo 4 fixo. col4: Tipo 4 ou 5, já
-// definido pela própria tabela conforme a faixa de área (não é escolha).
+// col1: Tipo 1 OU Tipo 2 (projetista escolhe — mesma ocupação admite os
+// dois). col2: Tipo 3 fixo, sem escolha. col3: Tipo 4 fixo. col4: Tipo 4
+// ou 5, já definido pela própria tabela conforme a faixa de área (não é
+// escolha do projetista).
 export const TABELA3 = [
-  { col1: { tipo: 1, rti: 6  }, col2: { tipo2: { rti: 8  }, tipo3: { rti: 12 } }, col3: { tipo: 4, rti: 28  }, col4: { tipo: 4, rti: 32  } },
-  { col1: { tipo: 1, rti: 8  }, col2: { tipo2: { rti: 12 }, tipo3: { rti: 18 } }, col3: { tipo: 4, rti: 32  }, col4: { tipo: 4, rti: 48  } },
-  { col1: { tipo: 1, rti: 12 }, col2: { tipo2: { rti: 18 }, tipo3: { rti: 25 } }, col3: { tipo: 4, rti: 48  }, col4: { tipo: 5, rti: 64  } },
-  { col1: { tipo: 1, rti: 18 }, col2: { tipo2: { rti: 25 }, tipo3: { rti: 35 } }, col3: { tipo: 4, rti: 64  }, col4: { tipo: 5, rti: 96  } },
-  { col1: { tipo: 1, rti: 25 }, col2: { tipo2: { rti: 35 }, tipo3: { rti: 48 } }, col3: { tipo: 4, rti: 96  }, col4: { tipo: 5, rti: 120 } },
-  { col1: { tipo: 1, rti: 35 }, col2: { tipo2: { rti: 48 }, tipo3: { rti: 70 } }, col3: { tipo: 4, rti: 120 }, col4: { tipo: 5, rti: 180 } },
+  { col1: { tipo1: { rti: 6  }, tipo2: { rti: 8  } }, col2: { tipo: 3, rti: 12  }, col3: { tipo: 4, rti: 28  }, col4: { tipo: 4, rti: 32  } },
+  { col1: { tipo1: { rti: 8  }, tipo2: { rti: 12 } }, col2: { tipo: 3, rti: 18  }, col3: { tipo: 4, rti: 32  }, col4: { tipo: 4, rti: 48  } },
+  { col1: { tipo1: { rti: 12 }, tipo2: { rti: 18 } }, col2: { tipo: 3, rti: 25  }, col3: { tipo: 4, rti: 48  }, col4: { tipo: 5, rti: 64  } },
+  { col1: { tipo1: { rti: 18 }, tipo2: { rti: 25 } }, col2: { tipo: 3, rti: 35  }, col3: { tipo: 4, rti: 64  }, col4: { tipo: 5, rti: 96  } },
+  { col1: { tipo1: { rti: 25 }, tipo2: { rti: 35 } }, col2: { tipo: 3, rti: 48  }, col3: { tipo: 4, rti: 96  }, col4: { tipo: 5, rti: 120 } },
+  { col1: { tipo1: { rti: 35 }, tipo2: { rti: 48 } }, col2: { tipo: 3, rti: 70  }, col3: { tipo: 4, rti: 120 }, col4: { tipo: 5, rti: 180 } },
 ]
 
 // Divisões com coluna fixa (não dependem da carga de incêndio)
