@@ -628,6 +628,18 @@ function reducer(state, action) {
           ? { ...p, ambientes: (p.ambientes || []).map(a => a.id === action.ambienteId ? { ...a, acessoId: action.novoAcessoId } : a) }
           : p),
       }
+    // Mesma coisa que MOVER_AMBIENTE_ACESSO, mas pra vários ambientes de
+    // uma vez (seleção em massa na tela de Acessos e Descargas) — um único
+    // despacho em vez de um por ambiente, pra não gerar N re-renders/broadcasts.
+    case 'MOVER_AMBIENTES_ACESSO': {
+      const idsMovidos = new Set(action.ambienteIds)
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, ambientes: (p.ambientes || []).map(a => idsMovidos.has(a.id) ? { ...a, acessoId: action.novoAcessoId } : a) }
+          : p),
+      }
+    }
     // Move um Acesso (e, por consequência do cálculo recursivo em
     // se_calc.js, todo o conjunto de ambientes/acessos que já alimentavam
     // ele) pra alimentar outro nó — ou pra null, virando uma Saída nova.

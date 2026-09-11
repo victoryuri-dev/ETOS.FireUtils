@@ -25,6 +25,18 @@ function novoAmbienteId() {
   return `amb-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
+// Achata a árvore de Acessos/Saídas em opções de <select> (indentadas por
+// profundidade) — usado pela barra de mover-em-massa, pra listar todo
+// Acesso/Saída/Escada-Rampa do pavimento como destino possível.
+function listarAcessosParaSelect(acessos, parentId = null, profundidade = 0) {
+  return acessosFilhos(acessos, parentId).flatMap(a => [
+    { id: a.id, label: `${'— '.repeat(profundidade)}${a.nome}` },
+    ...listarAcessosParaSelect(acessos, a.id, profundidade + 1),
+  ])
+}
+
+const ALVO_SEM_ACESSO = '__sem_acesso__'
+
 // ── Nome editável inline — clique vira input; Enter/blur salva, Escape
 // cancela. Mesmo padrão de AmbienteBloco em ExtintoresPage.jsx, em vez de
 // window.prompt (abre um diálogo nativo do navegador, fora do site).
@@ -78,8 +90,11 @@ function LabelQuebrado({ texto }) {
 // ── Ambiente (folha da árvore) — arrastável, card inteiro clicável ─────
 // Só mostra UP (no lugar da ocupação, no cabeçalho) + população + largura
 // mínima da porta — capacidade (C) e o código de divisão saíram do card
-// (continuam editáveis no formulário, só não aparecem mais aqui).
-function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove }) {
+// (continuam editáveis no formulário, só não aparecem mais aqui). O
+// checkbox de seleção fica fora do drag handle e do clique de editar —
+// marcar vários ambientes (inclusive em Acessos diferentes) habilita a
+// barra de "mover selecionados" no rodapé (ver moverSelecionados).
+function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, selecionado, onToggleSelecao }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `amb:${amb.id}`, data: { kind: 'amb', id: amb.id },
   })
@@ -88,9 +103,11 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove }) {
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
   return (
     <div ref={setNodeRef} style={style} onClick={() => onEdit(amb)}
-      className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid border-border-2 bg-surface-2 cursor-pointer transition-colors hover:border-white/20 ${isDragging ? 'opacity-40 relative z-50' : ''}`}
+      className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''}`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
+        <input type="checkbox" checked={selecionado} onChange={() => onToggleSelecao(amb.id)} onClick={e => e.stopPropagation()}
+          className="w-auto accent-red cursor-pointer shrink-0" title="Selecionar pra mover em massa"/>
         <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente">
           <Icon name="grip" size={13}/>
         </button>
@@ -149,7 +166,7 @@ function DimEntry({ label, value }) {
 // pode abrir novos Acessos filhos — um Acesso comum não pode virar "pai"
 // de outro Acesso, mas qualquer um pode receber ambientes direto (+
 // Adicionar Ambiente).
-function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga, dispatch, pavimentoId, onEditAmbiente, onRemoveAmbiente, onCreateAmbiente, colapsados, toggleColapsado }) {
+function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga, dispatch, pavimentoId, onEditAmbiente, onRemoveAmbiente, onCreateAmbiente, colapsados, toggleColapsado, selecionados, onToggleSelecaoAmbiente }) {
   const dims = dimsDoAcesso(acesso, pisoDescarga)
   const { ad, er, pt, nPorta } = calcDimsAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, dims)
   const entradas = [
@@ -218,10 +235,12 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
             <AcessoCard key={f.id} acesso={f} ambientes={ambientes} acessos={acessos}
               taxaPopulacional={taxaPopulacional} larguras={larguras} pisoDescarga={pisoDescarga} dispatch={dispatch}
               pavimentoId={pavimentoId} onEditAmbiente={onEditAmbiente} onRemoveAmbiente={onRemoveAmbiente} onCreateAmbiente={onCreateAmbiente}
-              colapsados={colapsados} toggleColapsado={toggleColapsado}/>
+              colapsados={colapsados} toggleColapsado={toggleColapsado}
+              selecionados={selecionados} onToggleSelecaoAmbiente={onToggleSelecaoAmbiente}/>
           ))}
           {filhosAmbientes.map(a => (
-            <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEditAmbiente} onRemove={onRemoveAmbiente}/>
+            <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEditAmbiente} onRemove={onRemoveAmbiente}
+              selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente}/>
           ))}
           {filhos.length === 0 && filhosAmbientes.length === 0 && (
             <div className="text-[11px] text-ink-faint italic py-1">Arraste ambientes para cá.</div>
@@ -251,7 +270,7 @@ function RootDropZone() {
 }
 
 // ── Ambientes ainda sem posição na árvore ──────────────────────────────
-function SemAcessoDropZone({ ambientes, taxaPopulacional, larguras, onEdit, onRemove }) {
+function SemAcessoDropZone({ ambientes, taxaPopulacional, larguras, onEdit, onRemove, selecionados, onToggleSelecaoAmbiente }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'drop-null', data: { kind: 'null' } })
   return (
     <div ref={setNodeRef}
@@ -259,7 +278,8 @@ function SemAcessoDropZone({ ambientes, taxaPopulacional, larguras, onEdit, onRe
     >
       {ambientes.length === 0 && <div className="text-[11px] text-ink-faint italic">Todos os ambientes já estão posicionados na árvore.</div>}
       {ambientes.map(a => (
-        <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEdit} onRemove={onRemove}/>
+        <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEdit} onRemove={onRemove}
+          selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente}/>
       ))}
     </div>
   )
@@ -296,10 +316,30 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
   const [colapsados, setColapsados] = useState({})
   const toggleColapsado = id => setColapsados(prev => ({ ...prev, [id]: !prev[id] }))
 
+  // Seleção em massa: marcar vários ambientes (em Acessos diferentes ou
+  // ainda sem acesso) e movê-los todos de uma vez pra um Acesso/Saída
+  // escolhido (ver MOVER_AMBIENTES_ACESSO no reducer).
+  const [selecionados, setSelecionados] = useState(new Set())
+  const [alvoSelecao, setAlvoSelecao] = useState('')
+  const toggleSelecaoAmbiente = id => setSelecionados(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+  const limparSelecao = () => setSelecionados(new Set())
+  const moverSelecionados = () => {
+    if (!selecionados.size || !alvoSelecao) return
+    const novoAcessoId = alvoSelecao === ALVO_SEM_ACESSO ? null : alvoSelecao
+    dispatch({ type: 'MOVER_AMBIENTES_ACESSO', pavimentoId: pav.id, ambienteIds: [...selecionados], novoAcessoId })
+    limparSelecao()
+    setAlvoSelecao('')
+  }
+
   const raizes = acessosFilhos(acessos, null)
   const semAcesso = ambientes.filter(a => !a.acessoId)
   const nSaidas = Math.max(1, contarSaidasPavimento(acessos))
   const rotuloRaiz = pav.pisoDescarga ? 'Saída' : 'Escada/Rampa'
+  const alvosSelecao = listarAcessosParaSelect(acessos)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
@@ -320,6 +360,7 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
   const removerAmbiente = id => {
     dispatch({ type: 'REMOVE_AMBIENTE_SE', pavimentoId: pav.id, ambienteId: id })
     if (editAmb?.id === id) setEditAmb(null)
+    setSelecionados(prev => { if (!prev.has(id)) return prev; const next = new Set(prev); next.delete(id); return next })
   }
   const renomearAmbiente = novoNome => {
     dispatch({ type: 'UPDATE_AMBIENTE_SE', pavimentoId: pav.id, ambienteId: editAmb.id, changes: { nome: novoNome } })
@@ -360,6 +401,26 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
           <PisoDescargaSwitch checked={!!pav.pisoDescarga} onChange={v => dispatch({ type: 'SET_PISO_DESCARGA', pavimentoId: pav.id, estruturaId: pav.estruturaId, valor: v })}/>
         </div>
 
+        {/* Barra de mover ambientes selecionados em massa */}
+        {selecionados.size > 0 && (
+          <div className="flex items-center gap-3 py-2.5 px-5 border-b border-solid border-border bg-[rgba(192,21,42,.08)] shrink-0">
+            <span className="text-xs font-semibold text-ink whitespace-nowrap">{selecionados.size} ambiente{selecionados.size > 1 ? 's' : ''} selecionado{selecionados.size > 1 ? 's' : ''}</span>
+            <select value={alvoSelecao} onChange={e => setAlvoSelecao(e.target.value)}
+              className="w-auto flex-1 max-w-[320px] text-xs py-1.5"
+            >
+              <option value="">Mover para...</option>
+              <option value={ALVO_SEM_ACESSO}>— Sem acesso atribuído —</option>
+              {alvosSelecao.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+            </select>
+            <button className="btn-ghost disabled:opacity-40 disabled:cursor-not-allowed" disabled={!alvoSelecao} onClick={moverSelecionados}>
+              <Icon name="check" size={12}/> Mover
+            </button>
+            <button className="bg-transparent border-none text-ink-faint hover:text-ink cursor-pointer text-xs underline ml-auto" onClick={limparSelecao}>
+              Cancelar seleção
+            </button>
+          </div>
+        )}
+
         {/* Corpo */}
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
@@ -373,7 +434,8 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
                   <AcessoCard key={r.id} acesso={r} ambientes={ambientes} acessos={acessos}
                     taxaPopulacional={TAXA_POPULACIONAL} larguras={LARGURAS_MINIMAS} pisoDescarga={!!pav.pisoDescarga} dispatch={dispatch}
                     pavimentoId={pav.id} onEditAmbiente={setEditAmb} onRemoveAmbiente={removerAmbiente} onCreateAmbiente={criarAmbiente}
-                    colapsados={colapsados} toggleColapsado={toggleColapsado}/>
+                    colapsados={colapsados} toggleColapsado={toggleColapsado}
+                    selecionados={selecionados} onToggleSelecaoAmbiente={toggleSelecaoAmbiente}/>
                 ))}
                 {raizes.length === 0 && (
                   <div className="p-8 text-center text-ink-faint text-[13px] border border-dashed border-border rounded-lg">
@@ -394,7 +456,8 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
                 <div className="text-[13px] font-semibold text-ink">Ambientes sem acesso atribuído</div>
                 <button className="btn-ghost" onClick={() => criarAmbiente()}><Icon name="plus" size={12}/> Adicionar Ambiente</button>
               </div>
-              <SemAcessoDropZone ambientes={semAcesso} taxaPopulacional={TAXA_POPULACIONAL} larguras={LARGURAS_MINIMAS} onEdit={setEditAmb} onRemove={removerAmbiente}/>
+              <SemAcessoDropZone ambientes={semAcesso} taxaPopulacional={TAXA_POPULACIONAL} larguras={LARGURAS_MINIMAS} onEdit={setEditAmb} onRemove={removerAmbiente}
+                selecionados={selecionados} onToggleSelecaoAmbiente={toggleSelecaoAmbiente}/>
             </div>
           </div>
         </DndContext>
