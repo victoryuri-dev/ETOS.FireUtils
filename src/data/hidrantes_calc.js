@@ -87,42 +87,37 @@ export function opcoesClassificacao(coluna, faixaIndex, possuiSprinklers, norma)
   return []
 }
 
-/** Divisão "mais restritiva" entre uma lista de divisões presentes no
- *  projeto — usada quando a edificação tem ocupação mista e nenhuma
- *  divisão foi escolhida manualmente ainda. Compara pelo Tipo sugerido
- *  (maior Tipo = mais exigente); em empate, pela maior coluna. Retorna
- *  null se nenhuma das divisões constar na Tabela 3.
- */
-export function divisaoMaisRestritiva(divisoesComCarga, areaTotal, possuiSprinklers, norma) {
-  const faixaIndex = faixaAreaIndex(areaTotal, norma)
-  if (faixaIndex < 0) return null
-
+/** Divisão de maior carga de incêndio entre uma lista de divisões — a NT 22
+ *  não dá um critério explícito pra ocupação mista na classificação do
+ *  Tipo/RTI, então adotamos a ocupação de maior carga de incêndio (mais
+ *  exigente em termos de risco) como referência. Retorna null se a lista
+ *  estiver vazia ou nenhuma divisão constar na Tabela 3. */
+export function divisaoMaiorCarga(divisoesComCarga, norma) {
   let melhor = null
   divisoesComCarga.forEach(({ divisao, cargaMJm2 }) => {
     const coluna = colunaDaDivisao(divisao, cargaMJm2, norma)
     if (coluna == null) return
-    const opcoes = opcoesClassificacao(coluna, faixaIndex, possuiSprinklers, norma)
-    const maiorTipo = Math.max(...opcoes.map(o => o.tipo), 0)
-    if (!melhor || maiorTipo > melhor.maiorTipo) melhor = { divisao, coluna, maiorTipo }
+    if (!melhor || cargaMJm2 > melhor.cargaMJm2) melhor = { divisao, coluna, cargaMJm2 }
   })
   return melhor
 }
 
 /** Monta a sugestão completa de classificação pra um projeto: cruza área
- *  total + divisão (mais restritiva, se não informada) + presença de
- *  chuveiros automáticos, e devolve as opções de Tipo/RTI já prontas pro
- *  formulário exibir. `divisoesComCarga`: [{ divisao, cargaMJm2 }]. */
+ *  total (só das estruturas que exigem hidrantes — ver FormularioSistema)
+ *  + divisão de maior carga de incêndio + presença de chuveiros
+ *  automáticos, e devolve as opções de Tipo/RTI já prontas pro formulário
+ *  exibir. `divisoesComCarga`: [{ divisao, cargaMJm2 }]. */
 export function sugerirClassificacao(areaTotal, divisoesComCarga, possuiSprinklers, norma) {
   const faixaIndex = faixaAreaIndex(areaTotal, norma)
   if (faixaIndex < 0 || !divisoesComCarga?.length) {
     return { faixaIndex, coluna: null, divisao: null, opcoes: [] }
   }
 
-  const restritiva = divisaoMaisRestritiva(divisoesComCarga, areaTotal, possuiSprinklers, norma)
-  if (!restritiva) return { faixaIndex, coluna: null, divisao: null, opcoes: [] }
+  const maiorCarga = divisaoMaiorCarga(divisoesComCarga, norma)
+  if (!maiorCarga) return { faixaIndex, coluna: null, divisao: null, opcoes: [] }
 
-  const opcoes = opcoesClassificacao(restritiva.coluna, faixaIndex, possuiSprinklers, norma)
-  return { faixaIndex, coluna: restritiva.coluna, divisao: restritiva.divisao, opcoes }
+  const opcoes = opcoesClassificacao(maiorCarga.coluna, faixaIndex, possuiSprinklers, norma)
+  return { faixaIndex, coluna: maiorCarga.coluna, divisao: maiorCarga.divisao, opcoes }
 }
 
 /** RTI tabelada (Tabela 3) para um Tipo específico numa faixa de área —

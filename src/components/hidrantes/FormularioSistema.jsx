@@ -56,26 +56,97 @@ function ToggleRow({ label, checked, onChange }) {
   )
 }
 
+const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
+const RISCO_COLOR = { baixo: 'text-ink-faint', medio: 'text-amber', alto: 'text-red' }
+
+function EstruturaPill({ active, onClick, nome, area, divisao, carga, risco }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`text-left p-3 rounded-md border border-solid transition-colors ${active ? 'border-red bg-red-dim' : 'border-border bg-bg hover:border-ink-faint'}`}>
+      <div className="text-xs font-semibold text-ink mb-1.5">{nome}</div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-ink-faint">
+        <span>Área</span><span className="text-ink font-medium text-right">{area ? `${area.toLocaleString('pt-BR')} m²` : '—'}</span>
+        <span>Ocupação</span><span className="text-ink font-medium text-right">{divisao || '—'}</span>
+        <span>Carga de incêndio</span><span className="text-ink font-medium text-right">{carga != null ? `${carga} MJ/m²` : '—'}</span>
+        <span>Risco</span><span className={`font-medium text-right ${risco ? RISCO_COLOR[risco] : ''}`}>{risco ? RISCO_LABEL[risco] : '—'}</span>
+      </div>
+    </button>
+  )
+}
+
 export default function FormularioSistema() {
   const { state, dispatch } = useProjeto()
   const { hidrantes: norma, extintores: extNorma } = useNorma()
-  const { sistemas } = useMedidasObrigatorias()
+  const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const h = state.hidrantes
   const set = changes => dispatch({ type: 'SET_HIDRANTES', changes })
 
   const temSprinklers = !!(sistemas.sprinklers?.ativo || sistemas.sprinklers?.obrigatorio)
 
+  // Carga de incêndio máxima de uma estrutura (maior entre suas divisões,
+  // principal + subsidiárias de todo pavimento) — usada tanto no card de
+  // cada estrutura quanto na agregação abaixo.
+  const cargaMaximaDaEstrutura = (estruturaId) => {
+    const cargaState = state.cargaState[estruturaId] || {}
+    let maior = null
+    state.pavimentos.filter(p => p.estruturaId === estruturaId).forEach(p => {
+      const divs = [p.divisao, ...(p.acess || []).map(a => a.divisao)].filter(Boolean)
+      divs.forEach(divisao => {
+        const carga = cargaDaDivisao(divisao, cargaState)
+        if (carga != null && (maior == null || carga > maior)) maior = carga
+      })
+    })
+    return maior
+  }
+
+  // Uma linha por estrutura do projeto — área, ocupação (principal ou
+  // "mista"), carga de incêndio máxima e risco. Alimenta o box "Áreas para
+  // Classificação do Sistema" e a agregação (área total + divisões) usada
+  // na sugestão de Tipo/RTI, ambas restritas às estruturas selecionadas.
+  const infoPorEstrutura = useMemo(() => {
+    return state.estruturas.map(est => {
+      const pe = porEstrutura.find(p => p.estrutura.id === est.id)
+      const { principaisDivs = [], edificacaoMista = false } = pe?.classificacao || {}
+      const divisaoLabel = principaisDivs.length === 0 ? null
+        : principaisDivs.length === 1 ? principaisDivs[0]
+        : `Mista (${principaisDivs.join(', ')})`
+      const carga = cargaMaximaDaEstrutura(est.id)
+      const risco = carga != null ? classificarRisco(carga, extNorma.LIMIARES_RISCO) : null
+      return {
+        id: est.id, nome: est.nome, area: parseFloat(est.areaTotal) || 0,
+        divisaoLabel, edificacaoMista, carga, risco,
+        hidrantesAtivo: !!pe?.sistemas?.hidrantes?.ativo,
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.estruturas, state.pavimentos, state.cargaState, porEstrutura, extNorma])
+
+  // Default: estruturas onde hidrantes é exigido/ativo. O RT pode ajustar
+  // manualmente clicando nos cards — a partir daí, h.estruturasSelecionadas
+  // (persistido) manda, não mais o default automático.
+  const defaultSelecionadas = useMemo(
+    () => infoPorEstrutura.filter(e => e.hidrantesAtivo).map(e => e.id),
+    [infoPorEstrutura],
+  )
+  const estruturasSelecionadas = h.estruturasSelecionadas?.length ? h.estruturasSelecionadas : defaultSelecionadas
+
+  const toggleEstrutura = id => {
+    const atual = new Set(estruturasSelecionadas)
+    atual.has(id) ? atual.delete(id) : atual.add(id)
+    set({ estruturasSelecionadas: [...atual] })
+  }
+
   const areaTotal = useMemo(
-    () => state.estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0),
-    [state.estruturas],
+    () => infoPorEstrutura.filter(e => estruturasSelecionadas.includes(e.id)).reduce((s, e) => s + e.area, 0),
+    [infoPorEstrutura, estruturasSelecionadas],
   )
 
-  // Divisões presentes no projeto inteiro (principal + subsidiárias de todo
-  // pavimento, de toda estrutura), cada uma com a maior carga de incêndio já
-  // classificada — insumo da sugestão automática de Tipo/RTI.
+  // Divisões das estruturas selecionadas (principal + subsidiárias de todo
+  // pavimento), cada uma com a maior carga de incêndio já classificada —
+  // insumo da sugestão automática de Tipo/RTI (usa a de maior carga).
   const divisoesComCarga = useMemo(() => {
     const porDivisao = new Map()
-    state.pavimentos.forEach(p => {
+    state.pavimentos.filter(p => estruturasSelecionadas.includes(p.estruturaId)).forEach(p => {
       const cargaState = state.cargaState[p.estruturaId] || {}
       const divs = [p.divisao, ...(p.acess || []).map(a => a.divisao)].filter(Boolean)
       divs.forEach(divisao => {
@@ -86,7 +157,7 @@ export default function FormularioSistema() {
       })
     })
     return [...porDivisao.entries()].map(([divisao, cargaMJm2]) => ({ divisao, cargaMJm2 }))
-  }, [state.pavimentos, state.cargaState])
+  }, [state.pavimentos, state.cargaState, estruturasSelecionadas])
 
   const sugestao = useMemo(
     () => sugerirClassificacao(areaTotal, divisoesComCarga, temSprinklers, norma),
@@ -122,10 +193,21 @@ export default function FormularioSistema() {
   return (
     <div className="mb-8">
 
+      {/* Áreas para classificação — nem toda estrutura do projeto exige
+          hidrantes; o RT confirma/ajusta quais entram na conta. */}
+      <FormSection title="Áreas para Classificação do Sistema" description="Selecione as estruturas que exigem sistema de hidrantes — só elas entram na área total e na ocupação usadas na Tabela 3.">
+        <div className="grid grid-cols-2 gap-3">
+          {infoPorEstrutura.map(e => (
+            <EstruturaPill key={e.id} active={estruturasSelecionadas.includes(e.id)} onClick={() => toggleEstrutura(e.id)}
+              nome={e.nome} area={e.area} divisao={e.divisaoLabel} carga={e.carga} risco={e.risco}/>
+          ))}
+        </div>
+      </FormSection>
+
       {/* A — Classificação do sistema */}
       <FormSection title="Classificação do Sistema" description="Cruzamento área construída × ocupação, conforme Tabela 3 da NT 22 CBMMA.">
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <Field label="Área total construída do projeto">
+          <Field label="Área total construída (estruturas selecionadas acima)">
             <ReadOnly>{areaTotal ? `${areaTotal.toLocaleString('pt-BR')} m²` : '—'}</ReadOnly>
           </Field>
           <Field label="Ocupação usada na classificação" hint={sugestao.divisao ? `coluna ${sugestao.coluna} da Tabela 3` : undefined}>

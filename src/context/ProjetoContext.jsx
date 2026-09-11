@@ -287,6 +287,12 @@ const INITIAL_STATE = {
     // '' = ainda não classificado. tipo/rti podem vir da sugestão automática
     // (useMedidasObrigatorias-like, ver hidrantes_calc.sugerirClassificacao)
     // ou serem sobrescritos manualmente pelo RT.
+    // Estruturas consideradas na classificação (área total + ocupação de
+    // maior carga de incêndio) — nem toda edificação do projeto exige
+    // hidrantes, então a área somada não pode ser a do projeto inteiro.
+    // Vazio = ainda não ajustado manualmente, usa o default automático
+    // (estruturas onde hidrantes é exigido/ativo) — ver FormularioSistema.
+    estruturasSelecionadas: [],
     tipo: '', tipoVariante: 0, rti: '',
     reservatorioMaterial: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
     bombaExiste: true, bombaJockey: false,
