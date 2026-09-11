@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import Icon from '../../components/ui/Icon'
 import { AmbienteForm, DivBadge, fmtM } from './se_shared'
 import {
@@ -445,7 +445,12 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
         )}
 
         {/* Corpo */}
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        {/* collisionDetection=pointerWithin: o destino do drag é o card sob
+            o ponteiro do mouse — o padrão do dnd-kit (rectIntersection)
+            compara a área do card arrastado com a de cada droppable, e com
+            Acessos aninhados (um dentro do outro) pode acertar o pai em vez
+            do filho que está de fato embaixo do cursor. */}
+        <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
           <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
             <div className="text-[11px] text-ink-faint">Quantidade de saídas (automático): <strong className="text-ink">{nSaidas}</strong></div>
 
