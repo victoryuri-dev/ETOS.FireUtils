@@ -94,9 +94,9 @@ function LabelQuebrado({ texto }) {
 function Checkbox({ checked, onChange, title }) {
   return (
     <button type="button" onClick={e => { e.stopPropagation(); onChange() }} title={title}
-      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border border-solid flex items-center justify-center transition-colors ${checked ? 'bg-red border-red' : 'bg-surface border-ink-faint hover:border-ink-muted'}`}
+      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border border-solid bg-transparent flex items-center justify-center transition-colors ${checked ? 'border-ink' : 'border-ink-faint hover:border-ink-muted'}`}
     >
-      {checked && <Icon name="check" size={10} className="text-white"/>}
+      {checked && <Icon name="check" size={10} className="text-ink"/>}
     </button>
   )
 }
@@ -131,7 +131,7 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
           <Icon name="grip" size={13}/>
         </button>
         <Checkbox checked={selecionado} onChange={() => onToggleSelecao(amb.id)} title="Selecionar pra mover em massa"/>
-        <span className="text-[13px] font-semibold text-ink truncate">{amb.nome}</span>
+        <span className="font-heading text-[13px] font-semibold text-ink truncate">{amb.nome}</span>
         <DivBadge label={`${pt.n} UP`}/>
         {amb.origem === 'manual' && (
           <span title="Ambiente criado manualmente (não veio do Revit)" className="inline-flex items-center justify-center w-[20px] h-[20px] rounded border border-solid border-border-2 text-ink-faint shrink-0">
@@ -144,7 +144,7 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
         <span className="opacity-30">|</span>
         <span className="flex items-center gap-1.5">
           <span className="text-[9px] uppercase tracking-[.06em]">Portas</span>
-          <strong className="text-[18px] font-bold text-red leading-none">{fmtM(pt.la)}</strong>
+          <strong className="font-heading text-[16px] font-bold text-red leading-none">{fmtM(pt.la)}</strong>
         </span>
         {orfao ? (
           <button onClick={e => { e.stopPropagation(); onRemove(amb.id) }} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1" title="Excluir ambiente">
@@ -152,7 +152,7 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
           </button>
         ) : (
           <button onClick={e => { e.stopPropagation(); onDesvincular(amb.id) }} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1" title="Desvincular do Acesso/Saída (volta pra lista sem acesso)">
-            <Icon name="unlink" size={12}/>
+            <Icon name="exitBox" size={12}/>
           </button>
         )}
       </div>
@@ -170,7 +170,7 @@ function DimButton({ label, ativo, onClick }) {
     <button
       type="button"
       onClick={e => { e.stopPropagation(); onClick() }}
-      className={`text-[10px] font-bold uppercase tracking-wide py-1 px-2.5 rounded border border-solid transition-colors ${
+      className={`font-heading text-[10px] font-bold uppercase tracking-wide py-1 px-2.5 rounded border border-solid transition-colors ${
         ativo ? 'bg-red border-red text-white' : 'bg-surface-2 border-border text-ink-faint'
       }`}
     >
@@ -186,7 +186,7 @@ function DimEntry({ label, value }) {
   return (
     <div className="flex items-center gap-2">
       <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight"><LabelQuebrado texto={label}/></div>
-      <div className="text-[18px] font-bold text-red leading-none whitespace-nowrap">{value}</div>
+      <div className="font-heading text-[16px] font-bold text-red leading-none whitespace-nowrap">{value}</div>
     </div>
   )
 }
@@ -247,7 +247,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
             </button>
           )}
           <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
-          <InlineEditableNome value={acesso.nome} onCommit={renomear} textClassName="text-[15px] font-bold text-ink"/>
+          <InlineEditableNome value={acesso.nome} onCommit={renomear} textClassName="font-heading text-[15px] font-bold text-ink"/>
           <DivBadge label={`${nPorta} UP`}/>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -537,7 +537,7 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
         <div className="fixed inset-0 z-[600] bg-black/65 backdrop-blur-sm flex items-center justify-center" onClick={() => setEditAmb(null)}>
           <div onClick={e => e.stopPropagation()} className="bg-surface border border-solid border-border rounded-lg w-[560px] max-w-[95vw] p-5">
             <div className="flex items-center justify-between mb-4">
-              <InlineEditableNome value={editAmb.nome} onCommit={renomearAmbiente} textClassName="text-base font-bold text-ink"/>
+              <InlineEditableNome value={editAmb.nome} onCommit={renomearAmbiente} textClassName="font-heading text-base font-bold text-ink"/>
               <button onClick={() => setEditAmb(null)} className="bg-transparent border-none text-ink-faint hover:text-ink cursor-pointer p-1"><Icon name="x" size={14}/></button>
             </div>
             <AmbienteForm initial={editAmb} seNorma={seNorma} ocupacoes={ocupacoes} larguras={LARGURAS_MINIMAS}
