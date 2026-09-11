@@ -640,6 +640,27 @@ function reducer(state, action) {
           : p),
       }
     }
+    // "Apagar selecionados" na barra de seleção em massa: comportamento
+    // igual ao botão individual de cada card — ambiente já órfão é
+    // excluído de verdade; ambiente dentro de um Acesso/Saída só é
+    // desvinculado (fica órfão), nunca apagado por engano numa seleção
+    // que misturou os dois tipos.
+    case 'APAGAR_AMBIENTES_SE': {
+      const idsAlvo = new Set(action.ambienteIds)
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? {
+              ...p,
+              ambientes: (p.ambientes || []).reduce((acc, a) => {
+                if (!idsAlvo.has(a.id)) { acc.push(a); return acc }
+                if (a.acessoId) acc.push({ ...a, acessoId: null })
+                return acc
+              }, []),
+            }
+          : p),
+      }
+    }
     // Move um Acesso (e, por consequência do cálculo recursivo em
     // se_calc.js, todo o conjunto de ambientes/acessos que já alimentavam
     // ele) pra alimentar outro nó — ou pra null, virando uma Saída nova.

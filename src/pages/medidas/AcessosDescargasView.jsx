@@ -368,6 +368,15 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
     limparSelecao()
     setAlvoSelecao('')
   }
+  // Órfão selecionado é excluído de verdade; dentro de um Acesso/Saída só
+  // desvincula (fica órfão) — mesmo critério do botão individual de cada
+  // card (ver AmbienteChip), só que pra toda a seleção de uma vez.
+  const apagarSelecionados = () => {
+    if (!selecionados.size) return
+    if (!window.confirm(`Apagar/desvincular ${selecionados.size} ambiente(s) selecionado(s)? Órfãos são excluídos; os que estiverem dentro de um Acesso/Saída só ficam sem posição.`)) return
+    dispatch({ type: 'APAGAR_AMBIENTES_SE', pavimentoId: pav.id, ambienteIds: [...selecionados] })
+    limparSelecao()
+  }
 
   const raizes = acessosFilhos(acessos, null)
   const semAcesso = ambientes.filter(a => !a.acessoId)
@@ -435,7 +444,7 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
 
   return (
     <div className="fixed inset-0 z-[500] bg-black/65 backdrop-blur-sm flex items-center justify-center p-6" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-surface border border-solid border-border rounded-lg w-[900px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]">
+      <div onClick={e => e.stopPropagation()} className="relative bg-surface border border-solid border-border rounded-lg w-[900px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]">
 
         {/* Header */}
         <div className="flex items-center justify-between gap-3 py-4 px-5 border-b border-solid border-border shrink-0">
@@ -446,26 +455,6 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
           <PisoDescargaSwitch checked={!!pav.pisoDescarga} onChange={v => dispatch({ type: 'SET_PISO_DESCARGA', pavimentoId: pav.id, estruturaId: pav.estruturaId, valor: v })}/>
         </div>
 
-        {/* Barra de mover ambientes selecionados em massa */}
-        {selecionados.size > 0 && (
-          <div className="flex items-center gap-3 py-2.5 px-5 border-b border-solid border-border bg-[rgba(192,21,42,.08)] shrink-0">
-            <span className="text-xs font-semibold text-ink whitespace-nowrap">{selecionados.size} ambiente{selecionados.size > 1 ? 's' : ''} selecionado{selecionados.size > 1 ? 's' : ''}</span>
-            <select value={alvoSelecao} onChange={e => setAlvoSelecao(e.target.value)}
-              className="w-auto flex-1 max-w-[320px] text-xs py-1.5 bg-transparent"
-            >
-              <option value="">Mover para...</option>
-              <option value={ALVO_SEM_ACESSO}>— Sem acesso atribuído —</option>
-              {alvosSelecao.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
-            </select>
-            <button className="btn-ghost disabled:opacity-40 disabled:cursor-not-allowed" disabled={!alvoSelecao} onClick={moverSelecionados}>
-              <Icon name="check" size={12}/> Mover
-            </button>
-            <button className="bg-transparent border-none text-ink-faint hover:text-ink cursor-pointer text-xs underline ml-auto" onClick={limparSelecao}>
-              Cancelar seleção
-            </button>
-          </div>
-        )}
-
         {/* Corpo */}
         {/* collisionDetection=pointerWithin: o destino do drag é o card sob
             o ponteiro do mouse — o padrão do dnd-kit (rectIntersection)
@@ -473,7 +462,7 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
             Acessos aninhados (um dentro do outro) pode acertar o pai em vez
             do filho que está de fato embaixo do cursor. */}
         <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
+          <div className={`flex-1 overflow-y-auto p-5 flex flex-col gap-5 ${selecionados.size > 0 ? 'pb-16' : ''}`}>
             <div className="text-[11px] text-ink-faint">Quantidade de saídas (automático): <strong className="text-ink">{nSaidas}</strong></div>
 
             <div className="flex flex-col gap-3">
@@ -511,6 +500,31 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
             </div>
           </div>
         </DndContext>
+
+        {/* Barra de seleção em massa — absoluta no rodapé do popup, por
+            cima do conteúdo rolável, pra ficar sempre visível enquanto
+            houver ambientes selecionados. */}
+        {selecionados.size > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 flex items-center gap-3 py-2.5 px-5 border-t border-solid border-red bg-surface-2 shadow-[0_-8px_24px_rgba(0,0,0,.35)] z-10">
+            <span className="text-xs font-semibold text-ink whitespace-nowrap">{selecionados.size} ambiente{selecionados.size > 1 ? 's' : ''} selecionado{selecionados.size > 1 ? 's' : ''}</span>
+            <select value={alvoSelecao} onChange={e => setAlvoSelecao(e.target.value)}
+              className="w-auto flex-1 max-w-[320px] text-xs py-1.5 bg-transparent"
+            >
+              <option value="">Mover para...</option>
+              <option value={ALVO_SEM_ACESSO}>— Sem acesso atribuído —</option>
+              {alvosSelecao.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+            </select>
+            <button className="btn-ghost disabled:opacity-40 disabled:cursor-not-allowed" disabled={!alvoSelecao} onClick={moverSelecionados}>
+              <Icon name="check" size={12}/> Mover
+            </button>
+            <button className="inline-flex items-center gap-1.5 bg-transparent border border-solid border-red text-red hover:bg-red hover:text-white cursor-pointer text-xs font-semibold rounded-md py-1.5 px-3 transition-colors" onClick={apagarSelecionados}>
+              <Icon name="trash" size={12}/> Apagar selecionados
+            </button>
+            <button className="bg-transparent border-none text-ink-faint hover:text-ink cursor-pointer text-xs underline ml-auto" onClick={limparSelecao}>
+              Cancelar seleção
+            </button>
+          </div>
+        )}
       </div>
 
       {editAmb && (
