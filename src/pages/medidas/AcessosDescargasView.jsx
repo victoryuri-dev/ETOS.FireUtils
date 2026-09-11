@@ -111,8 +111,11 @@ function Checkbox({ checked, onChange, title }) {
 // de um Acesso/Saída, o botão de canto é "desvincular" (volta pra "sem
 // acesso atribuído" — ver onDesvincular); só quando já está órfão (`orfao`)
 // é que vira exclusão de verdade, pra evitar apagar por engano um ambiente
-// que só precisava trocar de lugar na árvore.
-function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDesvincular, orfao, selecionado, onToggleSelecao }) {
+// que só precisava trocar de lugar na árvore. Com pelo menos um ambiente
+// já selecionado (`modoSelecao`), clicar em qualquer lugar do card
+// seleciona/desmarca em vez de abrir o formulário — só assim dá pra marcar
+// vários rápido, sem mirar no checkbox de cada um.
+function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDesvincular, orfao, selecionado, onToggleSelecao, modoSelecao }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `amb:${amb.id}`, data: { kind: 'amb', id: amb.id },
   })
@@ -120,7 +123,7 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
   const { pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
   return (
-    <div ref={setNodeRef} style={style} onClick={() => onEdit(amb)}
+    <div ref={setNodeRef} style={style} onClick={() => modoSelecao ? onToggleSelecao(amb.id) : onEdit(amb)}
       className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''}`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
@@ -267,7 +270,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
           {filhosAmbientes.map(a => (
             <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEditAmbiente} onRemove={onRemoveAmbiente}
               onDesvincular={onDesvincularAmbiente} orfao={false}
-              selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente}/>
+              selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente} modoSelecao={selecionados.size > 0}/>
           ))}
           {filhos.map(f => (
             <AcessoCard key={f.id} acesso={f} ambientes={ambientes} acessos={acessos}
@@ -313,7 +316,7 @@ function SemAcessoDropZone({ ambientes, taxaPopulacional, larguras, onEdit, onRe
       {ambientes.length === 0 && <div className="text-[11px] text-ink-faint italic">Todos os ambientes já estão posicionados na árvore.</div>}
       {ambientes.map(a => (
         <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEdit} onRemove={onRemove} orfao
-          selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente}/>
+          selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente} modoSelecao={selecionados.size > 0}/>
       ))}
     </div>
   )
@@ -443,8 +446,8 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
   }
 
   return (
-    <div className="fixed inset-0 z-[500] bg-black/65 backdrop-blur-sm flex items-center justify-center p-6" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="relative bg-surface border border-solid border-border rounded-lg w-[900px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]">
+    <div className="fixed inset-0 z-[500] bg-black/65 backdrop-blur-sm flex items-center justify-center p-3" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="relative bg-surface border border-solid border-border rounded-lg w-[900px] max-w-[96vw] h-[96vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]">
 
         {/* Header */}
         <div className="flex items-center justify-between gap-3 py-4 px-5 border-b border-solid border-border shrink-0">
