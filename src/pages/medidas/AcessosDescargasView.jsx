@@ -534,7 +534,11 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
       </div>
 
       {editAmb && (
-        <div className="fixed inset-0 z-[600] bg-black/65 backdrop-blur-sm flex items-center justify-center" onClick={() => setEditAmb(null)}>
+        // stopPropagation aqui: esse overlay fica DENTRO do overlay do popup
+        // principal (z-500) no DOM — sem isso, o clique borbulha até o
+        // onClick={onClose} dele e fecha os dois popups de uma vez, em vez
+        // de só este por cima.
+        <div className="fixed inset-0 z-[600] bg-black/65 backdrop-blur-sm flex items-center justify-center" onClick={e => { e.stopPropagation(); setEditAmb(null) }}>
           <div onClick={e => e.stopPropagation()} className="bg-surface border border-solid border-border rounded-lg w-[560px] max-w-[95vw] p-5">
             <div className="flex items-center justify-between mb-4">
               <InlineEditableNome value={editAmb.nome} onCommit={renomearAmbiente} textClassName="font-heading text-base font-bold text-ink"/>
