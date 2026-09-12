@@ -62,7 +62,12 @@ function InlineEditableNome({ value, onCommit, textClassName }) {
           if (e.key === 'Escape') setEditing(false)
         }}
         onClick={e => e.stopPropagation()}
-        className={`${textClassName} bg-transparent border-none p-0 outline-none min-w-0`}
+        // Acompanha a largura do texto digitado (em vez do tamanho padrão
+        // do <input>, que não tem relação nenhuma com o nome sendo
+        // editado) — `max-w-full` deixa o max-w-[…] de `textClassName`
+        // (limite de largura do nome no card) valer também aqui.
+        style={{ width: `${Math.max(draft.length, 1) + 1}ch` }}
+        className={`${textClassName} max-w-full bg-transparent border-none p-0 outline-none min-w-0`}
       />
     )
   }
@@ -131,8 +136,7 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
           <Icon name="grip" size={13}/>
         </button>
         <Checkbox checked={selecionado} onChange={() => onToggleSelecao(amb.id)} title="Selecionar pra mover em massa"/>
-        <span className="font-heading text-[13px] font-semibold text-ink truncate">{amb.nome}</span>
-        <DivBadge label={`${pt.n} UP`}/>
+        <span className="font-heading text-[13px] font-semibold text-ink truncate max-w-[45%]">{amb.nome}</span>
         {amb.origem === 'manual' && (
           <span title="Ambiente criado manualmente (não veio do Revit)" className="inline-flex items-center justify-center w-[20px] h-[20px] rounded border border-solid border-border-2 text-ink-faint shrink-0">
             <Icon name="user" size={11}/>
@@ -143,7 +147,8 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
         <span>{pop} pessoas</span>
         <span className="opacity-30">|</span>
         <span className="flex items-center gap-1.5">
-          <span className="text-[9px] uppercase tracking-[.06em]">Portas</span>
+          <span className="text-[9px] uppercase tracking-[.06em]">Porta</span>
+          <DivBadge label={`${pt.n} UP`}/>
           <strong className="font-heading text-[16px] font-bold text-red leading-none">{fmtM(pt.la)}</strong>
         </span>
         {orfao ? (
@@ -179,13 +184,15 @@ function DimButton({ label, ativo, onClick }) {
   )
 }
 
-// ── Um par rótulo+valor da linha de larguras mínimas (ex.: "ACESSO/
-// DESCARGA  1,20 m") — só aparece quando o dimensionamento correspondente
-// está ligado (ver DimButton).
-function DimEntry({ label, value }) {
+// ── Trinca rótulo+UP+valor da linha de larguras mínimas (ex.: "ACESSO/
+// DESCARGA  1UP  1,20 m") — só aparece quando o dimensionamento
+// correspondente está ligado (ver DimButton). UP agora é por elemento,
+// não mais um único badge compartilhado no cabeçalho do nó.
+function DimEntry({ label, up, value }) {
   return (
     <div className="flex items-center gap-2">
       <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight"><LabelQuebrado texto={label}/></div>
+      <DivBadge label={`${up} UP`}/>
       <div className="font-heading text-[16px] font-bold text-red leading-none whitespace-nowrap">{value}</div>
     </div>
   )
@@ -204,11 +211,11 @@ function DimEntry({ label, value }) {
 // Adicionar Ambiente).
 function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga, dispatch, pavimentoId, onEditAmbiente, onRemoveAmbiente, onDesvincularAmbiente, onCreateAmbiente, colapsados, toggleColapsado, selecionados, onToggleSelecaoAmbiente }) {
   const dims = dimsDoAcesso(acesso, pisoDescarga)
-  const { ad, er, pt, nPorta } = calcDimsAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, dims)
+  const { pop, ad, er, pt } = calcDimsAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, dims)
   const entradas = [
-    ad && { label: 'ACESSO/DESCARGA', value: fmtM(ad.la) },
-    pt && { label: 'PORTAS', value: fmtM(pt.la) },
-    er && { label: 'ESCADA/RAMPA', value: fmtM(er.la) },
+    ad && { label: 'ACESSO/DESCARGA', up: ad.n, value: fmtM(ad.la) },
+    pt && { label: 'PORTAS', up: pt.n, value: fmtM(pt.la) },
+    er && { label: 'ESCADA/RAMPA', up: er.n, value: fmtM(er.la) },
   ].filter(Boolean)
   const filhos = acessosFilhos(acessos, acesso.id)
   const filhosAmbientes = ambientesDe(ambientes, acesso.id)
@@ -247,8 +254,9 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
             </button>
           )}
           <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
-          <InlineEditableNome value={acesso.nome} onCommit={renomear} textClassName="font-heading text-[15px] font-bold text-ink"/>
-          <DivBadge label={`${nPorta} UP`}/>
+          <InlineEditableNome value={acesso.nome} onCommit={renomear} textClassName="font-heading text-[15px] font-bold text-ink truncate max-w-[45%]"/>
+          <span className="text-ink-faint opacity-30 shrink-0">|</span>
+          <span className="text-[11px] text-ink-faint whitespace-nowrap shrink-0">{pop} Pessoas</span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <DimButton label="AD" ativo={dims.AD} onClick={() => toggleDim('AD')}/>
@@ -261,7 +269,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
         <div className="flex items-center justify-center gap-4 pb-3.5 px-3.5 flex-wrap bg-surface-2">
           {entradas.flatMap((e, i) => [
             i > 0 && <span key={`sep-${i}`} className="text-ink-faint opacity-30">|</span>,
-            <DimEntry key={e.label} label={e.label} value={e.value}/>,
+            <DimEntry key={e.label} label={e.label} up={e.up} value={e.value}/>,
           ]).filter(Boolean)}
         </div>
       )}
