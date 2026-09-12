@@ -80,6 +80,10 @@ export function textoMemorialHidrantes(state) {
         texto: 'O sistema de bombeamento de incêndio também alimenta o sistema de chuveiros automáticos (sprinklers), mediante interligação das tubulações dos reservatórios, conforme item 5.9.2 da NT 22, atendendo aos parâmetros da NT 23 — Sistema de Chuveiros Automáticos.',
       })
     }
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: `Para a verificação da condição de sucção e o cálculo do NPSH disponível (Anexo C, NT 22), adotou-se altitude local de ${h.succaoAltitude ?? 0} m e temperatura da água de ${h.succaoTemperatura ?? 30} °C.`,
+    })
   }
 
   blocos.push({ tipo: 'titulo2', texto: 'Rede de Tubulação' })

@@ -345,6 +345,18 @@ const INITIAL_STATE = {
     // partir de Qt/Ht que vêm do plugin. Não depende de nada exclusivo do
     // modelo Revit, por isso deixou de ser perguntada por lá.
     bombaEficiencia: '',
+    // Método de cálculo (onde a norma exige verificar Q/Pmin do sistema —
+    // "valvula" ou "esguicho") não é uma escolha do RT: é derivado da norma
+    // do estado do projeto (REFERENCIA_PRESSAO_VAZAO) e mantido em sincronia
+    // por FormularioSistema.jsx. Guardado aqui (em vez de calculado só na
+    // hora de enviar) pra viajar junto no dado sincronizado com o plugin,
+    // que não tem acesso à norma do site.
+    metodoCalculo: '',
+    // Entradas do NPSH disponível (Anexo C) — plugin usa pra decidir se a
+    // sucção é negativa e, se for, calcular o NPSHd; sem correspondência
+    // geométrica no modelo Revit, por isso perguntadas aqui. Defaults =
+    // ALTITUDE_SUCCAO_PADRAO/TEMPERATURA_SUCCAO_PADRAO de normas/MA/hidrantes.js.
+    succaoAltitude: 0, succaoTemperatura: 30,
     redeMaterial: '', redeConfiguracao: 'ramal',
     recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
     valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',

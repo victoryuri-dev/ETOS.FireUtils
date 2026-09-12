@@ -196,6 +196,17 @@ export default function FormularioSistema() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sugestao.opcoes.length, sugestao.opcoes[0]?.tipo, h.tipo])
 
+  // Método de cálculo não é escolha do RT: é fixo pela norma do estado do
+  // projeto (onde a Tabela 2 exige verificar Q/Pmin — válvula ou esguicho).
+  // Mantido em state.hidrantes (em vez de derivado só na hora de enviar)
+  // pra viajar junto no dado sincronizado com o plugin.
+  useEffect(() => {
+    if (h.metodoCalculo !== norma.REFERENCIA_PRESSAO_VAZAO) {
+      set({ metodoCalculo: norma.REFERENCIA_PRESSAO_VAZAO })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [norma.REFERENCIA_PRESSAO_VAZAO])
+
   return (
     <div className="mb-8">
 
@@ -324,6 +335,28 @@ export default function FormularioSistema() {
           </>
         )}
       </FormSection>
+
+      {/* C.2 — Sucção da bomba (NPSH disponível) */}
+      {h.bombaExiste && (
+        <FormSection title="Sucção da Bomba (NPSH)" description="Usadas pelo plugin para verificar a condição de sucção e, se negativa, calcular o NPSH disponível (Anexo C).">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Altitude do local">
+              <select className={inputClass} value={h.succaoAltitude} onChange={e => set({ succaoAltitude: Number(e.target.value) })}>
+                {norma.ALTITUDES_SUCCAO.map(a => (
+                  <option key={a.altitude} value={a.altitude}>{a.altitude.toLocaleString('pt-BR')} m — Ha = {a.ha} mca</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Temperatura da água">
+              <select className={inputClass} value={h.succaoTemperatura} onChange={e => set({ succaoTemperatura: Number(e.target.value) })}>
+                {norma.TEMPERATURAS_SUCCAO.map(t => (
+                  <option key={t.temperatura} value={t.temperatura}>{t.temperatura} °C — Hvp = {t.hvp} mca</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </FormSection>
+      )}
 
       {/* D — Rede de tubulação */}
       <FormSection title="Rede de Tubulação">

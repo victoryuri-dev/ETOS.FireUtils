@@ -177,3 +177,29 @@ export const BOMBA_RESERVA_POR_RISCO = {
 
 // Vazão acima da qual o dispositivo de recalque precisa de 2 entradas (5.3.3)
 export const VAZAO_LIMITE_RECALQUE_DUPLO = 1000
+
+// ── NPSH disponível — entradas de sucção (Anexo C) ──────────────────────
+// Ha (pressão atmosférica local, por altitude) e Hvp (pressão de vapor da
+// água, por temperatura) são propriedades físicas — não normativas — mas
+// ficam aqui, no arquivo por UF, no mesmo padrão dos demais dados desta
+// pasta (o plugin usa a cópia equivalente em hidrantes/npshd.py; os
+// valores são os mesmos, reaproveitados nas duas pontas).
+export const ALTITUDES_SUCCAO = [
+  { altitude: 0,    ha: 10.33 },
+  { altitude: 500,  ha: 9.72 },
+  { altitude: 1000, ha: 9.15 },
+  { altitude: 1500, ha: 8.61 },
+]
+
+export const TEMPERATURAS_SUCCAO = [
+  { temperatura: 10, hvp: 0.125 },
+  { temperatura: 15, hvp: 0.174 },
+  { temperatura: 20, hvp: 0.239 },
+  { temperatura: 25, hvp: 0.323 },
+  { temperatura: 30, hvp: 0.433 },
+  { temperatura: 35, hvp: 0.573 },
+  { temperatura: 40, hvp: 0.752 },
+]
+
+export const ALTITUDE_SUCCAO_PADRAO    = 0
+export const TEMPERATURA_SUCCAO_PADRAO = 30
