@@ -340,6 +340,11 @@ const INITIAL_STATE = {
     bombaExiste: true, bombaJockey: false,
     bombaReserva: false, bombaReservaAcionamento: '',
     bombaAlimentaSprinklers: false,
+    // Eficiência global (%) informada pelo RT — usada só aqui no site pra
+    // dimensionar a potência mínima da bomba (P_cv = 1000·Qt·Ht/75·η), a
+    // partir de Qt/Ht que vêm do plugin. Não depende de nada exclusivo do
+    // modelo Revit, por isso deixou de ser perguntada por lá.
+    bombaEficiencia: '',
     redeMaterial: '', redeConfiguracao: 'ramal',
     recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
     valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',

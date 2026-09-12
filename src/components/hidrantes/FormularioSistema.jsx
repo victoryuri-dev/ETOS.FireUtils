@@ -289,10 +289,19 @@ export default function FormularioSistema() {
       </FormSection>
 
       {/* C — Bomba de incêndio */}
-      <FormSection title="Bomba de Incêndio" description="Só identifica quais bombas existem — vazão, pressão e potência são calculadas pelo plugin.">
+      <FormSection title="Bomba de Incêndio" description="Vazão e pressão vêm do plugin. Potência mínima é calculada aqui, a partir da eficiência informada.">
         <ToggleRow label="Bomba principal" checked={h.bombaExiste} onChange={v => set({ bombaExiste: v })}/>
         {h.bombaExiste && (
           <>
+            <div className="max-w-[220px] mt-3 mb-1">
+              <Field label="Eficiência global da bomba (η)" hint="usada pra calcular a potência mínima">
+                <div className="relative">
+                  <input type="number" step="1" min={1} max={100} className={inputClass + ' pr-8'}
+                    value={h.bombaEficiencia} onChange={e => set({ bombaEficiencia: e.target.value })}/>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">%</span>
+                </div>
+              </Field>
+            </div>
             <ToggleRow label="Bomba reserva" checked={h.bombaReserva} onChange={v => set({ bombaReserva: v })}/>
             {h.bombaReserva && (
               <div className="grid grid-cols-2 gap-2 my-3 pl-4">

@@ -164,6 +164,20 @@ export function exigeRecalqueDuplo(vazaoMin, norma) {
   return num(vazaoMin) > norma.VAZAO_LIMITE_RECALQUE_DUPLO
 }
 
+/** Potência mínima da bomba de recalque: P_cv = (1000·Qt·Ht)/(75·η) — mesma
+ *  fórmula que o plugin Revit usava (agora dimensionada aqui, no site, já
+ *  que não depende de nenhum dado exclusivo do modelo — só de Qt/Ht, que
+ *  continuam vindo do dimensionamento hidráulico do plugin). `qtLmin` em
+ *  L/min, `htMca` em mca, `etaPercent` em % (0-100). Retorna
+ *  `{ potCv: null, potKw: null }` se a eficiência ainda não foi informada. */
+export function calcPotenciaBomba(qtLmin, htMca, etaPercent) {
+  const etaDec = (parseFloat(etaPercent) || 0) / 100
+  if (etaDec <= 0 || !qtLmin || !htMca) return { potCv: null, potKw: null }
+  const qtM3s = qtLmin / 60000
+  const potCv = (1000 * qtM3s * htMca) / (75 * etaDec)
+  return { potCv, potKw: potCv / 1.36 }
+}
+
 /** Bomba reserva obrigatória (Anexo C, C.3.12) pra um risco baixo/medio/alto
  *  — risco 'baixo' nunca exige. Retorna null quando não exige. */
 export function bombaReservaObrigatoria(risco, norma) {

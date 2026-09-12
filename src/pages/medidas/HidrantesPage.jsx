@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import FormularioSistema from '../../components/hidrantes/FormularioSistema'
+import { calcPotenciaBomba } from '../../data/hidrantes_calc'
 
 // ── Formatação ────────────────────────────────────────────────────────
 const f4  = n => Number(n).toFixed(4)
@@ -56,7 +57,7 @@ function CardHeader({ children }) {
 }
 
 // ── Resumo Executivo ──────────────────────────────────────────────────
-function ResumoExecutivo({ d }) {
+function ResumoExecutivo({ d, potCv, potKw }) {
   const { res, dados_sistema } = d
   const pmin = dados_sistema.pressao_min
   const pmax = 100
@@ -86,8 +87,8 @@ function ResumoExecutivo({ d }) {
         { label:'Altura manométrica (Ht)', val: fmca(res.Ht) },
         { label:'Vazão total (Qt)',        val: lmin(res.Qt_final) },
         { label:'Qt em m³/h',             val: `${f2(res.Qt_final / 1000 * 60)} m³/h` },
-        { label:'Potência mínima',         val: `${f2(d.pot_cv)} cv` },
-        { label:'Potência mínima',         val: `${f2(d.pot_kw)} kW` },
+        { label:'Potência mínima',         val: potCv != null ? `${f2(potCv)} cv` : '— (informe a eficiência)' },
+        { label:'Potência mínima',         val: potKw != null ? `${f2(potKw)} kW` : '—' },
       ],
       atende: null,
     },
@@ -395,15 +396,16 @@ function PressaoVazao({ d }) {
 }
 
 // ── S6: Bomba ─────────────────────────────────────────────────────────
-function Bomba({ d }) {
-  const { res, eta, pot_cv, pot_kw } = d
+function Bomba({ d, eta, potCv, potKw }) {
+  const { res } = d
   const Qt_m3s = res.Qt_final / 1000 / 60
   const Qt_m3h = res.Qt_final / 1000 * 60
+  const temEta = potCv != null
 
   const rows = [
     { param:'Vazão total convergida (Qt)', val:`${lmin(res.Qt_final)} = ${m3s(Qt_m3s)}`, obs:`Q_HID-01 + Q_HID-02` },
     { param:'Altura manométrica (Ht)',     val: fmca(res.Ht),                              obs:`Percurso crítico: ${res.hid_governa}` },
-    { param:'Eficiência global (η)',       val:`${eta}%`,                                  obs:'Informada pelo projetista' },
+    { param:'Eficiência global (η)',       val: eta ? `${eta}%` : '—',                     obs:'Informada na seção Bomba de Incêndio' },
   ]
 
   return (
@@ -420,9 +422,15 @@ function Bomba({ d }) {
           ))}
         </tbody>
       </Table>
-      <Formula>
-        Pcv = (1000 × {m3s(Qt_m3s)} × {f4(res.Ht)}) / (75 × {eta/100}) = <FormulaVal>{f2(pot_cv)} cv</FormulaVal>
-      </Formula>
+      {temEta ? (
+        <Formula>
+          Pcv = (1000 × {m3s(Qt_m3s)} × {f4(res.Ht)}) / (75 × {eta/100}) = <FormulaVal>{f2(potCv)} cv</FormulaVal>
+        </Formula>
+      ) : (
+        <div className="ibox amber mt-2">
+          <span className="text-xs">Informe a eficiência global da bomba na seção "Bomba de Incêndio", acima, pra calcular a potência mínima.</span>
+        </div>
+      )}
       <div className="text-xs text-ink-faint uppercase tracking-[.07em] mt-4 mb-2">Ponto de operação para seleção</div>
       <Table>
         <thead><tr><TH center>Q (m³/h)</TH><TH center>Hm (mca)</TH><TH center>Potência mínima (cv)</TH><TH center>Potência mínima (kW)</TH></tr></thead>
@@ -430,8 +438,8 @@ function Bomba({ d }) {
           <tr>
             <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(Qt_m3h)}</span></td>
             <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(res.Ht)}</span></td>
-            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{f2(pot_cv)}</span></td>
-            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{f2(pot_kw)}</span></td>
+            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{temEta ? f2(potCv) : '—'}</span></td>
+            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{temEta ? f2(potKw) : '—'}</span></td>
           </tr>
         </tbody>
       </Table>
@@ -453,6 +461,9 @@ export default function HidrantesPage() {
     setImportTs(payload?._timestamp || null)
     setImportErro(null)
   }
+
+  const eta = state.hidrantes.bombaEficiencia
+  const { potCv, potKw } = dados ? calcPotenciaBomba(dados.res.Qt_final, dados.res.Ht, eta) : { potCv: null, potKw: null }
 
   const handleImport = e => {
     const file = e.target.files[0]
@@ -497,7 +508,7 @@ export default function HidrantesPage() {
     { n:3, label:'Perdas de Carga por Trecho (Hazen-Williams)', content: <PerdasCarga d={dados}/> },
     { n:4, label:'Altura Manométrica Total (Ht)',          content: <AlturaMano d={dados}/> },
     { n:5, label:'Pressão e Vazão nos Hidrantes',          content: <PressaoVazao d={dados}/> },
-    { n:6, label:'Dimensionamento da Bomba de Recalque',   content: <Bomba d={dados}/> },
+    { n:6, label:'Dimensionamento da Bomba de Recalque',   content: <Bomba d={dados} eta={eta} potCv={potCv} potKw={potKw}/> },
   ] : []
 
   return (
@@ -562,7 +573,7 @@ export default function HidrantesPage() {
               </div>
             )}
 
-            <ResumoExecutivo d={dados}/>
+            <ResumoExecutivo d={dados} potCv={potCv} potKw={potKw}/>
 
             {sections.map(s => (
               <div key={s.n} className="mb-8">
