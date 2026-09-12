@@ -148,8 +148,8 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
         <span className="opacity-30">|</span>
         <span className="flex items-center gap-1.5">
           <span className="text-[9px] uppercase tracking-[.06em]">Porta</span>
-          <DivBadge label={`${pt.n} UP`}/>
           <strong className="font-heading text-[16px] font-bold text-red leading-none">{fmtM(pt.la)}</strong>
+          <DivBadge label={`${pt.n} UP`}/>
         </span>
         {orfao ? (
           <button onClick={e => { e.stopPropagation(); onRemove(amb.id) }} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1" title="Excluir ambiente">
@@ -192,8 +192,8 @@ function DimEntry({ label, up, value }) {
   return (
     <div className="flex items-center gap-2">
       <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight"><LabelQuebrado texto={label}/></div>
-      <DivBadge label={`${up} UP`}/>
       <div className="font-heading text-[16px] font-bold text-red leading-none whitespace-nowrap">{value}</div>
+      <DivBadge label={`${up} UP`}/>
     </div>
   )
 }
