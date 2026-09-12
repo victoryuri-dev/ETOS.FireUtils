@@ -1,10 +1,10 @@
 // Edge Function: site-sync
 //
 // Caminho inverso do revit-sync: em vez do plugin empurrar dados pro site,
-// aqui o plugin PUXA dados de ocupação/área que o usuário já preencheu no
-// site. Somente leitura — nunca grava nada. Identifica o projeto por
-// `projetoId` (id escolhido no Dashboard da dockpane, ver revit-sync) —
-// mesmo esquema, sem token secreto.
+// aqui o plugin PUXA dados que o site já tem/calculou. Somente leitura —
+// nunca grava nada. Identifica o projeto por `projetoId` (id escolhido no
+// Dashboard da dockpane, ver revit-sync) — mesmo esquema, sem token
+// secreto.
 //
 // Três ações (mesmo body, campo "acao"):
 //   1. listar_estruturas — lista as estruturas do projeto, pro plugin
@@ -13,14 +13,17 @@
 //   2. ocupacao_area — nome/UF do projeto, dados de ocupação (divisão/grupo/
 //      CNAE por pavimento) e área construída de UMA estrutura específica
 //      (a vinculada).
-//   3. nomes_ambientes — nome atual de cada ambiente (Saída de Emergência)
-//      de UMA estrutura específica, casado por `revitId` (Room.UniqueId) —
-//      é o caminho Site → Revit: o plugin usa isso pra reaplicar no
-//      parâmetro Nome do Room um nome que foi editado no site (ver
-//      resolverImportacaoSaidas em SaidaEmergenciaPage.jsx pro caminho
-//      inverso, Revit → Site). Só devolve ambiente que tem `revitId` —
-//      um ambiente criado manualmente no site (sem Room correspondente no
-//      Revit) não tem o que casar, então nem entra na resposta.
+//   3. populacao_ambientes — População e Taxa Populacional já calculadas
+//      pelo site pra cada ambiente (Saída de Emergência) de UMA estrutura
+//      específica, casado por `revitId` (Room.UniqueId) — é o caminho
+//      Site → Revit: Nome/Grupo/Área são autoridade do Revit (sobem pelo
+//      revit-sync), mas População/Taxa Populacional viram autoridade do
+//      site (ele sabe o popTipo de cada ambiente — por área, manual ou
+//      assento fixo — e a taxa normativa vigente), então o plugin busca o
+//      resultado já pronto aqui em vez de recalcular por conta própria.
+//      Só devolve ambiente que tem `revitId` — um ambiente criado
+//      manualmente no site (sem Room correspondente no Revit) não tem
+//      pra onde mandar o valor, então nem entra na resposta.
 //
 // Só devolve o recorte necessário — nunca o projeto inteiro, que tem dados
 // sensíveis (CPF, dados de proprietário/responsável).
@@ -40,6 +43,17 @@ function json(body, status = 200) {
   })
 }
 
+// Mesma fórmula de src/data/se_calc.js (calcPopAmb) — duplicada aqui porque
+// esta function roda em Deno, fora do bundle do site. Mantenha as duas em
+// sincronia se a regra de população mudar.
+function calcPopAmbiente(amb, tabela) {
+  if (amb.popTipo === 'fixo') return Math.max(0, parseInt(amb.assentos) || 0)
+  if (amb.popTipo === 'manual') return Math.max(0, parseInt(amb.popManual) || 0)
+  const taxa = tabela[amb.divisao]
+  if (!taxa || taxa.A == null) return Math.max(0, parseInt(amb.popManual) || 0)
+  return Math.ceil((parseFloat(amb.area) || 0) / taxa.A)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS })
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
@@ -54,8 +68,8 @@ Deno.serve(async (req) => {
   const { projetoId, acao, estruturaId } = body || {}
 
   if (!projetoId || typeof projetoId !== 'string') return json({ error: 'projetoId obrigatorio' }, 400)
-  if (acao !== 'listar_estruturas' && acao !== 'ocupacao_area' && acao !== 'nomes_ambientes') {
-    return json({ error: 'acao invalida — use "listar_estruturas", "ocupacao_area" ou "nomes_ambientes"' }, 400)
+  if (acao !== 'listar_estruturas' && acao !== 'ocupacao_area' && acao !== 'populacao_ambientes') {
+    return json({ error: 'acao invalida — use "listar_estruturas", "ocupacao_area" ou "populacao_ambientes"' }, 400)
   }
 
   const supabase = createClient(
@@ -75,7 +89,7 @@ Deno.serve(async (req) => {
     return json(estruturas.map(e => ({ id: e.id, nome: e.nome })))
   }
 
-  // acao === 'ocupacao_area' ou 'nomes_ambientes' — ambas exigem estruturaId
+  // acao === 'ocupacao_area' ou 'populacao_ambientes' — ambas exigem estruturaId
   if (!estruturaId || typeof estruturaId !== 'string') {
     return json({ error: 'estruturaId obrigatorio para esta acao' }, 400)
   }
@@ -83,14 +97,23 @@ Deno.serve(async (req) => {
   const estrutura = estruturas.find(e => e.id === estruturaId)
   if (!estrutura) return json({ error: 'estrutura nao encontrada neste projeto' }, 404)
 
-  if (acao === 'nomes_ambientes') {
+  if (acao === 'populacao_ambientes') {
+    const { data: normaRow } = await supabase
+      .from('normas_dados').select('dados')
+      .eq('uf', dados.uf).eq('sistema', 'saida_emergencia').maybeSingle()
+    const tabela = normaRow?.dados?.tabela || {}
+
     const pavimentos = (dados.pavimentos || [])
       .filter(p => p.estruturaId === estruturaId)
       .map(p => ({
         nome: p.label,
         ambientes: (p.ambientes || [])
           .filter(a => a.revitId)
-          .map(a => ({ revitId: a.revitId, nome: a.nome })),
+          .map(a => ({
+            revitId: a.revitId,
+            pop: calcPopAmbiente(a, tabela),
+            taxaObs: tabela[a.divisao]?.obs || '',
+          })),
       }))
     return json({ pavimentos })
   }
