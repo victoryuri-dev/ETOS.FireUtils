@@ -25,6 +25,13 @@
 //      manualmente no site (sem Room correspondente no Revit) não tem
 //      pra onde mandar o valor, então nem entra na resposta.
 //
+// Não é este o caminho usado pela classificação do Sistema de Hidrantes e
+// Mangotinhos (state.hidrantes) — a dockpane já lê a coluna `dados` inteira
+// direto do Supabase com a sessão do usuário (RLS — ver
+// webapp/src/lib/projectData.js), então `dados.hidrantes` chega lá sem
+// precisar de Edge Function nenhuma. Este arquivo serve só o vínculo por
+// sync_token usado pelos scripts Python (sem sessão de usuário).
+//
 // Só devolve o recorte necessário — nunca o projeto inteiro, que tem dados
 // sensíveis (CPF, dados de proprietário/responsável).
 

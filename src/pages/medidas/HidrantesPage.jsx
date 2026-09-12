@@ -3,6 +3,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { supabase } from '../../lib/supabase'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import FormularioSistema from '../../components/hidrantes/FormularioSistema'
 
 // ── Formatação ────────────────────────────────────────────────────────
 const f4  = n => Number(n).toFixed(4)
@@ -512,7 +513,18 @@ export default function HidrantesPage() {
               Hidrantes / Mangotinho
             </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-              Resultados gerados pelo plugin Revit e apresentados conforme NT 22 CBMMA / NBR 13714.
+              Classificação conforme NT 22 CBMMA / NBR 13714 — o dimensionamento hidráulico é calculado pelo plugin Revit a partir dela.
+            </p>
+          </div>
+        </div>
+
+        <FormularioSistema/>
+
+        <div className="flex items-center justify-between gap-4 mb-7">
+          <div>
+            <h3 className="text-sm font-bold text-ink m-0 mb-1">Dimensionamento (plugin Revit)</h3>
+            <p className="text-[12px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+              Resultados calculados pelo plugin a partir da classificação acima.
             </p>
           </div>
           <div className="shrink-0 flex flex-col items-end gap-1.5">

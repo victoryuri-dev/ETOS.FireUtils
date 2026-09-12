@@ -188,6 +188,7 @@ function hydrateState(saved) {
     ...saved,
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
+    hidrantes: { ...INITIAL_STATE.hidrantes, ...(saved.hidrantes || {}) },
     planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
     // Migração: pavimentos salvos antes de `ambientes` (Saída de Emergência)
     // ou de `acessos`/`pisoDescarga` (árvore de Acessos e Descargas)
@@ -317,6 +318,32 @@ const INITIAL_STATE = {
     extensaoVia: '', tipoRetorno: '', tipoRetornoOutroDesc: '',
     manobraRetornoOk: true, saidaIndepLargura: '', saidaIndepAltura: '',
     distanciaAdotada: '',
+  },
+  // Classificação do Sistema de Hidrantes/Mangotinhos (NT 22 CBMMA) pro
+  // memorial descritivo — registro único por projeto (a NT-22 não obriga
+  // sistemas independentes por estrutura; ver hidrantes_calc.js). O
+  // dimensionamento hidráulico (perda de carga, bomba etc.) continua vindo
+  // do plugin Revit — aqui só a classificação que o site decide e envia
+  // pra ele usar como entrada do cálculo.
+  hidrantes: {
+    // '' = ainda não classificado. tipo/rti podem vir da sugestão automática
+    // (useMedidasObrigatorias-like, ver hidrantes_calc.sugerirClassificacao)
+    // ou serem sobrescritos manualmente pelo RT.
+    // Estruturas consideradas na classificação (área total + ocupação de
+    // maior carga de incêndio) — nem toda edificação do projeto exige
+    // hidrantes, então a área somada não pode ser a do projeto inteiro.
+    // Vazio = ainda não ajustado manualmente, usa o default automático
+    // (estruturas onde hidrantes é exigido/ativo) — ver FormularioSistema.
+    estruturasSelecionadas: [],
+    tipo: '', tipoVariante: 0, rti: '',
+    reservatorioMaterial: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
+    bombaExiste: true, bombaJockey: false,
+    bombaReserva: false, bombaReservaAcionamento: '',
+    bombaAlimentaSprinklers: false,
+    redeMaterial: '', redeConfiguracao: 'ramal',
+    recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
+    valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',
+    observacoes: '',
   },
   // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) — só o que
   // não existe em nenhum outro lugar do state (endereço, sistemas, riscos
@@ -699,6 +726,8 @@ function reducer(state, action) {
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
     case 'SET_PLANO_EMERGENCIA':
       return { ...state, planoEmergencia: { ...state.planoEmergencia, ...action.changes } }
+    case 'SET_HIDRANTES':
+      return { ...state, hidrantes: { ...state.hidrantes, ...action.changes } }
     case 'SET_WIZARD':
       return { ...state, configStep: action.step, configUnlocked: action.unlocked }
     case 'SET_CARGA': {
