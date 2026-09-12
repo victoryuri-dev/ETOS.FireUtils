@@ -17,7 +17,7 @@
 
 import { getSE } from '../normas/index'
 import {
-  contarSaidasPavimento, getDistancia,
+  contarSaidasPavimento, getDistancia, calcPopPav,
   calcDimsAcesso, dimsDoAcesso, calcNoAmbientePT,
 } from '../se_calc'
 
@@ -134,8 +134,8 @@ function tabelaAmbientes(listaAmbientes, taxaPopulacional, larguras) {
     tipo: 'tabela',
     centralizado: true,
     linhasCabecalho: [
-      [{ texto: 'PORTAS DOS AMBIENTES', colSpan: 8 }],
-      [{ texto: 'AMBIENTES' }, { texto: 'ÁREA' }, { texto: 'DIVISÃO' }, { texto: 'TAXA POPULACIONAL' }, { texto: 'POPULAÇÃO' }, { texto: 'CUP' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
+      [{ texto: 'POPULAÇÃO E PORTAS DOS AMBIENTES', colSpan: 8 }],
+      [{ texto: 'AMBIENTES' }, { texto: 'ÁREA' }, { texto: 'DIVISÃO' }, { texto: 'TAXA POPULACIONAL' }, { texto: 'POP.' }, { texto: 'CUP' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
     ],
     linhas: listaAmbientes.map(({ amb }) => {
       const { pop, capPT, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
@@ -191,19 +191,22 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
     return blocos
   }
 
-  // A tabela de distância máxima da estrutura (ver blocosDaEstrutura) só
-  // cobre a referência de saída única — pavimentos com mais de uma saída
-  // têm distância admissível maior, avisado aqui (não repete o valor de
-  // referência quando a saída já é única, pra não poluir o documento).
+  // Resumo do pavimento — a tabela de distância máxima da estrutura (ver
+  // blocosDaEstrutura) já traz as duas referências (saída única/mais de
+  // uma saída); aqui só aponta qual das duas se aplica de fato, junto com
+  // a quantidade de saídas e a população total já calculadas pra esse
+  // pavimento específico.
   const nSaidas = Math.max(1, contarSaidasPavimento(acessos))
-  if (nSaidas > 1) {
-    const dist = getDistancia(pav.divisao, !!pav.pisoDescarga, nSaidas, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)
-    blocos.push({
-      tipo: 'campo',
-      label: 'Distância máxima aplicável',
-      valor: `${pav.label} tem ${nSaidas} saídas — distância máxima a percorrer de ${dist != null ? fmtM(dist) : 'consultar NT (combinação não tabelada)'} (maior que a referência de saída única da tabela acima).`,
-    })
-  }
+  const dist = getDistancia(pav.divisao, !!pav.pisoDescarga, nSaidas, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)
+  const popTotal = calcPopPav(pav, TAXA_POPULACIONAL)
+  blocos.push({
+    tipo: 'lista',
+    itens: [
+      `Distância máxima a percorrer: ${dist != null ? fmtM(dist) : 'consultar NT (combinação não tabelada)'}`,
+      `Quantidade de saídas/escadas/rampas: ${nSaidas}`,
+      `População Total Calculada: ${popTotal} pessoas`,
+    ],
+  })
 
   const { organograma, listaAmbientes, nos } = montarArvorePavimento(pav)
 
@@ -232,12 +235,28 @@ function blocosDaEstrutura(est, pavs, seNorma, temChuveiros, temDeteccao) {
       tipo: 'tabela',
       centralizado: true,
       linhasCabecalho: [
-        [{ texto: 'DISTÂNCIAS MÁXIMA A PERCORRER', colSpan: 3 }],
-        [{ texto: 'DIVISÃO' }, { texto: 'ANDAR' }, { texto: `${temChuveiros ? 'COM' : 'SEM'} CHUVEIROS AUTOMÁTICOS · ${temDeteccao ? 'COM' : 'SEM'} DETECÇÃO · SAÍDA ÚNICA` }],
+        [{ texto: 'DISTÂNCIAS MÁXIMA A PERCORRER', colSpan: 4 }],
+        [
+          { texto: 'DIVISÃO', rowSpan: 3 },
+          { texto: 'ANDAR', rowSpan: 3 },
+          { texto: `${temChuveiros ? 'COM' : 'SEM'} CHUVEIROS AUTOMÁTICOS`, colSpan: 2 },
+        ],
+        [{ texto: `${temDeteccao ? 'COM' : 'SEM'} DETECÇÃO DE INCÊNDIO`, colSpan: 2 }],
+        [{ texto: 'SAÍDA ÚNICA' }, { texto: 'MAIS DE UMA SAÍDA' }],
       ],
       linhas: divisoes.flatMap(divisao => [
-        [divisao, 'Piso de descarga', fmtDistOuConsultar(getDistancia(divisao, true, 1, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS))],
-        [divisao, 'Demais andares', fmtDistOuConsultar(getDistancia(divisao, false, 1, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS))],
+        [
+          { texto: divisao, rowSpan: 2 },
+          'Piso de descarga',
+          fmtDistOuConsultar(getDistancia(divisao, true, 1, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)),
+          fmtDistOuConsultar(getDistancia(divisao, true, 2, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)),
+        ],
+        [
+          null,
+          'Demais andares',
+          fmtDistOuConsultar(getDistancia(divisao, false, 1, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)),
+          fmtDistOuConsultar(getDistancia(divisao, false, 2, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)),
+        ],
       ]),
     })
   }

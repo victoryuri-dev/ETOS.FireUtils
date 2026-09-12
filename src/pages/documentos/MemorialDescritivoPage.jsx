@@ -493,7 +493,7 @@ function BlocoMedida({ bloco }) {
               ? bloco.linhasCabecalho.map((linha, i) => (
                   <tr key={i}>
                     {linha.map((c, j) => (
-                      <th key={j} colSpan={c.colSpan} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>{c.texto}</th>
+                      <th key={j} colSpan={c.colSpan} rowSpan={c.rowSpan} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>{c.texto}</th>
                     ))}
                   </tr>
                 ))
@@ -504,15 +504,26 @@ function BlocoMedida({ bloco }) {
               )}
           </thead>
           <tbody>
+            {/* Célula `null` = já coberta por um rowSpan de uma linha
+                anterior (ver DIVISÃO na tabela de distâncias máximas em
+                memorial/saida_emergencia.js) — não gera <td> nenhum pra
+                não duplicar a coluna. Objeto `{ texto, rowSpan }` é uma
+                célula normal que mescla verticalmente com as próximas
+                `n-1` linhas nessa mesma posição. */}
             {bloco.linhas.map((linha, i) => (
               <tr key={i}>
-                {linha.map((cel, j) => (
-                  <td key={j} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>
-                    {cel && typeof cel === 'object' && cel.tipo === 'imagem'
-                      ? <img src={cel.src} alt={cel.alt || ''} className="w-9 h-9 object-contain block"/>
-                      : cel}
-                  </td>
-                ))}
+                {linha.map((cel, j) => {
+                  if (cel === null) return null
+                  const temRowSpan = cel && typeof cel === 'object' && 'texto' in cel
+                  const conteudo = temRowSpan ? cel.texto : cel
+                  return (
+                    <td key={j} rowSpan={temRowSpan ? cel.rowSpan : undefined} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>
+                      {conteudo && typeof conteudo === 'object' && conteudo.tipo === 'imagem'
+                        ? <img src={conteudo.src} alt={conteudo.alt || ''} className="w-9 h-9 object-contain block"/>
+                        : conteudo}
+                    </td>
+                  )
+                })}
               </tr>
             ))}
           </tbody>
