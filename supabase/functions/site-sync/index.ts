@@ -6,13 +6,21 @@
 // `projetoId` (id escolhido no Dashboard da dockpane, ver revit-sync) —
 // mesmo esquema, sem token secreto.
 //
-// Duas ações (mesmo body, campo "acao"):
+// Três ações (mesmo body, campo "acao"):
 //   1. listar_estruturas — lista as estruturas do projeto, pro plugin
 //      mostrar um seletor e o usuário escolher qual delas aquele arquivo
 //      Revit representa (vínculo salvo localmente no plugin).
 //   2. ocupacao_area — nome/UF do projeto, dados de ocupação (divisão/grupo/
 //      CNAE por pavimento) e área construída de UMA estrutura específica
 //      (a vinculada).
+//   3. nomes_ambientes — nome atual de cada ambiente (Saída de Emergência)
+//      de UMA estrutura específica, casado por `revitId` (Room.UniqueId) —
+//      é o caminho Site → Revit: o plugin usa isso pra reaplicar no
+//      parâmetro Nome do Room um nome que foi editado no site (ver
+//      resolverImportacaoSaidas em SaidaEmergenciaPage.jsx pro caminho
+//      inverso, Revit → Site). Só devolve ambiente que tem `revitId` —
+//      um ambiente criado manualmente no site (sem Room correspondente no
+//      Revit) não tem o que casar, então nem entra na resposta.
 //
 // Só devolve o recorte necessário — nunca o projeto inteiro, que tem dados
 // sensíveis (CPF, dados de proprietário/responsável).
@@ -46,8 +54,8 @@ Deno.serve(async (req) => {
   const { projetoId, acao, estruturaId } = body || {}
 
   if (!projetoId || typeof projetoId !== 'string') return json({ error: 'projetoId obrigatorio' }, 400)
-  if (acao !== 'listar_estruturas' && acao !== 'ocupacao_area') {
-    return json({ error: 'acao invalida — use "listar_estruturas" ou "ocupacao_area"' }, 400)
+  if (acao !== 'listar_estruturas' && acao !== 'ocupacao_area' && acao !== 'nomes_ambientes') {
+    return json({ error: 'acao invalida — use "listar_estruturas", "ocupacao_area" ou "nomes_ambientes"' }, 400)
   }
 
   const supabase = createClient(
@@ -67,13 +75,25 @@ Deno.serve(async (req) => {
     return json(estruturas.map(e => ({ id: e.id, nome: e.nome })))
   }
 
-  // acao === 'ocupacao_area'
+  // acao === 'ocupacao_area' ou 'nomes_ambientes' — ambas exigem estruturaId
   if (!estruturaId || typeof estruturaId !== 'string') {
-    return json({ error: 'estruturaId obrigatorio para a acao ocupacao_area' }, 400)
+    return json({ error: 'estruturaId obrigatorio para esta acao' }, 400)
   }
 
   const estrutura = estruturas.find(e => e.id === estruturaId)
   if (!estrutura) return json({ error: 'estrutura nao encontrada neste projeto' }, 404)
+
+  if (acao === 'nomes_ambientes') {
+    const pavimentos = (dados.pavimentos || [])
+      .filter(p => p.estruturaId === estruturaId)
+      .map(p => ({
+        nome: p.label,
+        ambientes: (p.ambientes || [])
+          .filter(a => a.revitId)
+          .map(a => ({ revitId: a.revitId, nome: a.nome })),
+      }))
+    return json({ pavimentos })
+  }
 
   const pavimentos = (dados.pavimentos || [])
     .filter(p => p.estruturaId === estruturaId)
