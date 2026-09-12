@@ -109,7 +109,23 @@ function montarArvorePavimento(pav) {
   }
 
   const organograma = raizes.map(r => visitar(r, true))
+
+  // Ambiente ainda sem acesso atribuído não tem nó pra pendurar no
+  // organograma, mas continua entrando na tabela única de portas — não
+  // faz sentido escondê-lo da tabela só por ainda não ter posição na
+  // árvore (ver AcessosDescargasView.jsx).
+  ambientes.filter(a => !a.acessoId).forEach(amb => listaAmbientes.push({ amb }))
+
   return { organograma, listaAmbientes, nos }
+}
+
+// Texto da taxa populacional aplicada a um ambiente — só faz sentido pra
+// popTipo 'area' (a taxa vem da divisão, ver TAXA_POPULACIONAL); 'manual'
+// e 'fixo' usam um valor informado direto, sem taxa por área.
+function taxaPopulacionalTexto(amb, taxaPopulacional) {
+  if (amb.popTipo === 'fixo') return 'Assentos informados'
+  if (amb.popTipo === 'manual') return 'Informada manualmente'
+  return taxaPopulacional[amb.divisao]?.obs || '—'
 }
 
 // ── Tabela única com todos os ambientes do pavimento (largura de porta) ──
@@ -118,12 +134,18 @@ function tabelaAmbientes(listaAmbientes, taxaPopulacional, larguras) {
     tipo: 'tabela',
     centralizado: true,
     linhasCabecalho: [
-      [{ texto: 'PORTAS DOS AMBIENTES', colSpan: 5 }],
-      [{ texto: 'AMBIENTES' }, { texto: 'POPULAÇÃO' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
+      [{ texto: 'PORTAS DOS AMBIENTES', colSpan: 8 }],
+      [{ texto: 'AMBIENTES' }, { texto: 'ÁREA' }, { texto: 'DIVISÃO' }, { texto: 'TAXA POPULACIONAL' }, { texto: 'POPULAÇÃO' }, { texto: 'CUP' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
     ],
     linhas: listaAmbientes.map(({ amb }) => {
       const { pop, capPT, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
-      return [amb.nome, pop, capPT, pt.n, fmt(pt.la)]
+      return [
+        amb.nome,
+        `${fmt(amb.area || 0)} m²`,
+        amb.divisao || '—',
+        taxaPopulacionalTexto(amb, taxaPopulacional),
+        pop, capPT, pt.n, fmt(pt.la),
+      ]
     }),
   }
 }
@@ -194,15 +216,6 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
   })
   if (listaAmbientes.length > 0) {
     blocos.push(tabelaAmbientes(listaAmbientes, TAXA_POPULACIONAL, LARGURAS_MINIMAS))
-  }
-
-  const semAcesso = ambientes.filter(a => !a.acessoId)
-  if (semAcesso.length > 0) {
-    blocos.push({
-      tipo: 'lista',
-      estilo: 'alerta',
-      itens: [`${semAcesso.length} ambiente(s) de ${pav.label} ainda sem acesso atribuído na árvore: ${semAcesso.map(a => a.nome).join(', ')}.`],
-    })
   }
 
   return blocos
