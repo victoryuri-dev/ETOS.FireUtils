@@ -95,15 +95,21 @@ export const NOTAS_NORMATIVAS = {
 }
 
 // ── Larguras mínimas (item 5.4.2 e Anexo A, item III) ──────────────────
+// PT (largura mínima de porta) é a largura de fato exigida por faixa de
+// UP, não N_UP x LARG_UP — coincide com o cálculo multiplicado pra 2/3/4
+// UP (2x0,55=1,10 / 3x0,55=1,65 / 4x0,55=2,20), mas é a tabela quem manda:
+// calcPT faz max(N_UP x LARG_UP, largura_da_faixa), então a partir de
+// 5 UP (fora da tabela, sem faixa própria) o cálculo passa a multiplicar
+// por LARG_UP livremente.
 export const LARGURAS_MINIMAS = {
   LARG_UP: 0.55,
   AD: 1.20,
   ER: 1.20,
   PT: [
     { n_up: 1, largura: 0.80, tipo: '1 folha'  },
-    { n_up: 2, largura: 1.00, tipo: '1 folha'  },
-    { n_up: 3, largura: 1.50, tipo: '2 folhas' },
-    { n_up: 4, largura: 2.00, tipo: '2 folhas' },
+    { n_up: 2, largura: 1.10, tipo: '1 folha'  },
+    { n_up: 3, largura: 1.65, tipo: '2 folhas' },
+    { n_up: 4, largura: 2.20, tipo: '2 folhas' },
   ],
 }
 
