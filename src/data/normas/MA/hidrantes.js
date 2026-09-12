@@ -203,3 +203,24 @@ export const TEMPERATURAS_SUCCAO = [
 
 export const ALTITUDE_SUCCAO_PADRAO    = 0
 export const TEMPERATURA_SUCCAO_PADRAO = 30
+
+// ── Parâmetros do memorial de cálculo (marcha hidráulica) ───────────────
+// Espelham o perfil normativo do plugin (Fire Utils.tab/lib/normas/MA/
+// hidrantes.py) — mesmos valores/citações, usados só pra narrar o
+// dimensionamento já calculado pelo Revit (memorial/hidrantesCalculo.js),
+// nunca para recalcular nada aqui.
+export const HIDRANTES_SIMULTANEOS     = 2
+export const HIDRANTES_SIMULTANEOS_REF = 'NT 22 itens 5.8.3 / 5.8.8'
+
+export const V_MAX_TUBULACAO     = 5.0
+export const V_MAX_TUBULACAO_REF = 'NT 22 item 5.8.13'
+
+export const V_MAX_SUCCAO_POSITIVA = 3.0
+export const V_MAX_SUCCAO_NEGATIVA = 2.0
+export const V_MAX_SUCCAO_REF      = 'NT 22 item 5.8.12'
+
+export const TOLERANCIA_EQUILIBRIO_MCA     = 0.50
+export const TOLERANCIA_EQUILIBRIO_MCA_REF = 'NT 22/2021 - CBMMA'
+
+export const NPSHD_FATOR_VAZAO = 1.5
+export const NPSHD_REF         = 'NT 22 item 5.8.16'

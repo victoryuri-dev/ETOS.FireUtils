@@ -449,16 +449,18 @@ function Bomba({ d, eta, potCv, potKw }) {
 
 // ── Page Principal ────────────────────────────────────────────────────
 export default function HidrantesPage() {
-  const { state } = useProjeto()
-  const [dados,      setDados]      = useState(null)
+  const { state, dispatch } = useProjeto()
+  // Persistido em state.hidrantes.dimensionamento (não mais useState local)
+  // pra sobreviver navegação/reload e alimentar também o memorial de
+  // cálculo (memorial/hidrantesCalculo.js, sempre a última folha do
+  // memorial) — mesmo payload sincronizado pelo plugin, sem transformação.
+  const dados = state.hidrantes.dimensionamento
   const [importErro, setImportErro] = useState(null)
-  const [importTs,   setImportTs]   = useState(null)
   const [buscando,   setBuscando]   = useState(false)
   const fileInputRef = useRef(null)
 
   const aplicarHidrantes = payload => {
-    setDados(payload)
-    setImportTs(payload?._timestamp || null)
+    dispatch({ type: 'SET_HIDRANTES', changes: { dimensionamento: payload } })
     setImportErro(null)
   }
 
@@ -477,7 +479,7 @@ export default function HidrantesPage() {
         aplicarHidrantes(json.hidrantes)
       } catch (err) {
         setImportErro(err.message || 'Arquivo inválido.')
-        setDados(null)
+        dispatch({ type: 'SET_HIDRANTES', changes: { dimensionamento: null } })
       }
     }
     reader.readAsText(file, 'utf-8')
@@ -496,7 +498,7 @@ export default function HidrantesPage() {
     setBuscando(false)
     if (error || !data) {
       setImportErro('Nenhum dado de hidrantes sincronizado do Revit ainda para este projeto.')
-      setDados(null)
+      dispatch({ type: 'SET_HIDRANTES', changes: { dimensionamento: null } })
       return
     }
     aplicarHidrantes(data.payload)
@@ -566,10 +568,10 @@ export default function HidrantesPage() {
 
         {dados && (
           <>
-            {importTs && (
+            {dados._timestamp && (
               <div className="ibox green mb-6">
                 <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                <span className="text-xs">Dados importados do Revit — exportação: <strong>{importTs}</strong> · Método: <strong>{dados.calculo_escolha}</strong></span>
+                <span className="text-xs">Dados importados do Revit — exportação: <strong>{dados._timestamp}</strong> · Método: <strong>{dados.metodo}</strong></span>
               </div>
             )}
 

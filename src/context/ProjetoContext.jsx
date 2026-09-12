@@ -361,6 +361,14 @@ const INITIAL_STATE = {
     recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
     valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',
     observacoes: '',
+    // Resultado bruto do último "Dimensionar Hidrantes" no Revit — mesmo
+    // payload sincronizado pelo plugin (chave 'hidrantes' de firedata.json,
+    // ver Fire Utils.tab/lib/hidrantes/calc.py:salvar_cache/enviar_sync),
+    // trazido pra cá via "Buscar do Revit"/importação de arquivo em
+    // HidrantesPage.jsx. Alimenta tanto o dashboard de dimensionamento
+    // quanto o memorial de cálculo (memorial/hidrantesCalculo.js, sempre a
+    // última folha do memorial) — null enquanto nada foi importado ainda.
+    dimensionamento: null,
   },
   // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) — só o que
   // não existe em nenhum outro lugar do state (endereço, sistemas, riscos
