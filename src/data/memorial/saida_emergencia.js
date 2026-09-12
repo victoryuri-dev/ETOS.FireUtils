@@ -3,11 +3,11 @@
 // usuário a partir de um modelo .docx (Generalidades padrão + parametrizada
 // pelas larguras mínimas da norma; uma tabela de distância máxima a
 // percorrer por estrutura; por pavimento, um organograma da árvore de
-// Acessos e Descargas seguido do dimensionamento de cada nó em pré-ordem
-// — Saída, depois cada Acesso e os ambientes que ele alimenta, antes de
-// passar pro próximo Acesso). Mesmo motor de cálculo (se_calc.js) que
-// alimenta pages/medidas/AcessosDescargasView.jsx — nunca duplica a
-// lógica aqui, só narra o resultado.
+// Acessos e Descargas, uma tabela única com todos os ambientes do
+// pavimento, e uma tabela individual pra cada Saída/Circulação). Mesmo
+// motor de cálculo (se_calc.js) que alimenta pages/medidas/
+// AcessosDescargasView.jsx — nunca duplica a lógica aqui, só narra o
+// resultado.
 //
 // Diferente dos builders mais antigos (extintores.js, seg_estrutural.js),
 // precisa saber chuveiros automáticos/detecção de incêndio POR ESTRUTURA
@@ -18,12 +18,13 @@
 import { getSE } from '../normas/index'
 import {
   contarSaidasPavimento, getDistancia,
-  calcNoAcesso, calcNoAmbientePT, calcPortaNoAcesso, tipoDoNo,
+  calcDimsAcesso, dimsDoAcesso, calcNoAmbientePT,
 } from '../se_calc'
 
 const fmt  = n => Number(n).toFixed(2).replace('.', ',')
 const fmtM = n => `${fmt(n)} m`
 const fmtEnxuto = n => Number(n).toFixed(2).replace(/,?0+$/, '').replace(/\.$/, '').replace('.', ',') || '0'
+const num2 = n => String(n).padStart(2, '0')
 
 function acessosFilhos(acessos, parentId) {
   return acessos.filter(a => a.alimentaEm === parentId)
@@ -74,55 +75,82 @@ function blocosGeneralidades(larguras) {
   ]
 }
 
-// ── Organograma (só nomes, em árvore) ───────────────────────────────────
-function organogramaDoAcesso(acesso, ambientes, acessos, pisoDescarga) {
-  const { label } = tipoDoNo(acesso, pisoDescarga)
-  const filhosAcesso = acessosFilhos(acessos, acesso.id)
-    .map(a => organogramaDoAcesso(a, ambientes, acessos, pisoDescarga))
-  const filhosAmbiente = ambientesDe(ambientes, acesso.id).map(amb => ({ texto: amb.nome }))
-  return { texto: `${acesso.nome} (${label})`, sub: [...filhosAcesso, ...filhosAmbiente] }
+// ── Árvore do pavimento — uma travessia só produz o organograma (formato
+// colchete: raiz/Circulação em negrito, ambientes numerados embaixo) e a
+// numeração de ambientes/Circulações usada nas tabelas, garantindo que
+// organograma e tabelas sempre casam ("01 - Recepção" aparece com o mesmo
+// número nos dois lugares). Raiz mantém o próprio nome (Saída NN/Escada-
+// Rampa NN, já numerado pelo site); nó não-raiz vira "CIRCULAÇÃO NN" — o
+// nome que o usuário deu no site (Acesso 1, Acesso 2...) é só um rótulo de
+// trabalho, o memorial usa uma numeração própria e contínua por pavimento.
+// Ambientes também são numerados de forma contínua por pavimento (não
+// reinicia a cada Saída), na ordem em que aparecem na árvore (ambientes
+// diretos do nó antes de descer pras Circulações filhas).
+function montarArvorePavimento(pav) {
+  const acessos = pav.acessos || []
+  const ambientes = pav.ambientes || []
+  const raizes = acessosFilhos(acessos, null)
+
+  let nAmbiente = 0
+  let nCirculacao = 0
+  const ambientesNumerados = [] // [{ amb, label }] em ordem de aparição
+  const nos = []                // [{ acesso, label }] em ordem — raízes + Circulações
+
+  function visitar(acesso, isRaiz) {
+    const label = isRaiz ? String(acesso.nome).toUpperCase() : `CIRCULAÇÃO ${num2(++nCirculacao)}`
+    nos.push({ acesso, label })
+
+    const subAmbientes = ambientesDe(ambientes, acesso.id).map(amb => {
+      const labelAmb = `${num2(++nAmbiente)} - ${amb.nome}`
+      ambientesNumerados.push({ amb, label: labelAmb })
+      return { texto: labelAmb, bold: false }
+    })
+    const subAcessos = acessosFilhos(acessos, acesso.id).map(a => visitar(a, false))
+
+    return { texto: label, bold: true, sub: [...subAmbientes, ...subAcessos] }
+  }
+
+  const organograma = raizes.map(r => visitar(r, true))
+  return { organograma, ambientesNumerados, nos }
 }
 
-// ── Dimensionamento (uma tabela por nó, em pré-ordem: o próprio nó,
-// depois cada Acesso filho recursivamente, depois os ambientes que
-// alimentam ESTE nó direto — mesma ordem do organograma acima e da
-// árvore em AcessosDescargasView.jsx). ──────────────────────────────────
-function tabelaDoAcesso(acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga) {
-  const { tipo, label } = tipoDoNo(acesso, pisoDescarga)
-  const { pop, cap, capValor, dim } = calcNoAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, tipo)
-  const porta = calcPortaNoAcesso(dim.n, larguras)
+// ── Tabela única com todos os ambientes do pavimento (largura de porta) ──
+function tabelaAmbientes(ambientesNumerados, taxaPopulacional, larguras) {
   return {
     tipo: 'tabela',
     centralizado: true,
     linhasCabecalho: [
-      [{ texto: acesso.nome.toUpperCase(), colSpan: 7 }],
-      [{ texto: 'POPULAÇÃO' }, { texto: label, colSpan: 3 }, { texto: 'PORTAS', colSpan: 3 }],
-      [{ texto: '' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
+      [{ texto: 'PORTAS DOS AMBIENTES', colSpan: 5 }],
+      [{ texto: 'AMBIENTES' }, { texto: 'POPULAÇÃO' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
     ],
-    linhas: [[pop, capValor, dim.n, fmt(dim.la), cap.PT, porta.n, fmt(porta.la)]],
+    linhas: ambientesNumerados.map(({ amb, label }) => {
+      const { pop, capPT, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
+      return [label, pop, capPT, pt.n, fmt(pt.la)]
+    }),
   }
 }
 
-function tabelaDoAmbiente(amb, taxaPopulacional, larguras) {
-  const { pop, capPT, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
+// ── Tabela individual de um nó (Saída/Escada-Rampa raiz, ou Circulação) —
+// uma linha por dimensionamento LIGADO no nó (AD/ER/PT, ver acesso.dims em
+// AcessosDescargasView.jsx) — um nó pode ter mais de um ao mesmo tempo
+// (ex.: piso de descarga que é corredor de saída E chegada de escada). ──
+function tabelaNo({ acesso, label }, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga) {
+  const dims = dimsDoAcesso(acesso, pisoDescarga)
+  const { pop, cap, ad, er, pt } = calcDimsAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, dims)
+  const linhas = [
+    ad && ['ACESSO/DESCARGA', pop, cap.AD, ad.n, fmt(ad.la)],
+    er && ['ESCADAS/RAMPAS', pop, cap.ER, er.n, fmt(er.la)],
+    pt && ['PORTAS', pop, cap.PT, pt.n, fmt(pt.la)],
+  ].filter(Boolean)
   return {
     tipo: 'tabela',
     centralizado: true,
     linhasCabecalho: [
-      [{ texto: amb.nome.toUpperCase(), colSpan: 4 }],
-      [{ texto: 'POPULAÇÃO' }, { texto: 'PORTAS', colSpan: 3 }],
-      [{ texto: '' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
+      [{ texto: label, colSpan: 5 }],
+      [{ texto: 'ELEMENTOS' }, { texto: 'POPULAÇÃO' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
     ],
-    linhas: [[pop, capPT, pt.n, fmt(pt.la)]],
+    linhas,
   }
-}
-
-function tabelasDoAcesso(acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga) {
-  const propria = tabelaDoAcesso(acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga)
-  const filhosAcesso = acessosFilhos(acessos, acesso.id)
-    .flatMap(a => tabelasDoAcesso(a, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga))
-  const filhosAmbiente = ambientesDe(ambientes, acesso.id).map(amb => tabelaDoAmbiente(amb, taxaPopulacional, larguras))
-  return [propria, ...filhosAcesso, ...filhosAmbiente]
 }
 
 function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
@@ -157,13 +185,18 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
     })
   }
 
+  const { organograma, ambientesNumerados, nos } = montarArvorePavimento(pav)
+
   blocos.push({ tipo: 'titulo2', texto: 'Organograma' })
-  blocos.push({ tipo: 'lista', itens: raizes.map(r => organogramaDoAcesso(r, ambientes, acessos, !!pav.pisoDescarga)) })
+  blocos.push({ tipo: 'organograma', nos: organograma })
 
   blocos.push({ tipo: 'titulo2', texto: 'Larguras Mínimas' })
-  raizes.forEach(r => {
-    blocos.push(...tabelasDoAcesso(r, ambientes, acessos, TAXA_POPULACIONAL, LARGURAS_MINIMAS, !!pav.pisoDescarga))
+  nos.forEach(no => {
+    blocos.push(tabelaNo(no, ambientes, acessos, TAXA_POPULACIONAL, LARGURAS_MINIMAS, !!pav.pisoDescarga))
   })
+  if (ambientesNumerados.length > 0) {
+    blocos.push(tabelaAmbientes(ambientesNumerados, TAXA_POPULACIONAL, LARGURAS_MINIMAS))
+  }
 
   const semAcesso = ambientes.filter(a => !a.acessoId)
   if (semAcesso.length > 0) {

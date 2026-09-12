@@ -411,6 +411,29 @@ function ListaItemTexto({ item }) {
   return <><strong>{item.label}:</strong> <span className="whitespace-pre-line">{item.valor}</span></>
 }
 
+// Um nó do bloco 'organograma' (ver memorial/saida_emergencia.js) — raiz e
+// Circulação em negrito/maiúsculo, ambiente em texto normal; filhos ficam
+// recuados dentro de uma faixa com borda à esquerda, imitando o colchete
+// que agrupa visualmente "o que esse nó alimenta" (sem limite de
+// profundidade — Circulação pode ter outra Circulação dentro).
+function OrganogramaNo({ no }) {
+  return (
+    <div className="mb-1 last:mb-0">
+      <div className={no.bold
+        ? 'font-heading text-[12.5px] font-bold text-black uppercase tracking-[.02em]'
+        : 'text-[12px] text-black'
+      }>
+        {no.texto}
+      </div>
+      {no.sub?.length > 0 && (
+        <div className="pl-4 ml-1 mt-1 pb-0.5 border-l border-solid border-[#999]">
+          {no.sub.map((s, i) => <OrganogramaNo key={i} no={s}/>)}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Um <li> de bloco 'lista', com sub-lista recursiva (item.sub pode ter seus
 // próprios itens com sub, sem limite de profundidade — ex.: riscos especiais
 // com mais de uma estrutura viram Riscos > Estrutura > risco, 3 níveis).
@@ -501,6 +524,12 @@ function BlocoMedida({ bloco }) {
         <ul className="list-none mb-4">
           {bloco.itens.map((item, i) => <ListaLi key={i} item={item} estilo={bloco.estilo}/>)}
         </ul>
+      )
+    case 'organograma':
+      return (
+        <div className="mb-4">
+          {bloco.nos.map((no, i) => <OrganogramaNo key={i} no={no}/>)}
+        </div>
       )
     default:
       return null
