@@ -528,7 +528,15 @@ function BlocoMedida({ bloco }) {
     case 'organograma':
       return (
         <div className="mb-4">
-          {bloco.nos.map((no, i) => <OrganogramaNo key={i} no={no}/>)}
+          {/* mb-5 aqui (em vez de deixar só o mb-1 do próprio OrganogramaNo)
+              separa uma árvore (Saída/Escada-Rampa raiz) da próxima com uma
+              linha em branco — sem isso, a última Circulação de uma árvore
+              encosta direto na raiz seguinte. */}
+          {bloco.nos.map((no, i) => (
+            <div key={i} className="mb-5 last:mb-0">
+              <OrganogramaNo no={no}/>
+            </div>
+          ))}
         </div>
       )
     default:

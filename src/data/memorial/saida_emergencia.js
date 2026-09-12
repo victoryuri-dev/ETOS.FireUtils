@@ -76,34 +76,32 @@ function blocosGeneralidades(larguras) {
 }
 
 // ── Árvore do pavimento — uma travessia só produz o organograma (formato
-// colchete: raiz/Circulação em negrito, ambientes numerados embaixo) e a
-// numeração de ambientes/Circulações usada nas tabelas, garantindo que
-// organograma e tabelas sempre casam ("01 - Recepção" aparece com o mesmo
-// número nos dois lugares). Raiz mantém o próprio nome (Saída NN/Escada-
-// Rampa NN, já numerado pelo site); nó não-raiz vira "CIRCULAÇÃO NN" — o
-// nome que o usuário deu no site (Acesso 1, Acesso 2...) é só um rótulo de
-// trabalho, o memorial usa uma numeração própria e contínua por pavimento.
-// Ambientes também são numerados de forma contínua por pavimento (não
-// reinicia a cada Saída), na ordem em que aparecem na árvore (ambientes
-// diretos do nó antes de descer pras Circulações filhas).
+// colchete: raiz/Circulação em negrito, ambientes com o próprio nome
+// embaixo) e a lista de ambientes/nós usada nas tabelas, garantindo que
+// organograma e tabelas sempre casam. Raiz mantém o próprio nome (Saída
+// NN/Escada-Rampa NN, já numerado pelo site); nó não-raiz vira
+// "CIRCULAÇÃO NN" — o nome que o usuário deu no site (Acesso 1, Acesso
+// 2...) é só um rótulo de trabalho, o memorial usa uma numeração própria e
+// contínua por pavimento. Ambiente usa o próprio nome sem numeração
+// extra — muitos já vêm numerados pelo Revit ("02 - Sala", ver
+// populacao.set_occupancy no plugin); prefixar de novo aqui duplicava o
+// número ("01 - 02 - Sala").
 function montarArvorePavimento(pav) {
   const acessos = pav.acessos || []
   const ambientes = pav.ambientes || []
   const raizes = acessosFilhos(acessos, null)
 
-  let nAmbiente = 0
   let nCirculacao = 0
-  const ambientesNumerados = [] // [{ amb, label }] em ordem de aparição
-  const nos = []                // [{ acesso, label }] em ordem — raízes + Circulações
+  const listaAmbientes = [] // [{ amb }] em ordem de aparição
+  const nos = []            // [{ acesso, label }] em ordem — raízes + Circulações
 
   function visitar(acesso, isRaiz) {
     const label = isRaiz ? String(acesso.nome).toUpperCase() : `CIRCULAÇÃO ${num2(++nCirculacao)}`
     nos.push({ acesso, label })
 
     const subAmbientes = ambientesDe(ambientes, acesso.id).map(amb => {
-      const labelAmb = `${num2(++nAmbiente)} - ${amb.nome}`
-      ambientesNumerados.push({ amb, label: labelAmb })
-      return { texto: labelAmb, bold: false }
+      listaAmbientes.push({ amb })
+      return { texto: amb.nome, bold: false }
     })
     const subAcessos = acessosFilhos(acessos, acesso.id).map(a => visitar(a, false))
 
@@ -111,11 +109,11 @@ function montarArvorePavimento(pav) {
   }
 
   const organograma = raizes.map(r => visitar(r, true))
-  return { organograma, ambientesNumerados, nos }
+  return { organograma, listaAmbientes, nos }
 }
 
 // ── Tabela única com todos os ambientes do pavimento (largura de porta) ──
-function tabelaAmbientes(ambientesNumerados, taxaPopulacional, larguras) {
+function tabelaAmbientes(listaAmbientes, taxaPopulacional, larguras) {
   return {
     tipo: 'tabela',
     centralizado: true,
@@ -123,9 +121,9 @@ function tabelaAmbientes(ambientesNumerados, taxaPopulacional, larguras) {
       [{ texto: 'PORTAS DOS AMBIENTES', colSpan: 5 }],
       [{ texto: 'AMBIENTES' }, { texto: 'POPULAÇÃO' }, { texto: 'CAPACIDADE' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
     ],
-    linhas: ambientesNumerados.map(({ amb, label }) => {
+    linhas: listaAmbientes.map(({ amb }) => {
       const { pop, capPT, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
-      return [label, pop, capPT, pt.n, fmt(pt.la)]
+      return [amb.nome, pop, capPT, pt.n, fmt(pt.la)]
     }),
   }
 }
@@ -185,7 +183,7 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
     })
   }
 
-  const { organograma, ambientesNumerados, nos } = montarArvorePavimento(pav)
+  const { organograma, listaAmbientes, nos } = montarArvorePavimento(pav)
 
   blocos.push({ tipo: 'titulo2', texto: 'Organograma' })
   blocos.push({ tipo: 'organograma', nos: organograma })
@@ -194,8 +192,8 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
   nos.forEach(no => {
     blocos.push(tabelaNo(no, ambientes, acessos, TAXA_POPULACIONAL, LARGURAS_MINIMAS, !!pav.pisoDescarga))
   })
-  if (ambientesNumerados.length > 0) {
-    blocos.push(tabelaAmbientes(ambientesNumerados, TAXA_POPULACIONAL, LARGURAS_MINIMAS))
+  if (listaAmbientes.length > 0) {
+    blocos.push(tabelaAmbientes(listaAmbientes, TAXA_POPULACIONAL, LARGURAS_MINIMAS))
   }
 
   const semAcesso = ambientes.filter(a => !a.acessoId)
