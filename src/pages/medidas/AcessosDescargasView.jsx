@@ -99,7 +99,7 @@ function LabelQuebrado({ texto }) {
 function Checkbox({ checked, onChange, title }) {
   return (
     <button type="button" onClick={e => { e.stopPropagation(); onChange() }} title={title}
-      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border border-solid bg-transparent flex items-center justify-center transition-colors ${checked ? 'border-ink' : 'border-ink-muted hover:border-ink'}`}
+      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border-[1.5px] border-solid bg-transparent flex items-center justify-center transition-colors ${checked ? 'border-ink' : 'border-ink hover:border-red'}`}
     >
       {checked && <Icon name="check" size={10} className="text-ink"/>}
     </button>
