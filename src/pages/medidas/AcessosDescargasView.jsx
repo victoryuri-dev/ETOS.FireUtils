@@ -99,7 +99,7 @@ function LabelQuebrado({ texto }) {
 function Checkbox({ checked, onChange, title }) {
   return (
     <button type="button" onClick={e => { e.stopPropagation(); onChange() }} title={title}
-      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border border-solid bg-transparent flex items-center justify-center transition-colors ${checked ? 'border-ink' : 'border-ink-faint hover:border-ink-muted'}`}
+      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border border-solid bg-transparent flex items-center justify-center transition-colors ${checked ? 'border-ink' : 'border-ink-muted hover:border-ink'}`}
     >
       {checked && <Icon name="check" size={10} className="text-ink"/>}
     </button>
@@ -131,12 +131,12 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
     <div ref={setNodeRef} style={style} onClick={() => modoSelecao ? onToggleSelecao(amb.id) : onEdit(amb)}
       className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''}`}
     >
-      <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center gap-2.5 min-w-0 max-w-[50%]">
         <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente">
           <Icon name="grip" size={13}/>
         </button>
         <Checkbox checked={selecionado} onChange={() => onToggleSelecao(amb.id)} title="Selecionar pra mover em massa"/>
-        <span className="font-heading text-[13px] font-semibold text-ink truncate max-w-[45%]">{amb.nome}</span>
+        <span className="font-heading text-[13px] font-semibold text-ink truncate min-w-0">{amb.nome}</span>
         {amb.origem === 'manual' && (
           <span title="Ambiente criado manualmente (não veio do Revit)" className="inline-flex items-center justify-center w-[20px] h-[20px] rounded border border-solid border-border-2 text-ink-faint shrink-0">
             <Icon name="user" size={11}/>
@@ -149,7 +149,6 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
         <span className="flex items-center gap-1.5">
           <span className="text-[9px] uppercase tracking-[.06em]">Porta</span>
           <strong className="font-heading text-[16px] font-bold text-red leading-none">{fmtM(pt.la)}</strong>
-          <DivBadge label={`${pt.n} UP`}/>
         </span>
         {orfao ? (
           <button onClick={e => { e.stopPropagation(); onRemove(amb.id) }} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1" title="Excluir ambiente">
@@ -184,16 +183,14 @@ function DimButton({ label, ativo, onClick }) {
   )
 }
 
-// ── Trinca rótulo+UP+valor da linha de larguras mínimas (ex.: "ACESSO/
-// DESCARGA  1UP  1,20 m") — só aparece quando o dimensionamento
-// correspondente está ligado (ver DimButton). UP agora é por elemento,
-// não mais um único badge compartilhado no cabeçalho do nó.
-function DimEntry({ label, up, value }) {
+// ── Um par rótulo+valor da linha de larguras mínimas (ex.: "ACESSO/
+// DESCARGA  1,20 m") — só aparece quando o dimensionamento correspondente
+// está ligado (ver DimButton).
+function DimEntry({ label, value }) {
   return (
     <div className="flex items-center gap-2">
       <div className="text-[9px] text-ink-faint uppercase tracking-[.06em] text-center leading-tight"><LabelQuebrado texto={label}/></div>
       <div className="font-heading text-[16px] font-bold text-red leading-none whitespace-nowrap">{value}</div>
-      <DivBadge label={`${up} UP`}/>
     </div>
   )
 }
@@ -213,9 +210,9 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
   const dims = dimsDoAcesso(acesso, pisoDescarga)
   const { pop, ad, er, pt } = calcDimsAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, dims)
   const entradas = [
-    ad && { label: 'ACESSO/DESCARGA', up: ad.n, value: fmtM(ad.la) },
-    pt && { label: 'PORTAS', up: pt.n, value: fmtM(pt.la) },
-    er && { label: 'ESCADA/RAMPA', up: er.n, value: fmtM(er.la) },
+    ad && { label: 'ACESSO/DESCARGA', value: fmtM(ad.la) },
+    pt && { label: 'PORTAS', value: fmtM(pt.la) },
+    er && { label: 'ESCADA/RAMPA', value: fmtM(er.la) },
   ].filter(Boolean)
   const filhos = acessosFilhos(acessos, acesso.id)
   const filhosAmbientes = ambientesDe(ambientes, acesso.id)
@@ -247,21 +244,20 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
       className={`group rounded-lg border border-solid bg-surface overflow-hidden transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
     >
       <div className="flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none bg-surface-2" onClick={() => toggleColapsado(acesso.id)}>
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 max-w-[50%]">
           {!isRaiz && (
             <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar (leva tudo dentro)">
               <Icon name="grip" size={14}/>
             </button>
           )}
           <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
-          <InlineEditableNome value={acesso.nome} onCommit={renomear} textClassName="font-heading text-[15px] font-bold text-ink truncate max-w-[45%]"/>
-          <span className="text-ink-faint opacity-30 shrink-0">|</span>
-          <span className="text-[11px] text-ink-faint whitespace-nowrap shrink-0">{pop} Pessoas</span>
+          <InlineEditableNome value={acesso.nome} onCommit={renomear} textClassName="font-heading text-[15px] font-bold text-ink truncate"/>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[11px] text-ink-faint whitespace-nowrap mr-1">{pop} Pessoas</span>
           <DimButton label="AD" ativo={dims.AD} onClick={() => toggleDim('AD')}/>
-          <DimButton label="ER" ativo={dims.ER} onClick={() => toggleDim('ER')}/>
           <DimButton label="PT" ativo={dims.PT} onClick={() => toggleDim('PT')}/>
+          <DimButton label="ER" ativo={dims.ER} onClick={() => toggleDim('ER')}/>
           <button onClick={remover} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1"><Icon name="trash" size={12}/></button>
         </div>
       </div>
@@ -269,7 +265,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
         <div className="flex items-center justify-center gap-4 pb-3.5 px-3.5 flex-wrap bg-surface-2">
           {entradas.flatMap((e, i) => [
             i > 0 && <span key={`sep-${i}`} className="text-ink-faint opacity-30">|</span>,
-            <DimEntry key={e.label} label={e.label} up={e.up} value={e.value}/>,
+            <DimEntry key={e.label} label={e.label} value={e.value}/>,
           ]).filter(Boolean)}
         </div>
       )}
