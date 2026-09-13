@@ -10,6 +10,8 @@ import { textoMemorialIluminacao } from './iluminacao'
 import { textoMemorialSinalizacao } from './sinalizacao'
 import { textoMemorialGerenciamentoRisco } from './gerenciamento_risco'
 import { textoMemorialSaidaEmergencia } from './saida_emergencia'
+import { textoMemorialHidrantes } from './hidrantes'
+import { textoMemorialCalculoHidrantes } from './hidrantesCalculo'
 
 export const MEMORIAL_BUILDERS = {
   acesso_viatura:      textoMemorialAcessoViatura,
@@ -19,7 +21,8 @@ export const MEMORIAL_BUILDERS = {
   sinalizacao:         textoMemorialSinalizacao,
   gerenciamento_risco: textoMemorialGerenciamentoRisco,
   saida_emergencia:    textoMemorialSaidaEmergencia,
-  // hidrantes, ... entram aqui conforme forem implementadas
+  hidrantes:           textoMemorialHidrantes,
+  // ... entram aqui conforme forem implementadas
 }
 
 /**
@@ -29,11 +32,23 @@ export const MEMORIAL_BUILDERS = {
  * (mesmo hook) só é repassado pra frente — necessário pros builders que
  * precisam de dado por-estrutura (ex.: saida_emergencia.js, pra chuveiros/
  * detecção na distância máxima a percorrer), não pelo agregado do projeto.
+ *
+ * O memorial de cálculo (marcha hidráulica) de Hidrantes é sempre a
+ * ÚLTIMA folha do documento — narra o dimensionamento feito pelo plugin
+ * Revit (ver memorial/hidrantesCalculo.js), então só faz sentido depois de
+ * toda a parte descritiva, e nunca deveria mudar de posição por causa da
+ * ordem de iteração de `sistemas` (não garantida).
  */
 export function buildMemorial(state, sistemas, porEstrutura) {
   const src = sistemas || state.sistemas || {}
-  return Object.entries(src)
+  const secoes = Object.entries(src)
     .filter(([, s]) => s.ativo || s.obrigatorio)
     .map(([key]) => MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura))
     .filter(Boolean)
+
+  if (src.hidrantes?.ativo || src.hidrantes?.obrigatorio) {
+    secoes.push(textoMemorialCalculoHidrantes(state))
+  }
+
+  return secoes
 }

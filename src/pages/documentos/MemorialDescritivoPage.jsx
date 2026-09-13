@@ -466,15 +466,32 @@ function BlocoMedida({ bloco }) {
   switch (bloco.tipo) {
     case 'titulo2':
       return <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mt-5 mb-2 first:mt-0">{bloco.texto}</h2>
+    // Sub-seção numerada dentro de um 'titulo2' (ex.: "6.1 Trecho HD01 ao
+    // Ponto A", memorial/hidrantesCalculo.js) — mesmo peso visual de um
+    // 'campo' em negrito, só maior, sem caixa alta (o número já organiza).
+    case 'titulo3':
+      return <h3 className="font-heading text-[12px] font-bold text-black mt-4 mb-2">{bloco.texto}</h3>
     case 'paragrafo':
       return <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{bloco.texto}</p>
+    // Equação em destaque (memorial/hidrantesCalculo.js) — texto corrido em
+    // notação de engenharia (Q^1,85, P_hd01 etc.), sem fração/sobrescrito
+    // renderizados de verdade: o resto do memorial descritivo também não
+    // faz isso, então mantém o mesmo nível de acabamento, só com uma borda
+    // à esquerda pra destacar a equação da prosa ao redor.
+    case 'formula':
+      return <div className="text-[12px] text-black font-mono leading-[1.6] mb-3 pl-3 border-l-2 border-solid border-[#c9c9cb] whitespace-pre-line">{bloco.texto}</div>
     case 'campo':
       return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:</strong> <span className="whitespace-pre-line">{bloco.valor}</span></div>
     case 'tabela': {
       // th/td alinhados ao centro quando a tabela é majoritariamente
       // numérica (ex.: dimensionamento de Acesso/Saída) — colunas de
       // texto livre continuam usando `colunas`/alinhamento à esquerda.
+      // `alinhas` (opcional, ex.: memorial/hidrantesCalculo.js) dá o
+      // alinhamento POR COLUNA quando uma tabela mistura texto (rótulo à
+      // esquerda) com números (valor à direita) — tem prioridade sobre
+      // `centralizado` quando presente.
       const alinhamento = bloco.centralizado ? 'text-center' : 'text-left'
+      const alinhaCol = i => (bloco.alinhas ? `text-${bloco.alinhas[i] || 'left'}` : alinhamento)
       return (
         <table className="w-full border-collapse text-[11px] text-black mb-4" style={bloco.larguras ? { tableLayout: 'fixed' } : undefined}>
           {bloco.larguras && (
@@ -499,7 +516,7 @@ function BlocoMedida({ bloco }) {
                 ))
               : (
                 <tr>
-                  {bloco.colunas.map((c, i) => <th key={i} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>{c}</th>)}
+                  {bloco.colunas.map((c, i) => <th key={i} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhaCol(i)}`}>{c}</th>)}
                 </tr>
               )}
           </thead>
@@ -517,7 +534,7 @@ function BlocoMedida({ bloco }) {
                   const temRowSpan = cel && typeof cel === 'object' && 'texto' in cel
                   const conteudo = temRowSpan ? cel.texto : cel
                   return (
-                    <td key={j} rowSpan={temRowSpan ? cel.rowSpan : undefined} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>
+                    <td key={j} rowSpan={temRowSpan ? cel.rowSpan : undefined} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhaCol(j)}`}>
                       {conteudo && typeof conteudo === 'object' && conteudo.tipo === 'imagem'
                         ? <img src={conteudo.src} alt={conteudo.alt || ''} className="w-9 h-9 object-contain block"/>
                         : conteudo}

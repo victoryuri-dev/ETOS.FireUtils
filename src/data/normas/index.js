@@ -20,6 +20,7 @@ import * as MA_EXT  from './MA/extintores'
 import * as MA_ILU  from './MA/iluminacao'
 import * as MA_SIN  from './MA/sinalizacao'
 import * as MA_NTS  from './MA/nts'
+import * as MA_HID  from './MA/hidrantes'
 
 import * as PB_SE   from './PB/saida_emergencia'
 
@@ -33,6 +34,7 @@ const NORMAS_TRRF = { MA: MA_TRRF }
 const NORMAS_EXT  = { MA: MA_EXT }
 const NORMAS_ILU  = { MA: MA_ILU }
 const NORMAS_SIN  = { MA: MA_SIN }
+const NORMAS_HID  = { MA: MA_HID }
 // getNts() não é parametrizado por UF hoje (só existe o MA_NTS estático,
 // e o único consumidor — MemorialDescritivoPage.jsx — sempre foi
 // hardcoded pro MA também); mantido assim pra não inventar comportamento
@@ -173,6 +175,10 @@ export function getNts(uf) {
   const remoto = getNormaRemota(uf, 'nts')
   return remoto ? renomearDaBaseCentral(remoto, CHAVES_NTS) : NTS_PADRAO
 }
+// Hidrantes ainda não foi migrado pra base normativa central (normas_dados)
+// — só existe o arquivo estático (normas/MA/hidrantes.js), mesmo padrão que
+// os demais getters tinham antes da migração remota.
+export function getHidrantes(uf)   { return NORMAS_HID[uf] ?? NORMAS_HID['MA'] }
 export function getOcupacoes(uf)   { return getNorma(uf)?.OCUPACOES ?? {} }
 export function getGrupos(uf)      {
   const oc = getOcupacoes(uf)

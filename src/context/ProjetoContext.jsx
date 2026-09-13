@@ -188,6 +188,7 @@ function hydrateState(saved) {
     ...saved,
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
+    hidrantes: { ...INITIAL_STATE.hidrantes, ...(saved.hidrantes || {}) },
     planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
     // Migração: pavimentos salvos antes de `ambientes` (Saída de Emergência)
     // ou de `acessos`/`pisoDescarga` (árvore de Acessos e Descargas)
@@ -317,6 +318,57 @@ const INITIAL_STATE = {
     extensaoVia: '', tipoRetorno: '', tipoRetornoOutroDesc: '',
     manobraRetornoOk: true, saidaIndepLargura: '', saidaIndepAltura: '',
     distanciaAdotada: '',
+  },
+  // Classificação do Sistema de Hidrantes/Mangotinhos (NT 22 CBMMA) pro
+  // memorial descritivo — registro único por projeto (a NT-22 não obriga
+  // sistemas independentes por estrutura; ver hidrantes_calc.js). O
+  // dimensionamento hidráulico (perda de carga, bomba etc.) continua vindo
+  // do plugin Revit — aqui só a classificação que o site decide e envia
+  // pra ele usar como entrada do cálculo.
+  hidrantes: {
+    // '' = ainda não classificado. tipo/rti podem vir da sugestão automática
+    // (useMedidasObrigatorias-like, ver hidrantes_calc.sugerirClassificacao)
+    // ou serem sobrescritos manualmente pelo RT.
+    // Estruturas consideradas na classificação (área total + ocupação de
+    // maior carga de incêndio) — nem toda edificação do projeto exige
+    // hidrantes, então a área somada não pode ser a do projeto inteiro.
+    // Vazio = ainda não ajustado manualmente, usa o default automático
+    // (estruturas onde hidrantes é exigido/ativo) — ver FormularioSistema.
+    estruturasSelecionadas: [],
+    tipo: '', tipoVariante: 0, rti: '',
+    reservatorioMaterial: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
+    bombaExiste: true, bombaJockey: false,
+    bombaReserva: false, bombaReservaAcionamento: '',
+    bombaAlimentaSprinklers: false,
+    // Eficiência global (%) informada pelo RT — usada só aqui no site pra
+    // dimensionar a potência mínima da bomba (P_cv = 1000·Qt·Ht/75·η), a
+    // partir de Qt/Ht que vêm do plugin. Não depende de nada exclusivo do
+    // modelo Revit, por isso deixou de ser perguntada por lá.
+    bombaEficiencia: '',
+    // Método de cálculo (onde a norma exige verificar Q/Pmin do sistema —
+    // "valvula" ou "esguicho") não é uma escolha do RT: é derivado da norma
+    // do estado do projeto (REFERENCIA_PRESSAO_VAZAO) e mantido em sincronia
+    // por FormularioSistema.jsx. Guardado aqui (em vez de calculado só na
+    // hora de enviar) pra viajar junto no dado sincronizado com o plugin,
+    // que não tem acesso à norma do site.
+    metodoCalculo: '',
+    // Entradas do NPSH disponível (Anexo C) — plugin usa pra decidir se a
+    // sucção é negativa e, se for, calcular o NPSHd; sem correspondência
+    // geométrica no modelo Revit, por isso perguntadas aqui. Defaults =
+    // ALTITUDE_SUCCAO_PADRAO/TEMPERATURA_SUCCAO_PADRAO de normas/MA/hidrantes.js.
+    succaoAltitude: 0, succaoTemperatura: 30,
+    redeMaterial: '', redeConfiguracao: 'ramal',
+    recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
+    valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',
+    observacoes: '',
+    // Resultado bruto do último "Dimensionar Hidrantes" no Revit — mesmo
+    // payload sincronizado pelo plugin (chave 'hidrantes' de firedata.json,
+    // ver Fire Utils.tab/lib/hidrantes/calc.py:salvar_cache/enviar_sync),
+    // trazido pra cá via "Buscar do Revit"/importação de arquivo em
+    // HidrantesPage.jsx. Alimenta tanto o dashboard de dimensionamento
+    // quanto o memorial de cálculo (memorial/hidrantesCalculo.js, sempre a
+    // última folha do memorial) — null enquanto nada foi importado ainda.
+    dimensionamento: null,
   },
   // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) — só o que
   // não existe em nenhum outro lugar do state (endereço, sistemas, riscos
@@ -699,6 +751,8 @@ function reducer(state, action) {
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
     case 'SET_PLANO_EMERGENCIA':
       return { ...state, planoEmergencia: { ...state.planoEmergencia, ...action.changes } }
+    case 'SET_HIDRANTES':
+      return { ...state, hidrantes: { ...state.hidrantes, ...action.changes } }
     case 'SET_WIZARD':
       return { ...state, configStep: action.step, configUnlocked: action.unlocked }
     case 'SET_CARGA': {
