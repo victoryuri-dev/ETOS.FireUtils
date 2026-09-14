@@ -5,6 +5,7 @@ import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import FormularioSistema from '../../components/hidrantes/FormularioSistema'
 import { calcPotenciaBomba } from '../../data/hidrantes_calc'
+import { getHidrantes } from '../../data/normas/index'
 
 // ── Formatação ────────────────────────────────────────────────────────
 const f4  = n => Number(n).toFixed(4)
@@ -13,9 +14,8 @@ const f3  = n => Number(n).toFixed(3)
 const fmca = n => `${f4(n)} mca`
 const fm   = n => `${f4(n)} m`
 const lmin = n => `${f2(n)} L/min`
-const m3s  = n => `${n.toFixed(4)} m³/s`
+const m3s  = n => `${Number(n).toFixed(4)} m³/s`
 const ms   = n => `${f3(n)} m/s`
-const V_MAX = 3.0
 
 // ── Shared UI ─────────────────────────────────────────────────────────
 function SecTitle({ n, label }) {
@@ -36,8 +36,11 @@ function TD({ children, red, green, bold, muted, right, center, mono }) {
   const colorClass = red ? 'text-red' : green ? 'text-green' : muted ? 'text-ink-faint' : 'text-ink'
   return <td className={`py-[9px] px-3.5 text-[13px] ${colorClass} ${bold?'font-bold':'font-normal'} border-b border-solid border-border-2 align-middle ${right?'text-right':center?'text-center':'text-left'} ${mono?'font-mono':'font-sans'}`}>{children}</td>
 }
-function VelChip({ v }) {
-  const ok = v <= V_MAX
+// `limite` é o limite normativo de velocidade DESTE trecho (recalque/
+// descarga sempre 5,0 m/s; sucção 3,0 ou 2,0 m/s conforme positiva/negativa
+// — ver normas/<UF>/hidrantes.js) — nunca um valor fixo pra todos os trechos.
+function VelChip({ v, limite }) {
+  const ok = v <= limite
   return <span className={`inline-flex items-center gap-1 py-[3px] px-2 rounded font-mono font-bold text-xs border border-solid ${ok?'bg-green-dim border-green-border text-green':'bg-red-dim border-red-border text-red'}`}>{ok?'✓':' ✗'} {ms(v)}</span>
 }
 function AtendeChip({ ok }) {
@@ -56,37 +59,48 @@ function CardHeader({ children }) {
   return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2">{children}</div>
 }
 
+// Pressão de referência no hidrante (o que se compara contra Pmin): na
+// ponta do esguicho quando o método é "Ponta do Esguicho Regulável", na
+// válvula quando é "Válvula do Hidrante" — ver hidrantes/calc.py.
+function pressaoHidrante(res, hd) {
+  if (!res.esguicho) return hd === 'hd01' ? res.P_hd01 : res.P_hd02
+  return res.esg[hd].P_esg
+}
+
 // ── Resumo Executivo ──────────────────────────────────────────────────
 function ResumoExecutivo({ d, potCv, potKw }) {
   const { res, dados_sistema } = d
-  const pmin = dados_sistema.pressao_min
+  const pmin = dados_sistema.p_min
   const pmax = 100
+  const p01 = pressaoHidrante(res, 'hd01')
+  const p02 = pressaoHidrante(res, 'hd02')
+  const labelPressao = res.esguicho ? 'Pressão no esguicho' : 'Pressão na válvula'
 
   const cards = [
     {
       id: 'HID-01', label: '1º MAIS DESFAVORÁVEL', color: 'var(--color-red)',
       rows: [
-        { label:'Pressão na válvula', val: fmca(res.p_hid01) },
-        { label:'Vazão real',         val: lmin(res.Q_h01) },
-        { label:'Σhf percurso',       val: fmca(res.Hf_Hid01) },
+        { label: labelPressao,        val: fmca(p01) },
+        { label:'Vazão real',         val: lmin(res.Q_hd01) },
+        { label:'Σhf percurso',       val: fmca(res.j.t3.J) },
       ],
-      atende: res.p_hid01 >= pmin && res.p_hid01 <= pmax,
+      atende: p01 >= pmin && p01 <= pmax,
     },
     {
       id: 'HID-02', label: '2º MAIS DESFAVORÁVEL', color: 'var(--color-amber)',
       rows: [
-        { label:'Pressão na válvula', val: fmca(res.p_hid02) },
-        { label:'Vazão real',         val: lmin(res.Q_h02) },
-        { label:'Σhf percurso',       val: fmca(res.Hf_Hid02) },
+        { label: labelPressao,        val: fmca(p02) },
+        { label:'Vazão real',         val: lmin(res.Q_hd02) },
+        { label:'Σhf percurso',       val: fmca(res.j.t4.J) },
       ],
-      atende: res.p_hid02 >= pmin && res.p_hid02 <= pmax,
+      atende: p02 >= pmin && p02 <= pmax,
     },
     {
       id: 'BOMBA', label: 'PONTO DE OPERAÇÃO', color: 'var(--color-green)',
       rows: [
-        { label:'Altura manométrica (Ht)', val: fmca(res.Ht) },
-        { label:'Vazão total (Qt)',        val: lmin(res.Qt_final) },
-        { label:'Qt em m³/h',             val: `${f2(res.Qt_final / 1000 * 60)} m³/h` },
+        { label:'Altura manométrica (Ht)', val: fmca(res.P_RTI) },
+        { label:'Vazão total (Qt)',        val: lmin(res.Qt) },
+        { label:'Qt em m³/h',              val: `${f2(res.Qt / 1000 * 60)} m³/h` },
         { label:'Potência mínima',         val: potCv != null ? `${f2(potCv)} cv` : '— (informe a eficiência)' },
         { label:'Potência mínima',         val: potKw != null ? `${f2(potKw)} kW` : '—' },
       ],
@@ -122,20 +136,21 @@ function ResumoExecutivo({ d, potCv, potKw }) {
 }
 
 // ── S1: Dados Normativos ──────────────────────────────────────────────
-function DadosNormativos({ d }) {
-  const { dados_sistema, valor_sistema, calculo_escolha, C_HW } = d
+function DadosNormativos({ d, norma }) {
+  const { dados_sistema, valor_sistema, metodo, C_HW, res } = d
+  const isEsguicho = res.esguicho
   const rows = [
     { param:'Classificação',          val: valor_sistema,                                                     ref:'NT 22 CBMMA' },
-    { param:'Método de cálculo',      val: calculo_escolha,                                                   ref:'—' },
-    { param:'Vazão mínima (Qmin)',    val: `${dados_sistema.vazao_min} L/min = ${(dados_sistema.vazao_min/1000/60).toFixed(4)} m³/s`, ref:'NT 22' },
-    { param:'Vazão total (Qt)',       val: `${dados_sistema.vazao_min * 2} L/min = ${(dados_sistema.vazao_min*2/1000/60).toFixed(4)} m³/s`, ref:'2 hidrantes simultâneos' },
-    { param:'Pressão mínima (Pmin)',  val: `${dados_sistema.pressao_min} mca`,                                ref:'NT 22' },
+    { param:'Método de cálculo',      val: metodo,                                                            ref:'—' },
+    { param:'Vazão mínima (Qmin)',    val: `${dados_sistema.q_min} L/min = ${(dados_sistema.q_min/1000/60).toFixed(4)} m³/s`, ref:'NT 22' },
+    { param:'Vazão total convergida (Qt)', val: `${f2(res.Qt)} L/min = ${(res.Qt/1000/60).toFixed(4)} m³/s`,  ref:'Equilíbrio hidráulico HD01+HD02' },
+    { param:'Pressão mínima (Pmin)',  val: `${dados_sistema.p_min} mca`,                                       ref:'NT 22' },
     { param:'Pressão máxima',         val: '100 mca',                                                         ref:'NT 22' },
-    { param:'Coef. Hazen-Williams (C)', val: String(C_HW),                                                   ref:'Aço / Ferro galvanizado' },
-    { param:'Velocidade máxima',      val: `${V_MAX.toFixed(1)} m/s`,                                         ref:'NBR 13714' },
+    { param:'Coef. Hazen-Williams (C)', val: String(C_HW),                                                    ref:'Perfil normativo do estado' },
+    { param:'Velocidade máxima',      val: `${norma.V_MAX_TUBULACAO.toFixed(1)} m/s (recalque/descarga) · ${norma.V_MAX_SUCCAO_POSITIVA.toFixed(1)}/${norma.V_MAX_SUCCAO_NEGATIVA.toFixed(1)} m/s (sucção positiva/negativa)`, ref:'NT 22' },
   ]
-  if (calculo_escolha !== 'Válvula do Hidrante') {
-    rows.push({ param:'Comp. mangueira', val:`${dados_sistema.mangueira_comp} m — DN ${dados_sistema.mangueira_dn}`, ref:'Projeto' })
+  if (isEsguicho) {
+    rows.push({ param:'Comp. mangueira', val:`${dados_sistema.mang_comp} m — DN ${dados_sistema.mang_dn}`, ref:'Projeto' })
   }
   return (
     <Table>
@@ -155,14 +170,21 @@ function DadosNormativos({ d }) {
 
 // ── S2: Cotas ─────────────────────────────────────────────────────────
 function Cotas({ d }) {
+  const { cotas } = d
+  const { dH } = d.res
   const pontos = [
-    { id:'RTI',    z: d.Z_RTI },
-    { id:'HID-01', z: d.Z_HID01 },
-    { id:'HID-02', z: d.Z_HID02 },
+    { id:'RTI (reservatório)',       z: cotas.z_rti },
+    { id:'Sucção (entrada da bomba)', z: cotas.z_succao },
+    { id:'Descarga da bomba',        z: cotas.z_recalque },
+    { id:'Ponto A (distribuição)',   z: cotas.z_ponto_a },
+    { id:'HD01 (mais desfavorável)', z: cotas.z_hd01 },
+    { id:'HD02 (2º mais desfavorável)', z: cotas.z_hd02 },
   ]
   const percursos = [
-    { label:'RTI → HID-01', dz: d.Hz_H1, abaixo: d.Z_HID01 < d.Z_RTI },
-    { label:'RTI → HID-02', dz: d.Hz_H2, abaixo: d.Z_HID02 < d.Z_RTI },
+    { label:'HD01 → Ponto A',              dz: dH.t3 },
+    { label:'HD02 → Ponto A',              dz: dH.t4 },
+    { label:'Ponto A → Descarga da bomba', dz: dH.t2 },
+    { label:'Sucção → RTI',                dz: dH.t1 },
   ]
   return (
     <div className="flex flex-col gap-3.5">
@@ -180,17 +202,17 @@ function Cotas({ d }) {
         </tbody>
       </Table>
       <Table>
-        <thead><tr><TH>Percurso</TH><TH right>ΔZ (m)</TH><TH center>Condição</TH></tr></thead>
+        <thead><tr><TH>Trecho</TH><TH right>∆Z (m)</TH><TH center>Sentido</TH></tr></thead>
         <tbody>
           {percursos.map(p => (
             <tr key={p.label}>
               <TD bold>{p.label}</TD>
               <td className="py-[9px] px-3.5 text-right border-b border-solid border-border-2">
-                <span className="font-mono font-bold text-amber">{f3(p.dz)}</span>
+                <span className="font-mono font-bold text-amber">{f4(p.dz)}</span>
               </td>
               <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2">
-                <span className={`text-[11px] py-[3px] px-2 rounded font-medium border border-solid ${p.abaixo?'bg-blue-dim border-blue-border text-[#6aabff]':'bg-red-dim border-red-border text-red'}`}>
-                  {p.abaixo ? 'Hidrante abaixo da RTI' : 'Hidrante acima da RTI'}
+                <span className={`text-[11px] py-[3px] px-2 rounded font-medium border border-solid ${p.dz >= 0 ?'bg-blue-dim border-blue-border text-[#6aabff]':'bg-red-dim border-red-border text-red'}`}>
+                  {p.dz >= 0 ? 'Favorável (cota inicial acima)' : 'Desfavorável (cota inicial abaixo)'}
                 </span>
               </td>
             </tr>
@@ -198,42 +220,44 @@ function Cotas({ d }) {
         </tbody>
       </Table>
       <div className="text-[11px] text-ink-faint leading-[1.6]">
-        ΔZ = Z<sub>RTI</sub> − Z<sub>Hidrante</sub>. Negativo indica hidrante acima da RTI — a bomba precisa vencer essa altura.
+        ∆Z = Hi − Hf, na direção da marcha de cálculo. Negativo aumenta a altura manométrica exigida da bomba.
       </div>
     </div>
   )
 }
 
 // ── S3: Perdas de Carga ───────────────────────────────────────────────
-function TrechoCard({ id, t, d }) {
-  const dmm = (t.D * 1000).toFixed(1)
-  return (
-    <Card className="mb-3">
-      <CardHeader>
-        <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border text-ink-faint font-mono">{id.toUpperCase()}</span>
-        <span className="text-[13px] font-semibold text-ink">{t.label}</span>
-      </CardHeader>
-      <div className="py-3.5 px-[18px]">
-        <Table>
-          <thead><tr><TH>Item</TH><TH>Valor</TH></tr></thead>
-          <tbody>
-            <tr><TD muted>Comprimento real (L)</TD><TD>{fm(t.L)}</TD></tr>
-            <tr><TD muted>Diâmetro interno médio (D)</TD><TD red bold>{dmm} mm ({f4(t.D)} m)</TD></tr>
-            <tr><TD muted>Vazão no trecho (Q)</TD><TD red bold>{lmin(t.Q_lmin)} ({m3s(t.Q_m3s)})</TD></tr>
-            <tr>
-              <TD muted>Velocidade (V = Q/A)</TD>
-              <td className="py-[9px] px-3.5 border-b border-solid border-border-2"><VelChip v={t.V}/></td>
-            </tr>
-          </tbody>
-        </Table>
+// Ordem da narrativa: os dois ramais até o Ponto A, depois o recalque até
+// a bomba, depois a sucção — mesma sequência da marcha de cálculo.
+const ORDEM_TRECHOS = ['t3', 't4', 't2', 't1']
 
-        <div className="text-[11px] text-ink-faint uppercase tracking-[.07em] mt-3 mb-1.5">
-          Acessórios ({t.n_aces} tipo{t.n_aces !== 1 ? 's' : ''}):
-        </div>
+function limiteVelocidade(trechoId, succao, norma) {
+  if (trechoId === 't1') return succao === 'positiva' ? norma.V_MAX_SUCCAO_POSITIVA : norma.V_MAX_SUCCAO_NEGATIVA
+  return norma.V_MAX_TUBULACAO
+}
+
+function SegmentoDiametro({ seg, vLimite }) {
+  return (
+    <div className="mb-3 last:mb-0">
+      <Table>
+        <thead><tr><TH>Item — DN{Number(seg.d_mm).toFixed(1)} mm</TH><TH>Valor</TH></tr></thead>
+        <tbody>
+          <tr><TD muted>Comprimento real (L)</TD><TD>{fm(seg.L)}</TD></tr>
+          <tr><TD muted>Comprimento equivalente (Leq)</TD><TD>{fm(seg.Leq)}</TD></tr>
+          <tr><TD muted>Comprimento total (Ltotal = L + Leq)</TD><TD red bold>{fm(seg.Ltotal)}</TD></tr>
+          <tr><TD muted>Perda unitária (Jun)</TD><TD mono>{Number(seg.Jun).toFixed(6)} m/m</TD></tr>
+          <tr><TD muted>Perda de carga (J = Ltotal · Jun)</TD><TD red bold>{fmca(seg.J)}</TD></tr>
+          <tr>
+            <TD muted>Velocidade (V)</TD>
+            <td className="py-[9px] px-3.5 border-b border-solid border-border-2"><VelChip v={seg.V} limite={vLimite}/></td>
+          </tr>
+        </tbody>
+      </Table>
+      {seg.acessorios.length > 0 && (
         <Table>
-          <thead><tr><TH w={48}>Qtd</TH><TH>Descrição</TH><TH right>Le unit. (m)</TH><TH right>Σ Le (m)</TH></tr></thead>
+          <thead><tr><TH w={48}>Qtd</TH><TH>Conexão / acessório</TH><TH right>Leq unit. (m)</TH><TH right>Σ Leq (m)</TH></tr></thead>
           <tbody>
-            {t.acessorios.map((a, i) => (
+            {seg.acessorios.map((a, i) => (
               <tr key={i}>
                 <TD red bold center>{a.qtd}</TD>
                 <TD>{a.nome}</TD>
@@ -241,44 +265,48 @@ function TrechoCard({ id, t, d }) {
                 <TD right mono red bold>{f4(a.leq_tot)}</TD>
               </tr>
             ))}
-            <tr>
-              <TD muted center>—</TD>
-              <TD bold>Total</TD>
-              <TD muted right>—</TD>
-              <TD right bold red>{fm(t.Leq)}</TD>
-            </tr>
           </tbody>
         </Table>
+      )}
+    </div>
+  )
+}
 
+function TrechoCard({ id, t, succao, norma }) {
+  const vLimite = limiteVelocidade(id, succao, norma)
+  return (
+    <Card className="mb-3">
+      <CardHeader>
+        <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border text-ink-faint font-mono">{id.toUpperCase()}</span>
+        <span className="text-[13px] font-semibold text-ink">{t.label}</span>
+        <span className="text-[11px] text-ink-faint ml-auto">Q = {lmin(t.Q_lmin)}</span>
+      </CardHeader>
+      <div className="py-3.5 px-[18px]">
+        {t.segmentos.map((seg, i) => <SegmentoDiametro key={i} seg={seg} vLimite={vLimite}/>)}
         <Formula>
-          Lt = L + Σ Le = {f4(t.L)} + {f4(t.Leq)} = <FormulaVal>{fm(t.Lt)}</FormulaVal>
-        </Formula>
-        <Formula>
-          hf = 10,643 × {f4(t.Lt)} × {f4(t.Q_m3s)}<sup>1,852</sup> / ({d.C_HW}<sup>1,852</sup> × {f4(t.D)}<sup>4,871</sup>) = <FormulaVal>{fmca(t.Hf)}</FormulaVal>
+          J do trecho (soma dos diâmetros) = <FormulaVal>{fmca(t.J)}</FormulaVal>
         </Formula>
       </div>
     </Card>
   )
 }
 
-function PerdasCarga({ d }) {
-  const trechos = Object.entries(d.res.hf).sort(([a],[b]) => a.localeCompare(b))
+function PerdasCarga({ d, norma }) {
+  const trechos = ORDEM_TRECHOS.map(id => [id, d.res.j[id]])
   return (
     <div>
-      {trechos.map(([id, t]) => <TrechoCard key={id} id={id} t={t} d={d}/>)}
+      {trechos.map(([id, t]) => <TrechoCard key={id} id={id} t={t} succao={d.succao} norma={norma}/>)}
       <div className="mt-4">
         <div className="text-xs text-ink-faint uppercase tracking-[.07em] mb-2">Resumo dos Trechos</div>
         <Table>
-          <thead><tr><TH>Trecho</TH><TH right>Q (L/min)</TH><TH right>D (mm)</TH><TH right>Lt (m)</TH><TH center>V (m/s)</TH><TH right>Hf (mca)</TH></tr></thead>
+          <thead><tr><TH>Trecho</TH><TH right>Q (L/min)</TH><TH right>Ltotal (m)</TH><TH right>J (mca)</TH></tr></thead>
           <tbody>
             {trechos.map(([id, t]) => (
               <tr key={id}>
                 <TD bold>{t.label}</TD>
                 <TD right red mono>{f2(t.Q_lmin)}</TD>
-                <TD right mono muted>{(t.D*1000).toFixed(1)}</TD>
-                <TD right mono muted>{f4(t.Lt)}</TD>
-                <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2"><VelChip v={t.V}/></td>
-                <TD right bold red mono>{f4(t.Hf)}</TD>
+                <TD right mono muted>{f4(t.L + t.Leq)}</TD>
+                <TD right bold red mono>{f4(t.J)}</TD>
               </tr>
             ))}
           </tbody>
@@ -289,40 +317,49 @@ function PerdasCarga({ d }) {
 }
 
 // ── S4: Altura Manométrica ────────────────────────────────────────────
+// Ht (= P_RTI) é construído em 3 estágios: pressão no Ponto A (ramal
+// governante) → pressão na saída da bomba (+ recalque) → pressão referida
+// à RTI (+ sucção) — não uma fórmula fechada de uma linha só.
 function AlturaMano({ d }) {
-  const { res, dados_sistema, Hm_mangueira, calculo_escolha } = d
-  const pmin = dados_sistema.pressao_min
-  const isEsguicho = calculo_escolha !== 'Válvula do Hidrante'
+  const { res } = d
+  const ramalGov = res.hid_governa
+  const trechoGov = ramalGov === 'HD01' ? 't3' : 't4'
+  const jGov = res.j[trechoGov]
+  const dHGov = res.dH[trechoGov]
+  const pRefLbl = res.esguicho ? 'P_valv (ramal governante)' : 'Pmin'
 
-  const rows = [
-    { parcela: 'Σhf (percurso crítico)', val: fmca(res.Hf_governa), desc: 'Soma das perdas por atrito' },
-    { parcela: 'ΔZ (com sinal)',         val: `${f4(res.Hz_governa)} m`, desc: res.Hz_governa > 0 ? 'RTI acima do hidrante — favorável (reduz Ht)' : 'RTI abaixo do hidrante — desfavorável (aumenta Ht)' },
-    ...(isEsguicho ? [{ parcela: 'Hm (mangueira)', val: fmca(Hm_mangueira), desc: 'Perda de carga na mangueira' }] : []),
-    { parcela: 'Pmin', val: `${pmin} mca`, desc: 'NT 22 CBMMA' },
+  const etapas = [
+    { etapa: pRefLbl,                                  val: fmca(res.P_valv_ref), desc: `Pressão de referência do ramal governante (${ramalGov})` },
+    { etapa: `J — ${ramalGov} → Ponto A`,               val: fmca(jGov.J),         desc: 'Perda de carga do ramal governante' },
+    { etapa: '∆Z (com sinal)',                          val: `${f4(dHGov)} m`,     desc: dHGov >= 0 ? 'Hidrante acima do Ponto A — favorável' : 'Hidrante abaixo do Ponto A — desfavorável' },
+    { etapa: '= Pressão no Ponto A (P_PA)',              val: fmca(res.P_PA),      desc: 'Pressão-alvo do Ponto A (maior entre os dois ramais)' },
+    { etapa: 'J — Ponto A → Bomba (recalque)',           val: fmca(res.j.t2.J),    desc: 'Perda de carga no recalque' },
+    { etapa: '∆Z (recalque, com sinal)',                 val: `${f4(res.dH.t2)} m`, desc: '' },
+    { etapa: '= Pressão na saída da bomba (P_SB)',       val: fmca(res.P_SB),      desc: '' },
+    { etapa: 'J — Sucção (bomba → RTI)',                 val: fmca(res.j.t1.J),    desc: 'Perda de carga na sucção' },
+    { etapa: '∆Z (sucção, com sinal)',                   val: `${f4(res.dH.t1)} m`, desc: '' },
   ]
-
-  const formula = isEsguicho
-    ? `Ht = Σhf − ΔZ + Hm + Pmin = ${f4(res.Hf_governa)} − (${f4(res.Hz_governa)}) + ${f4(Hm_mangueira)} + ${pmin} = `
-    : `Ht = Σhf − ΔZ + Pmin = ${f4(res.Hf_governa)} − (${f4(res.Hz_governa)}) + ${pmin} = `
 
   return (
     <div>
       <div className="text-xs text-ink-faint mb-2.5">
-        Percurso crítico: <strong className="text-red">{res.hid_governa}</strong>
+        Ramal governante: <strong className="text-red">{ramalGov}</strong>
       </div>
       <Table>
-        <thead><tr><TH>Parcela</TH><TH>Valor</TH><TH>Descrição</TH></tr></thead>
+        <thead><tr><TH>Etapa</TH><TH>Valor</TH><TH>Descrição</TH></tr></thead>
         <tbody>
-          {rows.map((r, i) => (
+          {etapas.map((r, i) => (
             <tr key={i}>
-              <TD muted>{r.parcela}</TD>
+              <TD muted>{r.etapa}</TD>
               <TD red bold mono>{r.val}</TD>
               <TD muted>{r.desc}</TD>
             </tr>
           ))}
         </tbody>
       </Table>
-      <Formula>{formula}<FormulaVal>{fmca(res.Ht)}</FormulaVal></Formula>
+      <Formula>
+        Ht = P_RTI = <FormulaVal>{fmca(res.P_RTI)}</FormulaVal>
+      </Formula>
     </div>
   )
 }
@@ -330,25 +367,20 @@ function AlturaMano({ d }) {
 // ── S5: Pressão e Vazão ───────────────────────────────────────────────
 function PressaoVazao({ d }) {
   const { res, dados_sistema } = d
-  const pmin = dados_sistema.pressao_min
+  const pmin = dados_sistema.p_min
   const pmax = 100
+  const labelPressao = res.esguicho ? 'Pressão no esguicho (P)' : 'Pressão na válvula (P)'
 
   const hids = [
-    {
-      id: 'HID-01', label: '1º mais desfavorável',
-      Hf: res.Hf_Hid01, dZ: d.Hz_H1, P: res.p_hid01, Q: res.Q_h01,
-      trechos: 'T1 + T2 + trecho exclusivo',
-    },
-    {
-      id: 'HID-02', label: '2º mais desfavorável',
-      Hf: res.Hf_Hid02, dZ: d.Hz_H2, P: res.p_hid02, Q: res.Q_h02,
-      trechos: 'T1 + T2 + trecho exclusivo',
-    },
+    { id: 'HID-01', label: '1º mais desfavorável', J: res.j.t3.J, dZ: res.dH.t3, P: pressaoHidrante(res, 'hd01'), Q: res.Q_hd01 },
+    { id: 'HID-02', label: '2º mais desfavorável', J: res.j.t4.J, dZ: res.dH.t4, P: pressaoHidrante(res, 'hd02'), Q: res.Q_hd02 },
   ]
 
   return (
     <div className="flex flex-col gap-3">
-      <Formula>P = Ht + ΔZ − Σhf &nbsp;|&nbsp; Q = K × √P &nbsp;|&nbsp; Iteração convergida em {res.iteracoes} ciclo(s) · K = {f4(res.K)} · ΔP = {fmca(res.dZ_max_H1)}</Formula>
+      <Formula>
+        Equilíbrio hidráulico convergido em {res.equilibrio.historico.length} iteração(ões) — erro final {f4(res.equilibrio.erro)} mca (tolerância {res.equilibrio.tolerancia} mca) · Fator K = {f4(res.K)}
+      </Formula>
       {hids.map(h => (
         <Card key={h.id}>
           <CardHeader>
@@ -357,31 +389,26 @@ function PressaoVazao({ d }) {
           </CardHeader>
           <div className="py-3.5 px-[18px]">
             <Table>
-              <thead><tr><TH>Parâmetro</TH><TH>Desenvolvimento</TH><TH right>Resultado</TH></tr></thead>
+              <thead><tr><TH>Parâmetro</TH><TH right>Resultado</TH></tr></thead>
               <tbody>
                 <tr>
-                  <TD muted>Σhf do percurso</TD>
-                  <TD muted>{h.trechos}</TD>
-                  <TD right red bold mono>{fmca(h.Hf)}</TD>
+                  <TD muted>Σhf do ramal (hidrante → Ponto A)</TD>
+                  <TD right red bold mono>{fmca(h.J)}</TD>
                 </tr>
                 <tr>
-                  <TD muted>ΔZ</TD>
-                  <TD muted>Z<sub>RTI</sub> − Z<sub>{h.id}</sub></TD>
+                  <TD muted>∆Z do ramal</TD>
                   <TD right red bold mono>{f4(h.dZ)} m</TD>
                 </tr>
                 <tr>
-                  <TD muted>Pressão na válvula (P)</TD>
-                  <TD muted>{f4(res.Ht)} + ({f4(h.dZ)}) − {f4(h.Hf)}</TD>
+                  <TD muted>{labelPressao}</TD>
                   <TD right red bold mono>{fmca(h.P)}</TD>
                 </tr>
                 <tr>
-                  <TD muted>Vazão real (Q)</TD>
-                  <TD muted>{f4(res.K)} × √{f4(h.P)}</TD>
+                  <TD muted>Vazão real (Q = K·√P)</TD>
                   <TD right red bold mono>{lmin(h.Q)}</TD>
                 </tr>
                 <tr>
-                  <TD muted>Verificação normativa</TD>
-                  <TD muted>Pmin = {pmin} / Pmax = {pmax} mca</TD>
+                  <TD muted>Verificação normativa (Pmin = {pmin} / Pmax = {pmax} mca)</TD>
                   <td className="py-[9px] px-3.5 text-right border-b border-solid border-border-2">
                     <AtendeChip ok={h.P >= pmin && h.P <= pmax}/>
                   </td>
@@ -398,14 +425,14 @@ function PressaoVazao({ d }) {
 // ── S6: Bomba ─────────────────────────────────────────────────────────
 function Bomba({ d, eta, potCv, potKw }) {
   const { res } = d
-  const Qt_m3s = res.Qt_final / 1000 / 60
-  const Qt_m3h = res.Qt_final / 1000 * 60
+  const Qt_m3s = res.Qt / 1000 / 60
+  const Qt_m3h = res.Qt / 1000 * 60
   const temEta = potCv != null
 
   const rows = [
-    { param:'Vazão total convergida (Qt)', val:`${lmin(res.Qt_final)} = ${m3s(Qt_m3s)}`, obs:`Q_HID-01 + Q_HID-02` },
-    { param:'Altura manométrica (Ht)',     val: fmca(res.Ht),                              obs:`Percurso crítico: ${res.hid_governa}` },
-    { param:'Eficiência global (η)',       val: eta ? `${eta}%` : '—',                     obs:'Informada na seção Bomba de Incêndio' },
+    { param:'Vazão total convergida (Qt)', val:`${lmin(res.Qt)} = ${m3s(Qt_m3s)}`, obs:'Q_HID-01 + Q_HID-02' },
+    { param:'Altura manométrica (Ht)',     val: fmca(res.P_RTI),                     obs:`Percurso crítico: ${res.hid_governa}` },
+    { param:'Eficiência global (η)',       val: eta ? `${eta}%` : '—',               obs:'Informada na seção Bomba de Incêndio' },
   ]
 
   return (
@@ -424,7 +451,7 @@ function Bomba({ d, eta, potCv, potKw }) {
       </Table>
       {temEta ? (
         <Formula>
-          Pcv = (1000 × {m3s(Qt_m3s)} × {f4(res.Ht)}) / (75 × {eta/100}) = <FormulaVal>{f2(potCv)} cv</FormulaVal>
+          Pcv = (1000 × {m3s(Qt_m3s)} × {f4(res.P_RTI)}) / (75 × {eta/100}) = <FormulaVal>{f2(potCv)} cv</FormulaVal>
         </Formula>
       ) : (
         <div className="ibox amber mt-2">
@@ -437,7 +464,7 @@ function Bomba({ d, eta, potCv, potKw }) {
         <tbody>
           <tr>
             <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(Qt_m3h)}</span></td>
-            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(res.Ht)}</span></td>
+            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(res.P_RTI)}</span></td>
             <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{temEta ? f2(potCv) : '—'}</span></td>
             <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{temEta ? f2(potKw) : '—'}</span></td>
           </tr>
@@ -455,6 +482,7 @@ export default function HidrantesPage() {
   // cálculo (memorial/hidrantesCalculo.js, sempre a última folha do
   // memorial) — mesmo payload sincronizado pelo plugin, sem transformação.
   const dados = state.hidrantes.dimensionamento
+  const norma = getHidrantes(state.uf)
   const [importErro, setImportErro] = useState(null)
   const [buscando,   setBuscando]   = useState(false)
   const fileInputRef = useRef(null)
@@ -465,7 +493,7 @@ export default function HidrantesPage() {
   }
 
   const eta = state.hidrantes.bombaEficiencia
-  const { potCv, potKw } = dados ? calcPotenciaBomba(dados.res.Qt_final, dados.res.Ht, eta) : { potCv: null, potKw: null }
+  const { potCv, potKw } = dados ? calcPotenciaBomba(dados.res.Qt, dados.res.P_RTI, eta) : { potCv: null, potKw: null }
 
   const handleImport = e => {
     const file = e.target.files[0]
@@ -505,9 +533,9 @@ export default function HidrantesPage() {
   }
 
   const sections = dados ? [
-    { n:1, label:'Dados Normativos do Sistema',           content: <DadosNormativos d={dados}/> },
+    { n:1, label:'Dados Normativos do Sistema',           content: <DadosNormativos d={dados} norma={norma}/> },
     { n:2, label:'Cotas Altimétricas e Desníveis',        content: <Cotas d={dados}/> },
-    { n:3, label:'Perdas de Carga por Trecho (Hazen-Williams)', content: <PerdasCarga d={dados}/> },
+    { n:3, label:'Perdas de Carga por Trecho (Hazen-Williams)', content: <PerdasCarga d={dados} norma={norma}/> },
     { n:4, label:'Altura Manométrica Total (Ht)',          content: <AlturaMano d={dados}/> },
     { n:5, label:'Pressão e Vazão nos Hidrantes',          content: <PressaoVazao d={dados}/> },
     { n:6, label:'Dimensionamento da Bomba de Recalque',   content: <Bomba d={dados} eta={eta} potCv={potCv} potKw={potKw}/> },
