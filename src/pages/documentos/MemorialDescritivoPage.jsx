@@ -458,6 +458,26 @@ function ListaLi({ item, estilo }) {
   )
 }
 
+function escaparHtml(texto) {
+  return String(texto).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+// Converte a notação de engenharia em texto simples (memorial/hidrantesCalculo.js,
+// ex.: "Q^1,85", "P_hd01") em sobrescrito/subscrito de verdade — mesma
+// conversão que o memorial.py do antigo plugin fazia (_sup/_sub) antes de
+// virar HTML, só que aqui direto no bloco 'formula' do memorial do site.
+function formatarFormula(texto) {
+  let t = escaparHtml(texto)
+  // Expoentes: "^1,85" ou "^−4,87" (inclui o sinal de menos unicode "−",
+  // usado nos coeficientes de Hazen-Williams) -> <sup>1,85</sup>
+  t = t.replace(/\^(−?-?[0-9]+(?:,[0-9]+)?)/g, (_, exp) => `<sup>${exp}</sup>`)
+  // Subscritos: "P_hd01", "Q_hd02", "P_valv", "P_PA,alvo" -> P<sub>hd01</sub>
+  // etc. — só letras/dígitos/vírgula depois do "_", pra não confundir com
+  // separador de milhar nem cortar no meio de outra pontuação.
+  t = t.replace(/\b([A-Za-zΔ∆]+)_([A-Za-z0-9,]+)\b/g, (_, base, sub) => `${base}<sub>${sub}</sub>`)
+  return t
+}
+
 // Blocos de conteudo (opcionais, ver memorial/seg_estrutural.js) — permitem
 // que uma secao troque paragrafo corrido por tabela/lista/campo quando isso
 // deixa os valores mais faceis de achar (ex.: TRRF por pavimento). Secoes
@@ -473,13 +493,18 @@ function BlocoMedida({ bloco }) {
       return <h3 className="font-heading text-[12px] font-bold text-black mt-4 mb-2">{bloco.texto}</h3>
     case 'paragrafo':
       return <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{bloco.texto}</p>
-    // Equação em destaque (memorial/hidrantesCalculo.js) — texto corrido em
-    // notação de engenharia (Q^1,85, P_hd01 etc.), sem fração/sobrescrito
-    // renderizados de verdade: o resto do memorial descritivo também não
-    // faz isso, então mantém o mesmo nível de acabamento, só com uma borda
-    // à esquerda pra destacar a equação da prosa ao redor.
+    // Equação em destaque (memorial/hidrantesCalculo.js) — texto em notação
+    // de engenharia (Q^1,85, P_hd01 etc.), convertido pra sobrescrito/
+    // subscrito de verdade (formatarFormula) — sem fração renderizada
+    // (numerador/denominador em vez de "A / B" numa linha só), única
+    // simplificação que o resto do memorial descritivo também não faz.
     case 'formula':
-      return <div className="text-[12px] text-black font-mono leading-[1.6] mb-3 pl-3 border-l-2 border-solid border-[#c9c9cb] whitespace-pre-line">{bloco.texto}</div>
+      return (
+        <div
+          className="text-[12px] text-black font-mono leading-[1.6] mb-3 pl-3 border-l-2 border-solid border-[#c9c9cb] whitespace-pre-line"
+          dangerouslySetInnerHTML={{ __html: formatarFormula(bloco.texto) }}
+        />
+      )
     case 'campo':
       return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:</strong> <span className="whitespace-pre-line">{bloco.valor}</span></div>
     case 'tabela': {
