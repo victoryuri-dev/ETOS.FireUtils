@@ -68,7 +68,10 @@ function pressaoHidrante(res, hd) {
 }
 
 // ── Resumo Executivo ──────────────────────────────────────────────────
-function ResumoExecutivo({ d, potCv, potKw }) {
+// Só os dois hidrantes mais desfavoráveis — o ponto de operação da bomba
+// (Ht/Qt/potência) fica na Etapa 3 (Dimensionamento da Bomba), junto da
+// eficiência e da potência adotada.
+function ResumoExecutivo({ d }) {
   const { res, dados_sistema } = d
   const pmin = dados_sistema.p_min
   const pmax = 100
@@ -95,21 +98,10 @@ function ResumoExecutivo({ d, potCv, potKw }) {
       ],
       atende: p02 >= pmin && p02 <= pmax,
     },
-    {
-      id: 'BOMBA', label: 'PONTO DE OPERAÇÃO', color: 'var(--color-green)',
-      rows: [
-        { label:'Altura manométrica (Ht)', val: fmca(res.P_RTI) },
-        { label:'Vazão total (Qt)',        val: lmin(res.Qt) },
-        { label:'Qt em m³/h',              val: `${f2(res.Qt / 1000 * 60)} m³/h` },
-        { label:'Potência mínima',         val: potCv != null ? `${f2(potCv)} cv` : '— (informe a eficiência)' },
-        { label:'Potência mínima',         val: potKw != null ? `${f2(potKw)} kW` : '—' },
-      ],
-      atende: null,
-    },
   ]
 
   return (
-    <div className="grid grid-cols-3 gap-4 mb-8">
+    <div className="grid grid-cols-2 gap-4 mb-8">
       {cards.map(c => (
         <Card key={c.id}>
           <CardHeader>
@@ -422,6 +414,40 @@ function PressaoVazao({ d }) {
   )
 }
 
+// ── Eficiência e Potência Adotada ────────────────────────────────────
+// Eficiência (η) e potência adotada são os dois únicos campos que o RT
+// informa na Etapa 3 — sincronizados direto com a dockpane via Supabase
+// (state.hidrantes.bombaEficiencia/bombaPotenciaAdotada), sem transformação.
+function EficienciaPotenciaAdotada({ eta, onChangeEta, potenciaAdotada, onChangePotenciaAdotada, potCv }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 mb-6">
+      <div>
+        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Eficiência global da bomba (η)</div>
+        <div className="relative max-w-[220px]">
+          <input type="number" step="1" min={1} max={100}
+            className="bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 pr-8 w-full outline-none box-border"
+            value={eta} onChange={e => onChangeEta(e.target.value)}/>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">%</span>
+        </div>
+      </div>
+      <div>
+        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Potência adotada</div>
+        <div className="relative max-w-[220px]">
+          <input type="number" step="0.5" min={0}
+            className="bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 pr-8 w-full outline-none box-border"
+            value={potenciaAdotada} onChange={e => onChangePotenciaAdotada(e.target.value)}/>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">cv</span>
+        </div>
+        {potenciaAdotada !== '' && potCv != null && (
+          <div className={`text-[11px] mt-1 ${Number(potenciaAdotada) >= potCv ? 'text-green' : 'text-red'}`}>
+            {Number(potenciaAdotada) >= potCv ? 'Atende a potência mínima' : `Abaixo da potência mínima calculada (${f2(potCv)} cv)`}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── S6: Bomba ─────────────────────────────────────────────────────────
 function Bomba({ d, eta, potCv, potKw }) {
   const { res } = d
@@ -432,7 +458,7 @@ function Bomba({ d, eta, potCv, potKw }) {
   const rows = [
     { param:'Vazão total convergida (Qt)', val:`${lmin(res.Qt)} = ${m3s(Qt_m3s)}`, obs:'Q_HID-01 + Q_HID-02' },
     { param:'Altura manométrica (Ht)',     val: fmca(res.P_RTI),                     obs:`Percurso crítico: ${res.hid_governa}` },
-    { param:'Eficiência global (η)',       val: eta ? `${eta}%` : '—',               obs:'Informada na seção Bomba de Incêndio' },
+    { param:'Eficiência global (η)',       val: eta ? `${eta}%` : '—',               obs:'Informada acima' },
   ]
 
   return (
@@ -455,7 +481,7 @@ function Bomba({ d, eta, potCv, potKw }) {
         </Formula>
       ) : (
         <div className="ibox amber mt-2">
-          <span className="text-xs">Informe a eficiência global da bomba na seção "Bomba de Incêndio", acima, pra calcular a potência mínima.</span>
+          <span className="text-xs">Informe a eficiência global da bomba, acima, pra calcular a potência mínima.</span>
         </div>
       )}
       <div className="text-xs text-ink-faint uppercase tracking-[.07em] mt-4 mb-2">Ponto de operação para seleção</div>
@@ -474,6 +500,27 @@ function Bomba({ d, eta, potCv, potKw }) {
   )
 }
 
+// ── Etapas ────────────────────────────────────────────────────────────
+const ETAPAS = [
+  { n: 1, label: 'Classificação do Sistema' },
+  { n: 2, label: 'Dimensionamento do Sistema' },
+  { n: 3, label: 'Dimensionamento da Bomba de Incêndio' },
+]
+
+function EtapasNav({ atual, onChange }) {
+  return (
+    <div className="flex items-center gap-1 mb-7 border-b border-solid border-border">
+      {ETAPAS.map(e => (
+        <button key={e.n} type="button" onClick={() => onChange(e.n)}
+          className={`flex items-center gap-2 py-2.5 px-4 text-[13px] font-semibold bg-transparent border-0 border-b-2 border-solid -mb-px cursor-pointer transition-colors ${atual === e.n ? 'text-red border-red' : 'text-ink-faint border-transparent hover:text-ink'}`}>
+          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${atual === e.n ? 'bg-red text-white' : 'bg-surface-2 text-ink-faint'}`}>{e.n}</span>
+          {e.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ── Page Principal ────────────────────────────────────────────────────
 export default function HidrantesPage() {
   const { state, dispatch } = useProjeto()
@@ -485,6 +532,7 @@ export default function HidrantesPage() {
   const norma = getHidrantes(state.uf)
   const [importErro, setImportErro] = useState(null)
   const [buscando,   setBuscando]   = useState(false)
+  const [etapa, setEtapa] = useState(1)
   const fileInputRef = useRef(null)
 
   const aplicarHidrantes = payload => {
@@ -493,6 +541,7 @@ export default function HidrantesPage() {
   }
 
   const eta = state.hidrantes.bombaEficiencia
+  const potenciaAdotada = state.hidrantes.bombaPotenciaAdotada
   const { potCv, potKw } = dados ? calcPotenciaBomba(dados.res.Qt, dados.res.P_RTI, eta) : { potCv: null, potKw: null }
 
   const handleImport = e => {
@@ -538,7 +587,6 @@ export default function HidrantesPage() {
     { n:3, label:'Perdas de Carga por Trecho (Hazen-Williams)', content: <PerdasCarga d={dados} norma={norma}/> },
     { n:4, label:'Altura Manométrica Total (Ht)',          content: <AlturaMano d={dados}/> },
     { n:5, label:'Pressão e Vazão nos Hidrantes',          content: <PressaoVazao d={dados}/> },
-    { n:6, label:'Dimensionamento da Bomba de Recalque',   content: <Bomba d={dados} eta={eta} potCv={potCv} potKw={potKw}/> },
   ] : []
 
   return (
@@ -559,58 +607,89 @@ export default function HidrantesPage() {
           </div>
         </div>
 
-        <FormularioSistema/>
+        <EtapasNav atual={etapa} onChange={setEtapa}/>
 
-        <div className="flex items-center justify-between gap-4 mb-7">
-          <div>
-            <h3 className="text-sm font-bold text-ink m-0 mb-1">Dimensionamento (plugin Revit)</h3>
-            <p className="text-[12px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-              Resultados calculados pelo plugin a partir da classificação acima.
-            </p>
-          </div>
-          <div className="shrink-0 flex flex-col items-end gap-1.5">
-            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
-            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
-              <Icon name="upload" size={13}/>
-              {buscando ? 'Buscando…' : 'Buscar do Revit'}
-            </button>
-            <button type="button" className="text-[10px] text-ink-faint hover:text-ink underline bg-transparent border-none cursor-pointer p-0" onClick={() => fileInputRef.current?.click()}>
-              ou importar de um arquivo .json
-            </button>
-          </div>
-        </div>
-
-        {importErro && (
-          <div className="ibox red mb-6">
-            <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
-            <span className="text-xs">Erro ao importar: {importErro}</span>
-          </div>
+        {etapa === 1 && (
+          <FormularioSistema/>
         )}
 
-        {!dados && !importErro && (
-          <div className="py-[60px] px-10 text-center border border-dashed border-border rounded-lg text-ink-faint">
-            <Icon name="upload" size={32} color="var(--color-border)"/>
-            <div className="mt-3 text-[13px]">Importe o <strong>firedata.json</strong> gerado pelo plugin Revit para visualizar o dimensionamento.</div>
-          </div>
-        )}
-
-        {dados && (
+        {etapa === 2 && (
           <>
-            {dados._timestamp && (
-              <div className="ibox green mb-6">
-                <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                <span className="text-xs">Dados importados do Revit — exportação: <strong>{dados._timestamp}</strong> · Método: <strong>{dados.metodo}</strong></span>
+            <div className="flex items-center justify-between gap-4 mb-7">
+              <div>
+                <h3 className="text-sm font-bold text-ink m-0 mb-1">Dimensionamento (plugin Revit)</h3>
+                <p className="text-[12px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+                  Resultados calculados pelo plugin a partir da classificação da Etapa 1.
+                </p>
+              </div>
+              <div className="shrink-0 flex flex-col items-end gap-1.5">
+                <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
+                <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
+                  <Icon name="upload" size={13}/>
+                  {buscando ? 'Buscando…' : 'Buscar do Revit'}
+                </button>
+                <button type="button" className="text-[10px] text-ink-faint hover:text-ink underline bg-transparent border-none cursor-pointer p-0" onClick={() => fileInputRef.current?.click()}>
+                  ou importar de um arquivo .json
+                </button>
+              </div>
+            </div>
+
+            {importErro && (
+              <div className="ibox red mb-6">
+                <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
+                <span className="text-xs">Erro ao importar: {importErro}</span>
               </div>
             )}
 
-            <ResumoExecutivo d={dados} potCv={potCv} potKw={potKw}/>
-
-            {sections.map(s => (
-              <div key={s.n} className="mb-8">
-                <SecTitle n={s.n} label={s.label}/>
-                {s.content}
+            {!dados && !importErro && (
+              <div className="py-[60px] px-10 text-center border border-dashed border-border rounded-lg text-ink-faint">
+                <Icon name="upload" size={32} color="var(--color-border)"/>
+                <div className="mt-3 text-[13px]">Importe o <strong>firedata.json</strong> gerado pelo plugin Revit para visualizar o dimensionamento.</div>
               </div>
-            ))}
+            )}
+
+            {dados && (
+              <>
+                {dados._timestamp && (
+                  <div className="ibox green mb-6">
+                    <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                    <span className="text-xs">Dados importados do Revit — exportação: <strong>{dados._timestamp}</strong> · Método: <strong>{dados.metodo}</strong></span>
+                  </div>
+                )}
+
+                <ResumoExecutivo d={dados}/>
+
+                {sections.map(s => (
+                  <div key={s.n} className="mb-8">
+                    <SecTitle n={s.n} label={s.label}/>
+                    {s.content}
+                  </div>
+                ))}
+              </>
+            )}
+          </>
+        )}
+
+        {etapa === 3 && (
+          <>
+            {!dados ? (
+              <div className="ibox amber mb-6">
+                <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+                <span className="text-xs">Calcule o dimensionamento na Etapa 2 (Dimensionamento do Sistema) antes de dimensionar a bomba.</span>
+              </div>
+            ) : (
+              <>
+                <EficienciaPotenciaAdotada
+                  eta={eta}
+                  onChangeEta={v => dispatch({ type: 'SET_HIDRANTES', changes: { bombaEficiencia: v } })}
+                  potenciaAdotada={potenciaAdotada}
+                  onChangePotenciaAdotada={v => dispatch({ type: 'SET_HIDRANTES', changes: { bombaPotenciaAdotada: v } })}
+                  potCv={potCv}
+                />
+                <SecTitle n={6} label="Dimensionamento da Bomba de Recalque"/>
+                <Bomba d={dados} eta={eta} potCv={potCv} potKw={potKw}/>
+              </>
+            )}
           </>
         )}
       </div>
