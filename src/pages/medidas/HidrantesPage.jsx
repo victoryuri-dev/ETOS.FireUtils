@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { supabase } from '../../lib/supabase'
 import Icon from '../../components/ui/Icon'
+import StepsNav from '../../components/layout/StepsNav'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import FormularioSistema from '../../components/hidrantes/FormularioSistema'
 import { calcPotenciaBomba } from '../../data/hidrantes_calc'
@@ -501,25 +502,15 @@ function Bomba({ d, eta, potCv, potKw }) {
 }
 
 // ── Etapas ────────────────────────────────────────────────────────────
-const ETAPAS = [
-  { n: 1, label: 'Classificação do Sistema' },
-  { n: 2, label: 'Dimensionamento do Sistema' },
-  { n: 3, label: 'Dimensionamento da Bomba de Incêndio' },
+// Mesmo componente de menu lateral do wizard de configuração inicial do
+// projeto (StepsNav.jsx, ver ConfiguracaoPage.jsx) — aqui sem trava entre
+// etapas (isUnlocked sempre true, o RT pode ir e voltar livremente), só
+// com um indicativo de "concluído"/"pendente" por etapa.
+const ETAPAS_HIDRANTES = [
+  { label: 'Classificação do Sistema',          sub: 'Tipo, RTI e sistema aplicado' },
+  { label: 'Dimensionamento do Sistema',         sub: 'Perdas de carga, cotas e pressão' },
+  { label: 'Dimensionamento da Bomba de Incêndio', sub: 'Eficiência e potência' },
 ]
-
-function EtapasNav({ atual, onChange }) {
-  return (
-    <div className="flex items-center gap-1 mb-7 border-b border-solid border-border">
-      {ETAPAS.map(e => (
-        <button key={e.n} type="button" onClick={() => onChange(e.n)}
-          className={`flex items-center gap-2 py-2.5 px-4 text-[13px] font-semibold bg-transparent border-0 border-b-2 border-solid -mb-px cursor-pointer transition-colors ${atual === e.n ? 'text-red border-red' : 'text-ink-faint border-transparent hover:text-ink'}`}>
-          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${atual === e.n ? 'bg-red text-white' : 'bg-surface-2 text-ink-faint'}`}>{e.n}</span>
-          {e.label}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 // ── Page Principal ────────────────────────────────────────────────────
 export default function HidrantesPage() {
@@ -589,9 +580,28 @@ export default function HidrantesPage() {
     { n:5, label:'Pressão e Vazão nos Hidrantes',          content: <PressaoVazao d={dados}/> },
   ] : []
 
+  // Status por etapa pro menu lateral (mesmo esquema visual de
+  // useStepStatus.js: 'done' = concluída, 'partial' = com algo pendente,
+  // undefined = ainda não iniciada) — aqui calculado direto, sem hook
+  // próprio, já que são só 3 etapas com critério simples.
+  const getStatus = n => {
+    if (n === 1) return state.hidrantes.tipo ? 'done' : undefined
+    if (n === 2) return dados ? 'done' : undefined
+    if (n === 3) return eta && potenciaAdotada ? 'done' : dados ? 'partial' : undefined
+    return undefined
+  }
+
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
+    <div className="flex flex-1 overflow-hidden">
+      <StepsNav
+        steps={ETAPAS_HIDRANTES}
+        current={etapa}
+        isUnlocked={() => true}
+        getStatus={getStatus}
+        onGo={setEtapa}
+      />
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-7">
@@ -606,8 +616,6 @@ export default function HidrantesPage() {
             </p>
           </div>
         </div>
-
-        <EtapasNav atual={etapa} onChange={setEtapa}/>
 
         {etapa === 1 && (
           <FormularioSistema/>
@@ -692,6 +700,7 @@ export default function HidrantesPage() {
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   )
