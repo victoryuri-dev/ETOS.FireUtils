@@ -192,27 +192,22 @@ function VerificacaoVelocidade({ d, norma }) {
 // impresso (memorial/hidrantesCalculo.js). Velocidade tem seção própria,
 // acima (VerificacaoVelocidade) — aqui é só magnitude da perda.
 
-// Hierarquia de verdade: cada nível tem sua própria caixa (fundo + borda),
-// não só peso de fonte — Leq é só apoio/intermediário (caixa apagada),
-// Ltotal já é um resultado (caixa neutra normal) e a Perda de Carga (J) é
-// O resultado do trecho, por isso ganha destaque em vermelho (mesma cor
-// de acento usada nos números-chave da página, como Ht/Qt).
-function MiniStat({ label, nivel = 'secundario', val, children }) {
-  const boxClass = nivel === 'primario'
-    ? 'bg-red-dim border-red-border'
-    : nivel === 'secundario'
-      ? 'bg-surface border-border'
-      : 'bg-bg border-border'
-  const labelClass = nivel === 'primario' ? 'text-red' : 'text-ink-faint'
+// Mesma caixa (fundo + borda) pras três — sem escurecer/clarear a esmo
+// entre elas, senão parece bagunça em vez de hierarquia. A hierarquia real
+// vem só da tipografia do valor: Leq é apoio/intermediário (apagado e
+// pequeno), Ltotal já é um resultado (peso normal), e a Perda de Carga (J)
+// é O resultado do trecho — maior, em negrito e na cor de acento (mesma
+// usada nos números-chave da página, como Ht/Qt), só o texto, não a caixa.
+function MiniStat({ label, nivel = 'secundario', val }) {
   const valClass = nivel === 'primario'
-    ? 'text-lg font-bold text-red'
+    ? 'text-base font-bold text-red'
     : nivel === 'secundario'
       ? 'text-[13px] font-semibold text-ink'
       : 'text-[12px] font-normal text-ink-faint'
   return (
-    <div className={`border border-solid rounded-md py-2 px-3 ${boxClass}`}>
-      <div className={`text-[10px] uppercase tracking-[.05em] mb-1 whitespace-nowrap font-semibold ${labelClass}`}>{label}</div>
-      {children || <div className={`font-mono ${valClass}`}>{val}</div>}
+    <div className="bg-surface border border-solid border-border rounded-md py-2 px-3">
+      <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1 whitespace-nowrap">{label}</div>
+      <div className={`font-mono ${valClass}`}>{val}</div>
     </div>
   )
 }
@@ -253,11 +248,9 @@ function SegmentoTrecho({ seg }) {
         </div>
       )}
 
-      <div className="flex flex-col gap-2.5">
-        <div className="grid grid-cols-2 gap-2.5">
-          <MiniStat label="Comp. Equivalente (Leq)" nivel="terciario" val={`${f4(seg.Leq)} m`}/>
-          <MiniStat label="Comp. Total (Ltotal)" nivel="secundario" val={`${f4(seg.Ltotal)} m`}/>
-        </div>
+      <div className="grid grid-cols-3 gap-2.5">
+        <MiniStat label="Comp. Equivalente (Leq)" nivel="terciario" val={`${f4(seg.Leq)} m`}/>
+        <MiniStat label="Comp. Total (Ltotal)" nivel="secundario" val={`${f4(seg.Ltotal)} m`}/>
         <MiniStat label="Perda de Carga do Trecho (J)" nivel="primario" val={fmca(seg.J)}/>
       </div>
     </div>
