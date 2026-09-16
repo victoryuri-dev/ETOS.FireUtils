@@ -345,6 +345,13 @@ const INITIAL_STATE = {
     // partir de Qt/Ht que vêm do plugin. Não depende de nada exclusivo do
     // modelo Revit, por isso deixou de ser perguntada por lá.
     bombaEficiencia: '',
+    // Potência realmente adotada pro conjunto motobomba (catálogo do
+    // fabricante só vem em potências padronizadas — raramente bate exato
+    // com a potência mínima calculada) — informada na mesma etapa
+    // "Dimensionamento da Bomba de Incêndio" que a eficiência, sincronizada
+    // direto com o plugin via Supabase (sem passar pelo Project Information
+    // do Revit).
+    bombaPotenciaAdotada: '',
     // Método de cálculo (onde a norma exige verificar Q/Pmin do sistema —
     // "valvula" ou "esguicho") não é uma escolha do RT: é derivado da norma
     // do estado do projeto (REFERENCIA_PRESSAO_VAZAO) e mantido em sincronia

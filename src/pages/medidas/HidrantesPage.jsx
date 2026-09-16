@@ -2,30 +2,22 @@ import { useState, useRef } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { supabase } from '../../lib/supabase'
 import Icon from '../../components/ui/Icon'
+import StepsNav from '../../components/layout/StepsNav'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import FormularioSistema from '../../components/hidrantes/FormularioSistema'
 import { calcPotenciaBomba } from '../../data/hidrantes_calc'
+import { getHidrantes } from '../../data/normas/index'
 
 // ── Formatação ────────────────────────────────────────────────────────
 const f4  = n => Number(n).toFixed(4)
 const f2  = n => Number(n).toFixed(2)
 const f3  = n => Number(n).toFixed(3)
 const fmca = n => `${f4(n)} mca`
-const fm   = n => `${f4(n)} m`
 const lmin = n => `${f2(n)} L/min`
-const m3s  = n => `${n.toFixed(4)} m³/s`
+const m3s  = n => `${Number(n).toFixed(4)} m³/s`
 const ms   = n => `${f3(n)} m/s`
-const V_MAX = 3.0
 
 // ── Shared UI ─────────────────────────────────────────────────────────
-function SecTitle({ n, label }) {
-  return (
-    <div className="flex items-center gap-2.5 mb-4">
-      <div className="w-6 h-6 rounded-md bg-red flex items-center justify-center text-[11px] font-bold text-white shrink-0">{n}</div>
-      <h3 className="text-sm font-bold text-ink m-0">{label}</h3>
-    </div>
-  )
-}
 function Table({ children }) {
   return <div className="border border-solid border-border rounded-md overflow-hidden mb-1"><table className="w-full border-collapse">{children}</table></div>
 }
@@ -36,8 +28,11 @@ function TD({ children, red, green, bold, muted, right, center, mono }) {
   const colorClass = red ? 'text-red' : green ? 'text-green' : muted ? 'text-ink-faint' : 'text-ink'
   return <td className={`py-[9px] px-3.5 text-[13px] ${colorClass} ${bold?'font-bold':'font-normal'} border-b border-solid border-border-2 align-middle ${right?'text-right':center?'text-center':'text-left'} ${mono?'font-mono':'font-sans'}`}>{children}</td>
 }
-function VelChip({ v }) {
-  const ok = v <= V_MAX
+// `limite` é o limite normativo de velocidade DESTE trecho (recalque/
+// descarga sempre 5,0 m/s; sucção 3,0 ou 2,0 m/s conforme positiva/negativa
+// — ver normas/<UF>/hidrantes.js) — nunca um valor fixo pra todos os trechos.
+function VelChip({ v, limite }) {
+  const ok = v <= limite
   return <span className={`inline-flex items-center gap-1 py-[3px] px-2 rounded font-mono font-bold text-xs border border-solid ${ok?'bg-green-dim border-green-border text-green':'bg-red-dim border-red-border text-red'}`}>{ok?'✓':' ✗'} {ms(v)}</span>
 }
 function AtendeChip({ ok }) {
@@ -56,46 +51,47 @@ function CardHeader({ children }) {
   return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2">{children}</div>
 }
 
+// Pressão de referência no hidrante (o que se compara contra Pmin): na
+// ponta do esguicho quando o método é "Ponta do Esguicho Regulável", na
+// válvula quando é "Válvula do Hidrante" — ver hidrantes/calc.py.
+function pressaoHidrante(res, hd) {
+  if (!res.esguicho) return hd === 'hd01' ? res.P_hd01 : res.P_hd02
+  return res.esg[hd].P_esg
+}
+
 // ── Resumo Executivo ──────────────────────────────────────────────────
-function ResumoExecutivo({ d, potCv, potKw }) {
+// Só os dois hidrantes mais desfavoráveis — o ponto de operação da bomba
+// (Ht/Qt/potência) fica na Etapa 3 (Dimensionamento da Bomba), junto da
+// eficiência e da potência adotada.
+function ResumoExecutivo({ d }) {
   const { res, dados_sistema } = d
-  const pmin = dados_sistema.pressao_min
+  const pmin = dados_sistema.p_min
   const pmax = 100
+  const p01 = pressaoHidrante(res, 'hd01')
+  const p02 = pressaoHidrante(res, 'hd02')
+  const labelPressao = res.esguicho ? 'Pressão no esguicho' : 'Pressão na válvula'
 
   const cards = [
     {
       id: 'HID-01', label: '1º MAIS DESFAVORÁVEL', color: 'var(--color-red)',
       rows: [
-        { label:'Pressão na válvula', val: fmca(res.p_hid01) },
-        { label:'Vazão real',         val: lmin(res.Q_h01) },
-        { label:'Σhf percurso',       val: fmca(res.Hf_Hid01) },
+        { label: labelPressao,        val: fmca(p01) },
+        { label:'Vazão real',         val: lmin(res.Q_hd01) },
       ],
-      atende: res.p_hid01 >= pmin && res.p_hid01 <= pmax,
+      atende: p01 >= pmin && p01 <= pmax,
     },
     {
       id: 'HID-02', label: '2º MAIS DESFAVORÁVEL', color: 'var(--color-amber)',
       rows: [
-        { label:'Pressão na válvula', val: fmca(res.p_hid02) },
-        { label:'Vazão real',         val: lmin(res.Q_h02) },
-        { label:'Σhf percurso',       val: fmca(res.Hf_Hid02) },
+        { label: labelPressao,        val: fmca(p02) },
+        { label:'Vazão real',         val: lmin(res.Q_hd02) },
       ],
-      atende: res.p_hid02 >= pmin && res.p_hid02 <= pmax,
-    },
-    {
-      id: 'BOMBA', label: 'PONTO DE OPERAÇÃO', color: 'var(--color-green)',
-      rows: [
-        { label:'Altura manométrica (Ht)', val: fmca(res.Ht) },
-        { label:'Vazão total (Qt)',        val: lmin(res.Qt_final) },
-        { label:'Qt em m³/h',             val: `${f2(res.Qt_final / 1000 * 60)} m³/h` },
-        { label:'Potência mínima',         val: potCv != null ? `${f2(potCv)} cv` : '— (informe a eficiência)' },
-        { label:'Potência mínima',         val: potKw != null ? `${f2(potKw)} kW` : '—' },
-      ],
-      atende: null,
+      atende: p02 >= pmin && p02 <= pmax,
     },
   ]
 
   return (
-    <div className="grid grid-cols-3 gap-4 mb-8">
+    <div className="grid grid-cols-2 gap-4 mb-8">
       {cards.map(c => (
         <Card key={c.id}>
           <CardHeader>
@@ -121,314 +117,156 @@ function ResumoExecutivo({ d, potCv, potKw }) {
   )
 }
 
-// ── S1: Dados Normativos ──────────────────────────────────────────────
-function DadosNormativos({ d }) {
-  const { dados_sistema, valor_sistema, calculo_escolha, C_HW } = d
-  const rows = [
-    { param:'Classificação',          val: valor_sistema,                                                     ref:'NT 22 CBMMA' },
-    { param:'Método de cálculo',      val: calculo_escolha,                                                   ref:'—' },
-    { param:'Vazão mínima (Qmin)',    val: `${dados_sistema.vazao_min} L/min = ${(dados_sistema.vazao_min/1000/60).toFixed(4)} m³/s`, ref:'NT 22' },
-    { param:'Vazão total (Qt)',       val: `${dados_sistema.vazao_min * 2} L/min = ${(dados_sistema.vazao_min*2/1000/60).toFixed(4)} m³/s`, ref:'2 hidrantes simultâneos' },
-    { param:'Pressão mínima (Pmin)',  val: `${dados_sistema.pressao_min} mca`,                                ref:'NT 22' },
-    { param:'Pressão máxima',         val: '100 mca',                                                         ref:'NT 22' },
-    { param:'Coef. Hazen-Williams (C)', val: String(C_HW),                                                   ref:'Aço / Ferro galvanizado' },
-    { param:'Velocidade máxima',      val: `${V_MAX.toFixed(1)} m/s`,                                         ref:'NBR 13714' },
+// ── Dados do Sistema (resumo compacto) ─────────────────────────────────
+// Só o que o RT precisa pra conferir que os requisitos normativos certos
+// foram usados — o detalhamento completo (referência de cada valor,
+// mangueira, velocidade máxima por trecho etc.) fica no memorial de
+// cálculo impresso (memorial/hidrantesCalculo.js), não duplicado aqui.
+function DadosDoSistema({ d }) {
+  const { dados_sistema, valor_sistema, metodo, C_HW, res } = d
+  const stats = [
+    { label: 'Classificação', val: valor_sistema },
+    { label: 'Método', val: metodo },
+    { label: 'Vazão mínima', val: `${dados_sistema.q_min} L/min` },
+    { label: 'Pressão mín.–máx.', val: `${dados_sistema.p_min}–100 mca` },
+    { label: 'Coef. C', val: String(C_HW) },
   ]
-  if (calculo_escolha !== 'Válvula do Hidrante') {
-    rows.push({ param:'Comp. mangueira', val:`${dados_sistema.mangueira_comp} m — DN ${dados_sistema.mangueira_dn}`, ref:'Projeto' })
+  if (res.esguicho) {
+    stats.push({ label: 'Mangueira', val: `DN${dados_sistema.mang_dn} · ${dados_sistema.mang_comp} m` })
   }
   return (
-    <Table>
-      <thead><tr><TH w="35%">Parâmetro</TH><TH>Valor</TH><TH>Referência</TH></tr></thead>
-      <tbody>
-        {rows.map((r, i) => (
-          <tr key={i}>
-            <TD muted>{r.param}</TD>
-            <TD bold>{r.val}</TD>
-            <TD muted>{r.ref}</TD>
-          </tr>
-        ))}
-      </tbody>
-    </Table>
-  )
-}
-
-// ── S2: Cotas ─────────────────────────────────────────────────────────
-function Cotas({ d }) {
-  const pontos = [
-    { id:'RTI',    z: d.Z_RTI },
-    { id:'HID-01', z: d.Z_HID01 },
-    { id:'HID-02', z: d.Z_HID02 },
-  ]
-  const percursos = [
-    { label:'RTI → HID-01', dz: d.Hz_H1, abaixo: d.Z_HID01 < d.Z_RTI },
-    { label:'RTI → HID-02', dz: d.Hz_H2, abaixo: d.Z_HID02 < d.Z_RTI },
-  ]
-  return (
-    <div className="flex flex-col gap-3.5">
-      <Table>
-        <thead><tr><TH>Ponto</TH><TH right>Cota Z (m)</TH></tr></thead>
-        <tbody>
-          {pontos.map(p => (
-            <tr key={p.id}>
-              <TD bold>{p.id}</TD>
-              <td className="py-[9px] px-3.5 text-right border-b border-solid border-border-2">
-                <span className="font-mono font-bold text-amber">{f3(p.z)} m</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      <Table>
-        <thead><tr><TH>Percurso</TH><TH right>ΔZ (m)</TH><TH center>Condição</TH></tr></thead>
-        <tbody>
-          {percursos.map(p => (
-            <tr key={p.label}>
-              <TD bold>{p.label}</TD>
-              <td className="py-[9px] px-3.5 text-right border-b border-solid border-border-2">
-                <span className="font-mono font-bold text-amber">{f3(p.dz)}</span>
-              </td>
-              <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2">
-                <span className={`text-[11px] py-[3px] px-2 rounded font-medium border border-solid ${p.abaixo?'bg-blue-dim border-blue-border text-[#6aabff]':'bg-red-dim border-red-border text-red'}`}>
-                  {p.abaixo ? 'Hidrante abaixo da RTI' : 'Hidrante acima da RTI'}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      <div className="text-[11px] text-ink-faint leading-[1.6]">
-        ΔZ = Z<sub>RTI</sub> − Z<sub>Hidrante</sub>. Negativo indica hidrante acima da RTI — a bomba precisa vencer essa altura.
-      </div>
-    </div>
-  )
-}
-
-// ── S3: Perdas de Carga ───────────────────────────────────────────────
-function TrechoCard({ id, t, d }) {
-  const dmm = (t.D * 1000).toFixed(1)
-  return (
-    <Card className="mb-3">
-      <CardHeader>
-        <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border text-ink-faint font-mono">{id.toUpperCase()}</span>
-        <span className="text-[13px] font-semibold text-ink">{t.label}</span>
-      </CardHeader>
-      <div className="py-3.5 px-[18px]">
-        <Table>
-          <thead><tr><TH>Item</TH><TH>Valor</TH></tr></thead>
-          <tbody>
-            <tr><TD muted>Comprimento real (L)</TD><TD>{fm(t.L)}</TD></tr>
-            <tr><TD muted>Diâmetro interno médio (D)</TD><TD red bold>{dmm} mm ({f4(t.D)} m)</TD></tr>
-            <tr><TD muted>Vazão no trecho (Q)</TD><TD red bold>{lmin(t.Q_lmin)} ({m3s(t.Q_m3s)})</TD></tr>
-            <tr>
-              <TD muted>Velocidade (V = Q/A)</TD>
-              <td className="py-[9px] px-3.5 border-b border-solid border-border-2"><VelChip v={t.V}/></td>
-            </tr>
-          </tbody>
-        </Table>
-
-        <div className="text-[11px] text-ink-faint uppercase tracking-[.07em] mt-3 mb-1.5">
-          Acessórios ({t.n_aces} tipo{t.n_aces !== 1 ? 's' : ''}):
+    <div className="grid grid-cols-3 gap-3 mb-8">
+      {stats.map(s => (
+        <div key={s.label} className="bg-surface border border-solid border-border rounded-md py-3 px-3.5 text-center">
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1 whitespace-nowrap">{s.label}</div>
+          <div className="text-[13px] font-bold text-ink">{s.val}</div>
         </div>
-        <Table>
-          <thead><tr><TH w={48}>Qtd</TH><TH>Descrição</TH><TH right>Le unit. (m)</TH><TH right>Σ Le (m)</TH></tr></thead>
-          <tbody>
-            {t.acessorios.map((a, i) => (
-              <tr key={i}>
-                <TD red bold center>{a.qtd}</TD>
-                <TD>{a.nome}</TD>
-                <TD right mono muted>{f4(a.leq_unit)}</TD>
-                <TD right mono red bold>{f4(a.leq_tot)}</TD>
-              </tr>
-            ))}
-            <tr>
-              <TD muted center>—</TD>
-              <TD bold>Total</TD>
-              <TD muted right>—</TD>
-              <TD right bold red>{fm(t.Leq)}</TD>
-            </tr>
-          </tbody>
-        </Table>
-
-        <Formula>
-          Lt = L + Σ Le = {f4(t.L)} + {f4(t.Leq)} = <FormulaVal>{fm(t.Lt)}</FormulaVal>
-        </Formula>
-        <Formula>
-          hf = 10,643 × {f4(t.Lt)} × {f4(t.Q_m3s)}<sup>1,852</sup> / ({d.C_HW}<sup>1,852</sup> × {f4(t.D)}<sup>4,871</sup>) = <FormulaVal>{fmca(t.Hf)}</FormulaVal>
-        </Formula>
-      </div>
-    </Card>
-  )
-}
-
-function PerdasCarga({ d }) {
-  const trechos = Object.entries(d.res.hf).sort(([a],[b]) => a.localeCompare(b))
-  return (
-    <div>
-      {trechos.map(([id, t]) => <TrechoCard key={id} id={id} t={t} d={d}/>)}
-      <div className="mt-4">
-        <div className="text-xs text-ink-faint uppercase tracking-[.07em] mb-2">Resumo dos Trechos</div>
-        <Table>
-          <thead><tr><TH>Trecho</TH><TH right>Q (L/min)</TH><TH right>D (mm)</TH><TH right>Lt (m)</TH><TH center>V (m/s)</TH><TH right>Hf (mca)</TH></tr></thead>
-          <tbody>
-            {trechos.map(([id, t]) => (
-              <tr key={id}>
-                <TD bold>{t.label}</TD>
-                <TD right red mono>{f2(t.Q_lmin)}</TD>
-                <TD right mono muted>{(t.D*1000).toFixed(1)}</TD>
-                <TD right mono muted>{f4(t.Lt)}</TD>
-                <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2"><VelChip v={t.V}/></td>
-                <TD right bold red mono>{f4(t.Hf)}</TD>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </div>
-    </div>
-  )
-}
-
-// ── S4: Altura Manométrica ────────────────────────────────────────────
-function AlturaMano({ d }) {
-  const { res, dados_sistema, Hm_mangueira, calculo_escolha } = d
-  const pmin = dados_sistema.pressao_min
-  const isEsguicho = calculo_escolha !== 'Válvula do Hidrante'
-
-  const rows = [
-    { parcela: 'Σhf (percurso crítico)', val: fmca(res.Hf_governa), desc: 'Soma das perdas por atrito' },
-    { parcela: 'ΔZ (com sinal)',         val: `${f4(res.Hz_governa)} m`, desc: res.Hz_governa > 0 ? 'RTI acima do hidrante — favorável (reduz Ht)' : 'RTI abaixo do hidrante — desfavorável (aumenta Ht)' },
-    ...(isEsguicho ? [{ parcela: 'Hm (mangueira)', val: fmca(Hm_mangueira), desc: 'Perda de carga na mangueira' }] : []),
-    { parcela: 'Pmin', val: `${pmin} mca`, desc: 'NT 22 CBMMA' },
-  ]
-
-  const formula = isEsguicho
-    ? `Ht = Σhf − ΔZ + Hm + Pmin = ${f4(res.Hf_governa)} − (${f4(res.Hz_governa)}) + ${f4(Hm_mangueira)} + ${pmin} = `
-    : `Ht = Σhf − ΔZ + Pmin = ${f4(res.Hf_governa)} − (${f4(res.Hz_governa)}) + ${pmin} = `
-
-  return (
-    <div>
-      <div className="text-xs text-ink-faint mb-2.5">
-        Percurso crítico: <strong className="text-red">{res.hid_governa}</strong>
-      </div>
-      <Table>
-        <thead><tr><TH>Parcela</TH><TH>Valor</TH><TH>Descrição</TH></tr></thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <TD muted>{r.parcela}</TD>
-              <TD red bold mono>{r.val}</TD>
-              <TD muted>{r.desc}</TD>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      <Formula>{formula}<FormulaVal>{fmca(res.Ht)}</FormulaVal></Formula>
-    </div>
-  )
-}
-
-// ── S5: Pressão e Vazão ───────────────────────────────────────────────
-function PressaoVazao({ d }) {
-  const { res, dados_sistema } = d
-  const pmin = dados_sistema.pressao_min
-  const pmax = 100
-
-  const hids = [
-    {
-      id: 'HID-01', label: '1º mais desfavorável',
-      Hf: res.Hf_Hid01, dZ: d.Hz_H1, P: res.p_hid01, Q: res.Q_h01,
-      trechos: 'T1 + T2 + trecho exclusivo',
-    },
-    {
-      id: 'HID-02', label: '2º mais desfavorável',
-      Hf: res.Hf_Hid02, dZ: d.Hz_H2, P: res.p_hid02, Q: res.Q_h02,
-      trechos: 'T1 + T2 + trecho exclusivo',
-    },
-  ]
-
-  return (
-    <div className="flex flex-col gap-3">
-      <Formula>P = Ht + ΔZ − Σhf &nbsp;|&nbsp; Q = K × √P &nbsp;|&nbsp; Iteração convergida em {res.iteracoes} ciclo(s) · K = {f4(res.K)} · ΔP = {fmca(res.dZ_max_H1)}</Formula>
-      {hids.map(h => (
-        <Card key={h.id}>
-          <CardHeader>
-            <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-red-dim border border-solid border-red-border text-red font-mono">{h.id}</span>
-            <span className="text-xs text-ink-faint">{h.label}</span>
-          </CardHeader>
-          <div className="py-3.5 px-[18px]">
-            <Table>
-              <thead><tr><TH>Parâmetro</TH><TH>Desenvolvimento</TH><TH right>Resultado</TH></tr></thead>
-              <tbody>
-                <tr>
-                  <TD muted>Σhf do percurso</TD>
-                  <TD muted>{h.trechos}</TD>
-                  <TD right red bold mono>{fmca(h.Hf)}</TD>
-                </tr>
-                <tr>
-                  <TD muted>ΔZ</TD>
-                  <TD muted>Z<sub>RTI</sub> − Z<sub>{h.id}</sub></TD>
-                  <TD right red bold mono>{f4(h.dZ)} m</TD>
-                </tr>
-                <tr>
-                  <TD muted>Pressão na válvula (P)</TD>
-                  <TD muted>{f4(res.Ht)} + ({f4(h.dZ)}) − {f4(h.Hf)}</TD>
-                  <TD right red bold mono>{fmca(h.P)}</TD>
-                </tr>
-                <tr>
-                  <TD muted>Vazão real (Q)</TD>
-                  <TD muted>{f4(res.K)} × √{f4(h.P)}</TD>
-                  <TD right red bold mono>{lmin(h.Q)}</TD>
-                </tr>
-                <tr>
-                  <TD muted>Verificação normativa</TD>
-                  <TD muted>Pmin = {pmin} / Pmax = {pmax} mca</TD>
-                  <td className="py-[9px] px-3.5 text-right border-b border-solid border-border-2">
-                    <AtendeChip ok={h.P >= pmin && h.P <= pmax}/>
-                  </td>
-                </tr>
-              </tbody>
-            </Table>
-          </div>
-        </Card>
       ))}
     </div>
   )
 }
 
-// ── S6: Bomba ─────────────────────────────────────────────────────────
+// ── Verificação por Trecho ──────────────────────────────────────────────
+// Ordem da narrativa: os dois ramais até o Ponto A, depois o recalque até
+// a bomba, depois a sucção — mesma sequência da marcha de cálculo. Só o
+// resultado por trecho (vazão, perda total, velocidade x limite) — o
+// detalhamento por segmento/acessório fica no memorial de cálculo impresso.
+const ORDEM_TRECHOS = ['t3', 't4', 't2', 't1']
+
+function limiteVelocidade(trechoId, succao, norma) {
+  if (trechoId === 't1') return succao === 'positiva' ? norma.V_MAX_SUCCAO_POSITIVA : norma.V_MAX_SUCCAO_NEGATIVA
+  return norma.V_MAX_TUBULACAO
+}
+
+function VerificacaoTrechos({ d, norma }) {
+  const trechos = ORDEM_TRECHOS.map(id => [id, d.res.j[id]])
+  return (
+    <Table>
+      <thead><tr><TH>Trecho</TH><TH right>Vazão</TH><TH right>Perda de carga (J)</TH><TH>Velocidade</TH></tr></thead>
+      <tbody>
+        {trechos.map(([id, t]) => {
+          const vLimite = limiteVelocidade(id, d.succao, norma)
+          return (
+            <tr key={id}>
+              <TD bold>{t.label}</TD>
+              <TD right mono muted>{lmin(t.Q_lmin)}</TD>
+              <TD right bold mono>{fmca(t.J)}</TD>
+              <td className="py-[9px] px-3.5 border-b border-solid border-border-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {t.segmentos.map((seg, i) => (
+                    <span key={i} className="inline-flex items-center gap-1.5">
+                      {t.segmentos.length > 1 && (
+                        <span className="text-[10px] text-ink-faint font-mono">DN{Number(seg.d_mm).toFixed(0)}</span>
+                      )}
+                      <VelChip v={seg.V} limite={vLimite}/>
+                    </span>
+                  ))}
+                </div>
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </Table>
+  )
+}
+
+// ── Resultado Hidráulico ─────────────────────────────────────────────────
+// Ht/Qt já convergidos — o passo a passo de como Ht foi montado (Ponto A →
+// saída da bomba → RTI) fica só no memorial de cálculo impresso.
+function ResultadoHidraulico({ d }) {
+  const { res } = d
+  const cards = [
+    { label: 'Altura Manométrica Total (Ht)', val: fmca(res.P_RTI) },
+    { label: 'Vazão Total (Qt)',              val: lmin(res.Qt) },
+    { label: 'Ramal Governante',              val: res.hid_governa },
+  ]
+  return (
+    <div className="grid grid-cols-3 gap-4 mb-8">
+      {cards.map(c => (
+        <div key={c.label} className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
+          <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">{c.label}</div>
+          <div className="text-xl font-bold text-red font-mono">{c.val}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Eficiência e Potência Adotada ────────────────────────────────────
+// Eficiência (η) e potência adotada são os dois únicos campos que o RT
+// informa na Etapa 3 — sincronizados direto com a dockpane via Supabase
+// (state.hidrantes.bombaEficiencia/bombaPotenciaAdotada), sem transformação.
+function EficienciaPotenciaAdotada({ eta, onChangeEta, potenciaAdotada, onChangePotenciaAdotada, potCv }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 mb-6">
+      <div>
+        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Eficiência global da bomba (η)</div>
+        <div className="relative max-w-[220px]">
+          <input type="number" step="1" min={1} max={100}
+            className="bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 pr-8 w-full outline-none box-border"
+            value={eta} onChange={e => onChangeEta(e.target.value)}/>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">%</span>
+        </div>
+      </div>
+      <div>
+        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Potência adotada</div>
+        <div className="relative max-w-[220px]">
+          <input type="number" step="0.5" min={0}
+            className="bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 pr-8 w-full outline-none box-border"
+            value={potenciaAdotada} onChange={e => onChangePotenciaAdotada(e.target.value)}/>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">cv</span>
+        </div>
+        {potenciaAdotada !== '' && potCv != null && (
+          <div className={`text-[11px] mt-1 ${Number(potenciaAdotada) >= potCv ? 'text-green' : 'text-red'}`}>
+            {Number(potenciaAdotada) >= potCv ? 'Atende a potência mínima' : `Abaixo da potência mínima calculada (${f2(potCv)} cv)`}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Ponto de Operação para Seleção da Bomba ────────────────────────────
+// Qt/Ht já foram mostrados na Etapa 2 (ResultadoHidraulico) e a eficiência
+// já está logo acima (EficienciaPotenciaAdotada) — aqui só o que falta:
+// a fórmula da potência mínima e as 4 grandezas que o RT leva pro catálogo
+// do fabricante pra escolher a bomba.
 function Bomba({ d, eta, potCv, potKw }) {
   const { res } = d
-  const Qt_m3s = res.Qt_final / 1000 / 60
-  const Qt_m3h = res.Qt_final / 1000 * 60
+  const Qt_m3s = res.Qt / 1000 / 60
+  const Qt_m3h = res.Qt / 1000 * 60
   const temEta = potCv != null
-
-  const rows = [
-    { param:'Vazão total convergida (Qt)', val:`${lmin(res.Qt_final)} = ${m3s(Qt_m3s)}`, obs:`Q_HID-01 + Q_HID-02` },
-    { param:'Altura manométrica (Ht)',     val: fmca(res.Ht),                              obs:`Percurso crítico: ${res.hid_governa}` },
-    { param:'Eficiência global (η)',       val: eta ? `${eta}%` : '—',                     obs:'Informada na seção Bomba de Incêndio' },
-  ]
 
   return (
     <div>
-      <Table>
-        <thead><tr><TH>Parâmetro</TH><TH>Valor</TH><TH>Observação</TH></tr></thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <TD muted>{r.param}</TD>
-              <TD red bold mono>{r.val}</TD>
-              <TD muted>{r.obs}</TD>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
       {temEta ? (
         <Formula>
-          Pcv = (1000 × {m3s(Qt_m3s)} × {f4(res.Ht)}) / (75 × {eta/100}) = <FormulaVal>{f2(potCv)} cv</FormulaVal>
+          Pcv = (1000 × {m3s(Qt_m3s)} × {f4(res.P_RTI)}) / (75 × {eta/100}) = <FormulaVal>{f2(potCv)} cv</FormulaVal>
         </Formula>
       ) : (
-        <div className="ibox amber mt-2">
-          <span className="text-xs">Informe a eficiência global da bomba na seção "Bomba de Incêndio", acima, pra calcular a potência mínima.</span>
+        <div className="ibox amber mb-2">
+          <span className="text-xs">Informe a eficiência global da bomba, acima, pra calcular a potência mínima.</span>
         </div>
       )}
       <div className="text-xs text-ink-faint uppercase tracking-[.07em] mt-4 mb-2">Ponto de operação para seleção</div>
@@ -437,7 +275,7 @@ function Bomba({ d, eta, potCv, potKw }) {
         <tbody>
           <tr>
             <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(Qt_m3h)}</span></td>
-            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(res.Ht)}</span></td>
+            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(res.P_RTI)}</span></td>
             <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{temEta ? f2(potCv) : '—'}</span></td>
             <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{temEta ? f2(potKw) : '—'}</span></td>
           </tr>
@@ -447,6 +285,17 @@ function Bomba({ d, eta, potCv, potKw }) {
   )
 }
 
+// ── Etapas ────────────────────────────────────────────────────────────
+// Mesmo componente de menu lateral do wizard de configuração inicial do
+// projeto (StepsNav.jsx, ver ConfiguracaoPage.jsx) — aqui sem trava entre
+// etapas (isUnlocked sempre true, o RT pode ir e voltar livremente), só
+// com um indicativo de "concluído"/"pendente" por etapa.
+const ETAPAS_HIDRANTES = [
+  { label: 'Classificação do Sistema',          sub: 'Tipo, RTI e sistema aplicado' },
+  { label: 'Dimensionamento do Sistema',         sub: 'Perdas de carga, cotas e pressão' },
+  { label: 'Dimensionamento da Bomba de Incêndio', sub: 'Eficiência e potência' },
+]
+
 // ── Page Principal ────────────────────────────────────────────────────
 export default function HidrantesPage() {
   const { state, dispatch } = useProjeto()
@@ -455,8 +304,10 @@ export default function HidrantesPage() {
   // cálculo (memorial/hidrantesCalculo.js, sempre a última folha do
   // memorial) — mesmo payload sincronizado pelo plugin, sem transformação.
   const dados = state.hidrantes.dimensionamento
+  const norma = getHidrantes(state.uf)
   const [importErro, setImportErro] = useState(null)
   const [buscando,   setBuscando]   = useState(false)
+  const [etapa, setEtapa] = useState(1)
   const fileInputRef = useRef(null)
 
   const aplicarHidrantes = payload => {
@@ -465,7 +316,8 @@ export default function HidrantesPage() {
   }
 
   const eta = state.hidrantes.bombaEficiencia
-  const { potCv, potKw } = dados ? calcPotenciaBomba(dados.res.Qt_final, dados.res.Ht, eta) : { potCv: null, potKw: null }
+  const potenciaAdotada = state.hidrantes.bombaPotenciaAdotada
+  const { potCv, potKw } = dados ? calcPotenciaBomba(dados.res.Qt, dados.res.P_RTI, eta) : { potCv: null, potKw: null }
 
   const handleImport = e => {
     const file = e.target.files[0]
@@ -504,18 +356,28 @@ export default function HidrantesPage() {
     aplicarHidrantes(data.payload)
   }
 
-  const sections = dados ? [
-    { n:1, label:'Dados Normativos do Sistema',           content: <DadosNormativos d={dados}/> },
-    { n:2, label:'Cotas Altimétricas e Desníveis',        content: <Cotas d={dados}/> },
-    { n:3, label:'Perdas de Carga por Trecho (Hazen-Williams)', content: <PerdasCarga d={dados}/> },
-    { n:4, label:'Altura Manométrica Total (Ht)',          content: <AlturaMano d={dados}/> },
-    { n:5, label:'Pressão e Vazão nos Hidrantes',          content: <PressaoVazao d={dados}/> },
-    { n:6, label:'Dimensionamento da Bomba de Recalque',   content: <Bomba d={dados} eta={eta} potCv={potCv} potKw={potKw}/> },
-  ] : []
+  // Status por etapa pro menu lateral (mesmo esquema visual de
+  // useStepStatus.js: 'done' = concluída, 'partial' = com algo pendente,
+  // undefined = ainda não iniciada) — aqui calculado direto, sem hook
+  // próprio, já que são só 3 etapas com critério simples.
+  const getStatus = n => {
+    if (n === 1) return state.hidrantes.tipo ? 'done' : undefined
+    if (n === 2) return dados ? 'done' : undefined
+    if (n === 3) return eta && potenciaAdotada ? 'done' : dados ? 'partial' : undefined
+    return undefined
+  }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
+    <div className="flex flex-1 overflow-hidden">
+      <StepsNav
+        steps={ETAPAS_HIDRANTES}
+        current={etapa}
+        isUnlocked={() => true}
+        getStatus={getStatus}
+        onGo={setEtapa}
+      />
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-7">
@@ -531,60 +393,92 @@ export default function HidrantesPage() {
           </div>
         </div>
 
-        <FormularioSistema/>
-
-        <div className="flex items-center justify-between gap-4 mb-7">
-          <div>
-            <h3 className="text-sm font-bold text-ink m-0 mb-1">Dimensionamento (plugin Revit)</h3>
-            <p className="text-[12px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-              Resultados calculados pelo plugin a partir da classificação acima.
-            </p>
-          </div>
-          <div className="shrink-0 flex flex-col items-end gap-1.5">
-            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
-            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
-              <Icon name="upload" size={13}/>
-              {buscando ? 'Buscando…' : 'Buscar do Revit'}
-            </button>
-            <button type="button" className="text-[10px] text-ink-faint hover:text-ink underline bg-transparent border-none cursor-pointer p-0" onClick={() => fileInputRef.current?.click()}>
-              ou importar de um arquivo .json
-            </button>
-          </div>
-        </div>
-
-        {importErro && (
-          <div className="ibox red mb-6">
-            <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
-            <span className="text-xs">Erro ao importar: {importErro}</span>
-          </div>
+        {etapa === 1 && (
+          <FormularioSistema/>
         )}
 
-        {!dados && !importErro && (
-          <div className="py-[60px] px-10 text-center border border-dashed border-border rounded-lg text-ink-faint">
-            <Icon name="upload" size={32} color="var(--color-border)"/>
-            <div className="mt-3 text-[13px]">Importe o <strong>firedata.json</strong> gerado pelo plugin Revit para visualizar o dimensionamento.</div>
-          </div>
-        )}
-
-        {dados && (
+        {etapa === 2 && (
           <>
-            {dados._timestamp && (
-              <div className="ibox green mb-6">
-                <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                <span className="text-xs">Dados importados do Revit — exportação: <strong>{dados._timestamp}</strong> · Método: <strong>{dados.metodo}</strong></span>
+            <div className="flex items-center justify-between gap-4 mb-7">
+              <div>
+                <h3 className="text-sm font-bold text-ink m-0 mb-1">Dimensionamento (plugin Revit)</h3>
+                <p className="text-[12px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+                  Resultados calculados pelo plugin a partir da classificação da Etapa 1.
+                </p>
+              </div>
+              <div className="shrink-0 flex flex-col items-end gap-1.5">
+                <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
+                <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
+                  <Icon name="upload" size={13}/>
+                  {buscando ? 'Buscando…' : 'Buscar do Revit'}
+                </button>
+                <button type="button" className="text-[10px] text-ink-faint hover:text-ink underline bg-transparent border-none cursor-pointer p-0" onClick={() => fileInputRef.current?.click()}>
+                  ou importar de um arquivo .json
+                </button>
+              </div>
+            </div>
+
+            {importErro && (
+              <div className="ibox red mb-6">
+                <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
+                <span className="text-xs">Erro ao importar: {importErro}</span>
               </div>
             )}
 
-            <ResumoExecutivo d={dados} potCv={potCv} potKw={potKw}/>
-
-            {sections.map(s => (
-              <div key={s.n} className="mb-8">
-                <SecTitle n={s.n} label={s.label}/>
-                {s.content}
+            {!dados && !importErro && (
+              <div className="py-[60px] px-10 text-center border border-dashed border-border rounded-lg text-ink-faint">
+                <Icon name="upload" size={32} color="var(--color-border)"/>
+                <div className="mt-3 text-[13px]">Importe o <strong>firedata.json</strong> gerado pelo plugin Revit para visualizar o dimensionamento.</div>
               </div>
-            ))}
+            )}
+
+            {dados && (
+              <>
+                {dados._timestamp && (
+                  <div className="ibox green mb-6">
+                    <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                    <span className="text-xs">Dados importados do Revit — exportação: <strong>{dados._timestamp}</strong> · Método: <strong>{dados.metodo}</strong></span>
+                  </div>
+                )}
+
+                <DadosDoSistema d={dados}/>
+
+                <ResumoExecutivo d={dados}/>
+
+                <ResultadoHidraulico d={dados}/>
+
+                <div className="mb-8">
+                  <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Verificação por Trecho</h4>
+                  <VerificacaoTrechos d={dados} norma={norma}/>
+                </div>
+              </>
+            )}
           </>
         )}
+
+        {etapa === 3 && (
+          <>
+            {!dados ? (
+              <div className="ibox amber mb-6">
+                <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+                <span className="text-xs">Calcule o dimensionamento na Etapa 2 (Dimensionamento do Sistema) antes de dimensionar a bomba.</span>
+              </div>
+            ) : (
+              <>
+                <EficienciaPotenciaAdotada
+                  eta={eta}
+                  onChangeEta={v => dispatch({ type: 'SET_HIDRANTES', changes: { bombaEficiencia: v } })}
+                  potenciaAdotada={potenciaAdotada}
+                  onChangePotenciaAdotada={v => dispatch({ type: 'SET_HIDRANTES', changes: { bombaPotenciaAdotada: v } })}
+                  potCv={potCv}
+                />
+                <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Dimensionamento da Bomba de Recalque</h4>
+                <Bomba d={dados} eta={eta} potCv={potCv} potKw={potKw}/>
+              </>
+            )}
+          </>
+        )}
+        </div>
       </div>
     </div>
   )
