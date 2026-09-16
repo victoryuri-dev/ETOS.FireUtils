@@ -91,6 +91,18 @@ const CHAVES_ILU  = ['AUTONOMIA_MINIMA_HORAS', 'CAMPOS_EQUIPAMENTO', 'EQUIPAMENT
 const CHAVES_SIN  = ['CATEGORIAS', 'NOTAS', 'TIPOS_PLACA']
 const CHAVES_MED  = ['LIMIARES', 'MEDIDAS', 'NOTAS_ESPECIFICAS', 'TABELA_SIMPLIFICADA']
 const CHAVES_NTS  = ['NTS_PADRAO_MA', 'NTS_POR_SISTEMA', 'NT_CARGA_INCENDIO']
+const CHAVES_HID  = [
+  'NORMA', 'REFERENCIA_PRESSAO_VAZAO', 'TIPOS_SISTEMA', 'COMPONENTES_POR_TIPO',
+  'LABEL_MANGUEIRA_INCENDIO', 'FAIXAS_AREA', 'TABELA3', 'DIVISOES_COLUNA',
+  'DIVISOES_POR_CARGA', 'MATERIAIS_TUBULACAO', 'MATERIAIS_RESERVATORIO',
+  'TIPOS_RECALQUE', 'CONFIGURACOES_REDE', 'ACIONAMENTOS_BOMBA',
+  'BOMBA_RESERVA_POR_RISCO', 'VAZAO_LIMITE_RECALQUE_DUPLO', 'ALTITUDES_SUCCAO',
+  'TEMPERATURAS_SUCCAO', 'ALTITUDE_SUCCAO_PADRAO', 'TEMPERATURA_SUCCAO_PADRAO',
+  'HIDRANTES_SIMULTANEOS', 'HIDRANTES_SIMULTANEOS_REF', 'V_MAX_TUBULACAO',
+  'V_MAX_TUBULACAO_REF', 'V_MAX_SUCCAO_POSITIVA', 'V_MAX_SUCCAO_NEGATIVA',
+  'V_MAX_SUCCAO_REF', 'TOLERANCIA_EQUILIBRIO_MCA', 'TOLERANCIA_EQUILIBRIO_MCA_REF',
+  'NPSHD_FATOR_VAZAO', 'NPSHD_REF',
+]
 
 // JSON não serializa `Infinity` (vira `null`) — CLASSES_SUBSOLO usa
 // Infinity pra "sem teto" (S2 = profundidade > 10m). A migração grava
@@ -175,10 +187,14 @@ export function getNts(uf) {
   const remoto = getNormaRemota(uf, 'nts')
   return remoto ? renomearDaBaseCentral(remoto, CHAVES_NTS) : NTS_PADRAO
 }
-// Hidrantes ainda não foi migrado pra base normativa central (normas_dados)
-// — só existe o arquivo estático (normas/MA/hidrantes.js), mesmo padrão que
-// os demais getters tinham antes da migração remota.
-export function getHidrantes(uf)   { return NORMAS_HID[uf] ?? NORMAS_HID['MA'] }
+// getHidrantes: migrado pra base normativa central (normas_dados — ver
+// supabase/migrations/*seed_normas_hidrantes*). O arquivo estático
+// (normas/MA/hidrantes.js) vira só o fallback offline/dev, mesmo padrão
+// dos demais getters acima.
+export function getHidrantes(uf) {
+  const remoto = getNormaRemota(uf, 'hidrantes')
+  return remoto ? renomearDaBaseCentral(remoto, CHAVES_HID) : (NORMAS_HID[uf] ?? NORMAS_HID['MA'])
+}
 export function getOcupacoes(uf)   { return getNorma(uf)?.OCUPACOES ?? {} }
 export function getGrupos(uf)      {
   const oc = getOcupacoes(uf)
