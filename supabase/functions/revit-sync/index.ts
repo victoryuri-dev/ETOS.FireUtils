@@ -10,10 +10,10 @@
 // `estruturaId` identifica QUAL estrutura do projeto esse envio pertence —
 // um projeto pode ter várias, cada uma modelada num arquivo Revit
 // diferente (mesmo projeto, estrutura escolhida na configuração do
-// plugin). Obrigatório pra extintores/saídas de emergência; hidrantes é a
-// única medida que fica geral (compartilhada entre estruturas do
-// projeto), então ignora estruturaId e grava sempre com estrutura_id = ''
-// (chave fixa, única linha por projeto).
+// plugin). Obrigatório pra extintores/saídas de emergência/sinalização;
+// hidrantes é a única medida que fica geral (compartilhada entre
+// estruturas do projeto), então ignora estruturaId e grava sempre com
+// estrutura_id = '' (chave fixa, única linha por projeto).
 //
 // Usa a service_role key (injetada automaticamente pelo Supabase em toda
 // Edge Function, não precisa configurar) porque o RLS de `revit_syncs_latest`
@@ -22,7 +22,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const MEDIDAS_VALIDAS = ['extintores', 'hidrantes', 'saidas_emergencia']
+const MEDIDAS_VALIDAS = ['extintores', 'hidrantes', 'saidas_emergencia', 'sinalizacao']
 const MEDIDAS_SEM_ESTRUTURA = ['hidrantes']
 
 const CORS_HEADERS = {

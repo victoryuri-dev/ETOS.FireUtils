@@ -119,11 +119,14 @@ function acessosPadrao(pisoDescarga) {
   ]
 }
 
-// Item de sinalização de emergência — granularidade só até pavimento (sem
-// ambiente), conforme NT 20 CBMMA / NBR 13434. `tipoPlaca` referencia a
-// chave do catálogo em normas/MA/sinalizacao.js (TIPOS_PLACA).
-function novoItemSinalizacao(estruturaId, pavimentoId, tipoPlaca, quantidade, id) {
-  return { id: id || idSinalizacao(), estruturaId, pavimentoId, tipoPlaca, quantidade }
+// Item de sinalização de emergência — granularidade só até estrutura (sem
+// pavimento nem ambiente): as famílias de placa (categoria "Dispositivos de
+// Segurança", parâmetro de tipo "Código da Placa") não são lançadas por
+// pavimento no Revit, então o quantitativo do plugin também sai agregado só
+// por estrutura. `tipoPlaca` referencia a chave do catálogo em
+// normas/MA/sinalizacao.js (TIPOS_PLACA).
+function novoItemSinalizacao(estruturaId, tipoPlaca, quantidade, id) {
+  return { id: id || idSinalizacao(), estruturaId, tipoPlaca, quantidade }
 }
 
 // Normaliza um estado salvo (localStorage ou payload de LOAD) contra
@@ -478,7 +481,6 @@ function reducer(state, action) {
         pavimentos: [...others, ...list],
         extintores: state.extintores.filter(e => e.estruturaId !== estruturaId || idsValidos.has(e.pavimentoId)),
         iluminacao: state.iluminacao.filter(i => i.estruturaId !== estruturaId || idsValidos.has(i.pavimentoId)),
-        sinalizacao: state.sinalizacao.filter(s => s.estruturaId !== estruturaId || idsValidos.has(s.pavimentoId)),
       }
     }
     case 'UPDATE_PAV':
@@ -608,17 +610,22 @@ function reducer(state, action) {
         iluminacao: state.iluminacao.filter(i => !(i.categoria === 'aclaramento' && i.tipoEquipamento === action.id)),
       }
     case 'ADD_SINALIZACAO':
-      return { ...state, sinalizacao: [...state.sinalizacao, novoItemSinalizacao(action.estruturaId, action.pavimentoId, action.tipoPlaca, action.quantidade, action.id)] }
+      return { ...state, sinalizacao: [...state.sinalizacao, novoItemSinalizacao(action.estruturaId, action.tipoPlaca, action.quantidade, action.id)] }
     case 'UPDATE_SINALIZACAO':
       return { ...state, sinalizacao: state.sinalizacao.map(s => s.id === action.id ? { ...s, ...action.changes } : s) }
     case 'REMOVE_SINALIZACAO':
       return { ...state, sinalizacao: state.sinalizacao.filter(s => s.id !== action.id) }
-    // Substitui todo o cadastro de sinalização pelo lote importado do
-    // firedata.json (ver resolverImportacaoSinalizacao em SinalizacaoPage.jsx) —
-    // os itens já chegam com estruturaId/pavimentoId resolvidos contra o
-    // projeto atual.
-    case 'IMPORT_SINALIZACAO':
-      return { ...state, sinalizacao: action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() })) }
+    // Substitui só o cadastro de sinalização das estruturas presentes no
+    // lote importado (ver resolverImportacaoSinalizacao em
+    // SinalizacaoPage.jsx) — os itens já chegam com estruturaId resolvido
+    // contra o projeto atual. Preserva o cadastro das demais estruturas,
+    // já que cada arquivo Revit sincroniza uma estrutura por vez (mesmo
+    // padrão de IMPORT_EXTINTORES).
+    case 'IMPORT_SINALIZACAO': {
+      const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
+      const preservados = state.sinalizacao.filter(s => !estruturasDoLote.has(s.estruturaId))
+      return { ...state, sinalizacao: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() }))] }
+    }
     // Ambientes de Saída de Emergência (SaidaEmergenciaPage.jsx) — vivem
     // dentro do pavimento (population/dimensionamento é por pavimento, não
     // um cadastro à parte como extintor/iluminação/sinalização). Só são

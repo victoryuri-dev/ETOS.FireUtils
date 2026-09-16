@@ -6,9 +6,9 @@
 // memorial — nunca duas fontes de verdade.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Totais de um pavimento: quantidade cadastrada por tipo de placa e total
+/** Totais de uma estrutura: quantidade cadastrada por tipo de placa e total
  *  geral, agrupados por categoria (proibição, alerta, orientação, equipamentos). */
-export function calcularSinalizacaoPavimento(itens, tiposPlaca) {
+export function calcularSinalizacaoEstrutura(itens, tiposPlaca) {
   const porTipo = {}
   tiposPlaca.forEach(t => { porTipo[t.key] = 0 })
   itens.forEach(i => { porTipo[i.tipoPlaca] = (porTipo[i.tipoPlaca] || 0) + (parseInt(i.quantidade) || 0) })
