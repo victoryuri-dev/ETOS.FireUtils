@@ -192,19 +192,26 @@ function VerificacaoVelocidade({ d, norma }) {
 // impresso (memorial/hidrantesCalculo.js). Velocidade tem seção própria,
 // acima (VerificacaoVelocidade) — aqui é só magnitude da perda.
 
-// Hierarquia por tipografia, não por cor: J é o resultado que interessa
-// (maior, em negrito), Ltotal é o dado de apoio (peso normal) e Leq é só
-// informativo/intermediário (menor, apagado). Cor fica reservada pra
-// estados de fato semânticos (atende/não atende), nunca pra "destacar".
+// Hierarquia de verdade: cada nível tem sua própria caixa (fundo + borda),
+// não só peso de fonte — Leq é só apoio/intermediário (caixa apagada),
+// Ltotal já é um resultado (caixa neutra normal) e a Perda de Carga (J) é
+// O resultado do trecho, por isso ganha destaque em vermelho (mesma cor
+// de acento usada nos números-chave da página, como Ht/Qt).
 function MiniStat({ label, nivel = 'secundario', val, children }) {
+  const boxClass = nivel === 'primario'
+    ? 'bg-red-dim border-red-border'
+    : nivel === 'secundario'
+      ? 'bg-surface border-border'
+      : 'bg-bg border-border'
+  const labelClass = nivel === 'primario' ? 'text-red' : 'text-ink-faint'
   const valClass = nivel === 'primario'
-    ? 'text-base font-bold text-ink'
+    ? 'text-lg font-bold text-red'
     : nivel === 'secundario'
       ? 'text-[13px] font-semibold text-ink'
       : 'text-[12px] font-normal text-ink-faint'
   return (
-    <div className="bg-bg border border-solid border-border rounded-md py-2 px-3">
-      <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1 whitespace-nowrap">{label}</div>
+    <div className={`border border-solid rounded-md py-2 px-3 ${boxClass}`}>
+      <div className={`text-[10px] uppercase tracking-[.05em] mb-1 whitespace-nowrap font-semibold ${labelClass}`}>{label}</div>
       {children || <div className={`font-mono ${valClass}`}>{val}</div>}
     </div>
   )
@@ -246,10 +253,12 @@ function SegmentoTrecho({ seg }) {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-2.5">
-        <MiniStat label="Comp. Equivalente (Leq)" nivel="terciario" val={`${f4(seg.Leq)} m`}/>
-        <MiniStat label="Comp. Total (Ltotal)" nivel="secundario" val={`${f4(seg.Ltotal)} m`}/>
-        <MiniStat label="Perda de Carga (J)" nivel="primario" val={fmca(seg.J)}/>
+      <div className="flex flex-col gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5">
+          <MiniStat label="Comp. Equivalente (Leq)" nivel="terciario" val={`${f4(seg.Leq)} m`}/>
+          <MiniStat label="Comp. Total (Ltotal)" nivel="secundario" val={`${f4(seg.Ltotal)} m`}/>
+        </div>
+        <MiniStat label="Perda de Carga do Trecho (J)" nivel="primario" val={fmca(seg.J)}/>
       </div>
     </div>
   )
