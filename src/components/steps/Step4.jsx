@@ -54,7 +54,17 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
 
   const handleFocus = () => { populate(query); setOpen(true) }
   const handleInput = (e) => {
-    const masked = maskCNAE(e.target.value)
+    const raw = e.target.value
+    // Assim que aparece uma letra, é busca por descrição ("hospital",
+    // "escola"...) — não pelo número do CNAE. maskCNAE descartaria toda
+    // letra digitada (só deixa passar dígito), então precisa desviar dela
+    // nesse caso pra deixar o texto livre chegar em populate().
+    if (/[a-zA-ZÀ-ſ]/.test(raw)) {
+      setQuery(raw)
+      populate(raw); setOpen(true)
+      return
+    }
+    const masked = maskCNAE(raw)
     setQuery(masked)
     if (masked.length === 9) {
       const found = findGlobally(cargaMap, masked)
