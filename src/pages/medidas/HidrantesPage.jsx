@@ -146,11 +146,14 @@ function DadosDoSistema({ d }) {
   )
 }
 
-// ── Verificação por Trecho ──────────────────────────────────────────────
+// ── Perdas de Carga por Trecho ───────────────────────────────────────────
 // Ordem da narrativa: os dois ramais até o Ponto A, depois o recalque até
-// a bomba, depois a sucção — mesma sequência da marcha de cálculo. Só o
-// resultado por trecho (vazão, perda total, velocidade x limite) — o
-// detalhamento por segmento/acessório fica no memorial de cálculo impresso.
+// a bomba, depois a sucção — mesma sequência da marcha de cálculo. Mostra
+// o RESULTADO por trecho/diâmetro (comprimento real, equivalente, perda de
+// carga, velocidade) e os componentes (conexões/acessórios) que geram
+// perda localizada — sem o passo a passo de como cada valor foi calculado
+// (Jun, fórmula de Hazen-Williams etc.), que fica só no memorial de
+// cálculo impresso (memorial/hidrantesCalculo.js).
 const ORDEM_TRECHOS = ['t3', 't4', 't2', 't1']
 
 function limiteVelocidade(trechoId, succao, norma) {
@@ -158,36 +161,65 @@ function limiteVelocidade(trechoId, succao, norma) {
   return norma.V_MAX_TUBULACAO
 }
 
-function VerificacaoTrechos({ d, norma }) {
+function MiniStat({ label, val, destaque }) {
+  return (
+    <div>
+      <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1 whitespace-nowrap">{label}</div>
+      <div className={`text-[13px] font-mono ${destaque ? 'font-bold text-red' : 'text-ink'}`}>{val}</div>
+    </div>
+  )
+}
+
+function SegmentoTrecho({ seg, vLimite }) {
+  return (
+    <div>
+      <span className="inline-block text-[11px] font-bold text-ink-faint font-mono bg-surface-2 border border-solid border-border rounded px-1.5 py-0.5 mb-2">
+        DN{Number(seg.d_mm).toFixed(0)}
+      </span>
+      <div className="grid grid-cols-4 gap-3 mb-2">
+        <MiniStat label="Comp. Real (L)" val={`${f4(seg.L)} m`}/>
+        <MiniStat label="Comp. Equivalente (Leq)" val={`${f4(seg.Leq)} m`}/>
+        <MiniStat label="Comp. Total (Ltotal)" val={`${f4(seg.Ltotal)} m`} destaque/>
+        <MiniStat label="Perda de Carga (J)" val={fmca(seg.J)} destaque/>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <VelChip v={seg.V} limite={vLimite}/>
+        {seg.acessorios.map((a, i) => (
+          <span key={i} className="text-[11px] text-ink-faint">
+            {a.qtd}× {a.nome} <span className="text-ink font-medium">{f2(a.leq_tot)} m</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TrechoDetalhe({ id, t, succao, norma }) {
+  const vLimite = limiteVelocidade(id, succao, norma)
+  return (
+    <Card className="mb-3">
+      <CardHeader>
+        <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border text-ink-faint font-mono">{id.toUpperCase()}</span>
+        <span className="text-[13px] font-semibold text-ink">{t.label}</span>
+        <span className="text-[11px] text-ink-faint ml-auto">Q = {lmin(t.Q_lmin)} · J total = {fmca(t.J)}</span>
+      </CardHeader>
+      <div className="py-3.5 px-[18px] flex flex-col gap-3.5">
+        {t.segmentos.map((seg, i) => (
+          <div key={i} className={t.segmentos.length > 1 && i < t.segmentos.length - 1 ? 'pb-3.5 border-b border-solid border-border-2' : ''}>
+            <SegmentoTrecho seg={seg} vLimite={vLimite}/>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+function PerdasPorTrecho({ d, norma }) {
   const trechos = ORDEM_TRECHOS.map(id => [id, d.res.j[id]])
   return (
-    <Table>
-      <thead><tr><TH>Trecho</TH><TH right>Vazão</TH><TH right>Perda de carga (J)</TH><TH>Velocidade</TH></tr></thead>
-      <tbody>
-        {trechos.map(([id, t]) => {
-          const vLimite = limiteVelocidade(id, d.succao, norma)
-          return (
-            <tr key={id}>
-              <TD bold>{t.label}</TD>
-              <TD right mono muted>{lmin(t.Q_lmin)}</TD>
-              <TD right bold mono>{fmca(t.J)}</TD>
-              <td className="py-[9px] px-3.5 border-b border-solid border-border-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  {t.segmentos.map((seg, i) => (
-                    <span key={i} className="inline-flex items-center gap-1.5">
-                      {t.segmentos.length > 1 && (
-                        <span className="text-[10px] text-ink-faint font-mono">DN{Number(seg.d_mm).toFixed(0)}</span>
-                      )}
-                      <VelChip v={seg.V} limite={vLimite}/>
-                    </span>
-                  ))}
-                </div>
-              </td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </Table>
+    <div>
+      {trechos.map(([id, t]) => <TrechoDetalhe key={id} id={id} t={t} succao={d.succao} norma={norma}/>)}
+    </div>
   )
 }
 
@@ -448,8 +480,8 @@ export default function HidrantesPage() {
                 <ResultadoHidraulico d={dados}/>
 
                 <div className="mb-8">
-                  <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Verificação por Trecho</h4>
-                  <VerificacaoTrechos d={dados} norma={norma}/>
+                  <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Perdas de Carga por Trecho</h4>
+                  <PerdasPorTrecho d={dados} norma={norma}/>
                 </div>
               </>
             )}
