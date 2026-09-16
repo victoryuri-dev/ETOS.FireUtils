@@ -161,34 +161,60 @@ function limiteVelocidade(trechoId, succao, norma) {
   return norma.V_MAX_TUBULACAO
 }
 
-function MiniStat({ label, val, destaque }) {
+// Cada stat vem numa caixa própria (fundo + borda) em vez de texto solto —
+// fica muito mais fácil de escanear os números num relance.
+function MiniStat({ label, val, destaque, children }) {
   return (
-    <div>
+    <div className="bg-bg border border-solid border-border rounded-md py-2 px-3">
       <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1 whitespace-nowrap">{label}</div>
-      <div className={`text-[13px] font-mono ${destaque ? 'font-bold text-red' : 'text-ink'}`}>{val}</div>
+      {children || <div className={`text-[13px] font-mono ${destaque ? 'font-bold text-red' : 'text-ink'}`}>{val}</div>}
     </div>
   )
 }
 
+// Por diâmetro: 1) a tubulação reta em si (DN + comprimento real — o que
+// foi de fato medido no modelo), 2) a tabela de conexões/acessórios que
+// geram a perda localizada (quantidade + Leq unitário + Leq total de CADA
+// componente — nunca só o total somado, senão não dá pra saber o que foi
+// contabilizado) e 3) o resultado final do segmento (Leq, Ltotal, J, V).
 function SegmentoTrecho({ seg, vLimite }) {
   return (
-    <div>
-      <span className="inline-block text-[11px] font-bold text-ink-faint font-mono bg-surface-2 border border-solid border-border rounded px-1.5 py-0.5 mb-2">
-        DN{Number(seg.d_mm).toFixed(0)}
-      </span>
-      <div className="grid grid-cols-4 gap-3 mb-2">
-        <MiniStat label="Comp. Real (L)" val={`${f4(seg.L)} m`}/>
+    <div className="bg-surface-2 border border-solid border-border rounded-md p-3.5">
+      <div className="flex items-baseline gap-2 mb-3">
+        <span className="text-[12px] font-bold text-ink font-mono bg-bg border border-solid border-border rounded px-2 py-0.5">
+          DN{Number(seg.d_mm).toFixed(0)}
+        </span>
+        <span className="text-xs text-ink-faint">
+          Tubo reto: <strong className="text-ink font-mono">{f4(seg.L)} m</strong>
+        </span>
+      </div>
+
+      {seg.acessorios.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1.5">Conexões e Acessórios (perda localizada)</div>
+          <Table>
+            <thead><tr><TH>Componente</TH><TH center w={52}>Qtd</TH><TH right>Leq unit.</TH><TH right>Leq total</TH></tr></thead>
+            <tbody>
+              {seg.acessorios.map((a, i) => (
+                <tr key={i}>
+                  <TD>{a.nome}</TD>
+                  <TD center bold>{a.qtd}</TD>
+                  <TD right mono muted>{f2(a.leq_unit)} m</TD>
+                  <TD right mono bold>{f2(a.leq_tot)} m</TD>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
+
+      <div className="grid grid-cols-4 gap-2.5">
         <MiniStat label="Comp. Equivalente (Leq)" val={`${f4(seg.Leq)} m`}/>
         <MiniStat label="Comp. Total (Ltotal)" val={`${f4(seg.Ltotal)} m`} destaque/>
         <MiniStat label="Perda de Carga (J)" val={fmca(seg.J)} destaque/>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <VelChip v={seg.V} limite={vLimite}/>
-        {seg.acessorios.map((a, i) => (
-          <span key={i} className="text-[11px] text-ink-faint">
-            {a.qtd}× {a.nome} <span className="text-ink font-medium">{f2(a.leq_tot)} m</span>
-          </span>
-        ))}
+        <MiniStat label="Velocidade">
+          <VelChip v={seg.V} limite={vLimite}/>
+        </MiniStat>
       </div>
     </div>
   )
@@ -203,12 +229,8 @@ function TrechoDetalhe({ id, t, succao, norma }) {
         <span className="text-[13px] font-semibold text-ink">{t.label}</span>
         <span className="text-[11px] text-ink-faint ml-auto">Q = {lmin(t.Q_lmin)} · J total = {fmca(t.J)}</span>
       </CardHeader>
-      <div className="py-3.5 px-[18px] flex flex-col gap-3.5">
-        {t.segmentos.map((seg, i) => (
-          <div key={i} className={t.segmentos.length > 1 && i < t.segmentos.length - 1 ? 'pb-3.5 border-b border-solid border-border-2' : ''}>
-            <SegmentoTrecho seg={seg} vLimite={vLimite}/>
-          </div>
-        ))}
+      <div className="py-3.5 px-[18px] flex flex-col gap-3">
+        {t.segmentos.map((seg, i) => <SegmentoTrecho key={i} seg={seg} vLimite={vLimite}/>)}
       </div>
     </Card>
   )
