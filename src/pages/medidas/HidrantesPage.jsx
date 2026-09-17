@@ -146,6 +146,54 @@ function DadosDoSistema({ d }) {
   )
 }
 
+// ── Verificação do Hidrante Mais Desfavorável ────────────────────────────
+// "Mapear Trechos" (plugin) calcula, pra TODOS os hidrantes achados na rede
+// — não só os 2 escolhidos —, uma perda de carga simplificada (vazão
+// nominal de um hidrante só, sem equilíbrio hidráulico, Bomba → Válvula
+// direto) somada ao desnível geométrico: isso é só pra RANQUEAR, nunca o
+// resultado final. Os dois de maior score (mais desfavoráveis) são H-01/
+// H-02, que aí sim recebem a marcha de cálculo completa (com equilíbrio
+// hidráulico) mostrada no resto da página. Sem essa tabela o RT só via o
+// resultado de H-01/H-02 já prontos, sem conseguir conferir se são de fato
+// os mais desfavoráveis dentre os hidrantes do projeto.
+function VerificacaoHidranteDesfavoravel({ ranking }) {
+  if (!ranking || ranking.length === 0) return null
+  return (
+    <div className="mb-8">
+      <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Verificação do Hidrante Mais Desfavorável</h4>
+      <Table>
+        <thead>
+          <tr>
+            <TH>Hidrante</TH>
+            <TH right>Perda de Carga (vazão simples)</TH>
+            <TH right>Desnível (∆Z)</TH>
+            <TH right>Score</TH>
+            <TH center>Situação</TH>
+          </tr>
+        </thead>
+        <tbody>
+          {ranking.map(h => (
+            <tr key={h.id}>
+              <TD bold>{h.id}</TD>
+              <TD right mono muted>{fmca(h.J)}</TD>
+              <TD right mono muted>{f4(h.dZ)} m</TD>
+              <TD right bold mono>{fmca(h.score)}</TD>
+              <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2">
+                {h.selecionado
+                  ? <span className="inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid bg-green-dim border-green-border text-green">SELECIONADO</span>
+                  : <span className="text-[11px] text-ink-faint">—</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+      <div className="text-[11px] text-ink-faint mt-2 leading-[1.6]">
+        Score = perda de carga (vazão nominal de um hidrante, sem equilíbrio hidráulico) + desnível geométrico até a bomba — usado só pra ranquear. Os dois com maior score (SELECIONADO) recebem a marcha de cálculo completa, com equilíbrio hidráulico, no restante desta etapa.
+      </div>
+    </div>
+  )
+}
+
 // ── Ordem da narrativa hidráulica ────────────────────────────────────────
 // Os dois ramais até o Ponto A, depois o recalque até a bomba, depois a
 // sucção — mesma sequência da marcha de cálculo. Compartilhado pela
@@ -537,6 +585,8 @@ export default function HidrantesPage() {
                 )}
 
                 <DadosDoSistema d={dados}/>
+
+                <VerificacaoHidranteDesfavoravel ranking={dados.ranking_hidrantes}/>
 
                 <ResumoExecutivo d={dados}/>
 
