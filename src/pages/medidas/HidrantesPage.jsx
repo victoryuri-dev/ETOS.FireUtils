@@ -170,8 +170,20 @@ function situacaoHidrante(indice, total) {
   return null
 }
 
+// Por padrão só mostra o 1º/2º mais desfavorável e o mais favorável — os
+// hidrantes intermediários (sem situação especial) ficam escondidos atrás
+// da setinha "Mostrar todos", pra tabela não virar uma lista enorme em
+// projetos com muitos hidrantes mapeados.
 function VerificacaoHidranteDesfavoravel({ ranking }) {
+  const [expandido, setExpandido] = useState(false)
   if (!ranking || ranking.length === 0) return null
+
+  const total = ranking.length
+  const temOcultos = total > 3
+  const linhas = (expandido || !temOcultos)
+    ? ranking.map((h, i) => [h, i])
+    : [[ranking[0], 0], [ranking[1], 1], [ranking[total - 1], total - 1]]
+
   return (
     <div className="mb-8">
       <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Verificação do Hidrante Mais Desfavorável</h4>
@@ -186,8 +198,8 @@ function VerificacaoHidranteDesfavoravel({ ranking }) {
           </tr>
         </thead>
         <tbody>
-          {ranking.map((h, i) => {
-            const situacao = situacaoHidrante(i, ranking.length)
+          {linhas.map(([h, i]) => {
+            const situacao = situacaoHidrante(i, total)
             return (
               <tr key={h.id}>
                 <TD bold>{h.id}</TD>
@@ -208,6 +220,16 @@ function VerificacaoHidranteDesfavoravel({ ranking }) {
           })}
         </tbody>
       </Table>
+      {temOcultos && (
+        <button
+          type="button"
+          onClick={() => setExpandido(e => !e)}
+          className="w-full py-2 mb-1 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-ink-faint hover:text-ink border border-solid border-border rounded-md cursor-pointer transition-colors"
+        >
+          {expandido ? 'Mostrar menos' : `Mostrar todos os ${total} hidrantes`}
+          <Icon name="chevD" size={12} className={`transition-transform ${expandido ? 'rotate-180' : ''}`}/>
+        </button>
+      )}
       <div className="text-[11px] text-ink-faint mt-2 leading-[1.6]">
         Perda de Carga Total = perda de carga (vazão nominal de um hidrante, sem equilíbrio hidráulico) + desnível geométrico até a bomba — usado só pra ranquear. O 1º e o 2º hidrante mais desfavorável recebem a marcha de cálculo completa, com equilíbrio hidráulico, no restante desta etapa.
       </div>
