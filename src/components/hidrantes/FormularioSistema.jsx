@@ -88,11 +88,9 @@ function EstruturaPill({ active, onClick, nome, area, divisao, carga, risco }) {
 export default function FormularioSistema() {
   const { state, dispatch } = useProjeto()
   const { hidrantes: norma, extintores: extNorma } = useNorma()
-  const { sistemas, porEstrutura } = useMedidasObrigatorias()
+  const { porEstrutura } = useMedidasObrigatorias()
   const h = state.hidrantes
   const set = changes => dispatch({ type: 'SET_HIDRANTES', changes })
-
-  const temSprinklers = !!(sistemas.sprinklers?.ativo || sistemas.sprinklers?.obrigatorio)
 
   // Carga de incêndio máxima de uma estrutura (maior entre suas divisões,
   // principal + subsidiárias de todo pavimento) — usada tanto no card de
@@ -140,6 +138,20 @@ export default function FormularioSistema() {
     [infoPorEstrutura],
   )
   const estruturasSelecionadas = h.estruturasSelecionadas?.length ? h.estruturasSelecionadas : defaultSelecionadas
+
+  // Chuveiros automáticos SÓ nas estruturas selecionadas pra esta
+  // classificação — não no projeto inteiro. useMedidasObrigatorias().
+  // sistemas agrega TODAS as estruturas do projeto; usar aquele aqui
+  // rebaixava (Nota 1/2 da Tabela 3) a classificação de um grupo de
+  // edificações sem sprinklers só porque outra estrutura qualquer do
+  // mesmo projeto tinha.
+  const temSprinklers = useMemo(
+    () => estruturasSelecionadas.some(id => {
+      const pe = porEstrutura.find(p => p.estrutura.id === id)
+      return !!(pe?.sistemas?.sprinklers?.ativo || pe?.sistemas?.sprinklers?.obrigatorio)
+    }),
+    [estruturasSelecionadas, porEstrutura],
+  )
 
   const toggleEstrutura = id => {
     const atual = new Set(estruturasSelecionadas)
