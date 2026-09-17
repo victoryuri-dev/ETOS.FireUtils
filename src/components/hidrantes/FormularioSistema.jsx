@@ -197,16 +197,37 @@ export default function FormularioSistema() {
 
   const escolherOpcao = opcao => set({ tipo: opcao.tipo, rti: opcao.rti, tipoVariante: 0 })
 
-  // RTI é sempre automática (Tabela 3) — assim que a classificação vira uma
-  // sugestão sem ambiguidade (uma única opção de Tipo), grava direto no
-  // projeto sem esperar o RT clicar em nada. Quando há 2 opções (coluna 1 —
-  // ver escolherOpcao), o RT decide qual das duas adotar.
+  // RTI é sempre automática (Tabela 3) — enquanto a classificação for uma
+  // sugestão sem ambiguidade (uma única opção de Tipo), fica sempre em
+  // sincronia com o projeto, sem esperar o RT clicar em nada — inclusive
+  // quando a sugestão MUDA depois de já ter um valor salvo (RT troca a
+  // estrutura selecionada, ajusta área/carga, etc.): antes só sincronizava
+  // na primeira vez (guard `!h.tipo`), então uma mudança posterior deixava
+  // a classificação salva desatualizada, divergindo da Tabela 3 em
+  // silêncio. Quando há 2 opções (coluna 1), o RT decide qual das duas
+  // adotar (ver escolherOpcao) — preserva essa escolha entre as duas, só
+  // atualizando a RTI se a faixa de área mudou, e só reseta se a escolha
+  // salva não for mais uma das opções válidas (ex.: saiu da coluna 1).
   useEffect(() => {
-    if (!h.tipo && sugestao.opcoes.length === 1) {
-      set({ tipo: sugestao.opcoes[0].tipo, rti: sugestao.opcoes[0].rti })
+    const opcoes = sugestao.opcoes
+    if (opcoes.length === 0) return
+
+    if (opcoes.length === 1) {
+      const unica = opcoes[0]
+      if (h.tipo !== unica.tipo || Number(h.rti) !== Number(unica.rti)) {
+        set({ tipo: unica.tipo, rti: unica.rti, tipoVariante: h.tipo === unica.tipo ? h.tipoVariante : 0 })
+      }
+      return
+    }
+
+    const escolhaAtual = opcoes.find(o => o.tipo === h.tipo)
+    if (!escolhaAtual) {
+      set({ tipo: opcoes[0].tipo, rti: opcoes[0].rti, tipoVariante: 0 })
+    } else if (Number(h.rti) !== Number(escolhaAtual.rti)) {
+      set({ rti: escolhaAtual.rti })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sugestao.opcoes.length, sugestao.opcoes[0]?.tipo, h.tipo])
+  }, [sugestao.opcoes, h.tipo, h.rti, h.tipoVariante])
 
   // Método de cálculo não é escolha do RT: é fixo pela norma do estado do
   // projeto (onde a Tabela 2 exige verificar Q/Pmin — válvula ou esguicho).
