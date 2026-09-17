@@ -151,11 +151,21 @@ function DadosDoSistema({ d }) {
 // — não só os 2 escolhidos —, uma perda de carga simplificada (vazão
 // nominal de um hidrante só, sem equilíbrio hidráulico, Bomba → Válvula
 // direto) somada ao desnível geométrico: isso é só pra RANQUEAR, nunca o
-// resultado final. Os dois de maior score (mais desfavoráveis) são H-01/
-// H-02, que aí sim recebem a marcha de cálculo completa (com equilíbrio
-// hidráulico) mostrada no resto da página. Sem essa tabela o RT só via o
-// resultado de H-01/H-02 já prontos, sem conseguir conferir se são de fato
-// os mais desfavoráveis dentre os hidrantes do projeto.
+// resultado final. Os dois de maior perda de carga total (mais
+// desfavoráveis) são H-01/H-02, que aí sim recebem a marcha de cálculo
+// completa (com equilíbrio hidráulico) mostrada no resto da página. Sem
+// essa tabela o RT só via o resultado de H-01/H-02 já prontos, sem
+// conseguir conferir se são de fato os mais desfavoráveis do projeto.
+//
+// `ranking` já vem ordenado do mais desfavorável pro mais favorável (mesma
+// ordem que "Mapear Trechos" atribui H-01, H-02, H-03...) — a posição no
+// array, não só a flag `selecionado`, decide o rótulo de situação.
+function situacaoHidrante(indice) {
+  if (indice === 0) return { texto: '1º Hidrante Mais Desfavorável', classe: 'bg-red-dim border-red-border text-red' }
+  if (indice === 1) return { texto: '2º Hidrante Mais Desfavorável', classe: 'bg-amber-dim border-amber-border text-amber' }
+  return { texto: 'Hidrante Mais Favorável', classe: 'bg-surface-2 border-border text-ink-faint' }
+}
+
 function VerificacaoHidranteDesfavoravel({ ranking }) {
   if (!ranking || ranking.length === 0) return null
   return (
@@ -167,28 +177,31 @@ function VerificacaoHidranteDesfavoravel({ ranking }) {
             <TH>Hidrante</TH>
             <TH right>Perda de Carga (vazão simples)</TH>
             <TH right>Desnível (∆Z)</TH>
-            <TH right>Score</TH>
+            <TH right>Perda de Carga Total</TH>
             <TH center>Situação</TH>
           </tr>
         </thead>
         <tbody>
-          {ranking.map(h => (
-            <tr key={h.id}>
-              <TD bold>{h.id}</TD>
-              <TD right mono muted>{fmca(h.J)}</TD>
-              <TD right mono muted>{f4(h.dZ)} m</TD>
-              <TD right bold mono>{fmca(h.score)}</TD>
-              <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2">
-                {h.selecionado
-                  ? <span className="inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid bg-green-dim border-green-border text-green">SELECIONADO</span>
-                  : <span className="text-[11px] text-ink-faint">—</span>}
-              </td>
-            </tr>
-          ))}
+          {ranking.map((h, i) => {
+            const situacao = situacaoHidrante(i)
+            return (
+              <tr key={h.id}>
+                <TD bold>{h.id}</TD>
+                <TD right mono muted>{fmca(h.J)}</TD>
+                <TD right mono muted>{f4(h.dZ)} m</TD>
+                <TD right bold mono>{fmca(h.score)}</TD>
+                <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2">
+                  <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${situacao.classe}`}>
+                    {situacao.texto}
+                  </span>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </Table>
       <div className="text-[11px] text-ink-faint mt-2 leading-[1.6]">
-        Score = perda de carga (vazão nominal de um hidrante, sem equilíbrio hidráulico) + desnível geométrico até a bomba — usado só pra ranquear. Os dois com maior score (SELECIONADO) recebem a marcha de cálculo completa, com equilíbrio hidráulico, no restante desta etapa.
+        Perda de Carga Total = perda de carga (vazão nominal de um hidrante, sem equilíbrio hidráulico) + desnível geométrico até a bomba — usado só pra ranquear. O 1º e o 2º hidrante mais desfavorável recebem a marcha de cálculo completa, com equilíbrio hidráulico, no restante desta etapa.
       </div>
     </div>
   )
