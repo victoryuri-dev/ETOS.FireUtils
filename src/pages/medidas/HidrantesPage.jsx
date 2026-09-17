@@ -159,11 +159,15 @@ function DadosDoSistema({ d }) {
 //
 // `ranking` já vem ordenado do mais desfavorável pro mais favorável (mesma
 // ordem que "Mapear Trechos" atribui H-01, H-02, H-03...) — a posição no
-// array, não só a flag `selecionado`, decide o rótulo de situação.
-function situacaoHidrante(indice) {
+// array, não só a flag `selecionado`, decide o rótulo de situação. "Hidrante
+// Mais Favorável" é único: só o último da lista (o de menor perda de carga
+// total) — os demais, entre o 2º desfavorável e esse último, não têm uma
+// situação especial pra rotular.
+function situacaoHidrante(indice, total) {
   if (indice === 0) return { texto: '1º Hidrante Mais Desfavorável', classe: 'bg-red-dim border-red-border text-red' }
   if (indice === 1) return { texto: '2º Hidrante Mais Desfavorável', classe: 'bg-amber-dim border-amber-border text-amber' }
-  return { texto: 'Hidrante Mais Favorável', classe: 'bg-surface-2 border-border text-ink-faint' }
+  if (indice === total - 1) return { texto: 'Hidrante Mais Favorável', classe: 'bg-surface-2 border-border text-ink-faint' }
+  return null
 }
 
 function VerificacaoHidranteDesfavoravel({ ranking }) {
@@ -183,7 +187,7 @@ function VerificacaoHidranteDesfavoravel({ ranking }) {
         </thead>
         <tbody>
           {ranking.map((h, i) => {
-            const situacao = situacaoHidrante(i)
+            const situacao = situacaoHidrante(i, ranking.length)
             return (
               <tr key={h.id}>
                 <TD bold>{h.id}</TD>
@@ -191,9 +195,13 @@ function VerificacaoHidranteDesfavoravel({ ranking }) {
                 <TD right mono muted>{f4(h.dZ)} m</TD>
                 <TD right bold mono>{fmca(h.score)}</TD>
                 <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2">
-                  <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${situacao.classe}`}>
-                    {situacao.texto}
-                  </span>
+                  {situacao ? (
+                    <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${situacao.classe}`}>
+                      {situacao.texto}
+                    </span>
+                  ) : (
+                    <span className="text-ink-faint">—</span>
+                  )}
                 </td>
               </tr>
             )
