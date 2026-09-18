@@ -5,6 +5,7 @@ import Icon from '../../components/ui/Icon'
 import StepsNav from '../../components/layout/StepsNav'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import FormularioSistema from '../../components/hidrantes/FormularioSistema'
+import BombaESuccaoForm from '../../components/hidrantes/BombaESuccaoForm'
 import { calcPotenciaBomba } from '../../data/hidrantes_calc'
 import { getHidrantes } from '../../data/normas/index'
 
@@ -658,6 +659,7 @@ export default function HidrantesPage() {
               </div>
             ) : (
               <>
+                <BombaESuccaoForm/>
                 <EficienciaPotenciaAdotada
                   eta={eta}
                   onChangeEta={v => dispatch({ type: 'SET_HIDRANTES', changes: { bombaEficiencia: v } })}

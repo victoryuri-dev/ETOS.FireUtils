@@ -341,6 +341,11 @@ const INITIAL_STATE = {
     tipo: '', tipoVariante: 0, rti: '',
     reservatorioMaterial: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
     bombaExiste: true, bombaJockey: false,
+    // Tipo de acionamento da bomba PRINCIPAL — elétrico ou combustão
+    // interna (mesmas opções de bombaReservaAcionamento, ver
+    // normas/<UF>/hidrantes.js:ACIONAMENTOS_BOMBA). Perguntado na Etapa 3
+    // (Dimensionamento da Bomba de Incêndio, ver BombaESuccaoForm.jsx).
+    bombaAcionamento: '',
     bombaReserva: false, bombaReservaAcionamento: '',
     bombaAlimentaSprinklers: false,
     // Eficiência global (%) informada pelo RT — usada só aqui no site pra
