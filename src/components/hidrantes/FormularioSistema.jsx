@@ -37,7 +37,7 @@ export default function FormularioSistema() {
     h, set, norma,
     infoPorEstrutura, estruturasSelecionadas, toggleEstrutura,
     areaTotal, sugestao, escolherOpcao,
-    tipoAtual, dadosTipo, recalqueDuplo,
+    tipoAtual, dadosTipo, recalqueDuplo, vazaoSistema,
   } = useClassificacaoHidrantes()
 
   return (
@@ -176,7 +176,7 @@ export default function FormularioSistema() {
         {dadosTipo && (
           <div className={`flex items-center justify-between gap-3 mt-3 py-2.5 px-3.5 rounded-md border border-solid ${recalqueDuplo ? 'bg-amber-dim border-amber-border' : 'bg-surface-2 border-border'}`}>
             <span className="text-xs text-ink">
-              Vazão do sistema ({dadosTipo.vazaoMin} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min (item 5.3.3, NT 22)
+              Vazão do sistema ({dadosTipo.vazaoMin} L/min × {norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = {vazaoSistema} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min (item 5.3.3, NT 22)
             </span>
             <span className={`shrink-0 inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${recalqueDuplo ? 'bg-amber-dim border-amber-border text-amber' : 'bg-green-dim border-green-border text-green'}`}>
               Recalque {recalqueDuplo ? 'duplo — 2 entradas' : 'simples — 1 entrada'}

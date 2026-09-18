@@ -120,7 +120,14 @@ export function useClassificacaoHidrantes() {
 
   const tipoAtual = h.tipo || (sugestao.opcoes[0]?.tipo ?? '')
   const dadosTipo = tipoAtual ? dadosDoTipo(tipoAtual, h.tipoVariante || 0, norma) : null
-  const recalqueDuplo = dadosTipo ? exigeRecalqueDuplo(dadosTipo.vazaoMin, norma) : false
+  // dadosTipo.vazaoMin é a vazão de UM hidrante (Tabela 2) — a "vazão do
+  // sistema" do item 5.3.3 (critério de recalque simples/duplo) é essa
+  // vazão com os hidrantes mais desfavoráveis em funcionamento simultâneo
+  // (HIDRANTES_SIMULTANEOS, normalmente 2), não a de um hidrante só. Sem
+  // essa multiplicação, um Tipo 5 (600 L/min por hidrante = 1.200 L/min no
+  // sistema) ficava classificado como recalque simples por engano.
+  const vazaoSistema = dadosTipo ? dadosTipo.vazaoMin * norma.HIDRANTES_SIMULTANEOS : 0
+  const recalqueDuplo = dadosTipo ? exigeRecalqueDuplo(vazaoSistema, norma) : false
 
   const escolherOpcao = opcao => set({ tipo: opcao.tipo, rti: opcao.rti, tipoVariante: 0 })
 
@@ -184,6 +191,6 @@ export function useClassificacaoHidrantes() {
     h, set, norma, extNorma,
     infoPorEstrutura, estruturasSelecionadas, toggleEstrutura,
     areaTotal, divisoesComCarga, sugestao, escolherOpcao,
-    risco, reservaSugerida, tipoAtual, dadosTipo, recalqueDuplo, temSprinklers,
+    risco, reservaSugerida, tipoAtual, dadosTipo, recalqueDuplo, vazaoSistema, temSprinklers,
   }
 }
