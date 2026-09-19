@@ -3,69 +3,16 @@
 // comentário de state.hidrantes em ProjetoContext.jsx) — o dimensionamento
 // hidráulico continua vindo do plugin Revit; aqui só a classificação que o
 // site decide e envia pra ele (ver hidrantes_calc.js e site-sync).
-import { useEffect, useMemo } from 'react'
-import { useProjeto } from '../../context/ProjetoContext'
-import { useNorma } from '../../hooks/useNorma'
-import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
-import { cargaDaDivisao, classificarRisco } from '../../data/extintores_calc'
-import { sugerirClassificacao, dadosDoTipo, exigeRecalqueDuplo, bombaReservaObrigatoria } from '../../data/hidrantes_calc'
-import SwitchToggle from '../ui/SwitchToggle'
+//
+// Bomba de Incêndio e Sucção da Bomba (NPSH) saíram daqui pra
+// BombaESuccaoForm.jsx, renderizado na Etapa 3 (Dimensionamento da Bomba de
+// Incêndio, ver HidrantesPage.jsx) — mais perto de onde o RT de fato decide
+// a bomba, junto de eficiência/potência. A lógica de classificação
+// compartilhada pelas duas etapas (temSprinklers, risco, recalqueDuplo etc.)
+// mora em hooks/useClassificacaoHidrantes.js, não duplicada nos dois lugares.
+import { useClassificacaoHidrantes } from '../../hooks/useClassificacaoHidrantes'
 import FormSection from '../ui/FormSection'
-import Icon from '../ui/Icon'
-
-const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'
-
-function Field({ label, hint, children }) {
-  return (
-    <div>
-      {label && (
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
-          {hint && <div className="text-[10px] text-ink-faint font-mono whitespace-nowrap">{hint}</div>}
-        </div>
-      )}
-      {children}
-    </div>
-  )
-}
-// Resultado calculado (não editável) — visual deliberadamente diferente de
-// um campo de formulário (sem borda/caixa de input): rótulo pequeno em
-// cima, valor em destaque embaixo, como um dado, não uma pergunta.
-function Resultado({ label, value, hint, className = '' }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
-        {hint && <div className="text-[10px] text-ink-faint font-mono whitespace-nowrap">{hint}</div>}
-      </div>
-      <div className={`text-sm font-bold text-ink ${className}`}>{value}</div>
-    </div>
-  )
-}
-function Pill({ active, onClick, children }) {
-  return (
-    <button type="button" onClick={onClick}
-      className={`text-left py-2 px-3 rounded-md border border-solid text-xs transition-colors ${active ? 'border-red bg-red-dim text-ink font-semibold' : 'border-border bg-bg text-ink-faint hover:text-ink'}`}>
-      {children}
-    </button>
-  )
-}
-function Nota({ children }) {
-  return (
-    <div className="ibox amber mt-2">
-      <Icon name="info" size={13} color="var(--color-amber)" className="shrink-0"/>
-      <span className="text-xs">{children}</span>
-    </div>
-  )
-}
-function ToggleRow({ label, checked, onChange }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-1">
-      <span className="text-xs text-ink">{label}</span>
-      <SwitchToggle checked={checked} onChange={onChange}/>
-    </div>
-  )
-}
+import { inputClass, Field, Resultado, Pill, Nota, ToggleRow } from './formUi'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 const RISCO_COLOR = { baixo: 'text-ink-faint', medio: 'text-amber', alto: 'text-red' }
@@ -86,126 +33,12 @@ function EstruturaPill({ active, onClick, nome, area, divisao, carga, risco }) {
 }
 
 export default function FormularioSistema() {
-  const { state, dispatch } = useProjeto()
-  const { hidrantes: norma, extintores: extNorma } = useNorma()
-  const { sistemas, porEstrutura } = useMedidasObrigatorias()
-  const h = state.hidrantes
-  const set = changes => dispatch({ type: 'SET_HIDRANTES', changes })
-
-  const temSprinklers = !!(sistemas.sprinklers?.ativo || sistemas.sprinklers?.obrigatorio)
-
-  // Carga de incêndio máxima de uma estrutura (maior entre suas divisões,
-  // principal + subsidiárias de todo pavimento) — usada tanto no card de
-  // cada estrutura quanto na agregação abaixo.
-  const cargaMaximaDaEstrutura = (estruturaId) => {
-    const cargaState = state.cargaState[estruturaId] || {}
-    let maior = null
-    state.pavimentos.filter(p => p.estruturaId === estruturaId).forEach(p => {
-      const divs = [p.divisao, ...(p.acess || []).map(a => a.divisao)].filter(Boolean)
-      divs.forEach(divisao => {
-        const carga = cargaDaDivisao(divisao, cargaState)
-        if (carga != null && (maior == null || carga > maior)) maior = carga
-      })
-    })
-    return maior
-  }
-
-  // Uma linha por estrutura do projeto — área, ocupação (principal ou
-  // "mista"), carga de incêndio máxima e risco. Alimenta o box "Áreas para
-  // Classificação do Sistema" e a agregação (área total + divisões) usada
-  // na sugestão de Tipo/RTI, ambas restritas às estruturas selecionadas.
-  const infoPorEstrutura = useMemo(() => {
-    return state.estruturas.map(est => {
-      const pe = porEstrutura.find(p => p.estrutura.id === est.id)
-      const { principaisDivs = [], edificacaoMista = false } = pe?.classificacao || {}
-      const divisaoLabel = principaisDivs.length === 0 ? null
-        : principaisDivs.length === 1 ? principaisDivs[0]
-        : `Mista (${principaisDivs.join(', ')})`
-      const carga = cargaMaximaDaEstrutura(est.id)
-      const risco = carga != null ? classificarRisco(carga, extNorma.LIMIARES_RISCO) : null
-      return {
-        id: est.id, nome: est.nome, area: parseFloat(est.areaTotal) || 0,
-        divisaoLabel, edificacaoMista, carga, risco,
-        hidrantesAtivo: !!pe?.sistemas?.hidrantes?.ativo,
-      }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.estruturas, state.pavimentos, state.cargaState, porEstrutura, extNorma])
-
-  // Default: estruturas onde hidrantes é exigido/ativo. O RT pode ajustar
-  // manualmente clicando nos cards — a partir daí, h.estruturasSelecionadas
-  // (persistido) manda, não mais o default automático.
-  const defaultSelecionadas = useMemo(
-    () => infoPorEstrutura.filter(e => e.hidrantesAtivo).map(e => e.id),
-    [infoPorEstrutura],
-  )
-  const estruturasSelecionadas = h.estruturasSelecionadas?.length ? h.estruturasSelecionadas : defaultSelecionadas
-
-  const toggleEstrutura = id => {
-    const atual = new Set(estruturasSelecionadas)
-    atual.has(id) ? atual.delete(id) : atual.add(id)
-    set({ estruturasSelecionadas: [...atual] })
-  }
-
-  const areaTotal = useMemo(
-    () => infoPorEstrutura.filter(e => estruturasSelecionadas.includes(e.id)).reduce((s, e) => s + e.area, 0),
-    [infoPorEstrutura, estruturasSelecionadas],
-  )
-
-  // Divisões das estruturas selecionadas (principal + subsidiárias de todo
-  // pavimento), cada uma com a maior carga de incêndio já classificada —
-  // insumo da sugestão automática de Tipo/RTI (usa a de maior carga).
-  const divisoesComCarga = useMemo(() => {
-    const porDivisao = new Map()
-    state.pavimentos.filter(p => estruturasSelecionadas.includes(p.estruturaId)).forEach(p => {
-      const cargaState = state.cargaState[p.estruturaId] || {}
-      const divs = [p.divisao, ...(p.acess || []).map(a => a.divisao)].filter(Boolean)
-      divs.forEach(divisao => {
-        const carga = cargaDaDivisao(divisao, cargaState)
-        if (carga == null) return
-        const atual = porDivisao.get(divisao)
-        if (!atual || carga > atual) porDivisao.set(divisao, carga)
-      })
-    })
-    return [...porDivisao.entries()].map(([divisao, cargaMJm2]) => ({ divisao, cargaMJm2 }))
-  }, [state.pavimentos, state.cargaState, estruturasSelecionadas])
-
-  const sugestao = useMemo(
-    () => sugerirClassificacao(areaTotal, divisoesComCarga, temSprinklers, norma),
-    [areaTotal, divisoesComCarga, temSprinklers, norma],
-  )
-
-  const maiorCarga = divisoesComCarga.length ? Math.max(...divisoesComCarga.map(d => d.cargaMJm2)) : 0
-  const risco = classificarRisco(maiorCarga, extNorma.LIMIARES_RISCO)
-  const reservaSugerida = bombaReservaObrigatoria(risco, norma)
-
-  const tipoAtual = h.tipo || (sugestao.opcoes[0]?.tipo ?? '')
-  const dadosTipo = tipoAtual ? dadosDoTipo(tipoAtual, h.tipoVariante || 0, norma) : null
-  const recalqueDuplo = dadosTipo ? exigeRecalqueDuplo(dadosTipo.vazaoMin, norma) : false
-
-  const escolherOpcao = opcao => set({ tipo: opcao.tipo, rti: opcao.rti, tipoVariante: 0 })
-
-  // RTI é sempre automática (Tabela 3) — assim que a classificação vira uma
-  // sugestão sem ambiguidade (uma única opção de Tipo), grava direto no
-  // projeto sem esperar o RT clicar em nada. Quando há 2 opções (coluna 1 —
-  // ver escolherOpcao), o RT decide qual das duas adotar.
-  useEffect(() => {
-    if (!h.tipo && sugestao.opcoes.length === 1) {
-      set({ tipo: sugestao.opcoes[0].tipo, rti: sugestao.opcoes[0].rti })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sugestao.opcoes.length, sugestao.opcoes[0]?.tipo, h.tipo])
-
-  // Método de cálculo não é escolha do RT: é fixo pela norma do estado do
-  // projeto (onde a Tabela 2 exige verificar Q/Pmin — válvula ou esguicho).
-  // Mantido em state.hidrantes (em vez de derivado só na hora de enviar)
-  // pra viajar junto no dado sincronizado com o plugin.
-  useEffect(() => {
-    if (h.metodoCalculo !== norma.REFERENCIA_PRESSAO_VAZAO) {
-      set({ metodoCalculo: norma.REFERENCIA_PRESSAO_VAZAO })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [norma.REFERENCIA_PRESSAO_VAZAO])
+  const {
+    h, set, norma,
+    infoPorEstrutura, estruturasSelecionadas, toggleEstrutura,
+    areaTotal, sugestao, escolherOpcao,
+    tipoAtual, dadosTipo, recalqueDuplo, vazaoSistema,
+  } = useClassificacaoHidrantes()
 
   return (
     <div className="mb-8">
@@ -299,57 +132,7 @@ export default function FormularioSistema() {
         )}
       </FormSection>
 
-      {/* C — Bomba de incêndio */}
-      <FormSection title="Bomba de Incêndio" description="Vazão e pressão vêm do plugin. Eficiência e potência são definidas na etapa de Dimensionamento da Bomba.">
-        <ToggleRow label="Bomba principal" checked={h.bombaExiste} onChange={v => set({ bombaExiste: v })}/>
-        {h.bombaExiste && (
-          <>
-            <ToggleRow label="Bomba reserva" checked={h.bombaReserva} onChange={v => set({ bombaReserva: v })}/>
-            {h.bombaReserva && (
-              <div className="grid grid-cols-2 gap-2 my-3 pl-4">
-                {norma.ACIONAMENTOS_BOMBA.map(op => (
-                  <Pill key={op.key} active={h.bombaReservaAcionamento === op.key} onClick={() => set({ bombaReservaAcionamento: op.key })}>
-                    {op.label}
-                  </Pill>
-                ))}
-              </div>
-            )}
-            <ToggleRow label="Bomba jockey (pressurização)" checked={h.bombaJockey} onChange={v => set({ bombaJockey: v })}/>
-            {temSprinklers && (
-              <ToggleRow label="O sistema de bombeamento também alimenta os chuveiros automáticos (sprinklers)?" checked={h.bombaAlimentaSprinklers} onChange={v => set({ bombaAlimentaSprinklers: v })}/>
-            )}
-            {reservaSugerida && !h.bombaReserva && (
-              <Nota>
-                Risco {risco} classificado — a NT 22 (Anexo C, C.3.12) exige bomba reserva: {reservaSugerida.tipo}.
-              </Nota>
-            )}
-          </>
-        )}
-      </FormSection>
-
-      {/* C.2 — Sucção da bomba (NPSH disponível) */}
-      {h.bombaExiste && (
-        <FormSection title="Sucção da Bomba (NPSH)" description="Usadas pelo plugin para verificar a condição de sucção e, se negativa, calcular o NPSH disponível (Anexo C).">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Altitude do local">
-              <select className={inputClass} value={h.succaoAltitude} onChange={e => set({ succaoAltitude: Number(e.target.value) })}>
-                {norma.ALTITUDES_SUCCAO.map(a => (
-                  <option key={a.altitude} value={a.altitude}>{a.altitude.toLocaleString('pt-BR')} m — Ha = {a.ha} mca</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Temperatura da água">
-              <select className={inputClass} value={h.succaoTemperatura} onChange={e => set({ succaoTemperatura: Number(e.target.value) })}>
-                {norma.TEMPERATURAS_SUCCAO.map(t => (
-                  <option key={t.temperatura} value={t.temperatura}>{t.temperatura} °C — Hvp = {t.hvp} mca</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        </FormSection>
-      )}
-
-      {/* D — Rede de tubulação */}
+      {/* C — Rede de tubulação */}
       <FormSection title="Rede de Tubulação">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Material">
@@ -371,7 +154,7 @@ export default function FormularioSistema() {
         </div>
       </FormSection>
 
-      {/* E — Dispositivo de recalque */}
+      {/* D — Dispositivo de recalque */}
       <FormSection title="Dispositivo de Recalque (Corpo de Bombeiros)">
         <div className="flex flex-wrap gap-2 mb-3">
           {norma.TIPOS_RECALQUE.map(op => (
@@ -386,12 +169,23 @@ export default function FormularioSistema() {
               onChange={e => set({ recalqueJustificativaPasseio: e.target.value })}/>
           </Field>
         )}
-        <div className="text-[11px] text-ink-faint mt-3">
-          Nº de entradas: <strong className="text-ink">{recalqueDuplo ? '2 (vazão do sistema acima de 1.000 L/min)' : '1'}</strong>
-        </div>
+        {/* Verificação do nº de entradas — item 5.3.3, NT 22: vazão do
+            sistema acima de 1.000 L/min exige recalque duplo. Não é uma
+            escolha do RT (auto-sincronizada em h.recalqueEntradas, ver
+            useClassificacaoHidrantes) — só um resultado a conferir. */}
+        {dadosTipo && (
+          <div className={`flex items-center justify-between gap-3 mt-3 py-2.5 px-3.5 rounded-md border border-solid ${recalqueDuplo ? 'bg-amber-dim border-amber-border' : 'bg-surface-2 border-border'}`}>
+            <span className="text-xs text-ink">
+              Vazão do sistema ({dadosTipo.vazaoMin} L/min × {norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = {vazaoSistema} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min (item 5.3.3, NT 22)
+            </span>
+            <span className={`shrink-0 inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${recalqueDuplo ? 'bg-amber-dim border-amber-border text-amber' : 'bg-green-dim border-green-border text-green'}`}>
+              Recalque {recalqueDuplo ? 'duplo — 2 entradas' : 'simples — 1 entrada'}
+            </span>
+          </div>
+        )}
       </FormSection>
 
-      {/* F — Abrigos e mangueiras (derivado da Tabela 4, somente leitura) */}
+      {/* E — Abrigos e mangueiras (derivado da Tabela 4, somente leitura) */}
       {dadosTipo && (
         <FormSection title="Abrigos e Mangueiras" description="Componentes obrigatórios para o Tipo de sistema adotado (Tabela 4, NT 22).">
           <div className="grid grid-cols-2 gap-y-2 text-xs">
@@ -406,7 +200,7 @@ export default function FormularioSistema() {
         </FormSection>
       )}
 
-      {/* G — Válvulas */}
+      {/* F — Válvulas */}
       <FormSection title="Válvulas">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Válvula do hidrante (globo angular)">
@@ -427,7 +221,7 @@ export default function FormularioSistema() {
         </div>
       </FormSection>
 
-      {/* H — Observações */}
+      {/* G — Observações */}
       <FormSection title="Observações Complementares">
         <textarea className={inputClass + ' min-h-[90px] resize-y'} placeholder="Qualquer particularidade do projeto que não se encaixa nos campos acima..."
           value={h.observacoes} onChange={e => set({ observacoes: e.target.value })}/>

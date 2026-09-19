@@ -66,9 +66,9 @@ export function textoMemorialHidrantes(state) {
     }
     blocos.push({
       tipo: 'paragrafo',
-      texto: `O sistema possui bomba de incêndio principal${extras.length ? `, complementada por ${extras.join(' e ')}` : ''}.`,
+      texto: `O sistema possui bomba de incêndio principal${h.bombaAcionamento ? ` acionada por ${LABEL_ACIONAMENTO[h.bombaAcionamento]}` : ''}${extras.length ? `, complementada por ${extras.join(' e ')}` : ''}.`,
     })
-    if (h.bombaReserva && h.bombaReservaAcionamento === 'eletrico') {
+    if (h.bombaAcionamento === 'eletrico' || (h.bombaReserva && h.bombaReservaAcionamento === 'eletrico')) {
       blocos.push({
         tipo: 'paragrafo',
         texto: 'Na falta de energia da concessionária, as bombas de incêndio acionadas por motor elétrico podem ser alimentadas por um gerador diesel, atendendo ao requisito do item C.2.9 da NT 22.',

@@ -5,6 +5,7 @@ import Icon from '../../components/ui/Icon'
 import StepsNav from '../../components/layout/StepsNav'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import FormularioSistema from '../../components/hidrantes/FormularioSistema'
+import BombaESuccaoForm from '../../components/hidrantes/BombaESuccaoForm'
 import { calcPotenciaBomba } from '../../data/hidrantes_calc'
 import { getHidrantes } from '../../data/normas/index'
 
@@ -146,11 +147,101 @@ function DadosDoSistema({ d }) {
   )
 }
 
-// ── Verificação por Trecho ──────────────────────────────────────────────
-// Ordem da narrativa: os dois ramais até o Ponto A, depois o recalque até
-// a bomba, depois a sucção — mesma sequência da marcha de cálculo. Só o
-// resultado por trecho (vazão, perda total, velocidade x limite) — o
-// detalhamento por segmento/acessório fica no memorial de cálculo impresso.
+// ── Verificação do Hidrante Mais Desfavorável ────────────────────────────
+// "Mapear Trechos" (plugin) calcula, pra TODOS os hidrantes achados na rede
+// — não só os 2 escolhidos —, uma perda de carga simplificada (vazão
+// nominal de um hidrante só, sem equilíbrio hidráulico, Bomba → Válvula
+// direto) somada ao desnível geométrico: isso é só pra RANQUEAR, nunca o
+// resultado final. Os dois de maior perda de carga total (mais
+// desfavoráveis) são H-01/H-02, que aí sim recebem a marcha de cálculo
+// completa (com equilíbrio hidráulico) mostrada no resto da página. Sem
+// essa tabela o RT só via o resultado de H-01/H-02 já prontos, sem
+// conseguir conferir se são de fato os mais desfavoráveis do projeto.
+//
+// `ranking` já vem ordenado do mais desfavorável pro mais favorável (mesma
+// ordem que "Mapear Trechos" atribui H-01, H-02, H-03...) — a posição no
+// array, não só a flag `selecionado`, decide o rótulo de situação. "Hidrante
+// Mais Favorável" é único: só o último da lista (o de menor perda de carga
+// total) — os demais, entre o 2º desfavorável e esse último, não têm uma
+// situação especial pra rotular.
+function situacaoHidrante(indice, total) {
+  if (indice === 0) return { texto: '1º Hidrante Mais Desfavorável', classe: 'bg-red-dim border-red-border text-red' }
+  if (indice === 1) return { texto: '2º Hidrante Mais Desfavorável', classe: 'bg-amber-dim border-amber-border text-amber' }
+  if (indice === total - 1) return { texto: 'Hidrante Mais Favorável', classe: 'bg-surface-2 border-border text-ink-faint' }
+  return null
+}
+
+// Por padrão só mostra o 1º/2º mais desfavorável e o mais favorável — os
+// hidrantes intermediários (sem situação especial) ficam escondidos atrás
+// da setinha "Mostrar todos", pra tabela não virar uma lista enorme em
+// projetos com muitos hidrantes mapeados.
+function VerificacaoHidranteDesfavoravel({ ranking }) {
+  const [expandido, setExpandido] = useState(false)
+  if (!ranking || ranking.length === 0) return null
+
+  const total = ranking.length
+  const temOcultos = total > 3
+  const linhas = (expandido || !temOcultos)
+    ? ranking.map((h, i) => [h, i])
+    : [[ranking[0], 0], [ranking[1], 1], [ranking[total - 1], total - 1]]
+
+  return (
+    <div className="mb-8">
+      <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Verificação do Hidrante Mais Desfavorável</h4>
+      <Table>
+        <thead>
+          <tr>
+            <TH>Hidrante</TH>
+            <TH right>Perda de Carga (vazão simples)</TH>
+            <TH right>Desnível (∆Z)</TH>
+            <TH right>Perda de Carga Total</TH>
+            <TH center>Situação</TH>
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map(([h, i]) => {
+            const situacao = situacaoHidrante(i, total)
+            return (
+              <tr key={h.id}>
+                <TD bold>{h.id}</TD>
+                <TD right mono muted>{fmca(h.J)}</TD>
+                <TD right mono muted>{f4(h.dZ)} m</TD>
+                <TD right bold mono>{fmca(h.score)}</TD>
+                <td className="py-[9px] px-3.5 text-center border-b border-solid border-border-2">
+                  {situacao ? (
+                    <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${situacao.classe}`}>
+                      {situacao.texto}
+                    </span>
+                  ) : (
+                    <span className="text-ink-faint">—</span>
+                  )}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </Table>
+      {temOcultos && (
+        <button
+          type="button"
+          onClick={() => setExpandido(e => !e)}
+          className="w-full py-2 mb-1 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-ink-faint hover:text-ink border border-solid border-border rounded-md cursor-pointer transition-colors"
+        >
+          {expandido ? 'Mostrar menos' : `Mostrar todos os ${total} hidrantes`}
+          <Icon name="chevD" size={12} className={`transition-transform ${expandido ? 'rotate-180' : ''}`}/>
+        </button>
+      )}
+      <div className="text-[11px] text-ink-faint mt-2 leading-[1.6]">
+        Perda de Carga Total = perda de carga (vazão nominal de um hidrante, sem equilíbrio hidráulico) + desnível geométrico até a bomba — usado só pra ranquear. O 1º e o 2º hidrante mais desfavorável recebem a marcha de cálculo completa, com equilíbrio hidráulico, no restante desta etapa.
+      </div>
+    </div>
+  )
+}
+
+// ── Ordem da narrativa hidráulica ────────────────────────────────────────
+// Os dois ramais até o Ponto A, depois o recalque até a bomba, depois a
+// sucção — mesma sequência da marcha de cálculo. Compartilhado pela
+// verificação de velocidade e pelas perdas de carga por trecho, abaixo.
 const ORDEM_TRECHOS = ['t3', 't4', 't2', 't1']
 
 function limiteVelocidade(trechoId, succao, norma) {
@@ -158,57 +249,153 @@ function limiteVelocidade(trechoId, succao, norma) {
   return norma.V_MAX_TUBULACAO
 }
 
-function VerificacaoTrechos({ d, norma }) {
+// ── Verificação de Velocidade ────────────────────────────────────────────
+// Seção própria, separada das perdas de carga: aqui o que importa é só
+// atende/não atende o limite normativo — não o quanto se perdeu de carga.
+function VerificacaoVelocidade({ d, norma }) {
   const trechos = ORDEM_TRECHOS.map(id => [id, d.res.j[id]])
   return (
     <Table>
-      <thead><tr><TH>Trecho</TH><TH right>Vazão</TH><TH right>Perda de carga (J)</TH><TH>Velocidade</TH></tr></thead>
+      <thead><tr><TH>Trecho</TH><TH>DN</TH><TH right>Limite Normativo</TH><TH>Velocidade</TH></tr></thead>
       <tbody>
-        {trechos.map(([id, t]) => {
+        {trechos.flatMap(([id, t]) => {
           const vLimite = limiteVelocidade(id, d.succao, norma)
-          return (
-            <tr key={id}>
+          return t.segmentos.map((seg, i) => (
+            <tr key={`${id}-${i}`}>
               <TD bold>{t.label}</TD>
-              <TD right mono muted>{lmin(t.Q_lmin)}</TD>
-              <TD right bold mono>{fmca(t.J)}</TD>
+              <TD mono muted>DN{Number(seg.d_mm).toFixed(0)}</TD>
+              <TD right mono muted>{ms(vLimite)}</TD>
               <td className="py-[9px] px-3.5 border-b border-solid border-border-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  {t.segmentos.map((seg, i) => (
-                    <span key={i} className="inline-flex items-center gap-1.5">
-                      {t.segmentos.length > 1 && (
-                        <span className="text-[10px] text-ink-faint font-mono">DN{Number(seg.d_mm).toFixed(0)}</span>
-                      )}
-                      <VelChip v={seg.V} limite={vLimite}/>
-                    </span>
-                  ))}
-                </div>
+                <VelChip v={seg.V} limite={vLimite}/>
               </td>
             </tr>
-          )
+          ))
         })}
       </tbody>
     </Table>
   )
 }
 
+// ── Perdas de Carga por Trecho ───────────────────────────────────────────
+// Mostra o RESULTADO por trecho/diâmetro (comprimento real, equivalente,
+// perda de carga) e os componentes (conexões/acessórios) que geram perda
+// localizada — sem o passo a passo de como cada valor foi calculado (Jun,
+// fórmula de Hazen-Williams etc.), que fica só no memorial de cálculo
+// impresso (memorial/hidrantesCalculo.js). Velocidade tem seção própria,
+// acima (VerificacaoVelocidade) — aqui é só magnitude da perda.
+
+// Mesma caixa (fundo + borda) pras três — sem escurecer/clarear a esmo
+// entre elas, senão parece bagunça em vez de hierarquia. A hierarquia real
+// vem só da tipografia do valor: Leq é apoio/intermediário (apagado e
+// pequeno), Ltotal já é um resultado (peso normal), e a Perda de Carga (J)
+// é O resultado do trecho — maior, em negrito e na cor de acento (mesma
+// usada nos números-chave da página, como Ht/Qt), só o texto, não a caixa.
+function MiniStat({ label, nivel = 'secundario', val }) {
+  const valClass = nivel === 'primario'
+    ? 'text-base font-bold text-red'
+    : nivel === 'secundario'
+      ? 'text-[13px] font-semibold text-ink'
+      : 'text-[12px] font-normal text-ink-faint'
+  return (
+    <div className="bg-surface border border-solid border-border rounded-md py-2 px-3">
+      <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1 whitespace-nowrap">{label}</div>
+      <div className={`font-mono ${valClass}`}>{val}</div>
+    </div>
+  )
+}
+
+// Por diâmetro: 1) a tubulação reta em si (DN + comprimento real — o que
+// foi de fato medido no modelo), 2) a tabela de conexões/acessórios que
+// geram a perda localizada (quantidade + Leq unitário + Leq total de CADA
+// componente — nunca só o total somado, senão não dá pra saber o que foi
+// contabilizado) e 3) o resultado final do segmento (Leq, Ltotal, J).
+function SegmentoTrecho({ seg }) {
+  return (
+    <div className="bg-surface-2 border border-solid border-border rounded-md p-3.5">
+      <div className="flex items-baseline gap-2 mb-3">
+        <span className="text-[12px] font-bold text-ink font-mono bg-bg border border-solid border-border rounded px-2 py-0.5">
+          DN{Number(seg.d_mm).toFixed(0)}
+        </span>
+        <span className="text-xs text-ink-faint">
+          Tubo reto: <strong className="text-ink font-mono">{f4(seg.L)} m</strong>
+        </span>
+      </div>
+
+      {seg.acessorios.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1.5">Conexões e Acessórios (perda localizada)</div>
+          <Table>
+            <thead><tr><TH>Componente</TH><TH center w={52}>Qtd</TH><TH right>Leq unit.</TH><TH right>Leq total</TH></tr></thead>
+            <tbody>
+              {seg.acessorios.map((a, i) => (
+                <tr key={i}>
+                  <TD>{a.nome}</TD>
+                  <TD center bold>{a.qtd}</TD>
+                  <TD right mono muted>{f2(a.leq_unit)} m</TD>
+                  <TD right mono bold>{f2(a.leq_tot)} m</TD>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-2.5">
+        <MiniStat label="Comp. Equivalente (Leq)" nivel="terciario" val={`${f4(seg.Leq)} m`}/>
+        <MiniStat label="Comp. Total (Ltotal)" nivel="secundario" val={`${f4(seg.Ltotal)} m`}/>
+        <MiniStat label="Perda de Carga do Trecho (J)" nivel="primario" val={fmca(seg.J)}/>
+      </div>
+    </div>
+  )
+}
+
+function TrechoDetalhe({ id, t }) {
+  return (
+    <Card className="mb-3">
+      <CardHeader>
+        <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border text-ink-faint font-mono">{id.toUpperCase()}</span>
+        <span className="text-[13px] font-semibold text-ink">{t.label}</span>
+        <span className="text-[11px] text-ink-faint ml-auto">Q = {lmin(t.Q_lmin)} · J total = {fmca(t.J)}</span>
+      </CardHeader>
+      <div className="py-3.5 px-[18px] flex flex-col gap-3">
+        {t.segmentos.map((seg, i) => <SegmentoTrecho key={i} seg={seg}/>)}
+      </div>
+    </Card>
+  )
+}
+
+function PerdasPorTrecho({ d }) {
+  const trechos = ORDEM_TRECHOS.map(id => [id, d.res.j[id]])
+  return (
+    <div>
+      {trechos.map(([id, t]) => <TrechoDetalhe key={id} id={id} t={t}/>)}
+    </div>
+  )
+}
+
 // ── Resultado Hidráulico ─────────────────────────────────────────────────
 // Ht/Qt já convergidos — o passo a passo de como Ht foi montado (Ponto A →
-// saída da bomba → RTI) fica só no memorial de cálculo impresso.
+// saída da bomba → RTI) fica só no memorial de cálculo impresso. São os
+// dois números mais importantes da página (alimentam a bomba na Etapa 3),
+// por isso ganham a cor de destaque — Ramal Governante é só referência de
+// qual ramal governou o dimensionamento, não um valor a conferir, então
+// fica em tom neutro.
 function ResultadoHidraulico({ d }) {
   const { res } = d
-  const cards = [
-    { label: 'Altura Manométrica Total (Ht)', val: fmca(res.P_RTI) },
-    { label: 'Vazão Total (Qt)',              val: lmin(res.Qt) },
-    { label: 'Ramal Governante',              val: res.hid_governa },
-  ]
   return (
     <div className="grid grid-cols-3 gap-4 mb-8">
-      {cards.map(c => (
-        <div key={c.label} className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
-          <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">{c.label}</div>
-          <div className="text-xl font-bold text-red font-mono">{c.val}</div>
-        </div>
-      ))}
+      <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
+        <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura Manométrica Total (Ht)</div>
+        <div className="text-xl font-bold text-red font-mono">{fmca(res.P_RTI)}</div>
+      </div>
+      <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
+        <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Vazão Total (Qt)</div>
+        <div className="text-xl font-bold text-red font-mono">{lmin(res.Qt)}</div>
+      </div>
+      <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
+        <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Ramal Governante</div>
+        <div className="text-base font-semibold text-ink font-mono">{res.hid_governa}</div>
+      </div>
     </div>
   )
 }
@@ -443,13 +630,20 @@ export default function HidrantesPage() {
 
                 <DadosDoSistema d={dados}/>
 
+                <VerificacaoHidranteDesfavoravel ranking={dados.ranking_hidrantes}/>
+
                 <ResumoExecutivo d={dados}/>
 
                 <ResultadoHidraulico d={dados}/>
 
                 <div className="mb-8">
-                  <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Verificação por Trecho</h4>
-                  <VerificacaoTrechos d={dados} norma={norma}/>
+                  <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Verificação de Velocidade</h4>
+                  <VerificacaoVelocidade d={dados} norma={norma}/>
+                </div>
+
+                <div className="mb-8">
+                  <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Perdas de Carga por Trecho</h4>
+                  <PerdasPorTrecho d={dados}/>
                 </div>
               </>
             )}
@@ -465,6 +659,7 @@ export default function HidrantesPage() {
               </div>
             ) : (
               <>
+                <BombaESuccaoForm/>
                 <EficienciaPotenciaAdotada
                   eta={eta}
                   onChangeEta={v => dispatch({ type: 'SET_HIDRANTES', changes: { bombaEficiencia: v } })}

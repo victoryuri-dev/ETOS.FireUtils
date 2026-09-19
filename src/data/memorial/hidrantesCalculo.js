@@ -125,6 +125,18 @@ export function textoMemorialCalculoHidrantes(state) {
   sec('Identificação dos Hidrantes Mais Desfavoráveis em Funcionamento Simultâneo')
   paragrafo(`O cenário de cálculo representa a condição mais crítica de operação do sistema: os ${hidrSimult} hidrantes mais desfavoráveis em funcionamento simultâneo, ou seja, aquela que resulta na maior demanda de vazão total associada às maiores perdas de carga e ao maior desnível geométrico.`)
 
+  const ranking = d.ranking_hidrantes
+  if (ranking?.length) {
+    paragrafo(`Para identificar quais são de fato os hidrantes mais desfavoráveis, todas as válvulas de hidrante encontradas na rede de recalque são ranqueadas por uma pontuação preliminar — calculada com a vazão simples (vazão nominal de um único hidrante, Q = ${Qs} L/min, sem o equilíbrio hidráulico entre ramais que só se aplica aos dois hidrantes finalmente escolhidos, adiante neste memorial):`)
+    formula('Perda de Carga Total = J + ∆Z', [
+      ['J', 'Perda de carga do trecho Bomba → válvula do hidrante, por Hazen-Williams, com a vazão simples de um hidrante'],
+      ['∆Z', 'Desnível geométrico entre a válvula do hidrante e a descarga da bomba'],
+    ])
+    paragrafo('Os dois hidrantes de maior Perda de Carga Total (HD01 e HD02, na tabela abaixo) são os mais desfavoráveis e recebem a marcha de cálculo completa, com equilíbrio hidráulico, no restante deste memorial:')
+    tabela(['Hidrante', 'J (mca)', '∆Z (m)', 'Perda de Carga Total (mca)'],
+      ranking.map((h) => [h.id, f(h.J), f(h.dZ), f(h.score)]))
+  }
+
   // ── 3. Identificação dos trechos ─────────────────────────────────────
   sec('Identificação dos Trechos')
   paragrafo('Para fins de organização e como facilitador de cálculo, a tubulação é dividida em trechos. O Ponto A é o ponto de distribuição onde há a separação das vazões que vão rumo aos hidrantes desfavoráveis considerados.')

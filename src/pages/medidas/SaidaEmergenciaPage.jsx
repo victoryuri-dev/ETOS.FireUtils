@@ -215,7 +215,11 @@ export default function SaidaEmergenciaPage() {
     const { data, error } = await supabase
       .from('revit_syncs_latest').select('estrutura_id, payload').eq('projeto_id', state.id).eq('medida', 'saidas_emergencia')
     setBuscando(false)
-    if (error || !data || data.length === 0) {
+    if (error) {
+      setImportErro(`Falha ao consultar o Supabase: ${error.message}`)
+      return
+    }
+    if (!data || data.length === 0) {
       setImportErro('Nenhum dado de saídas de emergência sincronizado do Revit ainda para este projeto.')
       return
     }
