@@ -743,7 +743,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
 
           {/* ── Conteúdo ── */}
           {loading ? (
-            <div className="py-16 flex justify-center"><Loader size={28}/></div>
+            <div className="py-16 flex justify-center"><Loader size={40}/></div>
           ) : filtered.length === 0 ? (
             <EmptyState hasFilter={hasFilter} onNew={onNewProject}/>
           ) : view === 'grid' ? (
