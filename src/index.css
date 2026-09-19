@@ -88,19 +88,22 @@
      currentColor, então o mesmo componente funciona em qualquer contexto
      (texto preto, cinza, branco, vermelho...). */
   .loader-mark{display:inline-block;overflow:visible;flex-shrink:0}
-  .loader-bar{animation:loader-cascade 3s cubic-bezier(.16,1,.3,1) infinite}
+  .loader-bar{animation:loader-cascade 4.2s cubic-bezier(.16,1,.3,1) infinite}
   .loader-bar-3{animation-delay:0s}
   .loader-bar-2{animation-delay:.14s}
   .loader-bar-1{animation-delay:.28s}
 }
 
+/* Mesmo timing de cascata de antes (0 a 2.7s, só reescalado em % pra
+   caber num ciclo de 4.2s) + 1.5s de pausa parada no fim (64.29% a 100%)
+   antes de repetir — sem a pausa, o loop ficava martelando sem descanso. */
 @keyframes loader-cascade {
-  0%   { transform: translateY(216px); opacity: 0; }
-  10%  { opacity: 1; }
-  25%  { transform: translateY(0); }
-  75%  { transform: translateY(0); opacity: 1; animation-timing-function: cubic-bezier(.6,0,.9,.4); }
-  90%  { transform: translateY(-216px); opacity: 0; }
-  100% { transform: translateY(-216px); opacity: 0; }
+  0%      { transform: translateY(216px); opacity: 0; }
+  7.14%   { opacity: 1; }
+  17.86%  { transform: translateY(0); }
+  53.57%  { transform: translateY(0); opacity: 1; animation-timing-function: cubic-bezier(.6,0,.9,.4); }
+  64.29%  { transform: translateY(-216px); opacity: 0; }
+  100%    { transform: translateY(-216px); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
