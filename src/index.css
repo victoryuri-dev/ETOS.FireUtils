@@ -79,6 +79,32 @@
   .carga-class.low{background:var(--color-green-dim);border:.5px solid var(--color-green-border);color:var(--color-green)}
   .carga-class.med{background:var(--color-amber-dim);border:.5px solid var(--color-amber-border);color:var(--color-amber)}
   .carga-class.high{background:var(--color-red-dim);border:.5px solid var(--color-red-border);color:var(--color-red)}
+
+  /* Loader (marca animada, 3 barras em cascata) — ver ui/Loader.jsx.
+     Reservado pra estados de carregamento de TELA (uma seção/página
+     inteira ainda sem conteúdo) — indicadores pequenos e pontuais
+     (salvando, buscando CNPJ etc.) continuam com o spinner girando comum
+     (Icon name="spinner" + animate-spin). Cor sempre herdada via
+     currentColor, então o mesmo componente funciona em qualquer contexto
+     (texto preto, cinza, branco, vermelho...). */
+  .loader-mark{display:inline-block;overflow:visible;flex-shrink:0}
+  .loader-bar{animation:loader-cascade 3s cubic-bezier(.16,1,.3,1) infinite}
+  .loader-bar-3{animation-delay:0s}
+  .loader-bar-2{animation-delay:.14s}
+  .loader-bar-1{animation-delay:.28s}
+}
+
+@keyframes loader-cascade {
+  0%   { transform: translateY(216px); opacity: 0; }
+  10%  { opacity: 1; }
+  25%  { transform: translateY(0); }
+  75%  { transform: translateY(0); opacity: 1; animation-timing-function: cubic-bezier(.6,0,.9,.4); }
+  90%  { transform: translateY(-216px); opacity: 0; }
+  100% { transform: translateY(-216px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-bar { animation: none !important; transform: none; opacity: 1; }
 }
 
 @page {

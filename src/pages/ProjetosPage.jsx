@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import Icon from '../components/ui/Icon'
+import Loader from '../components/ui/Loader'
 import { useNorma } from '../hooks/useNorma'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -742,7 +743,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
 
           {/* ── Conteúdo ── */}
           {loading ? (
-            <div className="py-16 text-center text-[12px] text-ink-faint">Carregando projetos…</div>
+            <div className="py-16 flex justify-center"><Loader size={28}/></div>
           ) : filtered.length === 0 ? (
             <EmptyState hasFilter={hasFilter} onNew={onNewProject}/>
           ) : view === 'grid' ? (

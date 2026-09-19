@@ -23,6 +23,7 @@ import IluminacaoPage         from './pages/medidas/IluminacaoPage'
 import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
 import GerenciamentoRiscoPage from './pages/medidas/GerenciamentoRiscoPage'
 import Icon           from './components/ui/Icon'
+import Loader         from './components/ui/Loader'
 import logo           from './assets/fireutils-logo.png'
 
 // ── SaveStatusIndicator ───────────────────────────────────────────────
@@ -309,8 +310,8 @@ function AppInner() {
 
   if (loading) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-bg text-ink-faint text-[13px]">
-        Carregando…
+      <div className="w-screen h-screen flex items-center justify-center bg-bg">
+        <Loader size={40}/>
       </div>
     )
   }
