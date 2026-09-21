@@ -542,6 +542,30 @@ function reducer(state, action) {
         extintores: state.extintores.filter(e =>
           !(e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId && e.ambiente === action.ambiente)),
       }
+    // Move unidades extintoras (por id) pra outro ambiente do MESMO
+    // pavimento — filtra por estruturaId/pavimentoId pra que um id fora do
+    // pavimento (ex.: seleção antiga) nunca troque de pavimento por engano.
+    case 'MOVER_EXTINTORES': {
+      const ids = new Set(action.ids)
+      return {
+        ...state,
+        extintores: state.extintores.map(e =>
+          (ids.has(e.id) && e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId)
+            ? { ...e, ambiente: action.ambiente } : e),
+      }
+    }
+    // Reordena os ambientes de um pavimento. `ordem` é a lista de nomes de
+    // ambiente na nova sequência. Os ambientes não têm posição própria — a
+    // ordem vem da 1ª ocorrência de cada nome em state.extintores (ver
+    // agruparPorAmbiente em ExtintoresPage.jsx) —, então reordenar é
+    // reordenar os itens do pavimento, preservando a ordem interna de cada
+    // ambiente (sort estável).
+    case 'ORDENAR_AMBIENTES_EXTINTOR': {
+      const doPav = e => e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId
+      const posicao = nome => { const i = action.ordem.indexOf(nome); return i < 0 ? action.ordem.length : i }
+      const reordenados = state.extintores.filter(doPav).sort((a, b) => posicao(a.ambiente) - posicao(b.ambiente))
+      return { ...state, extintores: [...state.extintores.filter(e => !doPav(e)), ...reordenados] }
+    }
     // Substitui só o cadastro de extintores das estruturas presentes no
     // lote importado (ver resolverImportacao em ExtintoresPage.jsx) — os
     // itens já chegam com estruturaId/pavimentoId resolvidos contra o

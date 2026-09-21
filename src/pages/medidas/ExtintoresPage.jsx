@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
+import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { supabase } from '../../lib/supabase'
 import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica } from '../../data/extintores_calc'
 import Icon from '../../components/ui/Icon'
+import Checkbox from '../../components/ui/Checkbox'
 import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
@@ -142,8 +144,11 @@ function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSo
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────
+// overflow-clip (e não -hidden): recorta os cantos arredondados do mesmo
+// jeito, mas não vira um contêiner de rolagem — sem isso a barra de seleção
+// em massa (sticky, ver PavimentoCard) não grudaria na borda da tela.
 function Card({ children, className = '' }) {
-  return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
+  return <div className={`bg-surface border border-solid border-border rounded-lg overflow-clip ${className}`}>{children}</div>
 }
 function CardHeader({ children }) {
   return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 flex-wrap">{children}</div>
@@ -177,13 +182,30 @@ function agruparPorAmbiente(extintores) {
 // A capacidade extintora nasce preenchida com o mínimo normativo do tipo
 // (item 5.1.1/5.1.4 NT 21 CBMMA), mas é livre para o projetista aumentar
 // conforme a capacidade do agente efetivamente aplicado no projeto.
-function LinhaExtintor({ ext, tiposPortatil, tiposSobreRodas, dispatch }) {
+//
+// Arrastável (só pelo grip) pra outro ambiente do mesmo pavimento; o
+// checkbox marca várias unidades pra mover/apagar de uma vez (barra no
+// rodapé do PavimentoCard). Uma unidade só troca de ambiente — o ambiente
+// em si não é destino de outro ambiente.
+function LinhaExtintor({ ext, tiposPortatil, tiposSobreRodas, dispatch, selecionado, onToggleSelecao }) {
   const catalogo = ext.sobreRodas ? tiposSobreRodas : tiposPortatil
 
   const update = changes => dispatch({ type: 'UPDATE_EXTINTOR', id: ext.id, changes })
 
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `ext:${ext.id}`, data: { kind: 'ext', id: ext.id, ambiente: ext.ambiente },
+  })
+
   return (
-    <tr>
+    <tr ref={setNodeRef} className={`group/row transition-colors ${selecionado ? 'bg-red-dim' : ''} ${isDragging ? 'opacity-40' : ''}`}>
+      <td className="py-1.5 pl-2.5 pr-1 border-b border-solid border-border-2">
+        <div className="flex items-center gap-2">
+          <button type="button" {...attributes} {...listeners} className="flex opacity-60 group-hover/row:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar unidade extintora">
+            <Icon name="grip" size={13}/>
+          </button>
+          <Checkbox checked={selecionado} onChange={() => onToggleSelecao(ext.id)} title="Selecionar pra mover em massa"/>
+        </div>
+      </td>
       <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
         <select
           value={ext.tipo}
@@ -242,9 +264,23 @@ function LinhaExtintor({ ext, tiposPortatil, tiposSobreRodas, dispatch }) {
 }
 
 // ── Bloco de um ambiente (grupo de extintores com o mesmo nome) ──────
-function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil, tiposSobreRodas, dispatch }) {
+// O box inteiro é destino de soltar unidades extintoras (mover unidade entre
+// ambientes) e arrastável pelo grip do cabeçalho — arrastar um ambiente sobre
+// outro só troca a ordem dos dois na lista; ambiente nunca vira filho de
+// ambiente.
+function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil, tiposSobreRodas, dispatch, selecionados, onToggleSelecao }) {
   const [editing, setEditing] = useState(false)
   const [nome, setNome] = useState(ambiente)
+
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+    id: `amb:${ambiente}`, data: { kind: 'amb', ambiente },
+  })
+  const { setNodeRef: setDropRef, isOver, active } = useDroppable({
+    id: `drop-amb:${ambiente}`, data: { kind: 'ambiente', ambiente },
+  })
+  // Tanto a unidade quanto o ambiente arrastados guardam em data.ambiente o
+  // ambiente de origem — só destaca o box como destino quando é outro.
+  const destacar = isOver && active?.data.current?.ambiente !== ambiente
 
   const commitRename = () => {
     const novo = nome.trim()
@@ -258,8 +294,13 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
   const totalQtd = itens.reduce((s, e) => s + (parseInt(e.quantidade) || 0), 0)
 
   return (
-    <div className="mb-3 border border-solid border-border rounded-md overflow-hidden">
+    <div ref={node => { setDragRef(node); setDropRef(node) }}
+      className={`group/amb mb-3 border border-solid rounded-md overflow-hidden transition-colors ${destacar ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border'} ${isDragging ? 'opacity-40' : ''}`}
+    >
       <div className="flex items-center gap-2.5 py-2 px-2.5 bg-surface-2 border-b border-solid border-border">
+        <button type="button" {...attributes} {...listeners} className="flex opacity-60 group-hover/amb:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente (reordenar)">
+          <Icon name="grip" size={14}/>
+        </button>
         {editing ? (
           <input
             autoFocus
@@ -301,6 +342,7 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
       <table className="w-full border-collapse">
         <thead>
           <tr>
+            <th className="w-[52px] border-b border-solid border-border-2"></th>
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Tipo</th>
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Formato</th>
             <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border-2">Capacidade</th>
@@ -311,7 +353,8 @@ function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortati
         </thead>
         <tbody>
           {itens.map(ext => (
-            <LinhaExtintor key={ext.id} ext={ext} tiposPortatil={tiposPortatil} tiposSobreRodas={tiposSobreRodas} dispatch={dispatch}/>
+            <LinhaExtintor key={ext.id} ext={ext} tiposPortatil={tiposPortatil} tiposSobreRodas={tiposSobreRodas} dispatch={dispatch}
+              selecionado={selecionados.has(ext.id)} onToggleSelecao={onToggleSelecao}/>
           ))}
         </tbody>
       </table>
@@ -337,6 +380,86 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
     let n = grupos.length + 1
     while (nomesExistentes.has(`Ambiente ${n}`)) n++
     dispatch({ type: 'ADD_EXTINTOR', estruturaId, pavimentoId: pavimento.id, ambiente: `Ambiente ${n}` })
+  }
+
+  // ── Mover unidades entre ambientes (arrastar / seleção em massa) ──────
+  // Tudo escopado ao pavimento: um DndContext por card, então uma unidade
+  // nunca troca de pavimento — só de ambiente dentro dele.
+  const [selecionados, setSelecionados] = useState(() => new Set())
+  const [alvoSelecao, setAlvoSelecao] = useState('')
+  const [arrastando, setArrastando] = useState(null)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+
+  // Seleção só vale pro que ainda existe no pavimento — uma unidade apagada
+  // (ou removida junto com o ambiente) sai da seleção sozinha.
+  const idsSelecionados = extintoresDoPav.filter(e => selecionados.has(e.id)).map(e => e.id)
+  const selecionadosValidos = new Set(idsSelecionados)
+  const alvoValido = alvoSelecao !== '' && grupos.some(g => g.ambiente === alvoSelecao)
+
+  const toggleSelecao = id => setSelecionados(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+  const limparSelecao = () => { setSelecionados(new Set()); setAlvoSelecao('') }
+  const moverPara = (ids, ambiente) => dispatch({ type: 'MOVER_EXTINTORES', estruturaId, pavimentoId: pavimento.id, ids, ambiente })
+  const moverSelecionados = () => {
+    if (!idsSelecionados.length || !alvoValido) return
+    moverPara(idsSelecionados, alvoSelecao)
+    limparSelecao()
+  }
+  const apagarSelecionados = () => {
+    if (!idsSelecionados.length) return
+    if (!window.confirm(`Apagar ${idsSelecionados.length} ${idsSelecionados.length > 1 ? 'itens selecionados' : 'item selecionado'}?`)) return
+    idsSelecionados.forEach(id => dispatch({ type: 'REMOVE_EXTINTOR', id }))
+    limparSelecao()
+  }
+
+  const handleDragEnd = ({ active, over }) => {
+    setArrastando(null)
+    const a = active.data.current
+    const o = over?.data.current
+    if (!a || o?.kind !== 'ambiente') return
+
+    if (a.kind === 'ext') {
+      // Arrastar uma unidade que faz parte da seleção leva o conjunto
+      // inteiro junto, não só a linha que a mão pegou.
+      const emLote = idsSelecionados.length > 1 && idsSelecionados.includes(a.id)
+      if (!emLote && o.ambiente === a.ambiente) return
+      moverPara(emLote ? idsSelecionados : [a.id], o.ambiente)
+      if (emLote) limparSelecao()
+      return
+    }
+
+    // kind === 'amb': só reordena — soltar um ambiente sobre outro põe o
+    // arrastado na posição do alvo. Não existe ambiente dentro de ambiente.
+    if (o.ambiente === a.ambiente) return
+    const nomes = grupos.map(g => g.ambiente)
+    const de = nomes.indexOf(a.ambiente)
+    const para = nomes.indexOf(o.ambiente)
+    if (de < 0 || para < 0) return
+    const ordem = [...nomes]
+    ordem.splice(de, 1)
+    ordem.splice(para, 0, a.ambiente)
+    dispatch({ type: 'ORDENAR_AMBIENTES_EXTINTOR', estruturaId, pavimentoId: pavimento.id, ordem })
+  }
+
+  // Rótulo do cartão que acompanha o ponteiro durante o arrasto (DragOverlay
+  // — a linha/box original fica no lugar, esmaecida).
+  let rotuloArrasto = null
+  if (arrastando?.kind === 'amb') {
+    const n = grupos.find(g => g.ambiente === arrastando.ambiente)?.itens.length || 0
+    rotuloArrasto = { titulo: arrastando.ambiente, detalhe: `${n} ${n === 1 ? 'item' : 'itens'}` }
+  } else if (arrastando?.kind === 'ext') {
+    if (idsSelecionados.length > 1 && idsSelecionados.includes(arrastando.id)) {
+      rotuloArrasto = { titulo: `${idsSelecionados.length} itens`, detalhe: 'selecionados' }
+    } else {
+      const ext = extintoresDoPav.find(e => e.id === arrastando.id)
+      if (ext) {
+        const tipo = (ext.sobreRodas ? TIPOS_SOBRE_RODAS : TIPOS_PORTATIL).find(t => t.key === ext.tipo)?.label || ext.tipo
+        rotuloArrasto = { titulo: tipo, detalhe: `${ext.sobreRodas ? 'Sobre rodas' : 'Portátil'} · ${ext.capacidade}` }
+      }
+    }
   }
 
   const conforme = resultado.temA && resultado.temBC && resultado.minimoAtendido
@@ -381,35 +504,83 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
         )}
       </div>
 
-      <div className="py-3.5 px-[18px]">
-        {!risco && (
-          <div className="ibox amber">
-            <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-            <span className="text-xs">A carga de incêndio deste pavimento ainda não foi classificada na Etapa 5 (Carga de Incêndio) — o risco predominante não pode ser determinado até lá.</span>
-          </div>
-        )}
+      {/* collisionDetection=pointerWithin: o destino do drag é o box de
+          ambiente sob o ponteiro do mouse (mesmo critério das Saídas de
+          Emergência — o padrão do dnd-kit compara a área do item arrastado
+          com a de cada box e erra o destino quando o item é mais largo). */}
+      <DndContext sensors={sensors} collisionDetection={pointerWithin}
+        onDragStart={({ active }) => setArrastando(active.data.current)}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setArrastando(null)}
+      >
+        <div className="py-3.5 px-[18px]">
+          {!risco && (
+            <div className="ibox amber">
+              <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+              <span className="text-xs">A carga de incêndio deste pavimento ainda não foi classificada na Etapa 5 (Carga de Incêndio) — o risco predominante não pode ser determinado até lá.</span>
+            </div>
+          )}
 
-        {grupos.length === 0 ? (
-          <div className="py-8 text-center text-ink-faint text-[13px] mb-3">
-            Nenhum ambiente adicionado. Clique em "Adicionar ambiente".
-          </div>
-        ) : grupos.map(g => (
-          <AmbienteBloco
-            key={g.ambiente}
-            estruturaId={estruturaId}
-            pavimentoId={pavimento.id}
-            ambiente={g.ambiente}
-            itens={g.itens}
-            tiposPortatil={TIPOS_PORTATIL}
-            tiposSobreRodas={TIPOS_SOBRE_RODAS}
-            dispatch={dispatch}
-          />
-        ))}
+          {grupos.length === 0 ? (
+            <div className="py-8 text-center text-ink-faint text-[13px] mb-3">
+              Nenhum ambiente adicionado. Clique em "Adicionar ambiente".
+            </div>
+          ) : grupos.map(g => (
+            <AmbienteBloco
+              key={g.ambiente}
+              estruturaId={estruturaId}
+              pavimentoId={pavimento.id}
+              ambiente={g.ambiente}
+              itens={g.itens}
+              tiposPortatil={TIPOS_PORTATIL}
+              tiposSobreRodas={TIPOS_SOBRE_RODAS}
+              dispatch={dispatch}
+              selecionados={selecionadosValidos}
+              onToggleSelecao={toggleSelecao}
+            />
+          ))}
 
-        <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={adicionarAmbiente}>
-          <Icon name="plus" size={12}/> Adicionar ambiente
-        </button>
-      </div>
+          <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={adicionarAmbiente}>
+            <Icon name="plus" size={12}/> Adicionar ambiente
+          </button>
+        </div>
+
+        <DragOverlay dropAnimation={null}>
+          {rotuloArrasto && (
+            <div className="flex items-center gap-2.5 py-2 px-3 rounded-md border border-solid border-red bg-surface-2 shadow-[0_8px_24px_rgba(0,0,0,.45)] cursor-grabbing">
+              <Icon name="grip" size={13} className="text-ink-faint"/>
+              <span className="text-[13px] font-semibold text-ink whitespace-nowrap">{rotuloArrasto.titulo}</span>
+              <span className="text-[11px] text-ink-faint whitespace-nowrap">{rotuloArrasto.detalhe}</span>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      {/* Barra de seleção em massa — sticky no rodapé do card, pra ficar
+          visível enquanto houver unidades marcadas (só unidades extintoras
+          têm checkbox; ambiente não é selecionável). */}
+      {idsSelecionados.length > 0 && (
+        <div className="sticky bottom-0 z-10 flex items-center gap-3 flex-wrap py-2.5 px-[18px] border-t border-solid border-red bg-surface-2 shadow-[0_-8px_24px_rgba(0,0,0,.35)]">
+          <span className="text-xs font-semibold text-ink whitespace-nowrap">
+            {idsSelecionados.length} {idsSelecionados.length > 1 ? 'itens selecionados' : 'item selecionado'}
+          </span>
+          <select value={alvoSelecao} onChange={e => setAlvoSelecao(e.target.value)}
+            className="w-auto flex-1 max-w-[320px] text-xs py-1.5 bg-transparent"
+          >
+            <option value="">Mover para...</option>
+            {grupos.map(g => <option key={g.ambiente} value={g.ambiente}>{g.ambiente}</option>)}
+          </select>
+          <button className="btn-ghost disabled:opacity-40 disabled:cursor-not-allowed" disabled={!alvoValido} onClick={moverSelecionados}>
+            <Icon name="check" size={12}/> Mover
+          </button>
+          <button className="inline-flex items-center gap-1.5 bg-transparent border border-solid border-red text-red hover:bg-red hover:text-white cursor-pointer text-xs font-semibold rounded-md py-1.5 px-3 transition-colors" onClick={apagarSelecionados}>
+            <Icon name="trash" size={12}/> Apagar selecionados
+          </button>
+          <button className="bg-transparent border-none text-ink-faint hover:text-ink cursor-pointer text-xs underline ml-auto" onClick={limparSelecao}>
+            Cancelar seleção
+          </button>
+        </div>
+      )}
     </Card>
   )
 }
