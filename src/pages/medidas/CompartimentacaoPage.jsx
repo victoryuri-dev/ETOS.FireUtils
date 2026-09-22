@@ -3,6 +3,7 @@ import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { calcularAreaMaximaCompartimentacao } from '../../data/compart_calc'
 import Icon from '../../components/ui/Icon'
+import Checkbox from '../../components/ui/Checkbox'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
@@ -15,17 +16,14 @@ function Checklist({ titulo, opcoes, valores, onToggle }) {
   return (
     <div>
       <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">{titulo}</div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         {opcoes.map(o => (
-          <label key={o.key} className="flex items-start gap-2 text-xs text-ink-muted cursor-pointer">
-            <input
-              type="checkbox"
-              checked={valores.includes(o.key)}
-              onChange={() => onToggle(o.key)}
-              className="mt-0.5 shrink-0"
-            />
+          <div key={o.key} className="flex items-start gap-2 text-xs text-ink-muted cursor-pointer" onClick={() => onToggle(o.key)}>
+            <div className="mt-0.5">
+              <Checkbox checked={valores.includes(o.key)} onChange={() => onToggle(o.key)}/>
+            </div>
             <span>{o.texto || o.label}{o.ref && <span className="text-ink-faint"> — item {o.ref}</span>}</span>
-          </label>
+          </div>
         ))}
       </div>
     </div>
