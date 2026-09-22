@@ -24,7 +24,7 @@ function dispensadaBloco(nomeEst) {
 
 export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   const blocos = []
-  const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS } = getCompartimentacao(state.uf)
+  const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS } = getCompartimentacao(state.uf)
 
   ;(state.estruturas || []).forEach(est => {
     // Obrigatoriedade por estrutura (useMedidasObrigatorias) — cai para o
@@ -36,6 +36,14 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
     if (!obrigatorio) {
       blocos.push(dispensadaBloco(est.nome || 'Esta estrutura'))
       return
+    }
+
+    const substituicao = SUBSTITUICOES_COMPARTIMENTACAO.find(o => o.key === est.isencaoCompartHorizontal)
+    if (substituicao) {
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: `Compartimentação horizontal isenta do cumprimento da área máxima de compartimentação (Anexo B, NT 09 CBMMA), mediante adoção de ${substituicao.texto}, conforme nota de rodapé da Tabela 6 aplicável ao grupo/altura desta estrutura (NT 01 CBMMA).`,
+      })
     }
 
     const pavimentos = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
@@ -64,7 +72,9 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
       if (r.pavimentosExcedentes.length > 0) {
         blocos.push({
           tipo: 'lista', estilo: 'alerta',
-          itens: r.pavimentosExcedentes.map(l => `ATENÇÃO: ${l.pavimento.label} (${l.area} m²) excede a área máxima de compartimentação (${l.valor} m²) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — subdividir em mais de um compartimento ou obter isenção por NT específica.`),
+          itens: r.pavimentosExcedentes.map(l => substituicao
+            ? `${l.pavimento.label} (${l.area} m²) excede a área máxima de compartimentação (${l.valor} m²) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — sem exigência de subdivisão, em razão da substituição por sistema alternativo indicada acima.`
+            : `ATENÇÃO: ${l.pavimento.label} (${l.area} m²) excede a área máxima de compartimentação (${l.valor} m²) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — subdividir em mais de um compartimento ou substituir por sistema alternativo (chuveiros automáticos e/ou detecção de incêndio, conforme nota de rodapé da Tabela 6 da NT 01 CBMMA aplicável).`),
         })
       }
     }
@@ -97,7 +107,7 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
 
 export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
   const blocos = []
-  const { ELEMENTOS_COMPART_VERTICAL, CONDICOES_ESPECIAIS_VERTICAL, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR } = getCompartimentacao(state.uf)
+  const { ELEMENTOS_COMPART_VERTICAL, CONDICOES_ESPECIAIS_VERTICAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR } = getCompartimentacao(state.uf)
 
   ;(state.estruturas || []).forEach(est => {
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
@@ -108,6 +118,14 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
       blocos.push(dispensadaBloco(est.nome || 'Esta estrutura'))
       blocos.push({ tipo: 'paragrafo', texto: 'Atenção (item 6.1.1, NT 09 CBMMA): a inexistência ou a quebra da compartimentação vertical, por qualquer meio, implica na somatória das áreas dos pavimentos interligados para fins de cálculo da área máxima de compartimentação horizontal.' })
       return
+    }
+
+    const substituicaoV = SUBSTITUICOES_COMPARTIMENTACAO.find(o => o.key === est.isencaoCompartVertical)
+    if (substituicaoV) {
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: `Compartimentação vertical isenta mediante adoção de ${substituicaoV.texto}, conforme nota de rodapé da Tabela 6 aplicável ao grupo/altura desta estrutura (NT 01 CBMMA). A compartimentação das fachadas e a selagem dos shafts e dutos de instalações continuam exigidas, independentemente da substituição.`,
+      })
     }
 
     const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical)

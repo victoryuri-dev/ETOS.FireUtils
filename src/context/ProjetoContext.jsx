@@ -249,6 +249,14 @@ function novaEstrutura(nome, id) {
     condicoesEspeciaisCompartHorizontal: [],
     condicoesEspeciaisCompartVertical: [],
     obsCompartimentacao: '',
+    // Substituição por sistema alternativo (notas de rodapé da Tabela 6,
+    // NT 01 CBMMA — ver SUBSTITUICOES_COMPARTIMENTACAO em
+    // normas/MA/compartimentacao.js). null = sem isenção; senão, a `key` da
+    // combinação escolhida (isenta a compartimentação correspondente do
+    // cumprimento da área máxima do Anexo B da NT 09 e habilita os sistemas
+    // substitutos desta estrutura).
+    isencaoCompartHorizontal: null,
+    isencaoCompartVertical: null,
   }
 }
 
@@ -290,6 +298,7 @@ const INITIAL_STATE = {
     elementosCompartHorizontal: [], elementosCompartVertical: [],
     condicoesEspeciaisCompartHorizontal: [], condicoesEspeciaisCompartVertical: [],
     obsCompartimentacao: '',
+    isencaoCompartHorizontal: null, isencaoCompartVertical: null,
   }],
   propNome: '', propDocumento: '', propTelefone: '', propEmail: '',
   respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '', respEmail: '',

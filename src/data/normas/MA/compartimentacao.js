@@ -151,3 +151,35 @@ export const CONDICOES_ESPECIAIS_VERTICAL = [
   { key: 'subsolo_pcf_p90',               ref: '6.5.3', texto: 'Escadas/rampas de circulação vindas de subsolo compartimentadas com PCF P-90 (EI-90) em relação aos demais pisos, independente da área máxima.' },
   { key: 'dispositivo_enrolar_sprinklers',ref: '7.1',   texto: 'Dispositivos automatizados de enrolar corta-fogo só podem substituir portas/vedadores em edificações protegidas por chuveiros automáticos, nas situações do item 7.1 (interligação de até 2 pavimentos, pavimento de estacionamento, ou ampliação de edificação existente).' },
 ]
+
+// ── Substituição por sistemas alternativos (notas de rodapé da Tabela 6, NT 01 CBMMA) ──
+// A NT 01 permite, em várias ocupações/alturas, substituir a exigência de
+// compartimentação (horizontal e/ou vertical) por sistemas de proteção
+// ativa — texto e combinação exata da nota variam por grupo (ver
+// `notasEspecificas` em normas/MA/medidas.js, notas em geral numeradas 2 a 6
+// conforme o grupo), mas as três combinações abaixo cobrem a redação mais
+// comum encontrada nas tabelas 6B a 6F. `sistemas` = chaves de
+// state.sistemas a habilitar (SET_SISTEMA_ESTRUTURA) quando o RT escolhe a
+// substituição — a tela não sabe automaticamente qual nota exata (número)
+// se aplica ao grupo/altura desta estrutura; cabe ao RT confirmar contra a
+// Tabela 6 aplicável antes de marcar.
+export const SUBSTITUICOES_COMPARTIMENTACAO = [
+  {
+    key: 'sprinklers',
+    label: 'Chuveiros automáticos',
+    sistemas: ['sprinklers'],
+    texto: 'Sistema de chuveiros automáticos',
+  },
+  {
+    key: 'deteccao_sprinklers',
+    label: 'Detecção de incêndio + Chuveiros automáticos',
+    sistemas: ['deteccao', 'sprinklers'],
+    texto: 'Sistema de detecção de incêndio e chuveiros automáticos',
+  },
+  {
+    key: 'fumaca_deteccao_sprinklers',
+    label: 'Controle de fumaça + Detecção + Chuveiros automáticos',
+    sistemas: ['controle_fumaca', 'deteccao', 'sprinklers'],
+    texto: 'Sistema de controle de fumaça, detecção de incêndio e chuveiros automáticos',
+  },
+]

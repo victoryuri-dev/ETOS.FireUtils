@@ -28,6 +28,7 @@ function dadosExemplo() {
         elementosCompartHorizontal: [], elementosCompartVertical: [],
         condicoesEspeciaisCompartHorizontal: [], condicoesEspeciaisCompartVertical: [],
         obsCompartimentacao: '',
+        isencaoCompartHorizontal: null, isencaoCompartVertical: null,
       },
       {
         id: 'est-exemplo-2', nome: 'Estrutura 2',
@@ -37,6 +38,7 @@ function dadosExemplo() {
         elementosCompartHorizontal: [], elementosCompartVertical: [],
         condicoesEspeciaisCompartHorizontal: [], condicoesEspeciaisCompartVertical: [],
         obsCompartimentacao: '',
+        isencaoCompartHorizontal: null, isencaoCompartVertical: null,
       },
     ],
     propNome: 'Joao da Silva', propDocumento: '123.456.789-00', propTelefone: '(98) 98888-7777', propEmail: 'joao@exemplo.com',

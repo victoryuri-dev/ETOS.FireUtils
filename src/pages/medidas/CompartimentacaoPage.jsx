@@ -30,7 +30,14 @@ function Checklist({ titulo, opcoes, valores, onToggle }) {
   )
 }
 
-function ObrigatoriedadeBadge({ obrigatorio }) {
+function ObrigatoriedadeBadge({ obrigatorio, isenta }) {
+  if (obrigatorio && isenta) {
+    return (
+      <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-[rgba(29,158,117,.20)] border-green-border text-green">
+        <Icon name="check" size={12}/> Isenta — sistema substituto
+      </span>
+    )
+  }
   return obrigatorio ? (
     <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-[rgba(192,21,42,.20)] border-red-border text-red">
       <Icon name="check" size={12}/> Exigida
@@ -39,6 +46,42 @@ function ObrigatoriedadeBadge({ obrigatorio }) {
     <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-[rgba(29,158,117,.20)] border-green-border text-green">
       <Icon name="x" size={12}/> Não exigida
     </span>
+  )
+}
+
+// Botões de substituição por sistema alternativo (notas de rodapé da
+// Tabela 6, NT 01 CBMMA — ver SUBSTITUICOES_COMPARTIMENTACAO). Clicar num
+// deles isenta a compartimentação (do cumprimento da área máxima do Anexo B
+// da NT 09) e habilita os sistemas correspondentes nesta estrutura; a nota
+// exata que se aplica varia por grupo/altura — cabe ao RT confirmar contra a
+// Tabela 6 aplicável à ocupação desta estrutura antes de marcar.
+function SubstituicaoButtons({ opcoes, ativa, onSelecionar, onLimpar }) {
+  return (
+    <div>
+      <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">
+        Substituir por sistema alternativo (notas de rodapé da Tabela 6, NT 01 CBMMA)
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {opcoes.map(o => {
+          const selecionada = ativa === o.key
+          return (
+            <button
+              key={o.key}
+              type="button"
+              onClick={() => selecionada ? onLimpar() : onSelecionar(o.key)}
+              className={`py-1.5 px-3 rounded-md border border-solid text-[11px] font-semibold cursor-pointer transition-colors ${
+                selecionada
+                  ? 'bg-green-dim border-green-border text-green'
+                  : 'bg-transparent border-border text-ink-muted hover:border-red-border hover:text-red'
+              }`}
+            >
+              {selecionada && <Icon name="check" size={11} className="mr-1"/>}
+              {o.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -57,7 +100,7 @@ function AreaConsideradaInput({ linha, onChangeArea }) {
   )
 }
 
-function TabelaAreaMaxima({ resultado, onChangeArea }) {
+function TabelaAreaMaxima({ resultado, onChangeArea, isenta }) {
   if (!resultado.tipo) {
     return (
       <div className="ibox amber">
@@ -116,13 +159,24 @@ function TabelaAreaMaxima({ resultado, onChangeArea }) {
         </>
       )}
 
-      {resultado.pavimentosExcedentes.length > 0 && (
-        <div className="ibox red mt-3">
-          <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
-          <span className="text-xs">
-            {resultado.pavimentosExcedentes.length === 1 ? 'Um pavimento excede' : `${resultado.pavimentosExcedentes.length} pavimentos excedem`} a área máxima de compartimentação horizontal — é necessário subdividir a área em mais de um compartimento (parede corta-fogo) ou obter isenção via NT específica (chuveiros automáticos, quando aplicável).
-          </span>
-        </div>
+      {isenta ? (
+        resultado.pavimentosExcedentes.length > 0 && (
+          <div className="ibox amber mt-3">
+            <Icon name="info" size={13} color="var(--color-amber)" className="shrink-0"/>
+            <span className="text-xs">
+              A tabela acima passa a ser apenas informativa: como a compartimentação horizontal foi substituída por sistema alternativo, {resultado.pavimentosExcedentes.length === 1 ? 'o pavimento que excede' : 'os pavimentos que excedem'} a área máxima do Anexo B não precisam ser subdivididos.
+            </span>
+          </div>
+        )
+      ) : (
+        resultado.pavimentosExcedentes.length > 0 && (
+          <div className="ibox red mt-3">
+            <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
+            <span className="text-xs">
+              {resultado.pavimentosExcedentes.length === 1 ? 'Um pavimento excede' : `${resultado.pavimentosExcedentes.length} pavimentos excedem`} a área máxima de compartimentação horizontal — é necessário subdividir a área em mais de um compartimento (parede corta-fogo) ou substituir por sistema alternativo (botões abaixo).
+            </span>
+          </div>
+        )
       )}
     </>
   )
@@ -133,6 +187,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
     TABELA_AREA_MAXIMA: tabelaArea, CLASSES_TIPO_EDIFICACAO: classesTipo,
     ELEMENTOS_COMPART_HORIZONTAL, ELEMENTOS_COMPART_VERTICAL,
     CONDICOES_ESPECIAIS_HORIZONTAL, CONDICOES_ESPECIAIS_VERTICAL,
+    SUBSTITUICOES_COMPARTIMENTACAO,
     TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS,
     TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR,
   } = compart
@@ -142,6 +197,8 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   const elementosV = est.elementosCompartVertical || []
   const condH = est.condicoesEspeciaisCompartHorizontal || []
   const condV = est.condicoesEspeciaisCompartVertical || []
+  const isencaoH = est.isencaoCompartHorizontal || null
+  const isencaoV = est.isencaoCompartVertical || null
 
   const toggleArr = (field, atual, key) => {
     const next = atual.includes(key) ? atual.filter(x => x !== key) : [...atual, key]
@@ -149,6 +206,18 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   }
   const setObs = (v) => dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field: 'obsCompartimentacao', value: v })
   const onChangeArea = (pavimentoId, valor) => dispatch({ type: 'SET_AREA_COMPARTIMENTACAO', pavimentoId, valor })
+
+  // Seleciona uma substituição: grava a escolha na estrutura e liga (nunca
+  // desliga) os sistemas correspondentes — clicar numa combinação diferente
+  // só soma sistemas, nunca desativa o que já estava ligado por outro motivo.
+  const selecionarSubstituicao = (campo, key) => {
+    dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field: campo, value: key })
+    const opcao = SUBSTITUICOES_COMPARTIMENTACAO.find(o => o.key === key)
+    opcao?.sistemas.forEach(sistemaKey => {
+      dispatch({ type: 'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: est.id, key: sistemaKey, value: true })
+    })
+  }
+  const limparSubstituicao = (campo) => dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field: campo, value: null })
 
   return (
     <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
@@ -160,11 +229,26 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
             <Icon name={SISTEMA_ICON.compart_horizontal} size={15} color="var(--color-red)"/>
             <span className="text-xs font-bold text-ink">Compartimentação Horizontal</span>
           </div>
-          <ObrigatoriedadeBadge obrigatorio={obrigH}/>
+          <ObrigatoriedadeBadge obrigatorio={obrigH} isenta={!!isencaoH}/>
         </div>
         {obrigH ? (
           <div className="py-3.5 px-[18px] flex flex-col gap-4">
-            <TabelaAreaMaxima resultado={resultadoArea} onChangeArea={onChangeArea}/>
+            {isencaoH && (
+              <div className="ibox green">
+                <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                <span className="text-xs">
+                  Compartimentação horizontal desta estrutura isenta do cumprimento da área máxima (Anexo B, NT 09 CBMMA) mediante adoção de {SUBSTITUICOES_COMPARTIMENTACAO.find(o => o.key === isencaoH)?.texto}, conforme nota de rodapé da Tabela 6 (NT 01 CBMMA) aplicável ao grupo/altura desta estrutura — confirme o número da nota antes de assinar o memorial.
+                  {' '}<button type="button" onClick={() => limparSubstituicao('isencaoCompartHorizontal')} className="underline cursor-pointer text-green">Remover isenção</button>
+                </span>
+              </div>
+            )}
+            <TabelaAreaMaxima resultado={resultadoArea} onChangeArea={onChangeArea} isenta={!!isencaoH}/>
+            <SubstituicaoButtons
+              opcoes={SUBSTITUICOES_COMPARTIMENTACAO}
+              ativa={isencaoH}
+              onSelecionar={(k) => selecionarSubstituicao('isencaoCompartHorizontal', k)}
+              onLimpar={() => limparSubstituicao('isencaoCompartHorizontal')}
+            />
             <div className="grid grid-cols-2 gap-4">
               <Checklist
                 titulo="Elementos de proteção adotados (itens 5.1.3 e 5.1.5 — constar no memorial)"
@@ -201,10 +285,25 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
             <Icon name={SISTEMA_ICON.compart_vertical} size={15} color="var(--color-red)"/>
             <span className="text-xs font-bold text-ink">Compartimentação Vertical</span>
           </div>
-          <ObrigatoriedadeBadge obrigatorio={obrigV}/>
+          <ObrigatoriedadeBadge obrigatorio={obrigV} isenta={!!isencaoV}/>
         </div>
         {obrigV ? (
           <div className="py-3.5 px-[18px] flex flex-col gap-4">
+            {isencaoV && (
+              <div className="ibox green">
+                <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                <span className="text-xs">
+                  Compartimentação vertical desta estrutura isenta mediante adoção de {SUBSTITUICOES_COMPARTIMENTACAO.find(o => o.key === isencaoV)?.texto}, conforme nota de rodapé da Tabela 6 (NT 01 CBMMA) aplicável ao grupo/altura desta estrutura — confirme o número da nota antes de assinar o memorial. Atenção: a compartimentação das fachadas e a selagem dos shafts/dutos de instalações continuam exigidas mesmo com a substituição (ver notas da Tabela 6).
+                  {' '}<button type="button" onClick={() => limparSubstituicao('isencaoCompartVertical')} className="underline cursor-pointer text-green">Remover isenção</button>
+                </span>
+              </div>
+            )}
+            <SubstituicaoButtons
+              opcoes={SUBSTITUICOES_COMPARTIMENTACAO}
+              ativa={isencaoV}
+              onSelecionar={(k) => selecionarSubstituicao('isencaoCompartVertical', k)}
+              onLimpar={() => limparSubstituicao('isencaoCompartVertical')}
+            />
             <div className="grid grid-cols-2 gap-4">
               <Checklist
                 titulo="Elementos de proteção adotados (itens 6.1.2 e 6.1.5 — constar no memorial)"
