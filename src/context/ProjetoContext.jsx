@@ -440,6 +440,12 @@ function reducer(state, action) {
   switch (action.type) {
     case 'SET_FIELD':
       return { ...state, [action.field]: action.value }
+    // Varios campos de uma vez, como UMA alteracao — usado ao aplicar o
+    // responsavel tecnico do perfil na Etapa 3 (ver hooks/usePerfil.js), que
+    // senao viraria um dispatch por campo e, com isso, varios passos
+    // separados de autosave.
+    case 'SET_FIELDS':
+      return { ...state, ...action.fields }
     case 'ADD_ESTRUTURA': {
       const est = novaEstrutura(`Estrutura ${state.estruturas.length + 1}`, action.id)
       return { ...state, estruturas: [...state.estruturas, est], pavimentos: [...state.pavimentos, pavimentoTerreo(est.id)] }
