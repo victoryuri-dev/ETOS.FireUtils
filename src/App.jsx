@@ -9,6 +9,7 @@ import { supabase } from './lib/supabase'
 import { criarProjetoExemplo } from './data/projetoExemplo'
 import LoginPage      from './pages/LoginPage'
 import ProjectAside   from './components/layout/ProjectAside'
+import AppAside, { NAV_GLOBAL } from './components/layout/AppAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
 import ProjetosPage   from './pages/ProjetosPage'
@@ -25,7 +26,6 @@ import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
 import GerenciamentoRiscoPage from './pages/medidas/GerenciamentoRiscoPage'
 import Icon           from './components/ui/Icon'
 import Loader         from './components/ui/Loader'
-import logo           from './assets/fireutils-logo.png'
 
 // ── SaveStatusIndicator ───────────────────────────────────────────────
 // Mostra se o projeto esta sendo sincronizado com o servidor ou se ja foi
@@ -56,7 +56,10 @@ function SaveStatusIndicator({ status }) {
 }
 
 // ── AppHeader ─────────────────────────────────────────────────────────
-function AppHeader({ onGoProjetos, isProjectPage }) {
+// A marca nao aparece aqui: todas as paginas autenticadas tem menu lateral
+// (global ou do projeto) e ele ja mostra a logo no topo. `titulo` e o que a
+// esquerda mostra fora de um projeto; dentro dele, o breadcrumb toma o lugar.
+function AppHeader({ onGoProjetos, isProjectPage, titulo }) {
   const { user, signOut } = useAuth()
   const { state, syncStatus } = useProjeto()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -64,16 +67,9 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
 
   return (
     <header className="flex items-center justify-between px-6 h-16 border-b border-border border-solid shrink-0 z-100">
-      {/* Logo — omitida dentro de um projeto, ja mostrada no topo do aside */}
-      {!isProjectPage && (
-        <div className="flex items-center gap-2.5">
-          <img src={logo} alt="Fire Utils" className="h-11 w-auto"/>
-        </div>
-      )}
-
-      {/* Nav — breadcrumb estilo url: Projeto / UF / nome. So aparece dentro
-          de um projeto, ja que fora dele nao ha contexto pra mostrar. */}
-      {isProjectPage && (
+      {isProjectPage ? (
+        /* Breadcrumb estilo url: Projetos / UF / nome — so dentro de um
+           projeto, ja que fora dele nao ha contexto pra mostrar. */
         <nav className="flex items-center gap-1.5 text-[14px]">
           <button onClick={onGoProjetos} className="text-ink-muted hover:text-ink transition-colors cursor-pointer">
             PROJETOS
@@ -90,6 +86,8 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
             </span>
           )}
         </nav>
+      ) : (
+        <span className="text-[14px] text-ink font-medium">{titulo}</span>
       )}
 
       {/* Direita — conta */}
@@ -153,6 +151,30 @@ function ConfigRoute() {
   return <ConfiguracaoPage onGoDashboard={() => navigate(`/projeto/${id}/dashboard`)}/>
 }
 
+// ── GlobalLayout ──────────────────────────────────────────────────────
+// Rota-layout das páginas de nível da conta (fora de um projeto): o menu
+// lateral global + o header. Uma aba nova é uma linha em NAV_GLOBAL (ver
+// AppAside.jsx) mais uma <Route> aqui dentro.
+function GlobalLayout() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const aba = NAV_GLOBAL.find(item => item.rota === location.pathname)
+
+  return (
+    <>
+      <AppAside rotaAtiva={location.pathname} onNavigate={navigate}/>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <AppHeader
+          onGoProjetos={() => navigate('/projetos')}
+          isProjectPage={false}
+          titulo={aba?.label || ''}
+        />
+        <Outlet/>
+      </div>
+    </>
+  )
+}
+
 // ── ProjetosRoute ─────────────────────────────────────────────────────
 // Página "Meus projetos" — fora do contexto de um projeto aberto.
 function ProjetosRoute() {
@@ -177,26 +199,11 @@ function ProjetosRoute() {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
-      <ProjetosPage
-        onOpenProject={handleOpenProject}
-        onNewProject={handleNewProject}
-        onNovoProjetoExemplo={handleNovoProjetoExemplo}
-      />
-    </div>
-  )
-}
-
-// ── PerfilRoute ───────────────────────────────────────────────────────
-// Página da conta — fora do contexto de um projeto, como "Meus projetos".
-function PerfilRoute() {
-  const navigate = useNavigate()
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
-      <PerfilPage/>
-    </div>
+    <ProjetosPage
+      onOpenProject={handleOpenProject}
+      onNewProject={handleNewProject}
+      onNovoProjetoExemplo={handleNovoProjetoExemplo}
+    />
   )
 }
 
@@ -275,7 +282,11 @@ function ProjectLayout() {
 
   return (
     <>
-      <ProjectAside activePage={activePage} onNavigate={handleNavigate}/>
+      <ProjectAside
+        activePage={activePage}
+        onNavigate={handleNavigate}
+        onSairDoProjeto={() => navigate('/projetos')}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage/>
         {conflito && (
@@ -342,8 +353,11 @@ function AppInner() {
 
       <Route element={<AuthedLayout/>}>
         <Route path="/" element={<Navigate to="/projetos" replace/>}/>
-        <Route path="/projetos" element={<ProjetosRoute/>}/>
-        <Route path="/perfil" element={<PerfilRoute/>}/>
+
+        <Route element={<GlobalLayout/>}>
+          <Route path="/projetos" element={<ProjetosRoute/>}/>
+          <Route path="/perfil" element={<PerfilPage/>}/>
+        </Route>
 
         <Route path="/projeto/:id" element={<ProjectLayout/>}>
           <Route index element={<Navigate to="dashboard" replace/>}/>
