@@ -196,15 +196,31 @@ function agruparPorAmbiente(extintores) {
 // de abrir o formulário — só assim dá pra marcar várias rápido, sem mirar no
 // checkbox de cada uma. Uma unidade só troca de ambiente (dentro do mesmo
 // pavimento) — o ambiente em si não é destino de outro ambiente.
-function UnidadeCard({ ext, tiposPortatil, tiposSobreRodas, onEdit, onRemove, selecionado, onToggleSelecao, modoSelecao }) {
+// `seguidores` (quando presente): { ids, delta } dos OUTROS cards que fazem
+// parte da mesma seleção que o card que a mão pegou — cada um deles usa o
+// MESMO delta do arrasto (não tem draggable próprio ativo), só que somado a
+// um deslocamento fixo por posição na pilha, pra parecer uma pilha de
+// cartas colada embaixo do card líder, acompanhando o mouse junto.
+function UnidadeCard({ ext, tiposPortatil, tiposSobreRodas, onEdit, onRemove, selecionado, onToggleSelecao, modoSelecao, seguidores }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `ext:${ext.id}`, data: { kind: 'ext', id: ext.id, ambiente: ext.ambiente },
   })
   const tipoLabel = (ext.sobreRodas ? tiposSobreRodas : tiposPortatil).find(t => t.key === ext.tipo)?.label || ext.tipo
-  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
+  const idxPilha = seguidores ? seguidores.ids.indexOf(ext.id) : -1
+  const souSeguidor = idxPilha >= 0
+  const style = isDragging
+    ? (transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined)
+    : souSeguidor
+      ? {
+          transform: `translate3d(${seguidores.delta.x}px, ${seguidores.delta.y + 10 + idxPilha * 8}px, 0)`,
+          zIndex: 40 - idxPilha,
+          opacity: Math.max(0.35, 0.85 - idxPilha * 0.12),
+          pointerEvents: 'none',
+        }
+      : undefined
   return (
     <div ref={setNodeRef} style={style} onClick={() => modoSelecao ? onToggleSelecao(ext.id) : onEdit(ext.id)}
-      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''}`}
+      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''} ${souSeguidor ? 'relative shadow-[0_6px_16px_rgba(0,0,0,.35)]' : ''}`}
     >
       <div className="flex items-center gap-2.5 min-w-0 max-w-[50%]">
         <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar extintor">
@@ -325,7 +341,7 @@ function ExtintorForm({ ext, tiposPortatil, tiposSobreRodas, onSave, onCancel })
 // lista; ambiente nunca vira filho de ambiente. Sem overflow-hidden no card
 // (o cabeçalho arredonda o próprio canto): com ele, a unidade arrastada
 // ficaria recortada ao sair do ambiente de origem.
-function AmbienteCard({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil, tiposSobreRodas, dispatch, selecionados, onToggleSelecao, onEditUnidade, onRemoveUnidade }) {
+function AmbienteCard({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil, tiposSobreRodas, dispatch, selecionados, onToggleSelecao, onEditUnidade, onRemoveUnidade, seguidores }) {
   const [aberto, setAberto] = useState(true)
 
   const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
@@ -373,7 +389,7 @@ function AmbienteCard({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil
           {itens.map(ext => (
             <UnidadeCard key={ext.id} ext={ext} tiposPortatil={tiposPortatil} tiposSobreRodas={tiposSobreRodas}
               onEdit={onEditUnidade} onRemove={onRemoveUnidade}
-              selecionado={selecionados.has(ext.id)} onToggleSelecao={onToggleSelecao} modoSelecao={selecionados.size > 0}/>
+              selecionado={selecionados.has(ext.id)} onToggleSelecao={onToggleSelecao} modoSelecao={selecionados.size > 0} seguidores={seguidores}/>
           ))}
           <div className="flex justify-center gap-2 pt-1">
             <button className="btn-ghost" onClick={() => dispatch({ type: 'ADD_EXTINTOR', estruturaId, pavimentoId, ambiente })}>
@@ -442,7 +458,23 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
     limparSelecao()
   }
 
+  // Pilha visual de cards durante um arrasto em lote — ver `seguidores` em
+  // UnidadeCard. Só existe (não-null) enquanto a unidade que a mão pegou faz
+  // parte de uma seleção com mais de uma; do contrário o arrasto é normal
+  // (só aquele card se move, comportamento de sempre do dnd-kit).
+  const [pilha, setPilha] = useState(null)
+
+  const handleDragStart = ({ active }) => {
+    const a = active.data.current
+    if (a?.kind === 'ext' && idsSelecionados.length > 1 && idsSelecionados.includes(a.id)) {
+      setPilha({ ids: idsSelecionados.filter(id => id !== a.id), delta: { x: 0, y: 0 } })
+    }
+  }
+  const handleDragMove = ({ delta }) => setPilha(prev => (prev ? { ...prev, delta } : prev))
+  const handleDragCancel = () => setPilha(null)
+
   const handleDragEnd = ({ active, over }) => {
+    setPilha(null)
     const a = active.data.current
     const o = over?.data.current
     if (!a || o?.kind !== 'ambiente') return
@@ -526,7 +558,9 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
           ambiente sob o ponteiro do mouse (mesmo critério das Saídas de
           Emergência — o padrão do dnd-kit compara a área do item arrastado
           com a de cada card e erra o destino quando o item é mais largo). */}
-      <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={pointerWithin}
+        onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}
+      >
         <div className={`py-3.5 px-[18px] ${aberto ? '' : 'hidden'}`}>
           {!risco && (
             <div className="ibox amber">
@@ -550,6 +584,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
                 onToggleSelecao={toggleSelecao}
                 onEditUnidade={setEditandoId}
                 onRemoveUnidade={removerUnidade}
+                seguidores={pilha}
               />
             ))}
             {grupos.length === 0 && (
