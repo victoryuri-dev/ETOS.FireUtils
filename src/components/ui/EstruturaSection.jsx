@@ -9,11 +9,16 @@ import Icon from './Icon'
 // E um card com borda propria (nao so um cabecalho) para que o conteudo
 // aberto fique visualmente contido — sem isso, formularios longos de uma
 // estrutura se misturam com os da estrutura seguinte.
+//
+// overflow-clip (e não -hidden): recorta os cantos arredondados igual, mas
+// não vira um contêiner de rolagem — com hidden, qualquer `sticky` dentro
+// (ex.: barra de seleção em massa dos Extintores) grudaria na borda deste
+// card em vez da borda da tela.
 export default function EstruturaSection({ titulo, extra, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen)
 
   return (
-    <div className="mb-5 border border-solid border-border rounded-lg overflow-hidden bg-surface transition-colors duration-300 ease-out hover:border-[rgba(255,255,255,.3)] focus-within:border-[rgba(255,255,255,.3)] last:mb-0">
+    <div className="mb-5 border border-solid border-border rounded-lg overflow-clip bg-surface transition-colors duration-300 ease-out hover:border-[rgba(255,255,255,.3)] focus-within:border-[rgba(255,255,255,.3)] last:mb-0">
       <div
         onClick={() => setOpen(o => !o)}
         className={`flex items-center gap-2 py-4 px-4 cursor-pointer select-none group ${open ? 'border-b border-solid border-border' : ''}`}

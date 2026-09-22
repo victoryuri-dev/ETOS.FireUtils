@@ -6,27 +6,27 @@ import logoSymbol from '../../assets/ETOS-SYMBOLL.png'
 
 // Lista completa de sistemas — mesma ordem do Step7
 const SISTEMAS = [
-  { key:'acesso_viatura',      icon:'van',         label:'Acesso de Viatura' },
-  { key:'seg_estrutural',      icon:'wallFire',    label:'Seg. Estrutural' },
-  { key:'compart_horizontal',  icon:'wallCompart', label:'Compartimentação Horizontal' },
-  { key:'compart_vertical',    icon:'stair',       label:'Compartimentação Vertical' },
-  { key:'controle_acabamento', icon:'sign',        label:'Controle de Acabamento' },
-  { key:'saida_emergencia',    icon:'exit',        label:'Saídas de Emergência' },
-  { key:'gerenciamento_risco', icon:'warn',        label:'Gerenciamento de Risco' },
-  { key:'brigada',             icon:'shieldAlert', label:'Brigada de Incêndio' },
-  { key:'iluminacao',          icon:'sun',         label:'Iluminação de Emergência' },
-  { key:'sinalizacao',         icon:'sign',        label:'Sinalização' },
-  { key:'extintores',          icon:'ext',         label:'Extintores' },
-  { key:'hidrantes',           icon:'drop',        label:'Hidrantes / Mangotinho' },
-  { key:'alarme',              icon:'bellElectric',label:'Alarme de Incêndio' },
-  { key:'deteccao',            icon:'alarmSmoke',  label:'Detecção de Incêndio' },
-  { key:'sprinklers',          icon:'spray',       label:'Chuveiros Automáticos' },
-  { key:'controle_fumaca',     icon:'flame',       label:'Controle de Fumaça' },
-  { key:'central_gas',         icon:'info',        label:'Central de Gás' },
-  { key:'spda',                icon:'warn',        label:'SPDA' },
+  { key:'acesso_viatura',      icon:'van',                   label:'Acesso de Viatura' },
+  { key:'seg_estrutural',      icon:'segEstruturalMedida',   label:'Seg. Estrutural' },
+  { key:'compart_horizontal',  icon:'wallCompart',           label:'Compartimentação Horizontal' },
+  { key:'compart_vertical',    icon:'stair',                 label:'Compartimentação Vertical' },
+  { key:'controle_acabamento', icon:'sign',                  label:'Controle de Acabamento' },
+  { key:'saida_emergencia',    icon:'saidaEmergenciaMedida', label:'Saídas de Emergência' },
+  { key:'gerenciamento_risco', icon:'warn',                  label:'Gerenciamento de Risco' },
+  { key:'brigada',             icon:'shieldAlert',           label:'Brigada de Incêndio' },
+  { key:'iluminacao',          icon:'sun',                   label:'Iluminação de Emergência' },
+  { key:'sinalizacao',         icon:'sign',                  label:'Sinalização' },
+  { key:'extintores',          icon:'extintorMedida',        label:'Extintores' },
+  { key:'hidrantes',           icon:'hidranteMedida',        label:'Hidrantes / Mangotinho' },
+  { key:'alarme',              icon:'bellElectric',          label:'Alarme de Incêndio' },
+  { key:'deteccao',            icon:'detectorMedida',        label:'Detecção de Incêndio' },
+  { key:'sprinklers',          icon:'spray',                 label:'Chuveiros Automáticos' },
+  { key:'controle_fumaca',     icon:'flame',                 label:'Controle de Fumaça' },
+  { key:'central_gas',         icon:'info',                  label:'Central de Gás' },
+  { key:'spda',                icon:'warn',                  label:'SPDA' },
 ]
 
-export default function ProjectAside({ activePage, onNavigate }) {
+export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }) {
   const { sistemas } = useMedidasObrigatorias()
   const [col, setCol] = useState(false)
 
@@ -34,12 +34,13 @@ export default function ProjectAside({ activePage, onNavigate }) {
     sistemas[s.key]?.ativo || sistemas[s.key]?.obrigatorio
   )
 
-  // Item de navegação genérico
-  const Item = ({ pageKey, icon, label }) => {
+  // Item de navegação genérico. `onClick` é pra quem sai do projeto — sem ele
+  // o clique vira onNavigate(pageKey), que só monta rota de dentro do projeto.
+  const Item = ({ pageKey, icon, label, onClick }) => {
     const active = activePage === pageKey
     return (
       <div
-        onClick={() => onNavigate(pageKey)}
+        onClick={onClick || (() => onNavigate(pageKey))}
         title={col ? label : undefined}
         className={[
           'flex items-center gap-2.5 cursor-pointer whitespace-nowrap transition-[background-color,color] duration-100 text-[13px] border-l-2 border-solid',
@@ -88,6 +89,11 @@ export default function ProjectAside({ activePage, onNavigate }) {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Saída do projeto */}
+      <div className="py-1.5 border-b border-solid border-border shrink-0">
+        <Item icon="left" label="Projetos" onClick={onSairDoProjeto}/>
       </div>
 
       {/* Navegação principal */}

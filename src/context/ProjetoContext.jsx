@@ -1,6 +1,9 @@
-import { createContext, useContext, useReducer, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { carregarNormasRemotas } from '../lib/normasRemote'
 import { useAuth } from './AuthContext'
+import { PROCEDIMENTOS_PADRAO } from '../utils/planoEmergencia'
+import { dimsPadrao } from '../data/se_calc'
 
 // Gera um ID interno único
 export function newIds() {
@@ -18,9 +21,9 @@ function idExtintor() {
   return `ext-${Date.now().toString(36)}-${extintorSeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
-function novoExtintor(estruturaId, pavimentoId, ambiente) {
+function novoExtintor(estruturaId, pavimentoId, ambiente, id) {
   return {
-    id: idExtintor(),
+    id: id || idExtintor(),
     estruturaId, pavimentoId, ambiente: ambiente || '',
     // Capacidade extintora do agente escolhido no projeto — livre para o
     // projetista aumentar, mas sempre nasce preenchida com o mínimo
@@ -41,8 +44,8 @@ function idIluminacao() {
 // ambiente), conforme NT 18 CBMMA / NBR 10898. `categoria` decide o campo
 // discriminador ('aclaramento' → tipoEquipamento, 'balizamento' → pontoTipo),
 // sempre enviado em `overrides` por quem despacha a ação.
-function novoItemIluminacao(estruturaId, pavimentoId, categoria, overrides = {}) {
-  return { id: idIluminacao(), estruturaId, pavimentoId, categoria, quantidade: 1, ...overrides }
+function novoItemIluminacao(estruturaId, pavimentoId, categoria, overrides = {}, id) {
+  return { id: id || idIluminacao(), estruturaId, pavimentoId, categoria, quantidade: 1, ...overrides }
 }
 
 // Mesma lógica de idIluminacao — evita colisão entre especificações
@@ -83,11 +86,47 @@ function idSinalizacao() {
   return `sin-${Date.now().toString(36)}-${sinalizacaoSeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
-// Item de sinalização de emergência — granularidade só até pavimento (sem
-// ambiente), conforme NT 20 CBMMA / NBR 13434. `tipoPlaca` referencia a
-// chave do catálogo em normas/MA/sinalizacao.js (TIPOS_PLACA).
-function novoItemSinalizacao(estruturaId, pavimentoId, tipoPlaca, quantidade) {
-  return { id: idSinalizacao(), estruturaId, pavimentoId, tipoPlaca, quantidade }
+// Mesma lógica de idExtintor/idIluminacao/idSinalizacao — evita colisão
+// entre ambientes cadastrados no mesmo milissegundo (Saída de Emergência,
+// SaidaEmergenciaPage.jsx).
+let ambienteSESeq = 0
+function idAmbienteSE() {
+  ambienteSESeq += 1
+  return `amb-${Date.now().toString(36)}-${ambienteSESeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Mesma lógica de idAmbienteSE — evita colisão entre nós de Acesso/Saída
+// criados no mesmo milissegundo (árvore de saída, SaidaEmergenciaPage.jsx
+// / tela de Acessos e Descargas).
+let acessoSeq = 0
+function idAcesso() {
+  acessoSeq += 1
+  return `acs-${Date.now().toString(36)}-${acessoSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Árvore inicial de todo pavimento novo: uma raiz (Saída, se o pavimento
+// nasce como piso de descarga; Escada/Rampa nos demais — ver tipoDoNo em
+// se_calc.js, que decide isso pela posição na árvore + `pisoDescarga` do
+// pavimento, não por um campo aqui) já com um Acesso dentro dela, pronto
+// pra receber ambientes. Evita a tela vazia "Nenhuma saída criada ainda"
+// no primeiro uso — o usuário sempre pode renomear, criar mais raízes/
+// acessos ou remover estes, como qualquer outro nó da árvore.
+function acessosPadrao(pisoDescarga) {
+  const raizId = idAcesso()
+  return [
+    { id: raizId, nome: pisoDescarga ? 'Saída 01' : 'Escada/Rampa 01', alimentaEm: null },
+    { id: idAcesso(), nome: 'Acesso 1', alimentaEm: raizId },
+  ]
+}
+
+// Item de sinalização de emergência — granularidade só até estrutura (sem
+// pavimento nem ambiente): as famílias de placa (categoria "Dispositivos de
+// Segurança", parâmetro de tipo "Código da Placa") não são lançadas por
+// pavimento no Revit, então o quantitativo do plugin também sai agregado só
+// por estrutura. `tipoPlaca` referencia a chave do catálogo em
+// normas/MA/sinalizacao.js (TIPOS_PLACA).
+function novoItemSinalizacao(estruturaId, tipoPlaca, quantidade, id) {
+  return { id: id || idSinalizacao(), estruturaId, tipoPlaca, quantidade }
 }
 
 // Normaliza um estado salvo (localStorage ou payload de LOAD) contra
@@ -133,12 +172,40 @@ function migrarParaPorEstrutura(saved) {
   return { cargaState, sistemasPorEstrutura, riscosEspeciaisPorEstrutura, riscosOutrosDescPorEstrutura }
 }
 
+// Mescla planoEmergencia salvo com os defaults atuais (INITIAL_STATE) — mas,
+// diferente do merge simples usado pelos outros campos aninhados, aqui um
+// valor salvo em branco ('' ou null/undefined) NAO sobrescreve o default.
+// Sem isso, o texto padrao dos 10 procedimentos (PROCEDIMENTOS_PADRAO) nunca
+// apareceria em projetos salvos antes dessa mudanca, que ja gravaram esses
+// campos como string vazia — o usuario so editou de verdade continua
+// preservado normalmente.
+function hydratarPlanoEmergencia(saved) {
+  const base = { ...INITIAL_STATE.planoEmergencia }
+  Object.entries(saved || {}).forEach(([k, v]) => { if (v !== '' && v != null) base[k] = v })
+  return base
+}
+
 function hydrateState(saved) {
   return {
     ...INITIAL_STATE,
     ...saved,
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
+    hidrantes: { ...INITIAL_STATE.hidrantes, ...(saved.hidrantes || {}) },
+    planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
+    // Migração: pavimentos salvos antes de `ambientes` (Saída de Emergência)
+    // ou de `acessos`/`pisoDescarga` (árvore de Acessos e Descargas)
+    // existirem não têm esses campos — sem isso, o reducer quebraria ao
+    // tentar ler/mapear `p.ambientes`/`p.acessos` de um pavimento antigo.
+    // `pisoDescarga` nasce do `tipo` antigo (só o térreo era considerado
+    // piso de descarga), mas agora é um campo independente, editável por
+    // pavimento na tela de Acessos e Descargas. Detecção de incêndio NÃO é
+    // mais por pavimento — vem de sistemasPorEstrutura (Medidas de
+    // Segurança), igual chuveiros automáticos. Pavimentos antigos sem
+    // acessos ficam com `[]` mesmo (não ganham a árvore padrão
+    // retroativamente) — só pavimentos criados a partir de agora nascem com
+    // ela, ver acessosPadrao.
+    pavimentos: (saved.pavimentos || INITIAL_STATE.pavimentos).map(p => ({ ambientes: [], acessos: [], pisoDescarga: p.tipo === 'terreo', ...p })),
     ...migrarParaPorEstrutura(saved),
   }
 }
@@ -157,9 +224,17 @@ const RISCOS_DEFAULT = {
   vasos_pressao: false, produtos_perigosos: false, outros: false,
 }
 
-function novaEstrutura(nome) {
+// Mesma lógica de idExtintor/idIluminacao/idSinalizacao — evita colisão
+// entre estruturas criadas no mesmo milissegundo.
+let estruturaSeq = 0
+function idEstrutura() {
+  estruturaSeq += 1
+  return `est-${Date.now().toString(36)}-${estruturaSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+function novaEstrutura(nome, id) {
   return {
-    id: `est-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+    id: id || idEstrutura(),
     nome,
     areaTotal: '', altura: '', alturaPisoPiso: 0,
     nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '',
@@ -182,14 +257,22 @@ function novaEstrutura(nome) {
 // pavimento de saída, em vez de deixar `pavimentos` vazio até o usuário
 // mexer nos campos do Step2 (mesmo formato produzido pelo térreo em
 // REBUILD_PAVIMENTOS, que o reaproveita ao invés de recriar quando os
-// valores mudam).
+// valores mudam). `acessos`/`pisoDescarga`: ver árvore de Acessos e
+// Descargas (tela dedicada, dentro de Saída de Emergência) — piso de
+// descarga nasce true aqui (é o térreo), mas fica editável lá.
 function pavimentoTerreo(estruturaId) {
-  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] }
+  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(true), pisoDescarga: true }
 }
 
 const INITIAL_STATE = {
   id: '', createdAt: '', saveReady: false,
   configStep: 1, configUnlocked: 1,
+  // 'completo' = wizard cheio (Etapas 1-7); 'dimensionamento' = wizard
+  // reduzido (Edificação/Classificação/Carga de Incêndio/Medidas), sem
+  // responsável pelo uso, localização nem responsável técnico — só o
+  // necessário pra dimensionar Saída de Emergência, Hidrantes e Chuveiros
+  // Automáticos (ver ConfiguracaoPage.jsx e Step6.jsx).
+  tipoProjeto: 'completo',
   nome: '', dataInicio: '', fase: 'Em desenvolvimento',
   endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'MA', cep: '',
   situacao: 'nova', anoAlvara: '', numeroAlvara: '',
@@ -255,6 +338,93 @@ const INITIAL_STATE = {
     manobraRetornoOk: true, saidaIndepLargura: '', saidaIndepAltura: '',
     distanciaAdotada: '',
   },
+  // Classificação do Sistema de Hidrantes/Mangotinhos (NT 22 CBMMA) pro
+  // memorial descritivo — registro único por projeto (a NT-22 não obriga
+  // sistemas independentes por estrutura; ver hidrantes_calc.js). O
+  // dimensionamento hidráulico (perda de carga, bomba etc.) continua vindo
+  // do plugin Revit — aqui só a classificação que o site decide e envia
+  // pra ele usar como entrada do cálculo.
+  hidrantes: {
+    // '' = ainda não classificado. tipo/rti podem vir da sugestão automática
+    // (useMedidasObrigatorias-like, ver hidrantes_calc.sugerirClassificacao)
+    // ou serem sobrescritos manualmente pelo RT.
+    // Estruturas consideradas na classificação (área total + ocupação de
+    // maior carga de incêndio) — nem toda edificação do projeto exige
+    // hidrantes, então a área somada não pode ser a do projeto inteiro.
+    // Vazio = ainda não ajustado manualmente, usa o default automático
+    // (estruturas onde hidrantes é exigido/ativo) — ver FormularioSistema.
+    estruturasSelecionadas: [],
+    tipo: '', tipoVariante: 0, rti: '',
+    reservatorioMaterial: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
+    bombaExiste: true, bombaJockey: false,
+    // Tipo de acionamento da bomba PRINCIPAL — elétrico ou combustão
+    // interna (mesmas opções de bombaReservaAcionamento, ver
+    // normas/<UF>/hidrantes.js:ACIONAMENTOS_BOMBA). Perguntado na Etapa 3
+    // (Dimensionamento da Bomba de Incêndio, ver BombaESuccaoForm.jsx).
+    bombaAcionamento: '',
+    bombaReserva: false, bombaReservaAcionamento: '',
+    bombaAlimentaSprinklers: false,
+    // Eficiência global (%) informada pelo RT — usada só aqui no site pra
+    // dimensionar a potência mínima da bomba (P_cv = 1000·Qt·Ht/75·η), a
+    // partir de Qt/Ht que vêm do plugin. Não depende de nada exclusivo do
+    // modelo Revit, por isso deixou de ser perguntada por lá.
+    bombaEficiencia: '',
+    // Potência realmente adotada pro conjunto motobomba (catálogo do
+    // fabricante só vem em potências padronizadas — raramente bate exato
+    // com a potência mínima calculada) — informada na mesma etapa
+    // "Dimensionamento da Bomba de Incêndio" que a eficiência, sincronizada
+    // direto com o plugin via Supabase (sem passar pelo Project Information
+    // do Revit).
+    bombaPotenciaAdotada: '',
+    // Método de cálculo (onde a norma exige verificar Q/Pmin do sistema —
+    // "valvula" ou "esguicho") não é uma escolha do RT: é derivado da norma
+    // do estado do projeto (REFERENCIA_PRESSAO_VAZAO) e mantido em sincronia
+    // por FormularioSistema.jsx. Guardado aqui (em vez de calculado só na
+    // hora de enviar) pra viajar junto no dado sincronizado com o plugin,
+    // que não tem acesso à norma do site.
+    metodoCalculo: '',
+    // Entradas do NPSH disponível (Anexo C) — plugin usa pra decidir se a
+    // sucção é negativa e, se for, calcular o NPSHd; sem correspondência
+    // geométrica no modelo Revit, por isso perguntadas aqui. Defaults =
+    // ALTITUDE_SUCCAO_PADRAO/TEMPERATURA_SUCCAO_PADRAO de normas/MA/hidrantes.js.
+    succaoAltitude: 0, succaoTemperatura: 30,
+    redeMaterial: '', redeConfiguracao: 'ramal',
+    recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
+    valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',
+    observacoes: '',
+    // Resultado bruto do último "Dimensionar Hidrantes" no Revit — mesmo
+    // payload sincronizado pelo plugin (chave 'hidrantes' de firedata.json,
+    // ver Fire Utils.tab/lib/hidrantes/calc.py:salvar_cache/enviar_sync),
+    // trazido pra cá via "Buscar do Revit"/importação de arquivo em
+    // HidrantesPage.jsx. Alimenta tanto o dashboard de dimensionamento
+    // quanto o memorial de cálculo (memorial/hidrantesCalculo.js, sempre a
+    // última folha do memorial) — null enquanto nada foi importado ainda.
+    dimensionamento: null,
+  },
+  // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) — só o que
+  // não existe em nenhum outro lugar do state (endereço, sistemas, riscos
+  // especiais, estrutura, população total etc. são reaproveitados de lá na
+  // hora de montar o documento, ver utils/planoEmergencia.js). `telefoneCBM`
+  // já nasce preenchido com o numero de emergencia nacional (193), e os 10
+  // procedimentos (item B.2) nascem com o texto padrao de PROCEDIMENTOS_PADRAO
+  // (adaptado de um exemplo pratico) — unicas excecoes a regra de nascer em
+  // branco, por serem dados/texto de partida que o usuario so edita se
+  // precisar, nunca preenche do zero.
+  planoEmergencia: {
+    localizacaoTipo: 'Urbana',
+    caracteristicaVizinhanca: '', distanciaCBM: '', meiosAjudaExterna: 'Posto de Bombeiros',
+    populacaoFixa: '', populacaoFlutuante: '',
+    horarioFuncionamento: '',
+    pneTemPessoas: false, pneDescricao: '',
+    // Localizacao de cada risco especial marcado — chaveado por estrutura e,
+    // dentro dela, pela chave do risco (mesmas chaves de RISCOS_ESPECIAIS em
+    // utils/anexoB.js), ja que os riscos marcados na Configuracao tambem sao
+    // por estrutura: riscosLocalizacaoPorEstrutura[estId][riscoKey] = texto.
+    riscosLocalizacaoPorEstrutura: {},
+    brigadistasQtd: '', brigadistasProfissionaisQtd: '',
+    telefoneCBM: '193', hospitalReferencia: '',
+    ...PROCEDIMENTOS_PADRAO,
+  },
   sistemas: {
     // acesso_viatura, seg_estrutural e brigada NAO sao universais: a Tabela 5
     // (simplificado) nunca exige as duas primeiras, e brigada so e exigida
@@ -286,8 +456,14 @@ function reducer(state, action) {
   switch (action.type) {
     case 'SET_FIELD':
       return { ...state, [action.field]: action.value }
+    // Varios campos de uma vez, como UMA alteracao — usado ao aplicar o
+    // responsavel tecnico do perfil na Etapa 3 (ver hooks/usePerfil.js), que
+    // senao viraria um dispatch por campo e, com isso, varios passos
+    // separados de autosave.
+    case 'SET_FIELDS':
+      return { ...state, ...action.fields }
     case 'ADD_ESTRUTURA': {
-      const est = novaEstrutura(`Estrutura ${state.estruturas.length + 1}`)
+      const est = novaEstrutura(`Estrutura ${state.estruturas.length + 1}`, action.id)
       return { ...state, estruturas: [...state.estruturas, est], pavimentos: [...state.pavimentos, pavimentoTerreo(est.id)] }
     }
     case 'REMOVE_ESTRUTURA': {
@@ -317,14 +493,14 @@ function reducer(state, action) {
       const list = []
       for (let s = nSub; s >= 1; s--) {
         const id = `${estruturaId}-sub-${s}`
-        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
       }
       const terId = `${estruturaId}-P1`
       const ter = find(terId)
       list.push(ter || pavimentoTerreo(estruturaId))
       for (let p = 2; p <= nPav; p++) {
         const id = `${estruturaId}-P${p}`
-        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [] })
+        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
       }
       const idsValidos = new Set(list.map(p => p.id))
       return {
@@ -332,11 +508,26 @@ function reducer(state, action) {
         pavimentos: [...others, ...list],
         extintores: state.extintores.filter(e => e.estruturaId !== estruturaId || idsValidos.has(e.pavimentoId)),
         iluminacao: state.iluminacao.filter(i => i.estruturaId !== estruturaId || idsValidos.has(i.pavimentoId)),
-        sinalizacao: state.sinalizacao.filter(s => s.estruturaId !== estruturaId || idsValidos.has(s.pavimentoId)),
       }
     }
     case 'UPDATE_PAV':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, ...action.changes } : p) }
+    // Só pode haver um piso de descarga por estrutura — marcar um como
+    // piso de descarga (valor:true) desmarca automaticamente qualquer
+    // outro pavimento da MESMA estrutura. Desmarcar (valor:false) só afeta
+    // o próprio pavimento (pode deixar a estrutura sem nenhum marcado
+    // temporariamente, enquanto o usuário reconfigura).
+    case 'SET_PISO_DESCARGA': {
+      const { pavimentoId, estruturaId, valor } = action
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => {
+          if (p.id === pavimentoId) return { ...p, pisoDescarga: valor }
+          if (valor && p.estruturaId === estruturaId) return { ...p, pisoDescarga: false }
+          return p
+        }),
+      }
+    }
     case 'REPLICATE_TERREO': {
       const { estruturaId } = action
       const t = state.pavimentos.find(p => p.estruturaId === estruturaId && p.tipo === 'terreo')
@@ -355,7 +546,7 @@ function reducer(state, action) {
     case 'UPDATE_ACESS':
       return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.id ? { ...p, acess: p.acess.map((a, i) => i === action.index ? { ...a, ...action.changes } : a) } : p) }
     case 'ADD_EXTINTOR':
-      return { ...state, extintores: [...state.extintores, novoExtintor(action.estruturaId, action.pavimentoId, action.ambiente)] }
+      return { ...state, extintores: [...state.extintores, novoExtintor(action.estruturaId, action.pavimentoId, action.ambiente, action.id)] }
     case 'UPDATE_EXTINTOR':
       return { ...state, extintores: state.extintores.map(e => e.id === action.id ? { ...e, ...action.changes } : e) }
     case 'REMOVE_EXTINTOR':
@@ -373,6 +564,30 @@ function reducer(state, action) {
         extintores: state.extintores.filter(e =>
           !(e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId && e.ambiente === action.ambiente)),
       }
+    // Move unidades extintoras (por id) pra outro ambiente do MESMO
+    // pavimento — filtra por estruturaId/pavimentoId pra que um id fora do
+    // pavimento (ex.: seleção antiga) nunca troque de pavimento por engano.
+    case 'MOVER_EXTINTORES': {
+      const ids = new Set(action.ids)
+      return {
+        ...state,
+        extintores: state.extintores.map(e =>
+          (ids.has(e.id) && e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId)
+            ? { ...e, ambiente: action.ambiente } : e),
+      }
+    }
+    // Reordena os ambientes de um pavimento. `ordem` é a lista de nomes de
+    // ambiente na nova sequência. Os ambientes não têm posição própria — a
+    // ordem vem da 1ª ocorrência de cada nome em state.extintores (ver
+    // agruparPorAmbiente em ExtintoresPage.jsx) —, então reordenar é
+    // reordenar os itens do pavimento, preservando a ordem interna de cada
+    // ambiente (sort estável).
+    case 'ORDENAR_AMBIENTES_EXTINTOR': {
+      const doPav = e => e.estruturaId === action.estruturaId && e.pavimentoId === action.pavimentoId
+      const posicao = nome => { const i = action.ordem.indexOf(nome); return i < 0 ? action.ordem.length : i }
+      const reordenados = state.extintores.filter(doPav).sort((a, b) => posicao(a.ambiente) - posicao(b.ambiente))
+      return { ...state, extintores: [...state.extintores.filter(e => !doPav(e)), ...reordenados] }
+    }
     // Substitui só o cadastro de extintores das estruturas presentes no
     // lote importado (ver resolverImportacao em ExtintoresPage.jsx) — os
     // itens já chegam com estruturaId/pavimentoId resolvidos contra o
@@ -381,10 +596,10 @@ function reducer(state, action) {
     case 'IMPORT_EXTINTORES': {
       const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
       const preservados = state.extintores.filter(e => !estruturasDoLote.has(e.estruturaId))
-      return { ...state, extintores: [...preservados, ...action.itens.map(it => ({ id: idExtintor(), ...it }))] }
+      return { ...state, extintores: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idExtintor() }))] }
     }
     case 'ADD_ILUMINACAO':
-      return { ...state, iluminacao: [...state.iluminacao, novoItemIluminacao(action.estruturaId, action.pavimentoId, action.categoria, action.overrides)] }
+      return { ...state, iluminacao: [...state.iluminacao, novoItemIluminacao(action.estruturaId, action.pavimentoId, action.categoria, action.overrides, action.id)] }
     case 'UPDATE_ILUMINACAO':
       return { ...state, iluminacao: state.iluminacao.map(i => i.id === action.id ? { ...i, ...action.changes } : i) }
     case 'REMOVE_ILUMINACAO':
@@ -446,21 +661,163 @@ function reducer(state, action) {
         iluminacao: state.iluminacao.filter(i => !(i.categoria === 'aclaramento' && i.tipoEquipamento === action.id)),
       }
     case 'ADD_SINALIZACAO':
-      return { ...state, sinalizacao: [...state.sinalizacao, novoItemSinalizacao(action.estruturaId, action.pavimentoId, action.tipoPlaca, action.quantidade)] }
+      return { ...state, sinalizacao: [...state.sinalizacao, novoItemSinalizacao(action.estruturaId, action.tipoPlaca, action.quantidade, action.id)] }
     case 'UPDATE_SINALIZACAO':
       return { ...state, sinalizacao: state.sinalizacao.map(s => s.id === action.id ? { ...s, ...action.changes } : s) }
     case 'REMOVE_SINALIZACAO':
       return { ...state, sinalizacao: state.sinalizacao.filter(s => s.id !== action.id) }
-    // Substitui todo o cadastro de sinalização pelo lote importado do
-    // firedata.json (ver resolverImportacaoSinalizacao em SinalizacaoPage.jsx) —
-    // os itens já chegam com estruturaId/pavimentoId resolvidos contra o
-    // projeto atual.
-    case 'IMPORT_SINALIZACAO':
-      return { ...state, sinalizacao: action.itens.map(it => ({ id: idSinalizacao(), ...it })) }
+    // Substitui só o cadastro de sinalização das estruturas presentes no
+    // lote importado (ver resolverImportacaoSinalizacao em
+    // SinalizacaoPage.jsx) — os itens já chegam com estruturaId resolvido
+    // contra o projeto atual. Preserva o cadastro das demais estruturas,
+    // já que cada arquivo Revit sincroniza uma estrutura por vez (mesmo
+    // padrão de IMPORT_EXTINTORES).
+    case 'IMPORT_SINALIZACAO': {
+      const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
+      const preservados = state.sinalizacao.filter(s => !estruturasDoLote.has(s.estruturaId))
+      return { ...state, sinalizacao: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() }))] }
+    }
+    // Ambientes de Saída de Emergência (SaidaEmergenciaPage.jsx) — vivem
+    // dentro do pavimento (population/dimensionamento é por pavimento, não
+    // um cadastro à parte como extintor/iluminação/sinalização). Só são
+    // despachadas ao clicar em "Adicionar"/"Salvar"/lixeira no modal — o
+    // formulário em si (nome, divisão, área...) fica em useState local até
+    // esse clique, então não gera broadcast a cada tecla digitada.
+    case 'ADD_AMBIENTE_SE':
+      return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId ? { ...p, ambientes: [...(p.ambientes || []), { id: action.id, ...action.ambiente }] } : p) }
+    case 'UPDATE_AMBIENTE_SE':
+      return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId ? { ...p, ambientes: (p.ambientes || []).map(a => a.id === action.ambienteId ? { ...a, ...action.changes } : a) } : p) }
+    case 'REMOVE_AMBIENTE_SE':
+      return { ...state, pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId ? { ...p, ambientes: (p.ambientes || []).filter(a => a.id !== action.ambienteId) } : p) }
+    // Importação do Revit/firedata.json (ver resolverImportacaoSaidas em
+    // SaidaEmergenciaPage.jsx) — substitui os ambientes só dos pavimentos
+    // resolvidos no lote, preservando os demais.
+    case 'IMPORT_AMBIENTES_SE': {
+      const porPavimento = new Map(action.atualizacoes.map(a => [a.pavimentoId, a.ambientes]))
+      return { ...state, pavimentos: state.pavimentos.map(p => porPavimento.has(p.id) ? { ...p, ambientes: porPavimento.get(p.id) } : p) }
+    }
+    // ── Árvore de Acessos e Descargas (Ambiente -> Acesso -> Acesso/Saída) ──
+    // Ver se_calc.js (calcNoAcesso/ambientesDoAcesso) pro motor de cálculo.
+    // Um "Acesso" com alimentaEm=null é uma Saída (raiz da árvore daquele
+    // pavimento) — não existe um tipo de nó separado pra Saída, só a posição
+    // na árvore muda.
+    case 'CRIAR_SAIDA':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: null, dims: dimsPadrao({ alimentaEm: null }, !!p.pisoDescarga) }] }
+          : p),
+      }
+    case 'CRIAR_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: [...(p.acessos || []), { id: action.id, nome: action.nome, alimentaEm: action.alimentaEm, dims: dimsPadrao({ alimentaEm: action.alimentaEm }, !!p.pisoDescarga) }] }
+          : p),
+      }
+    // Liga/desliga um dimensionamento (AD/ER/PT) de um nó específico da
+    // árvore — um nó pode precisar de mais de um ao mesmo tempo (ex.: o
+    // ponto de descarga que é ao mesmo tempo corredor de saída e chegada
+    // da escada que desce até ali). Ver dimsPadrao/calcDimsAcesso em
+    // se_calc.js.
+    case 'SET_ACESSO_DIM':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: (p.acessos || []).map(ac => ac.id === action.acessoId
+              ? { ...ac, dims: { ...(ac.dims || {}), [action.dim]: action.valor } }
+              : ac) }
+          : p),
+      }
+    case 'RENOMEAR_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: (p.acessos || []).map(ac => ac.id === action.acessoId ? { ...ac, nome: action.nome } : ac) }
+          : p),
+      }
+    // Move um ambiente pra outro Acesso — inclusive entre Saídas diferentes
+    // do mesmo pavimento (arrastar o quadradinho do Ambiente).
+    case 'MOVER_AMBIENTE_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, ambientes: (p.ambientes || []).map(a => a.id === action.ambienteId ? { ...a, acessoId: action.novoAcessoId } : a) }
+          : p),
+      }
+    // Mesma coisa que MOVER_AMBIENTE_ACESSO, mas pra vários ambientes de
+    // uma vez (seleção em massa na tela de Acessos e Descargas) — um único
+    // despacho em vez de um por ambiente, pra não gerar N re-renders/broadcasts.
+    case 'MOVER_AMBIENTES_ACESSO': {
+      const idsMovidos = new Set(action.ambienteIds)
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, ambientes: (p.ambientes || []).map(a => idsMovidos.has(a.id) ? { ...a, acessoId: action.novoAcessoId } : a) }
+          : p),
+      }
+    }
+    // "Apagar selecionados" na barra de seleção em massa: comportamento
+    // igual ao botão individual de cada card — ambiente já órfão é
+    // excluído de verdade; ambiente dentro de um Acesso/Saída só é
+    // desvinculado (fica órfão), nunca apagado por engano numa seleção
+    // que misturou os dois tipos.
+    case 'APAGAR_AMBIENTES_SE': {
+      const idsAlvo = new Set(action.ambienteIds)
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? {
+              ...p,
+              ambientes: (p.ambientes || []).reduce((acc, a) => {
+                if (!idsAlvo.has(a.id)) { acc.push(a); return acc }
+                if (a.acessoId) acc.push({ ...a, acessoId: null })
+                return acc
+              }, []),
+            }
+          : p),
+      }
+    }
+    // Move um Acesso (e, por consequência do cálculo recursivo em
+    // se_calc.js, todo o conjunto de ambientes/acessos que já alimentavam
+    // ele) pra alimentar outro nó — ou pra null, virando uma Saída nova.
+    // Validar ciclo (um acesso não pode alimentar seu próprio descendente)
+    // é responsabilidade de quem despacha, não do reducer.
+    case 'MOVER_ACESSO':
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => p.id === action.pavimentoId
+          ? { ...p, acessos: (p.acessos || []).map(ac => ac.id === action.acessoId ? { ...ac, alimentaEm: action.novoAlimentaEm } : ac) }
+          : p),
+      }
+    // Remove um nó de Acesso/Saída sem apagar em cascata: o que alimentava
+    // ele (ambientes e/ou outros acessos) fica órfão (acessoId/alimentaEm
+    // voltam a null) em vez de sumir — o usuário reposiciona depois, mas
+    // não perde nenhum ambiente cadastrado.
+    case 'REMOVER_ACESSO': {
+      const { pavimentoId, acessoId } = action
+      return {
+        ...state,
+        pavimentos: state.pavimentos.map(p => {
+          if (p.id !== pavimentoId) return p
+          return {
+            ...p,
+            acessos: (p.acessos || [])
+              .filter(ac => ac.id !== acessoId)
+              .map(ac => ac.alimentaEm === acessoId ? { ...ac, alimentaEm: null } : ac),
+            ambientes: (p.ambientes || []).map(a => a.acessoId === acessoId ? { ...a, acessoId: null } : a),
+          }
+        }),
+      }
+    }
     case 'SET_BALIZAMENTO_APLICADO':
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
+    case 'SET_PLANO_EMERGENCIA':
+      return { ...state, planoEmergencia: { ...state.planoEmergencia, ...action.changes } }
+    case 'SET_HIDRANTES':
+      return { ...state, hidrantes: { ...state.hidrantes, ...action.changes } }
     case 'SET_WIZARD':
       return { ...state, configStep: action.step, configUnlocked: action.unlocked }
     case 'SET_CARGA': {
@@ -480,25 +837,31 @@ function reducer(state, action) {
       action.divisoes.forEach(d => { if (!next[d]) next[d] = { cnae: '', descricao: '', cargaIncendio: null, metodo: 'tabela', valorManual: '' } })
       return { ...state, cargaState: { ...state.cargaState, [estruturaId]: next } }
     }
+    // `action.value`, quando informado (ver resolverAcaoLocal), fixa o valor
+    // final decidido no momento do dispatch original — sem isso, replicar o
+    // toggle pra outra aba via broadcast inverteria o campo de novo em vez
+    // de convergir pro mesmo estado (ver comentário em resolverAcaoLocal).
     case 'TOGGLE_SISTEMA_ESTRUTURA': {
       const { estruturaId, key } = action
       const atual = !!state.sistemasPorEstrutura[estruturaId]?.[key]
+      const novo = action.value !== undefined ? action.value : !atual
       return {
         ...state,
         sistemasPorEstrutura: {
           ...state.sistemasPorEstrutura,
-          [estruturaId]: { ...state.sistemasPorEstrutura[estruturaId], [key]: !atual },
+          [estruturaId]: { ...state.sistemasPorEstrutura[estruturaId], [key]: novo },
         },
       }
     }
     case 'TOGGLE_RISCO_ESTRUTURA': {
       const { estruturaId, key } = action
       const base = state.riscosEspeciaisPorEstrutura[estruturaId] || RISCOS_DEFAULT
+      const novo = action.value !== undefined ? action.value : !base[key]
       return {
         ...state,
         riscosEspeciaisPorEstrutura: {
           ...state.riscosEspeciaisPorEstrutura,
-          [estruturaId]: { ...base, [key]: !base[key] },
+          [estruturaId]: { ...base, [key]: novo },
         },
       }
     }
@@ -508,10 +871,77 @@ function reducer(state, action) {
       return { ...hydrateState(action.payload), saveReady: true }
     case 'NEW_PROJECT': {
       const est = novaEstrutura('Estrutura 1')
-      return { ...INITIAL_STATE, id: action.id, createdAt: action.createdAt, estruturas: [est], pavimentos: [pavimentoTerreo(est.id)], saveReady: true }
+      return {
+        ...INITIAL_STATE,
+        id: action.id, createdAt: action.createdAt,
+        tipoProjeto: action.tipo || 'completo',
+        estruturas: [est], pavimentos: [pavimentoTerreo(est.id)], saveReady: true,
+      }
     }
     default: return state
   }
+}
+
+// Ações puramente locais de navegação/boot — cada aba faz a sua conta, não
+// faz sentido nem é desejável replicar pras outras sessões da mesma conta
+// (LOAD/NEW_PROJECT são o próprio carregamento; SET_WIZARD é só a etapa do
+// wizard que esta aba está olhando, não dado do projeto).
+const NAO_BROADCAST = new Set(['LOAD', 'NEW_PROJECT', 'SET_WIZARD'])
+
+// Resolve, a partir do estado local no momento do dispatch, tudo que a
+// action precisa ter fixado ANTES de seguir pro reducer e pro broadcast —
+// pra que a mesma action aplicada em outra aba (via canal Realtime) produza
+// exatamente o mesmo resultado, em vez de divergir:
+//  - ações que criam um item novo (ADD_EXTINTOR etc.) geram o id dentro do
+//    reducer a partir de Date.now()/Math.random(); se cada aba gerasse o
+//    seu, o mesmo "clique" viraria dois itens diferentes, um em cada lado.
+//  - os toggles (TOGGLE_SISTEMA_ESTRUTURA/TOGGLE_RISCO_ESTRUTURA) invertem
+//    o valor atual; replicando a inversão "cega" pra outra aba, um clique
+//    perto o suficiente nos dois lados converge de volta pro valor errado
+//    (A liga, B recebe e inverte nele; B liga, A recebe e inverte de volta).
+//    Fixando o valor final aqui, replicar passa a dizer "fica assim", não
+//    "inverte de novo".
+function resolverAcaoLocal(action, state) {
+  switch (action.type) {
+    case 'ADD_EXTINTOR':
+    case 'ADD_ILUMINACAO':
+    case 'ADD_SINALIZACAO':
+    case 'ADD_ESTRUTURA':
+    case 'ADD_ESPECIFICACAO_EQUIPAMENTO':
+    case 'SET_EQUIPAMENTO_USADO':
+    case 'ADD_AMBIENTE_SE':
+    case 'CRIAR_SAIDA':
+    case 'CRIAR_ACESSO':
+      return action.id ? action : { ...action, id: idParaTipo(action.type)() }
+    case 'IMPORT_EXTINTORES':
+      return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idExtintor() }) }
+    case 'IMPORT_SINALIZACAO':
+      return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idSinalizacao() }) }
+    case 'IMPORT_AMBIENTES_SE':
+      return { ...action, atualizacoes: action.atualizacoes.map(a => ({ ...a, ambientes: a.ambientes.map(it => it.id ? it : { ...it, id: idAmbienteSE() }) })) }
+    case 'TOGGLE_SISTEMA_ESTRUTURA': {
+      if (action.value !== undefined) return action
+      const atual = !!state.sistemasPorEstrutura[action.estruturaId]?.[action.key]
+      return { ...action, value: !atual }
+    }
+    case 'TOGGLE_RISCO_ESTRUTURA': {
+      if (action.value !== undefined) return action
+      const base = state.riscosEspeciaisPorEstrutura[action.estruturaId] || RISCOS_DEFAULT
+      return { ...action, value: !base[action.key] }
+    }
+    default:
+      return action
+  }
+}
+
+function idParaTipo(tipo) {
+  if (tipo === 'ADD_EXTINTOR')     return idExtintor
+  if (tipo === 'ADD_ILUMINACAO')   return idIluminacao
+  if (tipo === 'ADD_SINALIZACAO')  return idSinalizacao
+  if (tipo === 'ADD_ESTRUTURA')    return idEstrutura
+  if (tipo === 'ADD_AMBIENTE_SE')  return idAmbienteSE
+  if (tipo === 'CRIAR_SAIDA' || tipo === 'CRIAR_ACESSO') return idAcesso
+  return idEspecEquip // ADD_ESPECIFICACAO_EQUIPAMENTO / SET_EQUIPAMENTO_USADO
 }
 
 const Ctx = createContext(null)
@@ -531,8 +961,15 @@ export function ProjetoProvider({ children }) {
   // elegivel, e some de novo se entrar em conflito — o banner de conflito ja
   // comunica o problema, dois avisos ao mesmo tempo seria redundante.
   const [syncStatus, setSyncStatus] = useState(null)
+  // Contador incrementado quando a base normativa central (normas_dados)
+  // termina de carregar em background — os getters em data/normas/index.js
+  // (getSE, etc.) são síncronos e já rodaram no primeiro render das
+  // páginas de medida, antes do fetch completar. Como nada nesta árvore lê
+  // o valor em si, só a mudança de referência do value do Provider já basta
+  // pra re-renderizar os consumidores e eles pegarem o dado novo do cache.
+  const [normasVersion, setNormasVersion] = useState(0)
 
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (init) => {
+  const [state, rawDispatch] = useReducer(reducer, INITIAL_STATE, (init) => {
     try {
       const s = localStorage.getItem('etos-projeto')
       if (s) {
@@ -551,6 +988,60 @@ export function ProjetoProvider({ children }) {
   })
 
   const definirVersaoConhecida = v => { versaoRef.current = v; setConflito(false) }
+
+  // Busca a base normativa central (normas_dados) para o UF do projeto —
+  // dispara no boot e de novo se o UF mudar (endereço editado na Etapa 1).
+  useEffect(() => {
+    let cancelado = false
+    carregarNormasRemotas(state.uf).then(() => { if (!cancelado) setNormasVersion(v => v + 1) })
+    return () => { cancelado = true }
+  }, [state.uf])
+
+  // Estado sempre atual, pra ler dentro do `dispatch` (useCallback com deps
+  // vazias, ver abaixo) sem precisar recriar a função a cada mudança —
+  // mantém a identidade de `dispatch` estável, como era com o dispatch cru
+  // do useReducer.
+  const stateRef = useRef(state)
+  useEffect(() => { stateRef.current = state }, [state])
+
+  // Canal Realtime do projeto aberto — transmite cada ação do reducer pras
+  // outras abas/dispositivos logados na mesma conta e no mesmo projeto, que
+  // aplicam a mesma ação no próprio reducer (ver `dispatch` abaixo). Isso é
+  // o que permite duas pessoas (ou a mesma pessoa em dois computadores)
+  // editarem o mesmo projeto ao mesmo tempo sem se sobrescreverem: cada
+  // ação já nasce granular (por estrutura, por item), então edições em
+  // partes diferentes do projeto nunca colidem. `broadcast.self: false`
+  // evita eco — o remetente não recebe a própria mensagem de volta.
+  // `channelRef` só é preenchido depois que o canal confirma inscrição
+  // ('SUBSCRIBED'); enquanto isso, `dispatch` funciona normalmente, só não
+  // transmite (a ação ainda é salva no Postgres pelo autosave de sempre).
+  const channelRef = useRef(null)
+  useEffect(() => {
+    if (!user || !state.id || !state.saveReady) return
+    const channel = supabase.channel(`projeto:${state.id}`, { config: { broadcast: { self: false } } })
+    channel
+      .on('broadcast', { event: 'action' }, ({ payload }) => {
+        if (payload?.action) rawDispatch(payload.action)
+      })
+      .subscribe(status => { if (status === 'SUBSCRIBED') channelRef.current = channel })
+    return () => { channelRef.current = null; supabase.removeChannel(channel) }
+  }, [user, state.id, state.saveReady])
+
+  // `true` desde a última action local (disparada por esta aba) até o
+  // autosave conseguir persistir — usado pro autosave abaixo saber se tem
+  // algo desta aba pra salvar. Ações que chegam via broadcast (outra aba)
+  // não mexem aqui: quem já mandou a ação também é responsável por
+  // persistir, evitando as duas abas correndo pra salvar o mesmo conteúdo
+  // (o que só aumentaria a chance de falso conflito de versão à toa).
+  const pendingLocalRef = useRef(false)
+
+  const dispatch = useCallback((action) => {
+    pendingLocalRef.current = true
+    if (NAO_BROADCAST.has(action.type)) { rawDispatch(action); return }
+    const resolvida = resolverAcaoLocal(action, stateRef.current)
+    rawDispatch(resolvida)
+    channelRef.current?.send({ type: 'broadcast', event: 'action', payload: { action: resolvida } })
+  }, [])
 
   // Autosave: grava instantâneo no localStorage (cache local/offline) e, se
   // houver usuário logado, sincroniza com o Postgres em background — debounced
@@ -573,10 +1064,16 @@ export function ProjetoProvider({ children }) {
       } catch {}
     }
 
+    // Mudança só chegou via broadcast de outra aba (ver `dispatch` acima) —
+    // essa outra aba já é responsável por persistir, nada a fazer aqui além
+    // do cache local já gravado.
+    if (!pendingLocalRef.current) return
+
     if (!user || !state.id || !state.saveReady || conflito || versaoRef.current == null) return
     setSyncStatus('saving')
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
+      pendingLocalRef.current = false
       const versaoLocal = versaoRef.current
       const { data, error } = await supabase
         .from('projetos')
@@ -593,8 +1090,30 @@ export function ProjetoProvider({ children }) {
       if (!data || data.length === 0) {
         // Nenhuma linha afetada: ou a versão mudou (conflito) ou o projeto
         // ainda não existe no Postgres (primeiro save de um projeto novo).
-        const { data: existente } = await supabase.from('projetos').select('id').eq('id', state.id).maybeSingle()
-        if (existente) { setConflito(true); setSyncStatus(null); return }
+        const { data: existente } = await supabase.from('projetos').select('version').eq('id', state.id).maybeSingle()
+        if (existente) {
+          // A versão que esta aba conhecia ficou pra trás — o caso comum
+          // com o broadcast entre abas é: OUTRA aba desta mesma conta já
+          // salvou uma mudança (talvez até uma que chegou aqui por
+          // broadcast e nós já refletimos no nosso `state`), avançando a
+          // versão sem esta aba saber. Como nosso `toSave` já é o estado
+          // convergido (recebe as mudanças da outra aba ao vivo), tenta
+          // salvar de novo com a versão atual antes de declarar conflito —
+          // sem isso, essa aba entraria em conflito a cada alternância de
+          // edição entre as abas e pararia de salvar pro resto da sessão.
+          const versaoAtual = existente.version
+          const { data: retry, error: retryError } = await supabase
+            .from('projetos')
+            .update({ dados: toSave, nome: state.nome || 'Projeto sem nome', version: versaoAtual + 1, updated_at: toSave.updatedAt })
+            .eq('id', state.id).eq('user_id', user.id).eq('version', versaoAtual)
+            .select('version')
+          if (!retryError && retry && retry.length > 0) {
+            versaoRef.current = retry[0].version
+            setSyncStatus('saved')
+            return
+          }
+          setConflito(true); setSyncStatus(null); return
+        }
         const { error: insertErr } = await supabase.from('projetos').insert({
           id: state.id, user_id: user.id, nome: state.nome || 'Projeto sem nome', dados: toSave, version: 1,
         })
@@ -610,7 +1129,7 @@ export function ProjetoProvider({ children }) {
   }, [state, user, conflito])
 
   return (
-    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida, syncStatus }}>
+    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida, syncStatus, normasVersion }}>
       {children}
     </Ctx.Provider>
   )

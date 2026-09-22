@@ -9,30 +9,51 @@ import { textoMemorialCompartHorizontal, textoMemorialCompartVertical } from './
 import { textoMemorialExtintores } from './extintores'
 import { textoMemorialIluminacao } from './iluminacao'
 import { textoMemorialSinalizacao } from './sinalizacao'
+import { textoMemorialGerenciamentoRisco } from './gerenciamento_risco'
+import { textoMemorialSaidaEmergencia } from './saida_emergencia'
+import { textoMemorialHidrantes } from './hidrantes'
+import { textoMemorialCalculoHidrantes } from './hidrantesCalculo'
 
 export const MEMORIAL_BUILDERS = {
-  acesso_viatura:     textoMemorialAcessoViatura,
-  seg_estrutural:     textoMemorialSegEstrutural,
-  compart_horizontal: textoMemorialCompartHorizontal,
-  compart_vertical:   textoMemorialCompartVertical,
-  extintores:         textoMemorialExtintores,
-  iluminacao:         textoMemorialIluminacao,
-  sinalizacao:        textoMemorialSinalizacao,
-  // saida_emergencia, hidrantes, ... entram aqui conforme forem implementadas
+  acesso_viatura:      textoMemorialAcessoViatura,
+  seg_estrutural:      textoMemorialSegEstrutural,
+  compart_horizontal:  textoMemorialCompartHorizontal,
+  compart_vertical:    textoMemorialCompartVertical,
+  extintores:          textoMemorialExtintores,
+  iluminacao:          textoMemorialIluminacao,
+  sinalizacao:         textoMemorialSinalizacao,
+  gerenciamento_risco: textoMemorialGerenciamentoRisco,
+  saida_emergencia:    textoMemorialSaidaEmergencia,
+  hidrantes:           textoMemorialHidrantes,
+  // ... entram aqui conforme forem implementadas
 }
 
 /**
  * Monta as seções do memorial a partir das medidas ativas/obrigatórias do
  * projeto. `sistemas` é o resultado derivado de useMedidasObrigatorias() —
  * mesma fonte usada pelo Anexo B — não o `state.sistemas` bruto. `porEstrutura`
- * (também de useMedidasObrigatorias()) é repassado a quem precisar da
- * obrigatoriedade por estrutura, não só a agregada do projeto (ex.:
- * compartimentação, quando a exigência varia entre estruturas do projeto).
+ * (mesmo hook) só é repassado pra frente — necessário pros builders que
+ * precisam de dado por-estrutura, não pelo agregado do projeto (ex.:
+ * compartimentação, quando a exigência varia entre estruturas do projeto;
+ * saida_emergencia.js, pra chuveiros/detecção na distância máxima a
+ * percorrer).
+ *
+ * O memorial de cálculo (marcha hidráulica) de Hidrantes é sempre a
+ * ÚLTIMA folha do documento — narra o dimensionamento feito pelo plugin
+ * Revit (ver memorial/hidrantesCalculo.js), então só faz sentido depois de
+ * toda a parte descritiva, e nunca deveria mudar de posição por causa da
+ * ordem de iteração de `sistemas` (não garantida).
  */
 export function buildMemorial(state, sistemas, porEstrutura) {
   const src = sistemas || state.sistemas || {}
-  return Object.entries(src)
+  const secoes = Object.entries(src)
     .filter(([, s]) => s.ativo || s.obrigatorio)
     .map(([key]) => MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura))
     .filter(Boolean)
+
+  if (src.hidrantes?.ativo || src.hidrantes?.obrigatorio) {
+    secoes.push(textoMemorialCalculoHidrantes(state))
+  }
+
+  return secoes
 }

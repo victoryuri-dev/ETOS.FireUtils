@@ -19,6 +19,17 @@ const BASELINE_QUANDO_FALTA_DADO = [
   'acesso_viatura', 'seg_estrutural', 'saida_emergencia', 'brigada', 'iluminacao', 'sinalizacao', 'extintores',
 ]
 
+// Projeto "apenas dimensionamento" (state.tipoProjeto — ver ProjetoContext.jsx/
+// Step6.jsx) só dimensiona esses sistemas — os demais nunca aparecem como
+// obrigatórios/ativos aqui, mesmo que a NT 42/2019 os exigiria pra essa
+// ocupação/altura/área. Esse é o ÚNICO lugar que decide isso: ProjectAside.jsx
+// (menu lateral), memorial/registry.js (buildMemorial) e Step6.jsx (grid de
+// medidas) todos leem `sistemas`/`porEstrutura` daqui — sem esse filtro
+// central, um sistema sem builder de memorial nem página própria (ex.:
+// SPDA) ainda apareceria "obrigatório" no menu e geraria pendência sem
+// nenhuma tela pra resolver, num modo pensado pra não pedir esse dado.
+const SISTEMAS_DIMENSIONAMENTO = new Set(['saida_emergencia', 'hidrantes', 'sprinklers'])
+
 /**
  * Deriva, a partir das estruturas/pavimentos do projeto, quais medidas de
  * seguranca sao obrigatorias (por estrutura e agregado no projeto), com
@@ -27,6 +38,7 @@ const BASELINE_QUANDO_FALTA_DADO = [
  */
 export function useMedidasObrigatorias() {
   const { state } = useProjeto()
+  const dimensionamento = state.tipoProjeto === 'dimensionamento'
 
   return useMemo(() => {
     const porEstrutura = state.estruturas.map(est => {
@@ -58,6 +70,10 @@ export function useMedidasObrigatorias() {
       // seus proprios sistemas opcionais, independente das demais.
       const sistemas = {}
       Object.keys(state.sistemas || {}).forEach(k => {
+        if (dimensionamento && !SISTEMAS_DIMENSIONAMENTO.has(k)) {
+          sistemas[k] = { obrigatorio: false, ativo: false }
+          return
+        }
         const obrigatorio = !!medidas[k]
         const ativoManual = !!state.sistemasPorEstrutura[est.id]?.[k]
         sistemas[k] = { obrigatorio, ativo: obrigatorio || ativoManual }
@@ -81,11 +97,15 @@ export function useMedidasObrigatorias() {
     // (nav lateral, paginas de dimensionamento, Anexo B).
     const sistemas = {}
     Object.keys(state.sistemas || {}).forEach(k => {
+      if (dimensionamento && !SISTEMAS_DIMENSIONAMENTO.has(k)) {
+        sistemas[k] = { obrigatorio: false, ativo: false }
+        return
+      }
       const obrigatorio = porEstrutura.some(pe => pe.sistemas[k]?.obrigatorio)
       const ativo = obrigatorio || porEstrutura.some(pe => pe.sistemas[k]?.ativo)
       sistemas[k] = { obrigatorio, ativo }
     })
 
     return { porEstrutura, sistemas }
-  }, [state.estruturas, state.pavimentos, state.uf, state.sistemas, state.sistemasPorEstrutura])
+  }, [state.estruturas, state.pavimentos, state.uf, state.sistemas, state.sistemasPorEstrutura, dimensionamento])
 }
