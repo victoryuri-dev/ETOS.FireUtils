@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import Icon from '../../components/ui/Icon'
 import Checkbox from '../../components/ui/Checkbox'
+import InlineEditableNome from '../../components/ui/InlineEditableNome'
 import { AmbienteForm, fmtM } from './se_shared'
 import {
   calcPopAmb, calcNoAmbientePT, calcDimsAcesso, dimsDoAcesso, contarSaidasPavimento,
@@ -37,52 +38,6 @@ function listarAcessosParaSelect(acessos, parentId = null, profundidade = 0) {
 }
 
 const ALVO_SEM_ACESSO = '__sem_acesso__'
-
-// ── Nome editável inline — clique vira input; Enter/blur salva, Escape
-// cancela. Mesmo padrão de AmbienteBloco em ExtintoresPage.jsx, em vez de
-// window.prompt (abre um diálogo nativo do navegador, fora do site).
-function InlineEditableNome({ value, onCommit, textClassName }) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-
-  const commit = () => {
-    setEditing(false)
-    const novo = draft.trim()
-    if (novo && novo !== value) onCommit(novo)
-  }
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={e => {
-          if (e.key === 'Enter') commit()
-          if (e.key === 'Escape') setEditing(false)
-        }}
-        onClick={e => e.stopPropagation()}
-        // Acompanha a largura do texto digitado (em vez do tamanho padrão
-        // do <input>, que não tem relação nenhuma com o nome sendo
-        // editado) — `max-w-full` deixa o max-w-[…] de `textClassName`
-        // (limite de largura do nome no card) valer também aqui.
-        style={{ width: `${Math.max(draft.length, 1) + 1}ch` }}
-        className={`${textClassName} max-w-full bg-transparent border-none p-0 outline-none min-w-0`}
-      />
-    )
-  }
-  return (
-    <button
-      type="button"
-      onClick={e => { e.stopPropagation(); setDraft(value); setEditing(true) }}
-      className={`group flex items-center gap-1.5 min-w-0 bg-transparent border-none cursor-pointer p-0 text-left ${textClassName}`}
-    >
-      <span className="truncate">{value}</span>
-      <Icon name="edit" size={11} className="text-ink-hint group-hover:text-ink-muted transition-colors shrink-0"/>
-    </button>
-  )
-}
 
 // Quebra "ACESSO/DESCARGA" -> "ACESSO/" + quebra de linha + "DESCARGA"
 // (idem "ESCADA/RAMPA") — os únicos rótulos com "/" que chegam aqui

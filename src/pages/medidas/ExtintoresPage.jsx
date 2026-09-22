@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
-import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
+import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { supabase } from '../../lib/supabase'
 import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica } from '../../data/extintores_calc'
 import Icon from '../../components/ui/Icon'
 import Checkbox from '../../components/ui/Checkbox'
+import InlineEditableNome from '../../components/ui/InlineEditableNome'
 import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
@@ -178,186 +179,201 @@ function agruparPorAmbiente(extintores) {
   return ordem.map(ambiente => ({ ambiente, itens: mapa[ambiente] }))
 }
 
-// ── Linha de um extintor dentro de um ambiente ───────────────────────
-// A capacidade extintora nasce preenchida com o mínimo normativo do tipo
-// (item 5.1.1/5.1.4 NT 21 CBMMA), mas é livre para o projetista aumentar
-// conforme a capacidade do agente efetivamente aplicado no projeto.
-//
-// Arrastável (só pelo grip) pra outro ambiente do mesmo pavimento; o
-// checkbox marca várias unidades pra mover/apagar de uma vez (barra no
-// rodapé do PavimentoCard). Uma unidade só troca de ambiente — o ambiente
-// em si não é destino de outro ambiente.
-function LinhaExtintor({ ext, tiposPortatil, tiposSobreRodas, dispatch, selecionado, onToggleSelecao }) {
-  const catalogo = ext.sobreRodas ? tiposSobreRodas : tiposPortatil
-
-  const update = changes => dispatch({ type: 'UPDATE_EXTINTOR', id: ext.id, changes })
-
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+// ── Unidade extintora (folha do ambiente) — arrastável, card inteiro clicável ─
+// Mesmo padrão do AmbienteChip das Saídas de Emergência (AcessosDescargasView):
+// grip + checkbox de seleção + nome à esquerda, resumo à direita, clique
+// abre o formulário de edição (ver ExtintorForm). O grip e o checkbox ficam
+// fora do clique de editar. Com pelo menos uma unidade já selecionada
+// (`modoSelecao`), clicar em qualquer lugar do card seleciona/desmarca em vez
+// de abrir o formulário — só assim dá pra marcar várias rápido, sem mirar no
+// checkbox de cada uma. Uma unidade só troca de ambiente (dentro do mesmo
+// pavimento) — o ambiente em si não é destino de outro ambiente.
+function UnidadeCard({ ext, tiposPortatil, tiposSobreRodas, onEdit, onRemove, selecionado, onToggleSelecao, modoSelecao }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `ext:${ext.id}`, data: { kind: 'ext', id: ext.id, ambiente: ext.ambiente },
   })
-
+  const tipoLabel = (ext.sobreRodas ? tiposSobreRodas : tiposPortatil).find(t => t.key === ext.tipo)?.label || ext.tipo
+  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
   return (
-    <tr ref={setNodeRef} className={`group/row transition-colors ${selecionado ? 'bg-red-dim' : ''} ${isDragging ? 'opacity-40' : ''}`}>
-      <td className="py-1.5 pl-2.5 pr-1 border-b border-solid border-border-2">
-        <div className="flex items-center gap-2">
-          <button type="button" {...attributes} {...listeners} className="flex opacity-60 group-hover/row:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar unidade extintora">
-            <Icon name="grip" size={13}/>
-          </button>
-          <Checkbox checked={selecionado} onChange={() => onToggleSelecao(ext.id)} title="Selecionar pra mover em massa"/>
-        </div>
-      </td>
-      <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
-        <select
-          value={ext.tipo}
-          onChange={e => {
-            const tipo = e.target.value
-            const tipoInfo = catalogo.find(t => t.key === tipo)
-            update({ tipo, capacidade: tipoInfo?.capacidadeMinima || '' })
-          }}
-          className="text-xs py-1.5 px-2"
-        >
-          {catalogo.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
-        </select>
-      </td>
-      <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
-        <select
-          value={ext.sobreRodas ? 'sobreRodas' : 'portatil'}
-          onChange={e => {
-            const sobreRodas = e.target.value === 'sobreRodas'
-            const novoCatalogo = sobreRodas ? tiposSobreRodas : tiposPortatil
-            const aindaExiste = novoCatalogo.some(t => t.key === ext.tipo)
-            const tipo = aindaExiste ? ext.tipo : 'po_abc'
-            const tipoInfo = novoCatalogo.find(t => t.key === tipo)
-            update({ sobreRodas, tipo, capacidade: tipoInfo?.capacidadeMinima || '' })
-          }}
-          className="text-xs py-1.5 px-2"
-        >
-          <option value="portatil">Portátil</option>
-          <option value="sobreRodas">Sobre rodas</option>
-        </select>
-      </td>
-      <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
-        <input
-          value={ext.capacidade}
-          onChange={e => update({ capacidade: e.target.value })}
-          className="w-[130px] text-center font-mono text-xs"
-        />
-      </td>
-      <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
-        <input
-          type="number" min="0" step="0.1" value={ext.carga}
-          onChange={e => update({ carga: e.target.value })}
-          className="w-[72px] text-right"
-          placeholder="kg"
-        />
-      </td>
-      <td className="py-1.5 px-2.5 border-b border-solid border-border-2">
-        <QuantityStepper value={ext.quantidade} min={1} onChange={v => update({ quantidade: v })}/>
-      </td>
-      <td className="py-1.5 px-2.5 border-b border-solid border-border-2 text-center">
-        <button className="btn-del" onClick={() => dispatch({ type: 'REMOVE_EXTINTOR', id: ext.id })}>
-          <Icon name="trash" size={13}/>
+    <div ref={setNodeRef} style={style} onClick={() => modoSelecao ? onToggleSelecao(ext.id) : onEdit(ext.id)}
+      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''}`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0 max-w-[50%]">
+        <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar extintor">
+          <Icon name="grip" size={13}/>
         </button>
-      </td>
-    </tr>
+        <Checkbox checked={selecionado} onChange={() => onToggleSelecao(ext.id)} title="Selecionar pra mover em massa"/>
+        <span className="font-heading text-[13px] font-semibold text-ink truncate min-w-0">{tipoLabel}</span>
+      </div>
+      <div className="flex items-center gap-2.5 shrink-0 text-[11px] text-ink-faint whitespace-nowrap">
+        <span>{ext.sobreRodas ? 'Sobre rodas' : 'Portátil'}</span>
+        <span className="opacity-30">|</span>
+        <span className="font-mono">{ext.capacidade || '—'}</span>
+        {ext.carga !== '' && ext.carga != null && (
+          <>
+            <span className="opacity-30">|</span>
+            <span>{ext.carga} kg</span>
+          </>
+        )}
+        <span className="opacity-30">|</span>
+        <span className="flex items-center gap-1.5">
+          <span className="text-[9px] uppercase tracking-[.06em]">Qtd.</span>
+          <strong className="font-heading text-[16px] font-bold text-red leading-none">{parseInt(ext.quantidade) || 0}</strong>
+        </span>
+        <button onClick={e => { e.stopPropagation(); onRemove(ext.id) }} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1" title="Excluir extintor">
+          <Icon name="trash" size={12}/>
+        </button>
+      </div>
+    </div>
   )
 }
 
-// ── Bloco de um ambiente (grupo de extintores com o mesmo nome) ──────
-// O box inteiro é destino de soltar unidades extintoras (mover unidade entre
-// ambientes) e arrastável pelo grip do cabeçalho — arrastar um ambiente sobre
-// outro só troca a ordem dos dois na lista; ambiente nunca vira filho de
-// ambiente.
-function AmbienteBloco({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil, tiposSobreRodas, dispatch, selecionados, onToggleSelecao }) {
-  const [editing, setEditing] = useState(false)
-  const [nome, setNome] = useState(ambiente)
+// ── Formulário de edição de uma unidade extintora (modal) ───────────────
+// Mesmo formato do AmbienteForm das Saídas de Emergência (se_shared.jsx):
+// campos em grade, rodapé com Cancelar/Salvar. A capacidade extintora nasce
+// preenchida com o mínimo normativo do tipo (item 5.1.1/5.1.4 NT 21 CBMMA),
+// mas é livre para o projetista aumentar conforme a capacidade do agente
+// efetivamente aplicado no projeto — trocar formato/tipo repõe o mínimo.
+const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'
 
-  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+function Label({ children }) {
+  return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">{children}</div>
+}
+
+function ExtintorForm({ ext, tiposPortatil, tiposSobreRodas, onSave, onCancel }) {
+  const [form, setForm] = useState(() => ({
+    sobreRodas: !!ext.sobreRodas,
+    tipo: ext.tipo,
+    capacidade: ext.capacidade || '',
+    carga: ext.carga != null ? String(ext.carga) : '',
+    quantidade: parseInt(ext.quantidade) || 1,
+  }))
+  const catalogo = form.sobreRodas ? tiposSobreRodas : tiposPortatil
+
+  const setFormato = valor => setForm(f => {
+    const sobreRodas = valor === 'sobreRodas'
+    const novoCatalogo = sobreRodas ? tiposSobreRodas : tiposPortatil
+    const tipo = novoCatalogo.some(t => t.key === f.tipo) ? f.tipo : 'po_abc'
+    return { ...f, sobreRodas, tipo, capacidade: novoCatalogo.find(t => t.key === tipo)?.capacidadeMinima || '' }
+  })
+  const setTipo = tipo => setForm(f => ({ ...f, tipo, capacidade: catalogo.find(t => t.key === tipo)?.capacidadeMinima || '' }))
+
+  const salvar = () => onSave({
+    sobreRodas: form.sobreRodas, tipo: form.tipo, capacidade: form.capacidade.trim(),
+    carga: form.carga, quantidade: Math.max(1, form.quantidade),
+  })
+
+  return (
+    <div className="flex flex-col gap-3.5">
+      <div className="grid grid-cols-2 gap-3.5">
+        <div>
+          <Label>Formato</Label>
+          <select className={inputClass} value={form.sobreRodas ? 'sobreRodas' : 'portatil'} onChange={e => setFormato(e.target.value)}>
+            <option value="portatil">Portátil</option>
+            <option value="sobreRodas">Sobre rodas</option>
+          </select>
+        </div>
+        <div>
+          <Label>Tipo</Label>
+          <select className={inputClass} value={form.tipo} onChange={e => setTipo(e.target.value)}>
+            {catalogo.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3.5">
+        <div>
+          <Label>Capacidade</Label>
+          <input className={`${inputClass} font-mono`} value={form.capacidade}
+            onChange={e => setForm(f => ({ ...f, capacidade: e.target.value }))} onKeyDown={e => e.key === 'Enter' && salvar()}/>
+        </div>
+        <div>
+          <Label>Carga (kg)</Label>
+          <input className={inputClass} type="number" min="0" step="0.1" placeholder="ex.: 6" value={form.carga}
+            onChange={e => setForm(f => ({ ...f, carga: e.target.value }))} onKeyDown={e => e.key === 'Enter' && salvar()}/>
+        </div>
+      </div>
+
+      <div>
+        <Label>Quantidade</Label>
+        <QuantityStepper value={form.quantidade} min={1} onChange={v => setForm(f => ({ ...f, quantidade: v }))}/>
+      </div>
+
+      <div className="flex items-center justify-end pt-3 mt-1 border-t border-solid border-border-2">
+        <div className="flex gap-1.5">
+          <button className="btn-ghost" onClick={onCancel}><Icon name="x" size={12}/> Cancelar</button>
+          <button className="btn-primary" onClick={salvar}><Icon name="check" size={12}/> Salvar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Ambiente (nó da lista) — arrastável, soltável, cabeçalho retrai/expande ─
+// Mesmo padrão do AcessoCard das Saídas de Emergência: cabeçalho inteiro
+// retrai/expande (o nome é editável inline pelo lápis), o card é destino de
+// soltar unidades extintoras (mover unidade entre ambientes) e é arrastável
+// pelo grip — arrastar um ambiente sobre outro só troca a ordem dos dois na
+// lista; ambiente nunca vira filho de ambiente. Sem overflow-hidden no card
+// (o cabeçalho arredonda o próprio canto): com ele, a unidade arrastada
+// ficaria recortada ao sair do ambiente de origem.
+function AmbienteCard({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil, tiposSobreRodas, dispatch, selecionados, onToggleSelecao, onEditUnidade, onRemoveUnidade }) {
+  const [aberto, setAberto] = useState(true)
+
+  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
     id: `amb:${ambiente}`, data: { kind: 'amb', ambiente },
   })
   const { setNodeRef: setDropRef, isOver, active } = useDroppable({
     id: `drop-amb:${ambiente}`, data: { kind: 'ambiente', ambiente },
   })
   // Tanto a unidade quanto o ambiente arrastados guardam em data.ambiente o
-  // ambiente de origem — só destaca o box como destino quando é outro.
+  // ambiente de origem — só destaca o card como destino quando é outro.
   const destacar = isOver && active?.data.current?.ambiente !== ambiente
-
-  const commitRename = () => {
-    const novo = nome.trim()
-    if (novo && novo !== ambiente) {
-      dispatch({ type: 'RENAME_AMBIENTE_EXTINTOR', estruturaId, pavimentoId, ambienteAntigo: ambiente, ambienteNovo: novo })
-    } else {
-      setNome(ambiente)
-    }
-  }
+  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
   const totalQtd = itens.reduce((s, e) => s + (parseInt(e.quantidade) || 0), 0)
 
-  return (
-    <div ref={node => { setDragRef(node); setDropRef(node) }}
-      className={`group/amb mb-3 border border-solid rounded-md overflow-hidden transition-colors ${destacar ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border'} ${isDragging ? 'opacity-40' : ''}`}
-    >
-      <div className="flex items-center gap-2.5 py-2 px-2.5 bg-surface-2 border-b border-solid border-border">
-        <button type="button" {...attributes} {...listeners} className="flex opacity-60 group-hover/amb:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente (reordenar)">
-          <Icon name="grip" size={14}/>
-        </button>
-        {editing ? (
-          <input
-            autoFocus
-            value={nome}
-            onChange={e => setNome(e.target.value)}
-            onBlur={() => { commitRename(); setEditing(false) }}
-            onKeyDown={e => {
-              if (e.key === 'Enter') { commitRename(); setEditing(false) }
-              if (e.key === 'Escape') { setNome(ambiente); setEditing(false) }
-            }}
-            className="flex-1 text-[13px] font-semibold bg-transparent border-none p-0 outline-none"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="group flex-1 flex items-center gap-1.5 min-w-0 text-left bg-transparent"
-          >
-            <span className="text-[13px] font-semibold text-ink truncate">{nome}</span>
-            <Icon name="edit" size={11} className="text-ink-hint group-hover:text-ink-muted transition-colors shrink-0"/>
-          </button>
-        )}
+  const renomear = novoNome => dispatch({ type: 'RENAME_AMBIENTE_EXTINTOR', estruturaId, pavimentoId, ambienteAntigo: ambiente, ambienteNovo: novoNome })
+  const remover = e => {
+    e.stopPropagation()
+    if (window.confirm(`Remover "${ambiente}" e ${itens.length === 1 ? 'o extintor' : `os ${itens.length} extintores`} dentro dele?`)) {
+      dispatch({ type: 'REMOVE_AMBIENTE_EXTINTOR', estruturaId, pavimentoId, ambiente })
+    }
+  }
 
-        <span className="text-[10px] text-ink-faint whitespace-nowrap">{totalQtd} extintor{totalQtd !== 1 ? 'es' : ''}</span>
-        <button
-          className="btn-add"
-          onClick={() => dispatch({ type: 'ADD_EXTINTOR', estruturaId, pavimentoId, ambiente })}
-        >
-          <Icon name="plus" size={11}/> Extintor
-        </button>
-        <button
-          className="btn-del"
-          title="Remover ambiente e todos os extintores"
-          onClick={() => dispatch({ type: 'REMOVE_AMBIENTE_EXTINTOR', estruturaId, pavimentoId, ambiente })}
-        >
-          <Icon name="trash" size={13}/>
-        </button>
+  return (
+    <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
+      className={`group rounded-lg border border-solid bg-surface transition-colors ${destacar ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''}`}
+    >
+      <div className={`flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none bg-surface-2 ${aberto ? 'rounded-t-[7px]' : 'rounded-[7px]'}`} onClick={() => setAberto(a => !a)}>
+        <div className="flex items-center gap-2 min-w-0 max-w-[50%]">
+          <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente (reordenar)">
+            <Icon name="grip" size={14}/>
+          </button>
+          <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
+          <InlineEditableNome value={ambiente} onCommit={renomear} textClassName="font-heading text-[15px] font-bold text-ink truncate"/>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[11px] text-ink-faint whitespace-nowrap mr-1">{totalQtd} extintor{totalQtd !== 1 ? 'es' : ''}</span>
+          <button onClick={remover} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 ml-1" title="Remover ambiente e todos os extintores">
+            <Icon name="trash" size={12}/>
+          </button>
+        </div>
       </div>
-      <table className="w-full border-collapse">
-        <thead>
-          <tr>
-            <th className="w-[52px] border-b border-solid border-border-2"></th>
-            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Tipo</th>
-            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Formato</th>
-            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border-2">Capacidade</th>
-            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border-2">Carga (kg)</th>
-            <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border-2">Qtd.</th>
-            <th className="w-9 border-b border-solid border-border-2"></th>
-          </tr>
-        </thead>
-        <tbody>
+      {aberto && (
+        <div className="pl-7 pr-3.5 pb-3.5 flex flex-col gap-2.5 border-t border-solid border-border-2 pt-3">
           {itens.map(ext => (
-            <LinhaExtintor key={ext.id} ext={ext} tiposPortatil={tiposPortatil} tiposSobreRodas={tiposSobreRodas} dispatch={dispatch}
-              selecionado={selecionados.has(ext.id)} onToggleSelecao={onToggleSelecao}/>
+            <UnidadeCard key={ext.id} ext={ext} tiposPortatil={tiposPortatil} tiposSobreRodas={tiposSobreRodas}
+              onEdit={onEditUnidade} onRemove={onRemoveUnidade}
+              selecionado={selecionados.has(ext.id)} onToggleSelecao={onToggleSelecao} modoSelecao={selecionados.size > 0}/>
           ))}
-        </tbody>
-      </table>
+          <div className="flex justify-center gap-2 pt-1">
+            <button className="btn-ghost" onClick={() => dispatch({ type: 'ADD_EXTINTOR', estruturaId, pavimentoId, ambiente })}>
+              <Icon name="plus" size={12}/> ADICIONAR EXTINTOR
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -387,7 +403,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
   // nunca troca de pavimento — só de ambiente dentro dele.
   const [selecionados, setSelecionados] = useState(() => new Set())
   const [alvoSelecao, setAlvoSelecao] = useState('')
-  const [arrastando, setArrastando] = useState(null)
+  const [editandoId, setEditandoId] = useState(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   // Seleção só vale pro que ainda existe no pavimento — uma unidade apagada
@@ -416,7 +432,6 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
   }
 
   const handleDragEnd = ({ active, over }) => {
-    setArrastando(null)
     const a = active.data.current
     const o = over?.data.current
     if (!a || o?.kind !== 'ambiente') return
@@ -444,23 +459,11 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
     dispatch({ type: 'ORDENAR_AMBIENTES_EXTINTOR', estruturaId, pavimentoId: pavimento.id, ordem })
   }
 
-  // Rótulo do cartão que acompanha o ponteiro durante o arrasto (DragOverlay
-  // — a linha/box original fica no lugar, esmaecida).
-  let rotuloArrasto = null
-  if (arrastando?.kind === 'amb') {
-    const n = grupos.find(g => g.ambiente === arrastando.ambiente)?.itens.length || 0
-    rotuloArrasto = { titulo: arrastando.ambiente, detalhe: `${n} ${n === 1 ? 'item' : 'itens'}` }
-  } else if (arrastando?.kind === 'ext') {
-    if (idsSelecionados.length > 1 && idsSelecionados.includes(arrastando.id)) {
-      rotuloArrasto = { titulo: `${idsSelecionados.length} itens`, detalhe: 'selecionados' }
-    } else {
-      const ext = extintoresDoPav.find(e => e.id === arrastando.id)
-      if (ext) {
-        const tipo = (ext.sobreRodas ? TIPOS_SOBRE_RODAS : TIPOS_PORTATIL).find(t => t.key === ext.tipo)?.label || ext.tipo
-        rotuloArrasto = { titulo: tipo, detalhe: `${ext.sobreRodas ? 'Sobre rodas' : 'Portátil'} · ${ext.capacidade}` }
-      }
-    }
-  }
+  // Formulário de edição (modal) da unidade clicada — ver ExtintorForm. Se a
+  // unidade some enquanto o formulário está aberto (ex.: apagada em outra
+  // aba), o modal simplesmente fecha.
+  const extEditando = extintoresDoPav.find(e => e.id === editandoId) || null
+  const removerUnidade = id => dispatch({ type: 'REMOVE_EXTINTOR', id })
 
   const conforme = resultado.temA && resultado.temBC && resultado.minimoAtendido
 
@@ -504,15 +507,11 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
         )}
       </div>
 
-      {/* collisionDetection=pointerWithin: o destino do drag é o box de
+      {/* collisionDetection=pointerWithin: o destino do drag é o card de
           ambiente sob o ponteiro do mouse (mesmo critério das Saídas de
           Emergência — o padrão do dnd-kit compara a área do item arrastado
-          com a de cada box e erra o destino quando o item é mais largo). */}
-      <DndContext sensors={sensors} collisionDetection={pointerWithin}
-        onDragStart={({ active }) => setArrastando(active.data.current)}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => setArrastando(null)}
-      >
+          com a de cada card e erra o destino quando o item é mais largo). */}
+      <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
         <div className="py-3.5 px-[18px]">
           {!risco && (
             <div className="ibox amber">
@@ -521,39 +520,36 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
             </div>
           )}
 
-          {grupos.length === 0 ? (
-            <div className="py-8 text-center text-ink-faint text-[13px] mb-3">
-              Nenhum ambiente adicionado. Clique em "Adicionar ambiente".
-            </div>
-          ) : grupos.map(g => (
-            <AmbienteBloco
-              key={g.ambiente}
-              estruturaId={estruturaId}
-              pavimentoId={pavimento.id}
-              ambiente={g.ambiente}
-              itens={g.itens}
-              tiposPortatil={TIPOS_PORTATIL}
-              tiposSobreRodas={TIPOS_SOBRE_RODAS}
-              dispatch={dispatch}
-              selecionados={selecionadosValidos}
-              onToggleSelecao={toggleSelecao}
-            />
-          ))}
+          <div className="flex flex-col gap-3">
+            {grupos.map(g => (
+              <AmbienteCard
+                key={g.ambiente}
+                estruturaId={estruturaId}
+                pavimentoId={pavimento.id}
+                ambiente={g.ambiente}
+                itens={g.itens}
+                tiposPortatil={TIPOS_PORTATIL}
+                tiposSobreRodas={TIPOS_SOBRE_RODAS}
+                dispatch={dispatch}
+                selecionados={selecionadosValidos}
+                onToggleSelecao={toggleSelecao}
+                onEditUnidade={setEditandoId}
+                onRemoveUnidade={removerUnidade}
+              />
+            ))}
+            {grupos.length === 0 && (
+              <div className="p-8 text-center text-ink-faint text-[13px] border border-dashed border-border rounded-lg">
+                Nenhum ambiente criado ainda. Clique abaixo para começar.
+              </div>
+            )}
+          </div>
 
-          <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={adicionarAmbiente}>
-            <Icon name="plus" size={12}/> Adicionar ambiente
-          </button>
+          <div className="flex justify-center mt-3">
+            <button className="btn-ghost" onClick={adicionarAmbiente}>
+              <Icon name="plus" size={12}/> ADICIONAR AMBIENTE
+            </button>
+          </div>
         </div>
-
-        <DragOverlay dropAnimation={null}>
-          {rotuloArrasto && (
-            <div className="flex items-center gap-2.5 py-2 px-3 rounded-md border border-solid border-red bg-surface-2 shadow-[0_8px_24px_rgba(0,0,0,.45)] cursor-grabbing">
-              <Icon name="grip" size={13} className="text-ink-faint"/>
-              <span className="text-[13px] font-semibold text-ink whitespace-nowrap">{rotuloArrasto.titulo}</span>
-              <span className="text-[11px] text-ink-faint whitespace-nowrap">{rotuloArrasto.detalhe}</span>
-            </div>
-          )}
-        </DragOverlay>
       </DndContext>
 
       {/* Barra de seleção em massa — sticky no rodapé do card, pra ficar
@@ -579,6 +575,20 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
           <button className="bg-transparent border-none text-ink-faint hover:text-ink cursor-pointer text-xs underline ml-auto" onClick={limparSelecao}>
             Cancelar seleção
           </button>
+        </div>
+      )}
+
+      {extEditando && (
+        <div className="fixed inset-0 z-[600] bg-black/65 backdrop-blur-sm flex items-center justify-center" onClick={() => setEditandoId(null)}>
+          <div onClick={e => e.stopPropagation()} className="bg-surface border border-solid border-border rounded-lg w-[560px] max-w-[95vw] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-heading text-base font-bold text-ink">Editar extintor</span>
+              <button onClick={() => setEditandoId(null)} className="bg-transparent border-none text-ink-faint hover:text-ink cursor-pointer p-1"><Icon name="x" size={14}/></button>
+            </div>
+            <ExtintorForm ext={extEditando} tiposPortatil={TIPOS_PORTATIL} tiposSobreRodas={TIPOS_SOBRE_RODAS}
+              onSave={changes => { dispatch({ type: 'UPDATE_EXTINTOR', id: extEditando.id, changes }); setEditandoId(null) }}
+              onCancel={() => setEditandoId(null)}/>
+          </div>
         </div>
       )}
     </Card>
