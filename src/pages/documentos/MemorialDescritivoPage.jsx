@@ -640,17 +640,19 @@ function BlocoMedida({ bloco, numeroBloco }) {
   }
 }
 
-function SecaoMedida({ secao, pagina, totalPaginas }) {
+function SecaoMedida({ secao, numeroSecao, pagina, totalPaginas }) {
   let numeroBloco = 1
 
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8">{secao.titulo}</h1>
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8">
+        <span className="text-[#6b7280]">{numeroSecao}.</span> {secao.titulo}
+      </h1>
 
       {secao.blocos
         ? secao.blocos.map((b, i) => {
             const n = b.tipo === 'titulo2' ? numeroBloco++ : numeroBloco
-            return <BlocoMedida key={i} bloco={b} numeroBloco={n}/>
+            return <BlocoMedida key={i} bloco={b} numeroBloco={`${numeroSecao}.${n}`}/>
           })
         : secao.paragrafos.map((p, i) => (
             <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8 pl-2">{p}</p>
@@ -702,7 +704,7 @@ export default function MemorialDescritivoPage({ onBack }) {
             <Caracterizacao state={state} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
             <MedidasAplicadas state={state} sistemas={sistemas} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
             {secoes.map((secao, i) => (
-              <SecaoMedida key={i} secao={secao} pagina={PRIMEIRA_PAGINA_MEDIDA + i} totalPaginas={totalPaginas}/>
+              <SecaoMedida key={i} secao={secao} numeroSecao={6 + i} pagina={PRIMEIRA_PAGINA_MEDIDA + i} totalPaginas={totalPaginas}/>
             ))}
           </div>
         )}
