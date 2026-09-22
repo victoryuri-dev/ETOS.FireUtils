@@ -29,12 +29,18 @@ const SECAO_CARACTERIZACAO = 4
 const SECAO_MEDIDAS_APLICADAS = 5
 const PRIMEIRA_SECAO_MEDIDA = 6
 
-// Cada pagina do memorial e uma folha A4 independente na tela (tamanho e
-// sombra reais, com espaco entre folhas) — no impresso a sombra/arredondamento
-// somem e a margem fica a cargo da @page nomeada "memorial" (index.css):
-// 3cm em cima e embaixo (numero de pagina), 2cm na esquerda e na direita.
-// O padding abaixo replica essas mesmas medidas na tela.
-const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none pt-[3cm] pb-[3cm] pl-[2cm] pr-[2cm] print:pt-0 print:pb-0 print:pl-0 print:pr-0'
+// Cada pagina do memorial e uma folha A4 independente (210x297mm) na tela e
+// no impresso — so a sombra/arredondamento e o espaco entre folhas somem na
+// impressao. As margens sao as da ABNT NBR 14724 (3cm topo, 3cm esquerda,
+// 2cm inferior, 2cm direita) e moram aqui, no padding da folha; a @page
+// "memorial" (index.css) fica com margem 0 justamente pra nao somar por
+// cima. Uma fonte de verdade so: o que aparece na tela e o que sai impresso.
+const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none pt-[3cm] pr-[2cm] pb-[2cm] pl-[3cm]'
+
+// Numero da pagina ancorado no canto inferior direito da area de conteudo —
+// os insets repetem as margens ABNT porque `absolute` se posiciona pela
+// borda da folha, nao pelo padding dela.
+const NUM_PAGINA = 'absolute bottom-[2cm] right-[2cm] text-[10px] text-[#8a8a8c]'
 
 // Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
 // borda clara. Centralizado aqui pra que as tabelas das medidas, do Anexo de
@@ -118,7 +124,7 @@ function Capa({ state, totalPaginas }) {
         {proprietario && <div><strong>Proprietário:</strong> {proprietario}</div>}
       </div>
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(1, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(1, totalPaginas)}</div>
     </div>
   )
 }
@@ -138,7 +144,7 @@ function Sumario({ topicos, totalPaginas }) {
         ))}
       </div>
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_SUMARIO, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_SUMARIO, totalPaginas)}</div>
     </div>
   )
 }
@@ -188,7 +194,7 @@ function Introducao({ sistemas, totalPaginas, uf }) {
         </div>
       </div>
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_INTRODUCAO, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_INTRODUCAO, totalPaginas)}</div>
     </div>
   )
 }
@@ -252,7 +258,7 @@ function SobreEdificacao({ state, totalPaginas }) {
         </div>
       ))}
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_SOBRE_EDIFICACAO, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_SOBRE_EDIFICACAO, totalPaginas)}</div>
     </div>
   )
 }
@@ -325,7 +331,7 @@ function Caracterizacao({ state, porEstrutura, totalPaginas }) {
         )
       })}
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_CARACTERIZACAO, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_CARACTERIZACAO, totalPaginas)}</div>
     </div>
   )
 }
@@ -447,7 +453,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
         </>
       )}
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_MEDIDAS_APLICADAS, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_MEDIDAS_APLICADAS, totalPaginas)}</div>
     </div>
   )
 }
@@ -675,7 +681,7 @@ function SecaoMedida({ secao, numeroSecao, pagina, totalPaginas }) {
             <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8 pl-2">{p}</p>
           ))}
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">
+      <div className={NUM_PAGINA}>
         {numeroPagina(pagina, totalPaginas)}
       </div>
     </div>
