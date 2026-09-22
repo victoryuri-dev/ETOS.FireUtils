@@ -151,8 +151,16 @@ function resolverImportacao(json, estruturas, pavimentos, tiposPortatil, tiposSo
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-clip ${className}`}>{children}</div>
 }
-function CardHeader({ children }) {
-  return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 flex-wrap">{children}</div>
+// `onClick` torna o cabeçalho um botão de retrair/expandir o card; sem a
+// borda de baixo quando recolhido, pra não dobrar com a borda do Card.
+function CardHeader({ children, onClick, aberto = true }) {
+  return (
+    <div onClick={onClick}
+      className={`py-3 px-[18px] bg-surface-2 flex items-center gap-2 flex-wrap ${aberto ? 'border-b border-solid border-border' : ''} ${onClick ? 'cursor-pointer select-none' : ''}`}
+    >
+      {children}
+    </div>
+  )
 }
 function RiscoBadge({ risco }) {
   const map    = { baixo: 'low', medio: 'med', alto: 'high' }
@@ -404,6 +412,9 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
   const [selecionados, setSelecionados] = useState(() => new Set())
   const [alvoSelecao, setAlvoSelecao] = useState('')
   const [editandoId, setEditandoId] = useState(null)
+  // Recolhido, o conteúdo só fica escondido (`hidden`), não desmontado — a
+  // seleção e o retraído/expandido de cada ambiente sobrevivem ao fechar.
+  const [aberto, setAberto] = useState(true)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   // Seleção só vale pro que ainda existe no pavimento — uma unidade apagada
@@ -469,14 +480,18 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
 
   return (
     <Card className="mb-4">
-      <CardHeader>
+      <CardHeader aberto={aberto} onClick={() => setAberto(a => !a)}>
+        <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
         <span className="text-[13px] font-semibold text-ink">{pavimento.label}</span>
         <RiscoBadge risco={risco}/>
-        {pavimento.area && <span className="text-[11px] text-ink-faint ml-auto">{pavimento.area} m²</span>}
+        <span className="text-[11px] text-ink-faint ml-auto flex items-center gap-3">
+          {!aberto && <span>{resultado.totalUnidades} unidade{resultado.totalUnidades !== 1 ? 's' : ''} extintora{resultado.totalUnidades !== 1 ? 's' : ''}</span>}
+          {pavimento.area && <span>{pavimento.area} m²</span>}
+        </span>
       </CardHeader>
 
       {/* Resultado — o que importa, em primeiro lugar */}
-      <div className={`py-3.5 px-[18px] border-b border-solid border-border ${conforme ? 'bg-green-dim' : 'bg-amber-dim'}`}>
+      <div className={`py-3.5 px-[18px] border-b border-solid border-border ${conforme ? 'bg-green-dim' : 'bg-amber-dim'} ${aberto ? '' : 'hidden'}`}>
         <div className="flex items-center gap-6 flex-wrap">
           <div className="shrink-0 text-center">
             <div className="text-2xl font-bold text-ink leading-none">{resultado.totalUnidades}</div>
@@ -512,7 +527,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
           Emergência — o padrão do dnd-kit compara a área do item arrastado
           com a de cada card e erra o destino quando o item é mais largo). */}
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
-        <div className="py-3.5 px-[18px]">
+        <div className={`py-3.5 px-[18px] ${aberto ? '' : 'hidden'}`}>
           {!risco && (
             <div className="ibox amber">
               <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
@@ -555,7 +570,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
       {/* Barra de seleção em massa — sticky no rodapé do card, pra ficar
           visível enquanto houver unidades marcadas (só unidades extintoras
           têm checkbox; ambiente não é selecionável). */}
-      {idsSelecionados.length > 0 && (
+      {aberto && idsSelecionados.length > 0 && (
         <div className="sticky bottom-0 z-10 flex items-center gap-3 flex-wrap py-2.5 px-[18px] border-t border-solid border-red bg-surface-2 shadow-[0_-8px_24px_rgba(0,0,0,.35)]">
           <span className="text-xs font-semibold text-ink whitespace-nowrap">
             {idsSelecionados.length} {idsSelecionados.length > 1 ? 'itens selecionados' : 'item selecionado'}
