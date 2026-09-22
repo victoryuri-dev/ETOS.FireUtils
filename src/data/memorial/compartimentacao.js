@@ -39,7 +39,7 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
     }
 
     const pavimentos = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
-    const r = calcularAreaMaximaCompartimentacao(pavimentos, est, TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO)
+    const r = calcularAreaMaximaCompartimentacao(pavimentos, est, TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, state.areaCompartimentacaoHorizontal)
 
     if (!r.tipo) {
       blocos.push({ tipo: 'paragrafo', texto: `Altura de ${est.nome} ainda não informada — tipo de edificação (Anexo B, NT 09 CBMMA) e área máxima de compartimentação pendentes de definição.` })
@@ -49,11 +49,12 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
       if (r.linhas.length > 0) {
         blocos.push({
           tipo: 'tabela',
-          colunas: ['Pavimento', 'Divisão', 'Área do pavimento', 'Área máxima permitida', 'Situação'],
+          colunas: ['Pavimento', 'Divisão', 'Área do pavimento', 'Área de compartimentação (item 5.1.2)', 'Área máxima permitida', 'Situação'],
           linhas: r.linhas.map(l => [
             l.pavimento.label,
             l.pavimento.divisao || '—',
-            l.area ? `${l.area} m²` : '—',
+            l.areaPavimento ? `${l.areaPavimento} m²` : '—',
+            l.area ? `${l.area} m²${l.overrideAtivo ? ' (com interligação declarada)' : ''}` : '—',
             !l.encontrado ? '—' : typeof l.valor === 'number' ? `${l.valor} m²` : 'sem limite (item 5.5 ss.)',
             !l.area ? 'Pendente' : l.excede ? 'Excede — subdividir compartimento' : 'Conforme',
           ]),

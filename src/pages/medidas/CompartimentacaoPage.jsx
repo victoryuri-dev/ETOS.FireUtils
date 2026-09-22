@@ -42,7 +42,22 @@ function ObrigatoriedadeBadge({ obrigatorio }) {
   )
 }
 
-function TabelaAreaMaxima({ resultado }) {
+function AreaConsideradaInput({ linha, onChangeArea }) {
+  const overrideRaw = linha.overrideAtivo ? linha.area : ''
+  return (
+    <input
+      type="number"
+      min="0"
+      step="any"
+      value={overrideRaw}
+      onChange={e => onChangeArea(linha.pavimento.id, e.target.value)}
+      placeholder={linha.areaPavimento ? String(linha.areaPavimento) : '0'}
+      className="bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2 w-[90px] outline-none box-border"
+    />
+  )
+}
+
+function TabelaAreaMaxima({ resultado, onChangeArea }) {
   if (!resultado.tipo) {
     return (
       <div className="ibox amber">
@@ -62,34 +77,43 @@ function TabelaAreaMaxima({ resultado }) {
       {resultado.linhas.length === 0 ? (
         <div className="text-xs text-ink-faint">Nenhum pavimento com divisão/área classificada ainda.</div>
       ) : (
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-solid border-border">
-              <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Pavimento</th>
-              <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Divisão</th>
-              <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Área do pavimento</th>
-              <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Área máxima permitida</th>
-              <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Situação</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-solid divide-border">
-            {resultado.linhas.map(l => (
-              <tr key={l.pavimento.id}>
-                <td className="py-2 px-3 text-xs text-ink">{l.pavimento.label}</td>
-                <td className="py-2 px-3 text-xs text-ink-faint">{l.pavimento.divisao}</td>
-                <td className="py-2 px-3 text-xs text-ink-faint">{l.area ? `${l.area} m²` : '—'}</td>
-                <td className="py-2 px-3 text-xs text-ink-faint">
-                  {!l.encontrado ? '—' : typeof l.valor === 'number' ? `${l.valor} m²` : 'sem limite (item 5.5 ss.)'}
-                </td>
-                <td className="py-2 px-3 text-xs font-semibold">
-                  {!l.area ? <span className="text-ink-faint">Informe a área</span>
-                    : l.excede ? <span className="text-red">Excede — subdividir compartimento</span>
-                    : <span className="text-green">Conforme</span>}
-                </td>
+        <>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-solid border-border">
+                <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Pavimento</th>
+                <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Divisão</th>
+                <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Área do pavimento</th>
+                <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Área de compartimentação (item 5.1.2)</th>
+                <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Área máxima permitida</th>
+                <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Situação</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-solid divide-border">
+              {resultado.linhas.map(l => (
+                <tr key={l.pavimento.id}>
+                  <td className="py-2 px-3 text-xs text-ink">{l.pavimento.label}</td>
+                  <td className="py-2 px-3 text-xs text-ink-faint">{l.pavimento.divisao}</td>
+                  <td className="py-2 px-3 text-xs text-ink-faint">{l.areaPavimento ? `${l.areaPavimento} m²` : '—'}</td>
+                  <td className="py-2 px-3 text-xs text-ink-faint">
+                    <AreaConsideradaInput linha={l} onChangeArea={onChangeArea}/> m²
+                  </td>
+                  <td className="py-2 px-3 text-xs text-ink-faint">
+                    {!l.encontrado ? '—' : typeof l.valor === 'number' ? `${l.valor} m²` : 'sem limite (item 5.5 ss.)'}
+                  </td>
+                  <td className="py-2 px-3 text-xs font-semibold">
+                    {!l.area ? <span className="text-ink-faint">Informe a área</span>
+                      : l.excede ? <span className="text-red">Excede — subdividir compartimento</span>
+                      : <span className="text-green">Conforme</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="text-[10.5px] text-ink-faint leading-[1.6] mt-2">
+            Item 5.1.2 da NT 09 CBMMA: a área de compartimentação deve levar em consideração a área de todos os pavimentos e mezaninos interligados com o pavimento considerado no cálculo — ajuste o valor acima quando houver interligação (o padrão é a área cadastrada do próprio pavimento, sem interligação).
+          </div>
+        </>
       )}
 
       {resultado.pavimentosExcedentes.length > 0 && (
@@ -104,7 +128,7 @@ function TabelaAreaMaxima({ resultado }) {
   )
 }
 
-function EstruturaCompartimentacao({ est, pavimentos, compart, obrigH, obrigV, dispatch }) {
+function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizontal, compart, obrigH, obrigV, dispatch }) {
   const {
     TABELA_AREA_MAXIMA: tabelaArea, CLASSES_TIPO_EDIFICACAO: classesTipo,
     ELEMENTOS_COMPART_HORIZONTAL, ELEMENTOS_COMPART_VERTICAL,
@@ -112,7 +136,7 @@ function EstruturaCompartimentacao({ est, pavimentos, compart, obrigH, obrigV, d
     TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS,
     TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR,
   } = compart
-  const resultadoArea = calcularAreaMaximaCompartimentacao(pavimentos, est, tabelaArea, classesTipo)
+  const resultadoArea = calcularAreaMaximaCompartimentacao(pavimentos, est, tabelaArea, classesTipo, areaCompartimentacaoHorizontal)
 
   const elementosH = est.elementosCompartHorizontal || []
   const elementosV = est.elementosCompartVertical || []
@@ -124,6 +148,7 @@ function EstruturaCompartimentacao({ est, pavimentos, compart, obrigH, obrigV, d
     dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field, value: next })
   }
   const setObs = (v) => dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field: 'obsCompartimentacao', value: v })
+  const onChangeArea = (pavimentoId, valor) => dispatch({ type: 'SET_AREA_COMPARTIMENTACAO', pavimentoId, valor })
 
   return (
     <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
@@ -139,7 +164,7 @@ function EstruturaCompartimentacao({ est, pavimentos, compart, obrigH, obrigV, d
         </div>
         {obrigH ? (
           <div className="py-3.5 px-[18px] flex flex-col gap-4">
-            <TabelaAreaMaxima resultado={resultadoArea}/>
+            <TabelaAreaMaxima resultado={resultadoArea} onChangeArea={onChangeArea}/>
             <div className="grid grid-cols-2 gap-4">
               <Checklist
                 titulo="Elementos de proteção adotados (itens 5.1.3 e 5.1.5 — constar no memorial)"
@@ -251,6 +276,7 @@ export default function CompartimentacaoPage() {
               key={est.id}
               est={est}
               pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
+              areaCompartimentacaoHorizontal={state.areaCompartimentacaoHorizontal}
               compart={compart}
               obrigH={!!pe?.medidas?.compart_horizontal}
               obrigV={!!pe?.medidas?.compart_vertical}

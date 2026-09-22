@@ -328,6 +328,13 @@ const INITIAL_STATE = {
   // Ausente = ainda não respondida (a tela pergunta antes de liberar o
   // checklist de quantidades).
   iluminacaoBalizamentoAplicado: {},
+  // Área de compartimentação horizontal considerada por pavimento (chave =
+  // pavimentoId) — item 5.1.2, NT 09 CBMMA: deve somar a área de todos os
+  // pavimentos e mezaninos interligados com o pavimento em questão, não só
+  // a área do próprio pavimento (state.pavimentos[].area, cadastrada na
+  // Etapa 2). Ausente/vazio = usa a área do próprio pavimento (nenhuma
+  // interligação declarada).
+  areaCompartimentacaoHorizontal: {},
   acessoViatura: {
     afastamentoMeioFio: '', isCondominio: false,
     larguraAdotada: '', alturaLivreAdotada: '',
@@ -812,6 +819,8 @@ function reducer(state, action) {
     }
     case 'SET_BALIZAMENTO_APLICADO':
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
+    case 'SET_AREA_COMPARTIMENTACAO':
+      return { ...state, areaCompartimentacaoHorizontal: { ...state.areaCompartimentacaoHorizontal, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
     case 'SET_PLANO_EMERGENCIA':

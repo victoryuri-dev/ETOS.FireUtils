@@ -36,22 +36,29 @@ export function buscarAreaMaxima(tabela, divisao, tipo) {
 
 /** Resultado completo da verificação de área máxima de compartimentação
  *  horizontal de uma estrutura: classifica o tipo de edificação pela altura
- *  e compara a área de cada pavimento com a área máxima permitida para a
- *  divisão daquele pavimento. Cada pavimento é tratado como um compartimento
- *  independente (o app não modela mezaninos interligados — item 5.1.2 da
- *  NT 09 exige somar áreas de pavimentos/mezaninos interligados quando
- *  houver essa interligação; confirmar manualmente nesse caso). */
-export function calcularAreaMaximaCompartimentacao(pavimentosOrdenados, estrutura, tabela, classesTipo) {
+ *  e compara, para cada pavimento, a ÁREA DE COMPARTIMENTAÇÃO CONSIDERADA
+ *  com a área máxima permitida para a divisão daquele pavimento.
+ *
+ *  `areaOverrides` (opcional, mapa pavimentoId -> valor) é a área de
+ *  compartimentação editada manualmente pelo responsável técnico — item
+ *  5.1.2 da NT 09 CBMMA: deve levar em conta a área de todos os pavimentos e
+ *  mezaninos INTERLIGADOS com o pavimento em questão, não só a área
+ *  cadastrada do próprio pavimento (`p.area`, Etapa 2). Sem override, usa
+ *  `p.area` (nenhuma interligação declarada). */
+export function calcularAreaMaximaCompartimentacao(pavimentosOrdenados, estrutura, tabela, classesTipo, areaOverrides) {
   const tipoObj = classificarTipoEdificacao(estrutura.alturaPisoPiso, classesTipo)
   const tipo = tipoObj?.classe ?? null
 
   const linhas = pavimentosOrdenados
     .filter(p => p.divisao)
     .map(p => {
-      const area = num(p.area)
+      const areaPavimento = num(p.area)
+      const overrideRaw = areaOverrides?.[p.id]
+      const overrideAtivo = !vazio(overrideRaw)
+      const area = overrideAtivo ? num(overrideRaw) : areaPavimento
       const busca = tipo ? buscarAreaMaxima(tabela, p.divisao, tipo) : { encontrado: false, valor: null }
       const excede = area > 0 && typeof busca.valor === 'number' && area > busca.valor
-      return { pavimento: p, area, ...busca, excede }
+      return { pavimento: p, areaPavimento, area, overrideAtivo, ...busca, excede }
     })
 
   return {
