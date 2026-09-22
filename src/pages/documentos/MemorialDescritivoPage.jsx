@@ -36,6 +36,15 @@ const PRIMEIRA_SECAO_MEDIDA = 6
 // O padding abaixo replica essas mesmas medidas na tela.
 const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none pt-[3cm] pb-[3cm] pl-[2cm] pr-[2cm] print:pt-0 print:pb-0 print:pl-0 print:pr-0'
 
+// Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
+// borda clara. Centralizado aqui pra que as tabelas das medidas, do Anexo de
+// medidas aplicadas e da caracterizacao nao divirjam com o tempo.
+const TABELA = 'w-full border-collapse text-[10.5px] text-black'
+const TABELA_THEAD = 'bg-[#f3f4f6]'
+const TABELA_TH = 'border border-solid border-[#d1d5db] px-2.5 py-2 font-bold'
+const TABELA_TD = 'border border-solid border-[#d1d5db] px-2.5 py-2'
+const zebra = i => (i % 2 === 0 ? 'bg-white' : 'bg-[#fafbfc]')
+
 // Mesmos limiares de classificacao de risco usados no dashboard do projeto
 // (DashboardPage.jsx: getCargaCls/getCargaLbl) — mantidos aqui com a
 // redacao curta que o memorial usa ("Baixo Risco" em vez de "Risco baixo · Classe I").
@@ -285,27 +294,27 @@ function Caracterizacao({ state, porEstrutura, totalPaginas }) {
               </div>
 
               <h3 className="font-heading text-[12px] font-bold text-black mt-4 mb-2.5">Ocupações Identificadas</h3>
-              <table className="w-full border-collapse text-[10.5px] text-black">
+              <table className={TABELA}>
                 <thead>
-                  <tr className="bg-[#f3f4f6]">
-                    <th className="border border-solid border-[#d1d5db] px-2.5 py-2 text-left font-bold w-[135px]">Pavimento</th>
-                    <th className="border border-solid border-[#d1d5db] px-2.5 py-2 text-left font-bold">Divisão</th>
-                    <th className="border border-solid border-[#d1d5db] px-2.5 py-2 text-left font-bold">CNAE / Atividade</th>
-                    <th className="border border-solid border-[#d1d5db] px-2.5 py-2 text-center font-bold w-[120px]">Carga de Incêndio</th>
+                  <tr className={TABELA_THEAD}>
+                    <th className={`${TABELA_TH} text-left w-[135px]`}>Pavimento</th>
+                    <th className={`${TABELA_TH} text-left`}>Divisão</th>
+                    <th className={`${TABELA_TH} text-left`}>CNAE / Atividade</th>
+                    <th className={`${TABELA_TH} text-center w-[120px]`}>Carga de Incêndio</th>
                   </tr>
                 </thead>
                 <tbody>
                   {linhas.length === 0 ? (
-                    <tr><td colSpan={4} className="border border-solid border-[#d1d5db] px-2.5 py-2.5 text-center text-[#9ca3af]">Nenhuma ocupação classificada</td></tr>
+                    <tr><td colSpan={4} className={`${TABELA_TD} text-center text-[#9ca3af]`}>Nenhuma ocupação classificada</td></tr>
                   ) : linhas.map((l, i) => {
                     const cargaQ = cargaDaOcupacao(state, est.id, l.divisao, l.cnae)
                     const desc = descricaoDivisao(state, l.divisao)
                     return (
-                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#fafbfc]'}>
-                        <td className="border border-solid border-[#d1d5db] px-2.5 py-2">{l.pavimento}</td>
-                        <td className="border border-solid border-[#d1d5db] px-2.5 py-2">{[l.divisao, desc].filter(Boolean).join(' — ')}</td>
-                        <td className="border border-solid border-[#d1d5db] px-2.5 py-2">{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
-                        <td className="border border-solid border-[#d1d5db] px-2.5 py-2 text-center">{cargaQ ? `${cargaQ} MJ/m² - ${classificarCarga(cargaQ)}` : '—'}</td>
+                      <tr key={i} className={zebra(i)}>
+                        <td className={TABELA_TD}>{l.pavimento}</td>
+                        <td className={TABELA_TD}>{[l.divisao, desc].filter(Boolean).join(' — ')}</td>
+                        <td className={TABELA_TD}>{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
+                        <td className={`${TABELA_TD} text-center`}>{cargaQ ? `${cargaQ} MJ/m² - ${classificarCarga(cargaQ)}` : '—'}</td>
                       </tr>
                     )
                   })}
@@ -349,21 +358,21 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
       </h1>
 
       {multiplasEstruturas ? (
-        <table className="w-full border-collapse text-[11px] text-black mb-8">
+        <table className={`${TABELA} mb-8`}>
           <thead>
-            <tr>
-              <th className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-left">Medidas de Segurança Aplicadas</th>
+            <tr className={TABELA_THEAD}>
+              <th className={`${TABELA_TH} text-left`}>Medidas de Segurança Aplicadas</th>
               {porEstrutura.map(({ estrutura: est }) => (
-                <th key={est.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 w-[70px]">{est.nome}</th>
+                <th key={est.id} className={`${TABELA_TH} w-[70px]`}>{est.nome}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {medidas.map(m => (
-              <tr key={m.key}>
-                <td className="border border-solid border-[#c9c9cb] px-2.5 py-1.5">{m.label}</td>
+            {medidas.map((m, i) => (
+              <tr key={m.key} className={zebra(i)}>
+                <td className={TABELA_TD}>{m.label}</td>
                 {porEstrutura.map(pe => (
-                  <td key={pe.estrutura.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-center text-[16px] font-bold leading-none">
+                  <td key={pe.estrutura.id} className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
                     {pe.sistemas[m.key]?.ativo ? 'X' : ''}
                   </td>
                 ))}
@@ -372,32 +381,41 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
           </tbody>
         </table>
       ) : (
-        <ul className="border border-solid border-[#c9c9cb] text-[11.5px] text-black list-none mb-8">
-          {medidas.map((m, i) => (
-            <li key={m.key} className={`px-2.5 py-1.5 ${i < medidas.length - 1 ? 'border-b border-solid border-[#c9c9cb]' : ''}`}>{m.label}</li>
-          ))}
-        </ul>
+        <table className={`${TABELA} mb-8`}>
+          <thead>
+            <tr className={TABELA_THEAD}>
+              <th className={`${TABELA_TH} text-left`}>Medidas de Segurança Aplicadas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {medidas.map((m, i) => (
+              <tr key={m.key} className={zebra(i)}>
+                <td className={TABELA_TD}>{m.label}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
       {riscosAtivosGlobal.length > 0 && (
         <>
           <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Riscos Especiais</h2>
           {multiplasEstruturas ? (
-            <table className="w-full border-collapse text-[11px] text-black">
+            <table className={TABELA}>
               <thead>
-                <tr>
-                  <th className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-left">Risco Especial</th>
+                <tr className={TABELA_THEAD}>
+                  <th className={`${TABELA_TH} text-left`}>Risco Especial</th>
                   {porEstrutura.map(({ estrutura: est }) => (
-                    <th key={est.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 w-[70px]">{est.nome}</th>
+                    <th key={est.id} className={`${TABELA_TH} w-[70px]`}>{est.nome}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {riscosAtivosGlobal.map(r => (
-                  <tr key={r.key}>
-                    <td className="border border-solid border-[#c9c9cb] px-2.5 py-1.5">{r.label}</td>
+                {riscosAtivosGlobal.map((r, i) => (
+                  <tr key={r.key} className={zebra(i)}>
+                    <td className={TABELA_TD}>{r.label}</td>
                     {porEstrutura.map(pe => (
-                      <td key={pe.estrutura.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-center text-[16px] font-bold leading-none">
+                      <td key={pe.estrutura.id} className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
                         {riscosPorEstrutura[pe.estrutura.id]?.[r.key] ? 'X' : ''}
                       </td>
                     ))}
@@ -406,11 +424,20 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
               </tbody>
             </table>
           ) : (
-            <div className="grid grid-cols-2 border border-solid border-[#c9c9cb] divide-x divide-y divide-[#c9c9cb] text-[11.5px] text-black">
-              {riscosAtivosUnica.map((label, i) => (
-                <div key={i} className="px-2.5 py-1.5">{label}</div>
-              ))}
-            </div>
+            <table className={TABELA}>
+              <thead>
+                <tr className={TABELA_THEAD}>
+                  <th className={`${TABELA_TH} text-left`}>Risco Especial</th>
+                </tr>
+              </thead>
+              <tbody>
+                {riscosAtivosUnica.map((label, i) => (
+                  <tr key={i} className={zebra(i)}>
+                    <td className={TABELA_TD}>{label}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
           {outrosDescsMultiplas.length > 0 && (
             <p className="text-[10.5px] text-black leading-[1.6] mt-1.5 mb-0">
@@ -548,7 +575,7 @@ function BlocoMedida({ bloco, numeroBloco }) {
       const alinhamento = bloco.centralizado ? 'text-center' : 'text-left'
       const alinhaCol = i => (bloco.alinhas ? `text-${bloco.alinhas[i] || 'left'}` : alinhamento)
       return (
-        <table className="w-full border-collapse text-[11px] text-black mb-4" style={bloco.larguras ? { tableLayout: 'fixed' } : undefined}>
+        <table className={`${TABELA} mb-4`} style={bloco.larguras ? { tableLayout: 'fixed' } : undefined}>
           {bloco.larguras && (
             <colgroup>
               {bloco.larguras.map((w, i) => <col key={i} style={{ width: w }}/>)}
@@ -563,15 +590,15 @@ function BlocoMedida({ bloco, numeroBloco }) {
                 Sem isso, cai no `colunas` de sempre (uma linha só). */}
             {bloco.linhasCabecalho
               ? bloco.linhasCabecalho.map((linha, i) => (
-                  <tr key={i}>
+                  <tr key={i} className={TABELA_THEAD}>
                     {linha.map((c, j) => (
-                      <th key={j} colSpan={c.colSpan} rowSpan={c.rowSpan} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhamento}`}>{c.texto}</th>
+                      <th key={j} colSpan={c.colSpan} rowSpan={c.rowSpan} className={`${TABELA_TH} ${alinhamento}`}>{c.texto}</th>
                     ))}
                   </tr>
                 ))
               : (
-                <tr>
-                  {bloco.colunas.map((c, i) => <th key={i} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhaCol(i)}`}>{c}</th>)}
+                <tr className={TABELA_THEAD}>
+                  {bloco.colunas.map((c, i) => <th key={i} className={`${TABELA_TH} ${alinhaCol(i)}`}>{c}</th>)}
                 </tr>
               )}
           </thead>
@@ -583,13 +610,13 @@ function BlocoMedida({ bloco, numeroBloco }) {
                 célula normal que mescla verticalmente com as próximas
                 `n-1` linhas nessa mesma posição. */}
             {bloco.linhas.map((linha, i) => (
-              <tr key={i}>
+              <tr key={i} className={zebra(i)}>
                 {linha.map((cel, j) => {
                   if (cel === null) return null
                   const temRowSpan = cel && typeof cel === 'object' && 'texto' in cel
                   const conteudo = temRowSpan ? cel.texto : cel
                   return (
-                    <td key={j} rowSpan={temRowSpan ? cel.rowSpan : undefined} className={`border border-solid border-[#c9c9cb] px-2 py-1 ${alinhaCol(j)}`}>
+                    <td key={j} rowSpan={temRowSpan ? cel.rowSpan : undefined} className={`${TABELA_TD} ${alinhaCol(j)}`}>
                       {conteudo && typeof conteudo === 'object' && conteudo.tipo === 'imagem'
                         ? <img src={conteudo.src} alt={conteudo.alt || ''} className="w-9 h-9 object-contain block"/>
                         : conteudo}
