@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { usePerfil } from '../hooks/usePerfil'
 import FormSection from '../components/ui/FormSection'
@@ -10,6 +11,7 @@ const ESPECIALIDADES = [
 ]
 
 export default function PerfilPage() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { perfil, erro, salvar } = usePerfil()
 
@@ -53,6 +55,10 @@ export default function PerfilPage() {
     <div className="flex flex-col flex-1 overflow-hidden bg-bg">
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[720px] mx-auto pt-8 px-10 pb-[60px]">
+
+          <button className="btn-ghost mb-5" onClick={() => navigate('/projetos')}>
+            <Icon name="left" size={13}/> Projetos
+          </button>
 
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-ink mb-1.5">Perfil</h1>

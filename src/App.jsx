@@ -275,7 +275,11 @@ function ProjectLayout() {
 
   return (
     <>
-      <ProjectAside activePage={activePage} onNavigate={handleNavigate}/>
+      <ProjectAside
+        activePage={activePage}
+        onNavigate={handleNavigate}
+        onSairDoProjeto={() => navigate('/projetos')}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage/>
         {conflito && (

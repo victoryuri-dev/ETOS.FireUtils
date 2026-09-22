@@ -25,7 +25,7 @@ const SISTEMAS = [
   { key:'spda',                icon:'warn',                  label:'SPDA' },
 ]
 
-export default function ProjectAside({ activePage, onNavigate }) {
+export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }) {
   const { sistemas } = useMedidasObrigatorias()
   const [col, setCol] = useState(false)
 
@@ -33,12 +33,13 @@ export default function ProjectAside({ activePage, onNavigate }) {
     sistemas[s.key]?.ativo || sistemas[s.key]?.obrigatorio
   )
 
-  // Item de navegação genérico
-  const Item = ({ pageKey, icon, label }) => {
+  // Item de navegação genérico. `onClick` é pra quem sai do projeto — sem ele
+  // o clique vira onNavigate(pageKey), que só monta rota de dentro do projeto.
+  const Item = ({ pageKey, icon, label, onClick }) => {
     const active = activePage === pageKey
     return (
       <div
-        onClick={() => onNavigate(pageKey)}
+        onClick={onClick || (() => onNavigate(pageKey))}
         title={col ? label : undefined}
         className={[
           'flex items-center gap-2.5 cursor-pointer whitespace-nowrap transition-[background-color,color] duration-100 text-[13px] border-l-2 border-solid',
@@ -87,6 +88,11 @@ export default function ProjectAside({ activePage, onNavigate }) {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Saída do projeto */}
+      <div className="py-1.5 border-b border-solid border-border shrink-0">
+        <Item icon="left" label="Projetos" onClick={onSairDoProjeto}/>
       </div>
 
       {/* Navegação principal */}
