@@ -61,7 +61,6 @@ export function textoMemorialCalculoHidrantes(state) {
 
   const blocos = []
   const paragrafo = (texto) => blocos.push({ tipo: 'paragrafo', texto })
-  const titulo2 = (texto) => blocos.push({ tipo: 'titulo2', texto })
   const titulo3 = (texto) => blocos.push({ tipo: 'titulo3', texto })
   const lista = (itens) => blocos.push({ tipo: 'lista', itens })
   const tabela = (colunas, linhas, opts = {}) => blocos.push({
@@ -79,8 +78,16 @@ export function textoMemorialCalculoHidrantes(state) {
     blocos.push({ tipo: 'formula', texto })
   }
 
+  // Este memorial numera os proprios topicos (1., 1.1, a)...) porque os
+  // titulo3 abaixo referenciam esse numero ("7.1 Trecho HD01 ao Ponto A") —
+  // `semNumero` avisa o renderer pra nao prefixar a numeracao do documento
+  // por cima (ver BlocoMedida em MemorialDescritivoPage.jsx).
   let nSec = 0
-  const sec = (t) => { nSec += 1; titulo2(`${nSec}. ${t}`); return nSec }
+  const sec = (t) => {
+    nSec += 1
+    blocos.push({ tipo: 'titulo2', texto: `${nSec}. ${t}`, semNumero: true })
+    return nSec
+  }
 
   const { res, dados_sistema: ds, cotas, succao, verif_succao, verif_npshd, erro_npshd,
           j_succao_npsh, C_HW, metodo, valor_sistema, timestamp } = d
