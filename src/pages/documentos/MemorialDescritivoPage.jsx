@@ -107,14 +107,19 @@ function Capa({ state, totalPaginas }) {
 function Sumario({ topicos, totalPaginas }) {
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[20px] font-bold text-black uppercase tracking-[.04em] text-center mt-10 mb-14">Sumário</h1>
+      <h1 className="font-heading text-[20px] font-bold text-black uppercase tracking-[.04em] text-center mt-10 mb-16">Sumário</h1>
 
-      <div className="max-w-[480px] mx-auto w-full flex flex-col gap-3.5">
+      <div className="max-w-[520px] mx-auto w-full flex flex-col">
         {topicos.map((t, i) => (
-          <div key={i} className="flex items-baseline gap-2 text-[12.5px] text-black">
-            <span className="font-heading font-medium uppercase tracking-[.02em]">{t.titulo}</span>
-            <span className="flex-1 border-b border-dotted border-[#8a8a8c] translate-y-[-3px]"/>
-            <span>{String(t.pagina).padStart(2, '0')}</span>
+          <div
+            key={i}
+            className={`flex items-baseline gap-3 text-[12.5px] text-black py-2.5 px-3 ${
+              i % 2 === 0 ? 'bg-white' : 'bg-[#f9fafb]'
+            } border-b border-solid border-[#e5e7eb]`}
+          >
+            <span className="font-heading font-semibold tracking-[.01em] min-w-[200px]">{t.titulo}</span>
+            <span className="flex-1 border-b border-dotted border-[#d1d5db] translate-y-[-2px] mx-1"/>
+            <span className="font-mono text-[11px] text-[#6b7280] font-bold">{String(t.pagina).padStart(2, '0')}</span>
           </div>
         ))}
       </div>
@@ -136,24 +141,44 @@ function Introducao({ sistemas, totalPaginas, uf }) {
 
   return (
     <div className={FOLHA}>
-      <h2 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-2">Objetivo</h2>
-      <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-8">
-        Memorial Técnico Descritivo apresentado ao Corpo de Bombeiros Militar do Estado do Maranhão (CBMMA), como
-        requisito legal para análise, aprovação e regularização do Projeto de Segurança Contra Incêndio e Pânico da
-        edificação.
-      </p>
+      <div className="mb-8 border-l-4 border-solid border-[#d1d5db] pl-4">
+        <h2 className="font-heading text-[14px] font-bold text-black mb-3">
+          <span className="text-[#6b7280]">1.</span> Objetivo
+        </h2>
+        <p className="text-[12.5px] text-black leading-[1.85] text-justify pl-2">
+          Memorial Técnico Descritivo apresentado ao Corpo de Bombeiros Militar do Estado do Maranhão (CBMMA), como
+          requisito legal para análise, aprovação e regularização do Projeto de Segurança Contra Incêndio e Pânico da
+          edificação.
+        </p>
+      </div>
 
-      <h2 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-2">Sobre a Legislação</h2>
-      <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3">
-        O projeto foi desenvolvido atendendo as determinações do Decreto Estadual, que regulamenta a Lei, e que, por
-        sua vez, dispõe sobre a segurança contra incêndio e pânico e dá outras providências. O projeto atende também
-        as Normas Brasileiras (NBR&apos;s) da Associação Brasileira de Normas Técnicas (ABNT), assim como as
-        seguintes instruções técnicas:
-      </p>
-      <ul className="text-[12.5px] text-black leading-[1.85] list-none">
-        {NTS_PADRAO_MA.map(nt => <li key={nt.numero}>{nt.numero} - {nt.nome}</li>)}
-        {nts.map(nt => <li key={nt.numero}>{nt.numero} - {nt.nome}</li>)}
-      </ul>
+      <div className="border-l-4 border-solid border-[#d1d5db] pl-4">
+        <h2 className="font-heading text-[14px] font-bold text-black mb-3">
+          <span className="text-[#6b7280]">2.</span> Legislação Aplicável
+        </h2>
+        <div className="pl-2">
+          <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3">
+            O projeto foi desenvolvido atendendo as determinações do Decreto Estadual, que regulamenta a Lei, e que, por
+            sua vez, dispõe sobre a segurança contra incêndio e pânico e dá outras providências. O projeto atende também
+            as Normas Brasileiras (NBR&apos;s) da Associação Brasileira de Normas Técnicas (ABNT), assim como as
+            seguintes instruções técnicas:
+          </p>
+          <ul className="text-[12px] text-black leading-[1.8] list-none pl-2">
+            {NTS_PADRAO_MA.map((nt, idx) => (
+              <li key={nt.numero} className="mb-1">
+                <span className="text-[#6b7280] mr-2">2.{idx + 1}</span>
+                <strong>{nt.numero}</strong> — {nt.nome}
+              </li>
+            ))}
+            {nts.map((nt, idx) => (
+              <li key={nt.numero} className="mb-1">
+                <span className="text-[#6b7280] mr-2">2.{NTS_PADRAO_MA.length + idx + 1}</span>
+                <strong>{nt.numero}</strong> — {nt.nome}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
       <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_INTRODUCAO, totalPaginas)}</div>
     </div>
@@ -163,9 +188,14 @@ function Introducao({ sistemas, totalPaginas, uf }) {
 // Sem valor, o campo nem aparece — evita linhas tipo "Endereço: " em
 // branco num documento que projetos "apenas dimensionamento" nunca
 // preenchem (ver ProjetoContext.jsx tipoProjeto).
-function CampoDiscriminado({ label, value }) {
+function CampoDiscriminado({ label, value, numero }) {
   if (!value) return null
-  return <div><strong>{label}:</strong> {value}</div>
+  return (
+    <div className="text-[12px] text-black leading-[1.9] mb-1.5">
+      {numero && <span className="font-bold text-[#4D4D4F]">{numero}</span>}
+      <strong>{label}:</strong> {value}
+    </div>
+  )
 }
 
 function SobreEdificacao({ state, totalPaginas }) {
@@ -175,55 +205,65 @@ function SobreEdificacao({ state, totalPaginas }) {
   const endereco = enderecoCompletoDe(state, '')
   const temImovel = endereco || state.areaConstruidaTotal || state.areaTerreno
 
+  let secaoNum = 1
+
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6">Sobre a Edificação</h1>
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8">Sobre a Edificação</h1>
 
       {temRT && (
-        <>
-          <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Responsável Técnico</h2>
-          <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
-            <CampoDiscriminado label="Responsável Técnico" value={state.rtNome}/>
-            <CampoDiscriminado label="Registro Profissional" value={state.rtConselho}/>
-            <CampoDiscriminado label="Número da ART / RRT" value={state.artNumero}/>
+        <div className="mb-6 border-l-4 border-solid border-[#d1d5db] pl-4">
+          <h2 className="font-heading text-[13px] font-bold text-black mb-3.5">
+            <span className="text-[#6b7280]">{secaoNum}.</span> Responsável Técnico
+          </h2>
+          <div className="pl-2">
+            <CampoDiscriminado label="Responsável Técnico" value={state.rtNome} numero="1.1"/>
+            <CampoDiscriminado label="Registro Profissional" value={state.rtConselho} numero="1.2"/>
+            <CampoDiscriminado label="Número da ART / RRT" value={state.artNumero} numero="1.3"/>
           </div>
-        </>
+        </div>
       )}
 
       {temResp && (
-        <>
-          <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Responsável pelo Uso</h2>
-          <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
-            <CampoDiscriminado label="Razão Social" value={state.respRazaoSocial}/>
-            <CampoDiscriminado label="Nome Fantasia" value={state.respFantasia}/>
-            <CampoDiscriminado label="CNPJ" value={state.respCNPJ}/>
-            <CampoDiscriminado label="Telefone" value={state.respTelefone}/>
-            <CampoDiscriminado label="E-mail" value={state.respEmail}/>
+        <div className="mb-6 border-l-4 border-solid border-[#d1d5db] pl-4">
+          <h2 className="font-heading text-[13px] font-bold text-black mb-3.5">
+            <span className="text-[#6b7280]">{temRT ? 2 : secaoNum}.</span> Responsável pelo Uso
+          </h2>
+          <div className="pl-2">
+            <CampoDiscriminado label="Razão Social" value={state.respRazaoSocial} numero={temRT ? '2.1' : '1.1'}/>
+            <CampoDiscriminado label="Nome Fantasia" value={state.respFantasia} numero={temRT ? '2.2' : '1.2'}/>
+            <CampoDiscriminado label="CNPJ" value={state.respCNPJ} numero={temRT ? '2.3' : '1.3'}/>
+            <CampoDiscriminado label="Telefone" value={state.respTelefone} numero={temRT ? '2.4' : '1.4'}/>
+            <CampoDiscriminado label="E-mail" value={state.respEmail} numero={temRT ? '2.5' : '1.5'}/>
           </div>
-        </>
+        </div>
       )}
 
       {temProp && (
-        <>
-          <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Proprietário do Imóvel</h2>
-          <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
-            <CampoDiscriminado label="Nome / Razão Social" value={state.propNome}/>
-            <CampoDiscriminado label="CPF / CNPJ" value={state.propDocumento}/>
-            <CampoDiscriminado label="Telefone" value={state.propTelefone}/>
-            <CampoDiscriminado label="E-mail" value={state.propEmail}/>
+        <div className="mb-6 border-l-4 border-solid border-[#d1d5db] pl-4">
+          <h2 className="font-heading text-[13px] font-bold text-black mb-3.5">
+            <span className="text-[#6b7280]">{(temRT ? 2 : 1) + (temResp ? 1 : 0)}.</span> Proprietário do Imóvel
+          </h2>
+          <div className="pl-2">
+            <CampoDiscriminado label="Nome / Razão Social" value={state.propNome} numero={`${(temRT ? 2 : 1) + (temResp ? 1 : 0)}.1`}/>
+            <CampoDiscriminado label="CPF / CNPJ" value={state.propDocumento} numero={`${(temRT ? 2 : 1) + (temResp ? 1 : 0)}.2`}/>
+            <CampoDiscriminado label="Telefone" value={state.propTelefone} numero={`${(temRT ? 2 : 1) + (temResp ? 1 : 0)}.3`}/>
+            <CampoDiscriminado label="E-mail" value={state.propEmail} numero={`${(temRT ? 2 : 1) + (temResp ? 1 : 0)}.4`}/>
           </div>
-        </>
+        </div>
       )}
 
       {temImovel && (
-        <>
-          <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Dados do Imóvel</h2>
-          <div className="text-[12px] text-black leading-[1.9] pl-6">
-            <CampoDiscriminado label="Endereço" value={endereco}/>
-            <CampoDiscriminado label="Área construída total" value={state.areaConstruidaTotal ? `${state.areaConstruidaTotal} m²` : ''}/>
-            <CampoDiscriminado label="Área do terreno" value={state.areaTerreno ? `${state.areaTerreno} m²` : ''}/>
+        <div className="border-l-4 border-solid border-[#d1d5db] pl-4">
+          <h2 className="font-heading text-[13px] font-bold text-black mb-3.5">
+            <span className="text-[#6b7280]">{(temRT ? 2 : 1) + (temResp ? 1 : 0) + (temProp ? 1 : 0)}.</span> Dados do Imóvel
+          </h2>
+          <div className="pl-2">
+            <CampoDiscriminado label="Endereço" value={endereco} numero={`${(temRT ? 2 : 1) + (temResp ? 1 : 0) + (temProp ? 1 : 0)}.1`}/>
+            <CampoDiscriminado label="Área construída total" value={state.areaConstruidaTotal ? `${state.areaConstruidaTotal} m²` : ''} numero={`${(temRT ? 2 : 1) + (temResp ? 1 : 0) + (temProp ? 1 : 0)}.2`}/>
+            <CampoDiscriminado label="Área do terreno" value={state.areaTerreno ? `${state.areaTerreno} m²` : ''} numero={`${(temRT ? 2 : 1) + (temResp ? 1 : 0) + (temProp ? 1 : 0)}.3`}/>
           </div>
-        </>
+        </div>
       )}
 
       <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_SOBRE_EDIFICACAO, totalPaginas)}</div>
@@ -234,9 +274,9 @@ function SobreEdificacao({ state, totalPaginas }) {
 function Caracterizacao({ state, porEstrutura, totalPaginas }) {
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6">Caracterização da Edificação e do Risco</h1>
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8">Caracterização da Edificação e do Risco</h1>
 
-      {porEstrutura.map(({ estrutura: est }) => {
+      {porEstrutura.map(({ estrutura: est }, estIdx) => {
         const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
 
         // Uma linha por ocupacao: a principal de cada pavimento, mais uma
@@ -253,41 +293,48 @@ function Caracterizacao({ state, porEstrutura, totalPaginas }) {
         const alturaPisoPisoTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' : `${est.alturaPisoPiso} m`
 
         return (
-          <div key={est.id} className="mb-7">
-            <h2 className="font-heading text-[12px] font-bold text-black mb-1.5">{est.nome}</h2>
+          <div key={est.id} className="mb-8 border-l-4 border-solid border-[#d1d5db] pl-4">
+            <h2 className="font-heading text-[13px] font-bold text-black mb-4">
+              <span className="text-[#6b7280]">{estIdx + 1}.</span> {est.nome}
+            </h2>
 
-            <div className="border border-solid border-[#c9c9cb] flex text-[11.5px] text-black mb-3">
-              <div className="flex-1 px-2.5 py-1.5 border-r border-solid border-[#c9c9cb]"><strong>Área construída:</strong> {est.areaTotal ? `${est.areaTotal} m²` : ''}</div>
-              <div className="flex-1 px-2.5 py-1.5 border-r border-solid border-[#c9c9cb]"><strong>Altura piso a piso:</strong> {alturaPisoPisoTxt}</div>
-              <div className="flex-1 px-2.5 py-1.5"><strong>Altura total:</strong> {est.altura ? `${est.altura} m` : ''}</div>
+            <div className="pl-2 mb-4">
+              <div className="border border-solid border-[#e5e7eb] rounded bg-[#f9fafb] divide-y divide-[#e5e7eb] text-[11.5px] text-black">
+                <div className="px-3 py-2.5"><span className="text-[#6b7280] font-bold mr-2">{estIdx + 1}.1</span><strong>Área construída:</strong> {est.areaTotal ? `${est.areaTotal} m²` : '—'}</div>
+                <div className="px-3 py-2.5"><span className="text-[#6b7280] font-bold mr-2">{estIdx + 1}.2</span><strong>Altura piso a piso:</strong> {alturaPisoPisoTxt || '—'}</div>
+                <div className="px-3 py-2.5"><span className="text-[#6b7280] font-bold mr-2">{estIdx + 1}.3</span><strong>Altura total:</strong> {est.altura ? `${est.altura} m` : '—'}</div>
+              </div>
+
+              <h3 className="font-heading text-[12px] font-bold text-black mt-4 mb-2.5">
+                <span className="text-[#6b7280]">{estIdx + 1}.4</span> Ocupações Identificadas
+              </h3>
+              <table className="w-full border-collapse text-[10.5px] text-black">
+                <thead>
+                  <tr className="bg-[#f3f4f6]">
+                    <th className="border border-solid border-[#d1d5db] px-2.5 py-2 text-left font-bold">Pavimento</th>
+                    <th className="border border-solid border-[#d1d5db] px-2.5 py-2 text-left font-bold">Divisão</th>
+                    <th className="border border-solid border-[#d1d5db] px-2.5 py-2 text-left font-bold">CNAE / Atividade</th>
+                    <th className="border border-solid border-[#d1d5db] px-2.5 py-2 text-center font-bold">Carga de Incêndio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linhas.length === 0 ? (
+                    <tr><td colSpan={4} className="border border-solid border-[#d1d5db] px-2.5 py-2.5 text-center text-[#9ca3af]">Nenhuma ocupação classificada</td></tr>
+                  ) : linhas.map((l, i) => {
+                    const cargaQ = cargaDaOcupacao(state, est.id, l.divisao, l.cnae)
+                    const desc = descricaoDivisao(state, l.divisao)
+                    return (
+                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#fafbfc]'}>
+                        <td className="border border-solid border-[#d1d5db] px-2.5 py-2">{l.pavimento}</td>
+                        <td className="border border-solid border-[#d1d5db] px-2.5 py-2">{[l.divisao, desc].filter(Boolean).join(' — ')}</td>
+                        <td className="border border-solid border-[#d1d5db] px-2.5 py-2">{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
+                        <td className="border border-solid border-[#d1d5db] px-2.5 py-2 text-center">{cargaQ ? `${cargaQ} MJ/m² - ${classificarCarga(cargaQ)}` : '—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
-
-            <table className="w-full border-collapse text-[11px] text-black">
-              <thead>
-                <tr>
-                  <th className="border border-solid border-[#c9c9cb] px-2 py-1 text-left w-[110px]">Pavimento</th>
-                  <th className="border border-solid border-[#c9c9cb] px-2 py-1 text-left">Divisão</th>
-                  <th className="border border-solid border-[#c9c9cb] px-2 py-1 text-left">CNAE / Atividade</th>
-                  <th className="border border-solid border-[#c9c9cb] px-2 py-1 w-[130px]">Carga de Incêndio</th>
-                </tr>
-              </thead>
-              <tbody>
-                {linhas.length === 0 ? (
-                  <tr><td colSpan={4} className="border border-solid border-[#c9c9cb] px-2 py-2 text-center text-[#8a8a8c]">Nenhuma ocupação classificada</td></tr>
-                ) : linhas.map((l, i) => {
-                  const cargaQ = cargaDaOcupacao(state, est.id, l.divisao, l.cnae)
-                  const desc = descricaoDivisao(state, l.divisao)
-                  return (
-                    <tr key={i}>
-                      <td className="border border-solid border-[#c9c9cb] px-2 py-1">{l.pavimento}</td>
-                      <td className="border border-solid border-[#c9c9cb] px-2 py-1">{[l.divisao, desc].filter(Boolean).join(' — ')}</td>
-                      <td className="border border-solid border-[#c9c9cb] px-2 py-1">{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
-                      <td className="border border-solid border-[#c9c9cb] px-2 py-1 text-center">{cargaQ ? `${cargaQ} MJ/m² - ${classificarCarga(cargaQ)}` : ''}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
           </div>
         )
       })}
@@ -320,8 +367,8 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
 
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6 leading-[1.3]">
-        Medidas de Segurança Contra Incêndio e Emergência do Projeto
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8 leading-[1.3]">
+        Medidas de Segurança Contra Incêndio e Emergência
       </h1>
 
       {multiplasEstruturas ? (
@@ -482,15 +529,19 @@ function formatarFormula(texto) {
 // que uma secao troque paragrafo corrido por tabela/lista/campo quando isso
 // deixa os valores mais faceis de achar (ex.: TRRF por pavimento). Secoes
 // que so retornam `paragrafos` (ex.: acesso_viatura.js) continuam iguais.
-function BlocoMedida({ bloco }) {
+function BlocoMedida({ bloco, numeroBloco }) {
   switch (bloco.tipo) {
     case 'titulo2':
-      return <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mt-5 mb-2 first:mt-0">{bloco.texto}</h2>
+      return <h2 className="font-heading text-[12.5px] font-bold text-black uppercase tracking-[.03em] mt-6 mb-3 first:mt-0 pb-2 border-b border-solid border-[#d1d5db]">
+        <span className="text-[#6b7280]">{numeroBloco}.</span> {bloco.texto}
+      </h2>
     // Sub-seção numerada dentro de um 'titulo2' (ex.: "6.1 Trecho HD01 ao
     // Ponto A", memorial/hidrantesCalculo.js) — mesmo peso visual de um
     // 'campo' em negrito, só maior, sem caixa alta (o número já organiza).
     case 'titulo3':
-      return <h3 className="font-heading text-[12px] font-bold text-black mt-4 mb-2">{bloco.texto}</h3>
+      return <h3 className="font-heading text-[12px] font-bold text-black mt-4 mb-2.5 pl-2">
+        <span className="text-[#6b7280]">{numeroBloco}.</span> {bloco.texto}
+      </h3>
     case 'paragrafo':
       return <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{bloco.texto}</p>
     // Equação em destaque (memorial/hidrantesCalculo.js) — texto em notação
@@ -598,14 +649,19 @@ function BlocoMedida({ bloco }) {
 }
 
 function SecaoMedida({ secao, pagina, totalPaginas }) {
+  let numeroBloco = 1
+
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6">{secao.titulo}</h1>
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8">{secao.titulo}</h1>
 
       {secao.blocos
-        ? secao.blocos.map((b, i) => <BlocoMedida key={i} bloco={b}/>)
+        ? secao.blocos.map((b, i) => {
+            const n = b.tipo === 'titulo2' ? numeroBloco++ : numeroBloco
+            return <BlocoMedida key={i} bloco={b} numeroBloco={n}/>
+          })
         : secao.paragrafos.map((p, i) => (
-            <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{p}</p>
+            <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8 pl-2">{p}</p>
           ))}
 
       <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">
