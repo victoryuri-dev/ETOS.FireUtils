@@ -23,8 +23,9 @@ export function useBuildingMotion(scope) {
   }, { scope })
 }
 
-export function useLandingMotion(scope, stage, setStage) {
+export function useLandingMotion(scope, stage, setStage, ready = true) {
   useGSAP(() => {
+    if (!ready) return
     const media = gsap.matchMedia()
     media.add({ desktop: '(min-width: 701px)', motion: '(prefers-reduced-motion: no-preference)' }, context => {
       if (!context.conditions.motion) return
@@ -134,9 +135,10 @@ export function useLandingMotion(scope, stage, setStage) {
       }
     })
     return () => media.revert()
-  }, { scope })
+  }, { scope, dependencies: [ready], revertOnUpdate: true })
 
   useGSAP(() => {
+    if (!ready) return
     const media = gsap.matchMedia()
     media.add('(prefers-reduced-motion: no-preference)', () => {
       gsap.fromTo('.fl-demo-stage',
@@ -205,5 +207,5 @@ export function useLandingMotion(scope, stage, setStage) {
       }
     })
     return () => media.revert()
-  }, { scope, dependencies: [stage], revertOnUpdate: true })
+  }, { scope, dependencies: [stage, ready], revertOnUpdate: true })
 }

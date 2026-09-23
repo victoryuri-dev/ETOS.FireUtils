@@ -152,3 +152,30 @@
 /* Compact hydrant sizing tour used by the overlapping web panel in the hero. */
 .fl-app-frame.is-hydrants>.fl-preview-main{padding:0;overflow:hidden}.fl-hydrant-shell{height:100%;display:grid;grid-template-columns:95px minmax(0,1fr)}.fl-hydrant-steps{padding:13px 8px;border-right:1px solid var(--fl-line);color:#777781}.fl-hydrant-steps>span{font:6px 'Space Mono',monospace;letter-spacing:.08em}.fl-hydrant-steps>div{position:relative;padding:10px 2px 8px 25px}.fl-hydrant-steps i{position:absolute;left:2px;top:10px;display:grid;place-items:center;width:17px;height:17px;border:1px solid #45454e;border-radius:50%;font:7px 'Space Mono',monospace;font-style:normal}.fl-hydrant-steps b{display:block;color:#dedee3;font-size:7px;line-height:1.25}.fl-hydrant-steps small{display:block;margin-top:4px;color:#238f76;font-size:6px;line-height:1.3}.fl-hydrant-steps .active{background:#ea133009}.fl-hydrant-steps .active i{background:var(--fl-red);border-color:var(--fl-red);color:white}.fl-hydrant-steps .done i{background:#199b7e;border-color:#199b7e;color:white}.fl-hydrant-viewport{height:100%;overflow:hidden;scrollbar-width:none}.fl-hydrant-page{padding:18px 16px 70px}.fl-hydrant-page>.fl-red-label{color:var(--fl-red);font-size:6px}.fl-hydrant-page>h4{font-size:17px;margin-top:5px}.fl-hydrant-page>p{margin-top:5px;font-size:7px!important;line-height:1.45}.fl-hydrant-import{margin-top:14px;padding:9px;border:1px solid #16866d;border-radius:4px;background:#0d6a5726;color:#79c6b4;font-size:7px}.fl-hydrant-metrics,.fl-hydrant-results{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:11px}.fl-hydrant-metrics>span,.fl-hydrant-results>span{padding:9px 6px;border:1px solid var(--fl-line);border-radius:4px;color:#85858f;text-align:center;font:5px 'Space Mono',monospace}.fl-hydrant-metrics b,.fl-hydrant-results b{display:block;margin-top:5px;color:#f0f0f2;font:700 7px 'Inter',sans-serif}.fl-hydrant-page>h5{margin:16px 0 7px;font-size:7px}.fl-hydrant-table{display:grid;grid-template-columns:.7fr 1fr 1.2fr;border:1px solid var(--fl-line);border-radius:4px;overflow:hidden;font-size:7px}.fl-hydrant-table>*{padding:7px;border-bottom:1px solid var(--fl-line)}.fl-hydrant-table>b{background:#202027;color:#85858f;font-size:5px}.fl-hydrant-table em{margin:4px;color:#ef3450;border:1px solid #852237;border-radius:3px;font-size:5px;font-style:normal;text-align:center}.fl-hydrant-table em.amber{color:#d89c2e;border-color:#80561d}.fl-hydrant-table em.neutral{color:#94949e;border-color:#45454e}.fl-hydrant-results{grid-template-columns:repeat(3,1fr)}.fl-hydrant-results b{color:#ef3651}.fl-hydrant-speed{border:1px solid var(--fl-line);border-radius:4px;overflow:hidden}.fl-hydrant-speed>div{display:grid;grid-template-columns:1.5fr .5fr .7fr;gap:5px;padding:8px;border-bottom:1px solid var(--fl-line);font-size:6px}.fl-hydrant-speed em{color:#32b795;font-style:normal}.fl-hydrant-loss{margin-top:8px;border:1px solid var(--fl-line);border-radius:4px;overflow:hidden}.fl-hydrant-loss>header{display:flex;gap:7px;padding:8px;background:#1c1c22;font-size:6px}.fl-hydrant-loss>header span{padding:2px 4px;border:1px solid var(--fl-line)}.fl-hydrant-loss>div{display:grid;grid-template-columns:.5fr 1fr .8fr 1.2fr 1fr;align-items:center;gap:6px;margin:7px;padding:9px;border:1px solid var(--fl-line);border-radius:3px;font-size:6px}.fl-hydrant-loss small{color:#797983}.fl-hydrant-loss em{color:#ef3651;font-style:normal;font-weight:700}
 @media(max-width:800px){.fl-hydrant-shell{grid-template-columns:78px minmax(0,1fr)}.fl-hydrant-steps{padding-inline:6px}.fl-hydrant-page{padding-inline:12px}}
+
+/* Coordinate the first reveal with the hero media and preview mount. */
+.fire-landing.is-loading>.fl-header,.fire-landing.is-loading>main,.fire-landing.is-loading>.fl-footer{visibility:hidden}
+.fl-entry-loader{position:fixed;z-index:200;inset:0;display:grid;place-items:center;background:var(--fl-bg)}
+.fl-entry-loader .fl-mark{width:34px;height:44px;filter:drop-shadow(0 0 22px #ea133050);animation:fl-entry-pulse 1.15s ease-in-out infinite}
+@keyframes fl-entry-pulse{0%,100%{opacity:.38;transform:translateY(4px) scale(.94)}50%{opacity:1;transform:translateY(-3px) scale(1)}}
+
+/* Fade the animated hero lighting into the page instead of ending on a hard edge. */
+.fl-beams{background:radial-gradient(ellipse at 50% 75%,#ea133020,transparent 62%);-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 68%,rgba(0,0,0,.76) 82%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0%,#000 68%,rgba(0,0,0,.76) 82%,transparent 100%)}
+
+/* Give the scroll-led project flow more room to breathe. */
+@media(min-width:701px){
+  .fl-demo-sticky{padding:clamp(36px,5vh,56px) 0 18px}
+  .fl-demo-sticky .fl-section-head{padding-bottom:clamp(28px,3.8vh,44px)}
+  .fl-demo-sticky .fl-section-head h2{margin:0;line-height:1.17}
+  .fl-demo-sticky .fl-demo-caption{min-height:106px;margin:0 auto clamp(26px,3.4vh,40px);gap:clamp(56px,7vw,104px);align-items:center}
+  .fl-demo-title{padding-right:20px}
+  .fl-demo-step{margin-bottom:15px}
+  .fl-demo-caption h3{line-height:1.28}
+  .fl-demo-caption>p{align-self:center;padding-bottom:0;line-height:1.75}
+}
+
+/* The memorial preview follows the physical A4 page proportion. */
+.fl-pdf-page{width:min(60%,430px);min-height:0;aspect-ratio:210/297}
+.fl-pdf-company-logo{display:block;width:112px;height:auto;margin:4px 0 0 4px;padding:8px 10px;border-radius:3px;background:#111116}
+@media(max-width:800px){.fl-pdf-page{width:min(76%,410px)}}
+@media(max-width:560px){.fl-pdf-page{width:88%}.fl-pdf-company-logo{width:96px;padding:7px 8px}}
