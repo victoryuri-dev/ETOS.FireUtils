@@ -51,19 +51,19 @@ export function useLandingMotion(scope, stage, setStage) {
             .to(hydrantViewport, { scrollTop: maxHydrantScroll * .78, duration: 1.8, ease: 'power2.inOut' }, '+=2.4')
             .to(hydrantViewport, { scrollTop: maxHydrantScroll, duration: 1.5, ease: 'power2.inOut' }, '+=1.3')
             .to(hydrantViewport, { scrollTop: 0, duration: 1.4, ease: 'power2.inOut' }, '+=2.8')
-          const webLayer = hydrantViewport.closest('.fl-web-layer')
-          if (webLayer) {
+          const revitLayer = root.querySelector('.fl-revit-layer')
+          if (revitLayer) {
             const pauseTour = () => hydrantTour.pause()
             const resumeTour = () => hydrantTour.resume()
-            webLayer.addEventListener('pointerenter', pauseTour)
-            webLayer.addEventListener('pointerleave', resumeTour)
-            webLayer.addEventListener('focusin', pauseTour)
-            webLayer.addEventListener('focusout', resumeTour)
+            revitLayer.addEventListener('pointerenter', pauseTour)
+            revitLayer.addEventListener('pointerleave', resumeTour)
+            revitLayer.addEventListener('focusin', pauseTour)
+            revitLayer.addEventListener('focusout', resumeTour)
             cleanupHydrantHover = () => {
-              webLayer.removeEventListener('pointerenter', pauseTour)
-              webLayer.removeEventListener('pointerleave', resumeTour)
-              webLayer.removeEventListener('focusin', pauseTour)
-              webLayer.removeEventListener('focusout', resumeTour)
+              revitLayer.removeEventListener('pointerenter', pauseTour)
+              revitLayer.removeEventListener('pointerleave', resumeTour)
+              revitLayer.removeEventListener('focusin', pauseTour)
+              revitLayer.removeEventListener('focusout', resumeTour)
             }
           }
         }
