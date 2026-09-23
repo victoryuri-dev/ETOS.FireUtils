@@ -10,23 +10,27 @@ Permitir que usuários recorrentes entrem rapidamente na plataforma FireUtils. A
 
 ## Direction contract
 
+### FORM
+
+Composição code-led definida diretamente pelo pedido específico do usuário; a precisão do briefing dispensou rodada de conceitos. A forma prometida é uma divisão desktop rígida de 1/3 para autenticação e 2/3 para uma obra abstrata construída exclusivamente com as três lâminas da marca FireUtils. No mobile, a obra se torna uma faixa curta e a autenticação completa permanece na primeira tela.
+
 ### Visual world
 
-Herda a identidade técnica e escura da landing page: fundo quase preto, vermelho FireUtils `#EA1330`, tipografia clara, linhas precisas e pouco arredondamento. O logotipo, a linguagem e o fluxo real do produto permanecem reconhecíveis.
+Herda a identidade técnica e escura da FireUtils com fundo quase preto, vermelho `#EA1330`, tipografia clara e superfícies precisas. A experiência é deliberadamente abstrata: a geometria de três lâminas do símbolo FireUtils constrói a peça visual principal, com profundidade e luz controladas, sem explicar o produto por diagramas ou textos promocionais.
 
 ### First viewport
 
-No desktop, a composição divide a continuidade do projeto à esquerda e o formulário à direita. O lado editorial apresenta a frase “Seu projeto continua daqui” e demonstra o fluxo Revit → FireUtils → Memorial com uma linha técnica animada. O formulário de entrada permanece inteiramente visível e é a ação dominante.
+No desktop, um terço da tela contém somente marca, autenticação e acesso secundário. Os outros dois terços são uma composição visual de marca sem conteúdo funcional. O formulário permanece inteiro e centralizado na primeira tela.
 
-No mobile, o contexto é reduzido ao título e o formulário aparece dentro do primeiro viewport. A narrativa completa não pode empurrar a tarefa de autenticação para baixo da dobra.
+No mobile, a composição abstrata vira uma faixa curta de abertura e o formulário aparece imediatamente abaixo. A arte não pode empurrar a autenticação para fora do primeiro viewport nem causar rolagem horizontal.
 
 ### Interaction
 
-Uma única entrada coordenada apresenta cabeçalho, mensagem, fluxo e formulário. Um sinal vermelho percorre continuamente o diagrama do projeto. A troca entre login e cadastro anima apenas o conteúdo do formulário. Hover, foco, carregamento, erro e sucesso possuem estados próprios.
+Uma entrada coordenada revela o formulário e os planos da marca. O movimento contínuo da arte deve ser lento e quase imperceptível. Troca entre login e cadastro, foco, carregamento, erro e sucesso possuem estados próprios.
 
 ### Motion grammar
 
-Movimento curto, suave e direcional, com curvas de desaceleração. A animação respeita `prefers-reduced-motion`; o conteúdo permanece totalmente funcional sem movimento.
+Movimento suave, direcional e com baixa amplitude. A animação respeita `prefers-reduced-motion`; o conteúdo permanece totalmente funcional sem movimento.
 
 ### Content constraints
 

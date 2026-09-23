@@ -17,10 +17,47 @@ import { useAuth } from '../context/AuthContext'
 import logo from '../assets/fireutils-logo.png'
 import './LoginPage.css'
 
+function AbstractBrand() {
+  return (
+    <section className="signin-art" aria-hidden="true">
+      <div className="signin-art-grid" />
+      <div className="signin-art-orbits"><i /><i /><i /></div>
+      <div className="signin-art-mark-wrap">
+      <svg className="signin-art-mark" viewBox="0 0 168 216">
+        <defs>
+          <linearGradient id="signin-red-front" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#ff3f57" />
+            <stop offset=".48" stopColor="#ea1330" />
+            <stop offset="1" stopColor="#8d0018" />
+          </linearGradient>
+          <linearGradient id="signin-red-mid" x1=".15" y1="0" x2=".9" y2="1">
+            <stop offset="0" stopColor="#ff263f" />
+            <stop offset=".55" stopColor="#c70825" />
+            <stop offset="1" stopColor="#65000f" />
+          </linearGradient>
+          <linearGradient id="signin-red-deep" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#d90e2a" />
+            <stop offset="1" stopColor="#52000c" />
+          </linearGradient>
+        </defs>
+        <g className="signin-art-outline" transform="translate(7 7)">
+          <path d="M168 0V154.523H121.426V50.9454L168 0Z" />
+          <path d="M103.129 61.4769V216H58.2179V112.422L103.129 61.4769Z" />
+          <path d="M44.9109 112.985H0V164.492L44.9109 112.985Z" />
+        </g>
+        <g className="signin-blade-entry"><path className="signin-blade signin-blade-one" d="M168 0V154.523H121.426V50.9454L168 0Z" fill="url(#signin-red-front)" /></g>
+        <g className="signin-blade-entry"><path className="signin-blade signin-blade-two" d="M103.129 61.4769V216H58.2179V112.422L103.129 61.4769Z" fill="url(#signin-red-mid)" /></g>
+        <g className="signin-blade-entry"><path className="signin-blade signin-blade-three" d="M44.9109 112.985H0V164.492L44.9109 112.985Z" fill="url(#signin-red-deep)" /></g>
+      </svg>
+      </div>
+      <span className="signin-art-sheen" />
+    </section>
+  )
+}
+
 export default function LoginPage() {
   const { signIn, signUp } = useAuth()
   const pageRef = useRef(null)
-
   const [mode, setMode] = useState('entrar')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,23 +71,14 @@ export default function LoginPage() {
     media.add('(prefers-reduced-motion: no-preference)', () => {
       const timeline = gsap.timeline({ defaults: { ease: 'expo.out' } })
       timeline
-        .from('.login-topbar', { y: -18, opacity: 0, duration: .7 })
-        .from('.login-brand-copy > *', {
-          y: 34,
-          opacity: 0,
-          duration: 1,
-          stagger: .1,
-        }, .08)
-        .from('.login-flow', {
-          clipPath: 'inset(0 100% 0 0)',
-          opacity: 0,
-          duration: 1.25,
-        }, .3)
-        .from('.login-panel', {
-          x: 42,
-          opacity: 0,
-          duration: 1,
-        }, .18)
+        .from('.signin-sidebar', { x: -28, opacity: 0, duration: .85 })
+        .from('.signin-brand', { y: -12, opacity: 0, duration: .65 }, .12)
+        .from('.signin-copy > *', { y: 24, opacity: 0, duration: .75, stagger: .09 }, .18)
+        .from('.signin-form > *, .signin-switch', { y: 18, opacity: 0, duration: .68, stagger: .055 }, .28)
+        .from('.signin-art-grid', { opacity: 0, duration: 1.2 }, .08)
+        .from('.signin-art-orbits i', { scale: .74, opacity: 0, duration: 1.1, stagger: .1 }, .1)
+        .from('.signin-art-mark', { scale: .82, rotate: -7, opacity: 0, duration: 1.35 }, .08)
+        .from('.signin-blade-entry', { y: 34, opacity: 0, duration: .9, stagger: .09 }, .2)
     })
     return () => media.revert()
   }, { scope: pageRef })
@@ -60,7 +88,6 @@ export default function LoginPage() {
     setError('')
     setInfo('')
     setBusy(true)
-
     try {
       if (mode === 'entrar') {
         const { ok, error: authError } = await signIn(email, password)
@@ -71,9 +98,7 @@ export default function LoginPage() {
           setError(authError)
           return
         }
-        if (needsConfirmation) {
-          setInfo('Conta criada. Confirme o e-mail enviado para concluir seu acesso.')
-        }
+        if (needsConfirmation) setInfo('Conta criada. Confirme o e-mail enviado para concluir seu acesso.')
       }
     } catch {
       setError('Não foi possível conectar. Verifique sua conexão e tente novamente.')
@@ -92,129 +117,62 @@ export default function LoginPage() {
   const isLogin = mode === 'entrar'
 
   return (
-    <main className="login-page" ref={pageRef}>
-      <div className="login-atmosphere" aria-hidden="true">
-        <span className="login-beam login-beam-one"/>
-        <span className="login-beam login-beam-two"/>
-        <span className="login-glow"/>
-      </div>
+    <main className="signin-page" ref={pageRef}>
+      <section className="signin-sidebar" aria-labelledby="signin-title">
+        <header className="signin-header">
+          <Link to="/landing" className="signin-brand" aria-label="Voltar para a página inicial do FireUtils">
+            <img src={logo} alt="FireUtils" />
+          </Link>
+          <Link to="/landing" className="signin-back"><ArrowLeft size={15} />Voltar</Link>
+        </header>
 
-      <header className="login-topbar">
-        <Link to="/landing" className="login-logo" aria-label="Voltar para a página inicial do FireUtils">
-          <img src={logo} alt="FireUtils"/>
-        </Link>
-        <Link to="/landing" className="login-back">
-          <ArrowLeft size={16}/>
-          Voltar ao site
-        </Link>
-      </header>
-
-      <div className="login-layout">
-        <section className="login-brand" aria-labelledby="login-brand-title">
-          <div className="login-brand-copy">
-            <h1 id="login-brand-title">Seu projeto<br/>continua daqui.</h1>
-            <p>Entre na plataforma para conectar as informações do modelo, revisar os dimensionamentos e preparar a documentação.</p>
+        <div className="signin-auth">
+          <div className="signin-copy">
+            <h1 id="signin-title">{isLogin ? 'Bem-vindo de volta.' : 'Crie seu acesso.'}</h1>
+            <p>{isLogin ? 'Entre para continuar seus projetos.' : 'Comece a organizar seus projetos no FireUtils.'}</p>
           </div>
 
-          <div className="login-flow" aria-label="Fluxo do projeto: Revit, FireUtils e Memorial">
-            <svg className="login-flow-line" viewBox="0 0 760 150" preserveAspectRatio="none" aria-hidden="true">
-              <path className="login-flow-rail" d="M16 76 H190 C230 76 234 28 278 28 H458 C500 28 506 122 548 122 H744"/>
-              <path className="login-flow-signal" d="M16 76 H190 C230 76 234 28 278 28 H458 C500 28 506 122 548 122 H744"/>
-            </svg>
-            <div className="login-flow-step is-revit">
-              <span className="login-flow-node"/>
-              <strong>Revit</strong>
-              <small>Modelo</small>
-            </div>
-            <div className="login-flow-step is-fireutils">
-              <span className="login-flow-node"/>
-              <strong>FireUtils</strong>
-              <small>Dados e dimensionamento</small>
-            </div>
-            <div className="login-flow-step is-memorial">
-              <span className="login-flow-node"/>
-              <strong>Memorial</strong>
-              <small>Documentação</small>
-            </div>
-          </div>
-
-          <p className="login-brand-note">MODELO → DADOS → DOCUMENTAÇÃO</p>
-        </section>
-
-        <section className="login-panel" aria-labelledby="login-title">
-          <div className="login-panel-head">
-            <span className="login-panel-mark" aria-hidden="true"><LockKeyhole size={18}/></span>
-            <div>
-              <h2 id="login-title">{isLogin ? 'Acesse seus projetos.' : 'Crie seu acesso.'}</h2>
-              <p>{isLogin ? 'Use seu e-mail e senha para continuar.' : 'Cadastre-se para começar a usar o FireUtils.'}</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="login-form" key={mode}>
-            <div className="login-field">
-              <label htmlFor="login-email">E-mail</label>
-              <div className="login-control">
-                <Mail size={18} aria-hidden="true"/>
-                <input
-                  id="login-email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  inputMode="email"
-                  placeholder="voce@escritorio.com.br"
-                  value={email}
-                  onChange={event => setEmail(event.target.value)}
-                />
+          <form onSubmit={handleSubmit} className="signin-form" key={mode}>
+            <div className="signin-field">
+              <label htmlFor="signin-email">E-mail</label>
+              <div className="signin-control">
+                <Mail size={17} aria-hidden="true" />
+                <input id="signin-email" type="email" required autoComplete="email" inputMode="email" placeholder="voce@escritorio.com.br" value={email} onChange={event => setEmail(event.target.value)} />
               </div>
             </div>
 
-            <div className="login-field">
-              <label htmlFor="login-password">Senha</label>
-              <div className="login-control">
-                <LockKeyhole size={18} aria-hidden="true"/>
-                <input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  minLength={6}
-                  autoComplete={isLogin ? 'current-password' : 'new-password'}
-                  placeholder={isLogin ? 'Sua senha' : 'Mínimo de 6 caracteres'}
-                  value={password}
-                  onChange={event => setPassword(event.target.value)}
-                />
-                <button
-                  type="button"
-                  className="login-password-toggle"
-                  onClick={() => setShowPassword(current => !current)}
-                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  aria-pressed={showPassword}
-                >
-                  {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+            <div className="signin-field">
+              <label htmlFor="signin-password">Senha</label>
+              <div className="signin-control">
+                <LockKeyhole size={17} aria-hidden="true" />
+                <input id="signin-password" type={showPassword ? 'text' : 'password'} required minLength={6} autoComplete={isLogin ? 'current-password' : 'new-password'} placeholder={isLogin ? 'Sua senha' : 'Mínimo de 6 caracteres'} value={password} onChange={event => setPassword(event.target.value)} />
+                <button type="button" className="signin-password-toggle" onClick={() => setShowPassword(current => !current)} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword}>
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
             </div>
 
-            <div className="login-message" aria-live="polite">
-              {error && <div className="login-alert is-error" role="alert"><TriangleAlert size={17}/><span>{error}</span></div>}
-              {info && <div className="login-alert is-success" role="status"><CheckCircle2 size={17}/><span>{info}</span></div>}
+            <div className="signin-message" aria-live="polite">
+              {error && <div className="signin-alert is-error" role="alert"><TriangleAlert size={16} /><span>{error}</span></div>}
+              {info && <div className="signin-alert is-success" role="status"><CheckCircle2 size={16} /><span>{info}</span></div>}
             </div>
 
-            <button type="submit" className="login-submit" disabled={busy}>
-              <span>{busy ? (isLogin ? 'Entrando…' : 'Criando conta…') : (isLogin ? 'Entrar na plataforma' : 'Criar minha conta')}</span>
-              {busy ? <LoaderCircle className="login-spinner" size={19}/> : <ArrowRight size={19}/>}
+            <button type="submit" className="signin-submit" disabled={busy}>
+              <span>{busy ? (isLogin ? 'Entrando…' : 'Criando conta…') : (isLogin ? 'Entrar' : 'Criar conta')}</span>
+              {busy ? <LoaderCircle className="signin-spinner" size={18} /> : <ArrowRight size={18} />}
             </button>
           </form>
 
-          <div className="login-switch">
+          <div className="signin-switch">
             <span>{isLogin ? 'Ainda não possui acesso?' : 'Já possui uma conta?'}</span>
-            <button type="button" onClick={toggleMode} disabled={busy}>
-              {isLogin ? 'Criar uma conta' : 'Voltar para o login'}
-            </button>
+            <button type="button" onClick={toggleMode} disabled={busy}>{isLogin ? 'Criar uma conta' : 'Voltar para o login'}</button>
           </div>
+        </div>
 
-          <p className="login-footnote">FireUtils · Plataforma web para projetos de segurança contra incêndio</p>
-        </section>
-      </div>
+        <p className="signin-footer">FireUtils · Projetos de segurança contra incêndio</p>
+      </section>
+
+      <AbstractBrand />
     </main>
   )
 }
