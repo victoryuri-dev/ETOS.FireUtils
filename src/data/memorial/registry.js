@@ -25,6 +25,31 @@ export const MEMORIAL_BUILDERS = {
   // ... entram aqui conforme forem implementadas
 }
 
+// Ordem das secoes de medidas no documento — a mesma da tabela de medidas de
+// seguranca da NT 01 (ver normas/MA/medidas.js), que e a ordem em que o Corpo
+// de Bombeiros le o projeto. E deliberada e fica aqui porque e uma decisao do
+// documento: antes as secoes saiam na ordem de iteracao do objeto `sistemas`,
+// ou seja, na ordem em que as chaves foram inseridas — o que calhasse.
+const ORDEM_SECOES = [
+  'acesso_viatura',
+  'seg_estrutural',
+  'compart_horizontal',
+  'compart_vertical',
+  'controle_acabamento',
+  'saida_emergencia',
+  'gerenciamento_risco',
+  'brigada',
+  'iluminacao',
+  'sinalizacao',
+  'extintores',
+  'hidrantes',
+  'alarme',
+  'deteccao',
+  'sprinklers',
+  'controle_fumaca',
+  'central_gas',
+]
+
 /**
  * Monta as seções do memorial a partir das medidas ativas/obrigatórias do
  * projeto. `sistemas` é o resultado derivado de useMedidasObrigatorias() —
@@ -33,17 +58,26 @@ export const MEMORIAL_BUILDERS = {
  * precisam de dado por-estrutura (ex.: saida_emergencia.js, pra chuveiros/
  * detecção na distância máxima a percorrer), não pelo agregado do projeto.
  *
+ * As seções saem na ordem de ORDEM_SECOES, não na ordem em que as medidas
+ * aparecem em `sistemas`.
+ *
  * O memorial de cálculo (marcha hidráulica) de Hidrantes é sempre a
  * ÚLTIMA folha do documento — narra o dimensionamento feito pelo plugin
  * Revit (ver memorial/hidrantesCalculo.js), então só faz sentido depois de
- * toda a parte descritiva, e nunca deveria mudar de posição por causa da
- * ordem de iteração de `sistemas` (não garantida).
+ * toda a parte descritiva, fora da ordem acima.
  */
 export function buildMemorial(state, sistemas, porEstrutura) {
   const src = sistemas || state.sistemas || {}
-  const secoes = Object.entries(src)
-    .filter(([, s]) => s.ativo || s.obrigatorio)
-    .map(([key]) => MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura))
+  const ativa = key => !!(src[key]?.ativo || src[key]?.obrigatorio)
+
+  // Uma medida com builder que ninguem lembrou de colocar em ORDEM_SECOES
+  // entra no fim, em vez de sumir do documento sem aviso — omitir uma secao
+  // inteira de um documento legal e caro demais pra depender de memoria.
+  const restantes = Object.keys(MEMORIAL_BUILDERS).filter(k => !ORDEM_SECOES.includes(k))
+
+  const secoes = [...ORDEM_SECOES, ...restantes]
+    .filter(ativa)
+    .map(key => MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura))
     .filter(Boolean)
 
   if (src.hidrantes?.ativo || src.hidrantes?.obrigatorio) {
