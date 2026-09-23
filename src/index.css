@@ -117,12 +117,15 @@
   margin: 6mm;
 }
 
-/* Memorial Descritivo: margens de encadernacao (topo/inferior maiores para
-   numero de pagina) — pagina nomeada so afeta quem usa `page: memorial`
-   (ver .print-area-memorial), sem alterar o Anexo B. */
+/* Memorial Descritivo: a folha (.memorial-secao) ja tem 210x297mm com as
+   margens ABNT NBR 14724 no proprio padding, entao a pagina impressa nao
+   pode somar margem por cima — senao a folha fica maior que a area
+   imprimivel e cada secao vaza pra uma segunda pagina. Pagina nomeada so
+   afeta quem usa `page: memorial` (ver .print-area-memorial), sem alterar
+   o Anexo B. */
 @page memorial {
   size: A4 portrait;
-  margin: 3cm 2cm;
+  margin: 0;
 }
 .print-area-memorial { page: memorial; }
 

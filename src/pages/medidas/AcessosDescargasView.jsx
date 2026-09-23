@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import Icon from '../../components/ui/Icon'
+import Checkbox from '../../components/ui/Checkbox'
+import InlineEditableNome from '../../components/ui/InlineEditableNome'
 import { AmbienteForm, fmtM } from './se_shared'
 import {
   calcPopAmb, calcNoAmbientePT, calcDimsAcesso, dimsDoAcesso, contarSaidasPavimento,
@@ -37,52 +39,6 @@ function listarAcessosParaSelect(acessos, parentId = null, profundidade = 0) {
 
 const ALVO_SEM_ACESSO = '__sem_acesso__'
 
-// ── Nome editável inline — clique vira input; Enter/blur salva, Escape
-// cancela. Mesmo padrão de AmbienteBloco em ExtintoresPage.jsx, em vez de
-// window.prompt (abre um diálogo nativo do navegador, fora do site).
-function InlineEditableNome({ value, onCommit, textClassName }) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-
-  const commit = () => {
-    setEditing(false)
-    const novo = draft.trim()
-    if (novo && novo !== value) onCommit(novo)
-  }
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={e => {
-          if (e.key === 'Enter') commit()
-          if (e.key === 'Escape') setEditing(false)
-        }}
-        onClick={e => e.stopPropagation()}
-        // Acompanha a largura do texto digitado (em vez do tamanho padrão
-        // do <input>, que não tem relação nenhuma com o nome sendo
-        // editado) — `max-w-full` deixa o max-w-[…] de `textClassName`
-        // (limite de largura do nome no card) valer também aqui.
-        style={{ width: `${Math.max(draft.length, 1) + 1}ch` }}
-        className={`${textClassName} max-w-full bg-transparent border-none p-0 outline-none min-w-0`}
-      />
-    )
-  }
-  return (
-    <button
-      type="button"
-      onClick={e => { e.stopPropagation(); setDraft(value); setEditing(true) }}
-      className={`group flex items-center gap-1.5 min-w-0 bg-transparent border-none cursor-pointer p-0 text-left ${textClassName}`}
-    >
-      <span className="truncate">{value}</span>
-      <Icon name="edit" size={11} className="text-ink-hint group-hover:text-ink-muted transition-colors shrink-0"/>
-    </button>
-  )
-}
-
 // Quebra "ACESSO/DESCARGA" -> "ACESSO/" + quebra de linha + "DESCARGA"
 // (idem "ESCADA/RAMPA") — os únicos rótulos com "/" que chegam aqui
 // (ver tipoDoNo em se_calc.js). Sem "/", mostra o texto como veio (ex.: "Portas").
@@ -90,20 +46,6 @@ function LabelQuebrado({ texto }) {
   const partes = texto.split('/')
   if (partes.length !== 2) return texto
   return <>{partes[0]}/<br/>{partes[1]}</>
-}
-
-// Checkbox próprio (botão + ícone) em vez de <input type="checkbox"> nativo
-// — o nativo herda a cor de fundo do tema do sistema operacional (fica
-// branco em vez de escuro), sem jeito confiável de sobrescrever entre
-// navegadores só com CSS.
-function Checkbox({ checked, onChange, title }) {
-  return (
-    <button type="button" onClick={e => { e.stopPropagation(); onChange() }} title={title}
-      className={`w-[15px] h-[15px] shrink-0 rounded-[3px] border-[1.5px] border-solid bg-transparent flex items-center justify-center transition-colors ${checked ? 'border-ink' : 'border-ink hover:border-red'}`}
-    >
-      {checked && <Icon name="check" size={10} className="text-ink"/>}
-    </button>
-  )
 }
 
 // ── Ambiente (folha da árvore) — arrastável, card inteiro clicável ─────
@@ -120,16 +62,32 @@ function Checkbox({ checked, onChange, title }) {
 // já selecionado (`modoSelecao`), clicar em qualquer lugar do card
 // seleciona/desmarca em vez de abrir o formulário — só assim dá pra marcar
 // vários rápido, sem mirar no checkbox de cada um.
-function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDesvincular, orfao, selecionado, onToggleSelecao, modoSelecao }) {
+// `seguidores` (quando presente): { ids, delta } dos OUTROS cards que fazem
+// parte da mesma seleção que o card que a mão pegou — cada um deles usa o
+// MESMO delta do arrasto (não tem draggable próprio ativo), só que somado a
+// um deslocamento fixo por posição na pilha, pra parecer uma pilha de
+// cartas colada embaixo do card líder, acompanhando o mouse junto.
+function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDesvincular, orfao, selecionado, onToggleSelecao, modoSelecao, seguidores }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `amb:${amb.id}`, data: { kind: 'amb', id: amb.id },
   })
   const pop = calcPopAmb(amb, taxaPopulacional)
   const { pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
-  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
+  const idxPilha = seguidores ? seguidores.ids.indexOf(amb.id) : -1
+  const souSeguidor = idxPilha >= 0
+  const style = isDragging
+    ? (transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined)
+    : souSeguidor
+      ? {
+          transform: `translate3d(${seguidores.delta.x}px, ${seguidores.delta.y + 10 + idxPilha * 8}px, 0)`,
+          zIndex: 40 - idxPilha,
+          opacity: Math.max(0.35, 0.85 - idxPilha * 0.12),
+          pointerEvents: 'none',
+        }
+      : undefined
   return (
     <div ref={setNodeRef} style={style} onClick={() => modoSelecao ? onToggleSelecao(amb.id) : onEdit(amb)}
-      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''}`}
+      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''} ${souSeguidor ? 'relative shadow-[0_6px_16px_rgba(0,0,0,.35)]' : ''}`}
     >
       <div className="flex items-center gap-2.5 min-w-0 max-w-[50%]">
         <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente">
@@ -206,7 +164,7 @@ function DimEntry({ label, value }) {
 // pode abrir novos Acessos filhos — um Acesso comum não pode virar "pai"
 // de outro Acesso, mas qualquer um pode receber ambientes direto (+
 // Adicionar Ambiente).
-function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga, dispatch, pavimentoId, onEditAmbiente, onRemoveAmbiente, onDesvincularAmbiente, onCreateAmbiente, colapsados, toggleColapsado, selecionados, onToggleSelecaoAmbiente }) {
+function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pisoDescarga, dispatch, pavimentoId, onEditAmbiente, onRemoveAmbiente, onDesvincularAmbiente, onCreateAmbiente, colapsados, toggleColapsado, selecionados, onToggleSelecaoAmbiente, seguidores }) {
   const dims = dimsDoAcesso(acesso, pisoDescarga)
   const { pop, ad, er, pt } = calcDimsAcesso(acesso.id, ambientes, acessos, taxaPopulacional, larguras, dims)
   const entradas = [
@@ -277,14 +235,14 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
           {filhosAmbientes.map(a => (
             <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEditAmbiente} onRemove={onRemoveAmbiente}
               onDesvincular={onDesvincularAmbiente} orfao={false}
-              selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente} modoSelecao={selecionados.size > 0}/>
+              selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente} modoSelecao={selecionados.size > 0} seguidores={seguidores}/>
           ))}
           {filhos.map(f => (
             <AcessoCard key={f.id} acesso={f} ambientes={ambientes} acessos={acessos}
               taxaPopulacional={taxaPopulacional} larguras={larguras} pisoDescarga={pisoDescarga} dispatch={dispatch}
               pavimentoId={pavimentoId} onEditAmbiente={onEditAmbiente} onRemoveAmbiente={onRemoveAmbiente} onDesvincularAmbiente={onDesvincularAmbiente} onCreateAmbiente={onCreateAmbiente}
               colapsados={colapsados} toggleColapsado={toggleColapsado}
-              selecionados={selecionados} onToggleSelecaoAmbiente={onToggleSelecaoAmbiente}/>
+              selecionados={selecionados} onToggleSelecaoAmbiente={onToggleSelecaoAmbiente} seguidores={seguidores}/>
           ))}
           {filhos.length === 0 && filhosAmbientes.length === 0 && (
             <div className="text-[11px] text-ink-faint italic py-1">Arraste ambientes para cá.</div>
@@ -314,7 +272,7 @@ function RootDropZone() {
 }
 
 // ── Ambientes ainda sem posição na árvore ──────────────────────────────
-function SemAcessoDropZone({ ambientes, taxaPopulacional, larguras, onEdit, onRemove, selecionados, onToggleSelecaoAmbiente }) {
+function SemAcessoDropZone({ ambientes, taxaPopulacional, larguras, onEdit, onRemove, selecionados, onToggleSelecaoAmbiente, seguidores }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'drop-null', data: { kind: 'null' } })
   return (
     <div ref={setNodeRef}
@@ -323,7 +281,7 @@ function SemAcessoDropZone({ ambientes, taxaPopulacional, larguras, onEdit, onRe
       {ambientes.length === 0 && <div className="text-[11px] text-ink-faint italic">Todos os ambientes já estão posicionados na árvore.</div>}
       {ambientes.map(a => (
         <AmbienteChip key={a.id} amb={a} taxaPopulacional={taxaPopulacional} larguras={larguras} onEdit={onEdit} onRemove={onRemove} orfao
-          selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente} modoSelecao={selecionados.size > 0}/>
+          selecionado={selecionados.has(a.id)} onToggleSelecao={onToggleSelecaoAmbiente} modoSelecao={selecionados.size > 0} seguidores={seguidores}/>
       ))}
     </div>
   )
@@ -424,7 +382,23 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
     setEditAmb(prev => ({ ...prev, nome: novoNome }))
   }
 
+  // Pilha visual de cards durante um arrasto em lote — ver `seguidores` em
+  // AmbienteChip. Só existe (não-null) enquanto o card que a mão pegou faz
+  // parte de uma seleção com mais de um ambiente; do contrário o arrasto é
+  // normal (só aquele card se move, comportamento de sempre do dnd-kit).
+  const [pilha, setPilha] = useState(null)
+
+  const handleDragStart = ({ active }) => {
+    const a = active.data.current
+    if (a?.kind === 'amb' && selecionados.size > 1 && selecionados.has(a.id)) {
+      setPilha({ ids: [...selecionados].filter(id => id !== a.id), delta: { x: 0, y: 0 } })
+    }
+  }
+  const handleDragMove = ({ delta }) => setPilha(prev => (prev ? { ...prev, delta } : prev))
+  const handleDragCancel = () => setPilha(null)
+
   const handleDragEnd = ({ active, over }) => {
+    setPilha(null)
     if (!over) return
     const activeData = active.data.current
     const overData = over.data.current
@@ -471,7 +445,9 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
             compara a área do card arrastado com a de cada droppable, e com
             Acessos aninhados (um dentro do outro) pode acertar o pai em vez
             do filho que está de fato embaixo do cursor. */}
-        <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={pointerWithin}
+          onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}
+        >
           <div className={`flex-1 overflow-y-auto p-5 flex flex-col gap-5 ${selecionados.size > 0 ? 'pb-16' : ''}`}>
             <div className="text-[11px] text-ink-faint">Quantidade de saídas (automático): <strong className="text-ink">{nSaidas}</strong></div>
 
@@ -484,7 +460,7 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
                     taxaPopulacional={TAXA_POPULACIONAL} larguras={LARGURAS_MINIMAS} pisoDescarga={!!pav.pisoDescarga} dispatch={dispatch}
                     pavimentoId={pav.id} onEditAmbiente={setEditAmb} onRemoveAmbiente={removerAmbiente} onDesvincularAmbiente={desvincularAmbiente} onCreateAmbiente={criarAmbiente}
                     colapsados={colapsados} toggleColapsado={toggleColapsado}
-                    selecionados={selecionados} onToggleSelecaoAmbiente={toggleSelecaoAmbiente}/>
+                    selecionados={selecionados} onToggleSelecaoAmbiente={toggleSelecaoAmbiente} seguidores={pilha}/>
                 ))}
                 {raizes.length === 0 && (
                   <div className="p-8 text-center text-ink-faint text-[13px] border border-dashed border-border rounded-lg">
@@ -506,7 +482,7 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
                 <button className="btn-ghost" onClick={() => criarAmbiente()}><Icon name="plus" size={12}/> Adicionar Ambiente</button>
               </div>
               <SemAcessoDropZone ambientes={semAcesso} taxaPopulacional={TAXA_POPULACIONAL} larguras={LARGURAS_MINIMAS} onEdit={setEditAmb} onRemove={removerAmbiente}
-                selecionados={selecionados} onToggleSelecaoAmbiente={toggleSelecaoAmbiente}/>
+                selecionados={selecionados} onToggleSelecaoAmbiente={toggleSelecaoAmbiente} seguidores={pilha}/>
             </div>
           </div>
         </DndContext>

@@ -12,6 +12,7 @@ import ProjectAside   from './components/layout/ProjectAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
 import ProjetosPage   from './pages/ProjetosPage'
+import PerfilPage     from './pages/PerfilPage'
 import DocumentosPage from './pages/DocumentosPage'
 import MedidaPage            from './pages/MedidaPage'
 import SaidaEmergenciaPage   from './pages/medidas/SaidaEmergenciaPage'
@@ -59,6 +60,7 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
   const { user, signOut } = useAuth()
   const { state, syncStatus } = useProjeto()
   const [menuOpen, setMenuOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <header className="flex items-center justify-between px-6 h-16 border-b border-border border-solid shrink-0 z-100">
@@ -106,6 +108,12 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
               <div className="px-3 py-2 text-[11px] text-ink-faint border-b border-border border-solid truncate">
                 {user?.email}
               </div>
+              <button
+                onClick={() => { setMenuOpen(false); navigate('/perfil') }}
+                className="w-full text-left px-3 py-2 text-[12px] text-ink-muted hover:text-ink hover:bg-surface-2 flex items-center gap-2"
+              >
+                <Icon name="settings" size={13}/> Perfil e configurações
+              </button>
               <button
                 onClick={() => { setMenuOpen(false); signOut() }}
                 className="w-full text-left px-3 py-2 text-[12px] text-ink-muted hover:text-ink hover:bg-surface-2 flex items-center gap-2"
@@ -176,6 +184,18 @@ function ProjetosRoute() {
         onNewProject={handleNewProject}
         onNovoProjetoExemplo={handleNovoProjetoExemplo}
       />
+    </div>
+  )
+}
+
+// ── PerfilRoute ───────────────────────────────────────────────────────
+// Página da conta — fora do contexto de um projeto, como "Meus projetos".
+function PerfilRoute() {
+  const navigate = useNavigate()
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
+      <PerfilPage/>
     </div>
   )
 }
@@ -255,7 +275,11 @@ function ProjectLayout() {
 
   return (
     <>
-      <ProjectAside activePage={activePage} onNavigate={handleNavigate}/>
+      <ProjectAside
+        activePage={activePage}
+        onNavigate={handleNavigate}
+        onSairDoProjeto={() => navigate('/projetos')}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage/>
         {conflito && (
@@ -323,6 +347,7 @@ function AppInner() {
       <Route element={<AuthedLayout/>}>
         <Route path="/" element={<Navigate to="/projetos" replace/>}/>
         <Route path="/projetos" element={<ProjetosRoute/>}/>
+        <Route path="/perfil" element={<PerfilRoute/>}/>
 
         <Route path="/projeto/:id" element={<ProjectLayout/>}>
           <Route index element={<Navigate to="dashboard" replace/>}/>
