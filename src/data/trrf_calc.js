@@ -45,15 +45,32 @@ export function subsoloConsideradoOcupado(pavimentosOrdenados, divisoesSemOcupac
   return pavimentosOrdenados.some(p => p.tipo === 'subsolo' && p.divisao && !divisoesSemOcupacao.includes(p.divisao))
 }
 
+/** Altura "pura" da edificação — do piso de descarga ao piso do último
+ *  pavimento habitado, sem qualquer soma de subsolo (a soma condicional,
+ *  só quando o subsolo é considerado ocupado, é feita por
+ *  `alturaParaClassificacao`, abaixo). Prédio térreo (1 pavimento acima do
+ *  solo) não tem o campo "Altura da edificação" na tela — quando há
+ *  subsolo, a medida passa a partir dele, já que o próprio térreo é o
+ *  "último pavimento" (mesma exceção do item 4.31, NT 03 CBMMA). */
+export function alturaEdificacaoBase(estrutura) {
+  const nPav = parseInt(estrutura.nPavimentos) || 1
+  if (nPav === 1) {
+    const sub = parseInt(estrutura.nSubsolos) || 0
+    return sub > 0 ? num(estrutura.profundidadeSubsolo) : 0
+  }
+  return num(estrutura.alturaEdificacao)
+}
+
 /** Altura da edificação a usar na classificação (item 4.31, NT 03 CBMMA):
- *  do piso de descarga ao piso do último pavimento habitado — `alturaPisoPiso`
- *  no modelo do projeto, apesar do nome do campo. Quando o subsolo tem
- *  ocupação (ver `subsoloConsideradoOcupado`), a medição passa a começar no
- *  piso do subsolo mais baixo ocupado, somando a profundidade do subsolo à
- *  altura acima do solo. */
+ *  do piso de descarga ao piso do último pavimento habitado
+ *  (`alturaEdificacaoBase`). Quando o subsolo tem ocupação (ver
+ *  `subsoloConsideradoOcupado`), a medição passa a começar no piso do
+ *  subsolo mais baixo ocupado, somando a profundidade do subsolo à altura
+ *  acima do solo. */
 export function alturaParaClassificacao(estrutura, pavimentosOrdenados, divisoesSemOcupacao) {
-  if (vazio(estrutura.alturaPisoPiso)) return { altura: '', subsoloSomado: false }
-  const base = num(estrutura.alturaPisoPiso)
+  const nPav = parseInt(estrutura.nPavimentos) || 1
+  if (nPav > 1 && vazio(estrutura.alturaEdificacao)) return { altura: '', subsoloSomado: false }
+  const base = alturaEdificacaoBase(estrutura)
   const ocupado = subsoloConsideradoOcupado(pavimentosOrdenados, divisoesSemOcupacao)
   if (!ocupado) return { altura: base, subsoloSomado: false }
   return { altura: base + num(estrutura.profundidadeSubsolo), subsoloSomado: true }

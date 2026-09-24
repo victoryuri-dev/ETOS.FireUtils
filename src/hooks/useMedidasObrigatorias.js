@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useProjeto } from '../context/ProjetoContext'
 import { getMedidasObrigatorias, getGruposSemDados } from '../data/normas/index'
 import { classificarPavimentos, divisoesDaEstrutura } from '../utils/classificacao'
+import { alturaEdificacaoBase } from '../data/trrf_calc'
 
 // Inverso do abaixo: mesmo que a tabela da norma marque como obrigatoria pra
 // a ocupacao/altura, o usuario decide se instala (fica sempre habilitavel/
@@ -44,7 +45,7 @@ export function useMedidasObrigatorias() {
     const porEstrutura = state.estruturas.map(est => {
       const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
       const areaEstrutura   = parseFloat(est.areaTotal)      || 0
-      const alturaEstrutura = parseFloat(est.alturaPisoPiso) || 0
+      const alturaEstrutura = alturaEdificacaoBase(est)
       const divisoes = divisoesDaEstrutura(pavsEst)
       const classificacao = classificarPavimentos(pavsEst, areaEstrutura)
 

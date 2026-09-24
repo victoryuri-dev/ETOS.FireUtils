@@ -23,13 +23,13 @@ function dadosExemplo() {
       {
         id: 'est-exemplo-1', nome: 'Estrutura 1',
         areaTotal: '250', altura: '6', alturaPisoPiso: 0,
-        nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '',
+        nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', alturaEdificacao: '',
         estrutura: ['Concreto armado'], obsSegEstrutural: '',
       },
       {
         id: 'est-exemplo-2', nome: 'Estrutura 2',
-        areaTotal: '400', altura: '12', alturaPisoPiso: 3,
-        nPavimentos: 3, nSubsolos: 1, profundidadeSubsolo: '3',
+        areaTotal: '400', altura: '12', alturaPisoPiso: 6,
+        nPavimentos: 3, nSubsolos: 1, profundidadeSubsolo: '3', alturaEdificacao: '3',
         estrutura: ['Estrutura metalica'], obsSegEstrutural: '',
       },
     ],

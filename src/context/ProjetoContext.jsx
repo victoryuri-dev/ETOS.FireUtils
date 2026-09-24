@@ -185,10 +185,28 @@ function hydratarPlanoEmergencia(saved) {
   return base
 }
 
+// Migração: projetos salvos antes do campo "Altura da edificação" existir
+// guardavam esse mesmo valor (piso de descarga ao último pavimento, sem o
+// subsolo) em alturaPisoPiso — que agora virou só a soma bloqueada
+// (profundidadeSubsolo + alturaEdificacao) exibida na tela. Recalcula
+// alturaPisoPiso na migração pra telas de leitura (memorial, dashboard)
+// já mostrarem o valor somado sem o usuário precisar reabrir a Etapa 2.
+function migrarAlturaEdificacao(estruturas) {
+  return estruturas.map(e => {
+    const nPav = parseInt(e.nPavimentos) || 1
+    const jaTemCampo = e.alturaEdificacao !== undefined && e.alturaEdificacao !== null && e.alturaEdificacao !== ''
+    if (nPav <= 1 || jaTemCampo) return e
+    const alturaEdificacao = e.alturaPisoPiso ?? ''
+    const alturaPisoPiso = (parseFloat(e.profundidadeSubsolo) || 0) + (parseFloat(alturaEdificacao) || 0)
+    return { ...e, alturaEdificacao, alturaPisoPiso }
+  })
+}
+
 function hydrateState(saved) {
   return {
     ...INITIAL_STATE,
     ...saved,
+    estruturas: migrarAlturaEdificacao(saved.estruturas || INITIAL_STATE.estruturas),
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
     hidrantes: { ...INITIAL_STATE.hidrantes, ...(saved.hidrantes || {}) },
@@ -237,7 +255,7 @@ function novaEstrutura(nome, id) {
     id: id || idEstrutura(),
     nome,
     areaTotal: '', altura: '', alturaPisoPiso: 0,
-    nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '',
+    nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', alturaEdificacao: '',
     estrutura: ['Concreto armado'],
     obsSegEstrutural: '',
   }
@@ -274,7 +292,7 @@ const INITIAL_STATE = {
   usoSubsolo: '', coberturaHabitavel: 'Nao',
   compartVertical: 'Sem compartimentacao',
   fachada: 'Convencional', cobertura: 'Laje impermeabilizada',
-  estruturas: [{ id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0, nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', estrutura: ['Concreto armado'], obsSegEstrutural: '' }],
+  estruturas: [{ id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0, nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', alturaEdificacao: '', estrutura: ['Concreto armado'], obsSegEstrutural: '' }],
   propNome: '', propDocumento: '', propTelefone: '', propEmail: '',
   respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '', respEmail: '',
   cnaePrincipal: '', cnaePrincipalDesc: '',

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { ESTADOS_DISPONIVEIS } from '../../data/normas/index'
+import { alturaEdificacaoBase } from '../../data/trrf_calc'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
 import SwitchToggle from '../ui/SwitchToggle'
+import InfoTip from '../ui/InfoTip'
 
 const S = {
   section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
@@ -30,8 +32,9 @@ const MATERIAIS_ESTRUTURA = ['Concreto armado', 'Estrutura metalica', 'Alvenaria
 function EstruturaModal({ est, index, dispatch, onClose }) {
   const set = f => e => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field: f, value: e.target.value })
 
-  const h   = parseFloat(est.alturaPisoPiso) || 0
-  const sub = parseInt(est.nSubsolos)        || 0
+  const nPav = parseInt(est.nPavimentos) || 1
+  const sub  = parseInt(est.nSubsolos)   || 0
+  const h    = alturaEdificacaoBase(est)
 
   // Normaliza dado antigo (string unica) salvo antes do campo virar multi-selecao.
   const materiais = Array.isArray(est.estrutura) ? est.estrutura : [est.estrutura].filter(Boolean)
@@ -40,36 +43,40 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'estrutura', value: next })
   }
 
-  // Predio terreo (1 pavimento acima do solo): a altura piso a piso (piso de
-  // descarga ao ultimo pavimento habitado) e 0 sem subsolo, ou igual a
-  // profundidade do subsolo quando ele existe — o "ultimo pavimento" e o
-  // proprio terreo, entao a medida parte do subsolo (item 4.31, NT 03 CBMMA).
-  const alturaTerrea = (novoSub, novaProfundidade) => novoSub > 0 ? novaProfundidade : 0
+  // "Altura piso a piso" e sempre bloqueada — soma Profundidade do subsolo +
+  // Altura da edificacao. Predio terreo (1 pavimento acima do solo) nao tem
+  // o campo "Altura da edificacao" na tela (o proprio terreo e o "ultimo
+  // pavimento"): a soma vira so a profundidade do subsolo, ou 0 sem subsolo
+  // — mesma excecao do item 4.31, NT 03 CBMMA, ja embutida em
+  // alturaEdificacaoBase (ver trrf_calc.js, usada tambem na classificacao
+  // de TRRF, pra nunca ter duas fontes de verdade sobre essa altura).
+  const alturaPisoPisoSoma = candidato => {
+    const base = alturaEdificacaoBase(candidato)
+    const nPavCand = parseInt(candidato.nPavimentos) || 1
+    return nPavCand === 1 ? base : (parseFloat(candidato.profundidadeSubsolo) || 0) + base
+  }
 
   const handleNPav = e => {
     const v = parseInt(e.target.value) || 1
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nPavimentos', value:v })
     dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav:v, nSub:sub })
-    if (v === 1) {
-      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaTerrea(sub, est.profundidadeSubsolo) })
-    } else if (parseInt(est.nPavimentos) === 1) {
-      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value:'' })
-    }
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, nPavimentos:v }) })
   }
   const handleNSub = e => {
     const v = parseInt(e.target.value) || 0
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nSubsolos', value:v })
     dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav: est.nPavimentos, nSub:v })
-    if (parseInt(est.nPavimentos) === 1) {
-      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaTerrea(v, est.profundidadeSubsolo) })
-    }
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, nSubsolos:v }) })
   }
   const handleProfundidade = e => {
     const v = e.target.value
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'profundidadeSubsolo', value:v })
-    if (parseInt(est.nPavimentos) === 1) {
-      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaTerrea(sub, v) })
-    }
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, profundidadeSubsolo:v }) })
+  }
+  const handleAlturaEdificacao = e => {
+    const v = e.target.value
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaEdificacao', value:v })
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, alturaEdificacao:v }) })
   }
 
   return (
@@ -104,22 +111,33 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
             <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Dimensoes</div>
             <div className="g3 mb-3">
               <div className="fg"><label>Area construida total (m2) <span className="req">*</span></label><input type="number" value={est.areaTotal} onChange={set('areaTotal')}/></div>
-              <div className="fg"><label>Altura total (m) <span className="req">*</span></label><input type="number" step="0.1" value={est.altura} onChange={set('altura')}/></div>
+              <div className="fg">
+                <label>Altura total (m) <span className="req">*</span><InfoTip text="medida entre o nível do solo ao ponto mais alto da edificação"/></label>
+                <input type="number" step="0.1" value={est.altura} onChange={set('altura')}/>
+              </div>
               <div className="fg">
                 <label>Altura piso a piso (m) <span className="req">*</span></label>
-                <input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} onChange={set('alturaPisoPiso')} readOnly={parseInt(est.nPavimentos) === 1}/>
+                <input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} readOnly/>
               </div>
             </div>
             <div className="g2">
               <div className="fg"><label>No de pavimentos acima do solo <span className="req">*</span></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
               <div className="fg"><label>No de subsolos</label><input type="number" min="0" value={est.nSubsolos} onChange={handleNSub}/></div>
             </div>
-            {sub > 0 && (
+            {(sub > 0 || nPav > 1) && (
               <div className="g2 mt-3">
-                <div className="fg">
-                  <label>Profundidade do subsolo (m) <span className="req">*</span></label>
-                  <input type="number" step="0.1" min="0" value={est.profundidadeSubsolo ?? ''} onChange={handleProfundidade}/>
-                </div>
+                {sub > 0 && (
+                  <div className="fg">
+                    <label>Profundidade do subsolo (m) <span className="req">*</span><InfoTip text="medida entre o piso de descarga da edificação ao piso do subsolo"/></label>
+                    <input type="number" step="0.1" min="0" value={est.profundidadeSubsolo ?? ''} onChange={handleProfundidade}/>
+                  </div>
+                )}
+                {nPav > 1 && (
+                  <div className="fg">
+                    <label>Altura da edificação (m) <span className="req">*</span><InfoTip text="medida entre o nível do piso de descarga ao piso do último pavimento"/></label>
+                    <input type="number" step="0.1" min="0" value={est.alturaEdificacao ?? ''} onChange={handleAlturaEdificacao}/>
+                  </div>
+                )}
               </div>
             )}
           </div>
