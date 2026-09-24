@@ -1,109 +1,62 @@
-.signin-page{--signin-red:#ea1330;--signin-ink:#f5f5f6;--signin-muted:#94949e;--signin-line:rgba(255,255,255,.1);width:100%;height:100dvh;min-height:620px;display:grid;grid-template-columns:minmax(360px,33.333vw) minmax(0,1fr);overflow:hidden;isolation:isolate;color:var(--signin-ink);background:#0b0b0e}
-.signin-page *{box-sizing:border-box}
-.signin-page ::selection{color:#fff;background:rgba(234,19,48,.68)}
-.signin-sidebar{position:relative;z-index:5;min-width:0;display:grid;grid-template-rows:auto 1fr auto;padding:36px clamp(30px,3.1vw,58px) 28px;background:#111115;border-right:1px solid var(--signin-line);box-shadow:28px 0 80px rgba(0,0,0,.24)}
-.signin-header{display:flex;align-items:center;justify-content:space-between;gap:20px}
-.signin-brand{display:inline-flex;align-items:center}
-.signin-brand img{display:block;width:132px;height:auto}
-.signin-back{display:inline-flex;align-items:center;gap:7px;color:#8d8d96;font-size:12px;font-weight:550;text-decoration:none;transition:color .2s ease,transform .2s ease}
-.signin-back:hover{color:#fff;transform:translateX(-3px)}
-.signin-brand:focus-visible,.signin-back:focus-visible,.signin-password-toggle:focus-visible,.signin-switch button:focus-visible,.signin-submit:focus-visible{outline:2px solid var(--signin-red);outline-offset:4px}
-.signin-auth{width:100%;max-width:390px;margin:auto;align-self:center;padding:52px 0}
-.signin-copy{margin-bottom:42px}
-.signin-copy h1{max-width:360px;margin:0;font-family:var(--font-heading);font-size:clamp(34px,3.1vw,48px);font-weight:550;letter-spacing:-.038em;line-height:1.02;text-wrap:balance}
-.signin-copy p{margin:15px 0 0;color:var(--signin-muted);font-size:14px;line-height:1.6}
-.signin-form{display:flex;flex-direction:column;gap:20px;animation:signin-form-in .45s cubic-bezier(.16,1,.3,1) both}
-.signin-field{display:flex;flex-direction:column;gap:9px}
-.signin-field label{color:#d1d1d6;font-size:12px;font-weight:600}
-.signin-control{height:54px;display:flex;align-items:center;gap:11px;padding:0 14px;color:#6e6e78;background:#0d0d11;border:1px solid rgba(255,255,255,.11);border-radius:9px;transition:border-color .2s ease,background .2s ease,box-shadow .2s ease}
-.signin-control:hover{border-color:rgba(255,255,255,.2)}
-.signin-control:focus-within{border-color:rgba(234,19,48,.75);background:#0f0f13;box-shadow:0 0 0 3px rgba(234,19,48,.1)}
-.signin-control input{min-width:0;width:100%;height:100%;padding:0;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;color:#f4f4f5;font-size:14px}
-.signin-control input::placeholder{color:#85858f;opacity:1}
-.signin-password-toggle{width:34px;height:34px;display:grid;place-items:center;flex:none;padding:0;color:#777781;background:transparent;border:0;border-radius:7px;transition:color .2s ease,background .2s ease}
-.signin-password-toggle:hover{color:#fff;background:rgba(255,255,255,.06)}
-.signin-message:empty{display:none}
-.signin-alert{display:flex;align-items:flex-start;gap:9px;padding:12px 13px;border-radius:8px;font-size:12px;line-height:1.5}
-.signin-alert svg{flex:none;margin-top:1px}
-.signin-alert.is-error{color:#ff93a1;background:rgba(234,19,48,.09);border:1px solid rgba(234,19,48,.27)}
-.signin-alert.is-success{color:#6fd5b8;background:rgba(29,158,117,.09);border:1px solid rgba(29,158,117,.27)}
-.signin-submit{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:3px;padding:0 17px;color:#fff;background:var(--signin-red);border:0;border-radius:9px;font-size:14px;font-weight:650;box-shadow:0 16px 34px rgba(125,0,18,.25);transition:transform .2s ease,background .2s ease,box-shadow .2s ease}
-.signin-submit:hover:not(:disabled){transform:translateY(-2px);background:#f51a39;box-shadow:0 21px 42px rgba(125,0,18,.36)}
-.signin-submit:active:not(:disabled){transform:none}
-.signin-submit:disabled{cursor:wait;opacity:.65}
-.signin-spinner{animation:signin-spin .8s linear infinite}
-.signin-switch{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:24px;color:#85858f;font-size:12px;text-align:center}
-.signin-switch button{padding:0;color:#ededf0;background:transparent;border:0;font-size:12px;font-weight:600;text-decoration:underline;text-decoration-color:rgba(234,19,48,.64);text-underline-offset:4px}
-.signin-switch button:hover{color:#ff6579}
-.signin-switch button:disabled{cursor:wait;color:#71717b;text-decoration-color:transparent}
-.signin-footer{margin:0;color:#898993;font-size:9px;letter-spacing:.03em;line-height:1.4}
-.signin-art{position:relative;min-width:0;overflow:hidden;background:radial-gradient(circle at 54% 48%,#261017 0,#130d11 31%,#0a0a0d 72%)}
-.signin-art::before{content:"";position:absolute;inset:0;background:linear-gradient(125deg,rgba(255,255,255,.035),transparent 28% 70%,rgba(234,19,48,.045));pointer-events:none}
-.signin-art-grid{position:absolute;inset:-15%;opacity:.34;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:72px 72px;transform:perspective(900px) rotateX(64deg) rotateZ(-12deg) translateY(30%);transform-origin:center center;mask-image:radial-gradient(circle at 52% 50%,#000 0 32%,transparent 72%)}
-.signin-art-orbits{position:absolute;left:53%;top:49%;width:min(69vw,900px);aspect-ratio:1;transform:translate(-50%,-50%) rotate(-10deg);pointer-events:none}
-.signin-art-orbits i{position:absolute;inset:var(--ring-inset,0);border:1px solid rgba(255,255,255,.075);border-radius:50%;box-shadow:inset 0 0 80px rgba(234,19,48,.025)}
-.signin-art-orbits i:nth-child(2){--ring-inset:13%;border-color:rgba(234,19,48,.13)}
-.signin-art-orbits i:nth-child(3){--ring-inset:27%;border-color:rgba(255,255,255,.09)}
-.signin-art-mark-wrap{position:absolute;left:51%;top:49%;width:min(31vw,470px);height:auto;transform:translate(-50%,-50%) rotate(7deg);filter:drop-shadow(0 46px 44px rgba(0,0,0,.5)) drop-shadow(0 0 72px rgba(234,19,48,.18));animation:signin-mark-breathe 10s cubic-bezier(.45,0,.55,1) infinite alternate}
-.signin-art-mark{display:block;width:100%;height:auto;overflow:visible}
-.signin-art-outline{fill:none;stroke:rgba(255,78,100,.2);stroke-width:.7}
-.signin-blade{transform-box:fill-box;transform-origin:center;stroke:rgba(255,255,255,.12);stroke-width:.45}
-.signin-blade-one{animation:signin-blade-float 8s cubic-bezier(.45,0,.55,1) infinite alternate}
-.signin-blade-two{animation:signin-blade-float 10s cubic-bezier(.45,0,.55,1) -4s infinite alternate-reverse}
-.signin-blade-three{animation:signin-blade-float 7s cubic-bezier(.45,0,.55,1) -2s infinite alternate}
-.signin-art-sheen{position:absolute;top:-20%;bottom:-20%;left:-34%;width:14%;transform:rotate(17deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);filter:blur(10px);animation:signin-sheen 12s cubic-bezier(.45,0,.55,1) infinite;pointer-events:none}
-@keyframes signin-form-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@keyframes signin-spin{to{transform:rotate(360deg)}}
-@keyframes signin-mark-breathe{from{transform:translate(-50%,-50%) rotate(5deg) scale(.985)}to{transform:translate(-50%,-50%) rotate(8deg) scale(1.018)}}
-@keyframes signin-blade-float{from{transform:translateY(-1.5px)}to{transform:translateY(2.5px)}}
-@keyframes signin-sheen{0%,12%{transform:translateX(0) rotate(17deg);opacity:0}24%{opacity:.55}42%,100%{transform:translateX(960%) rotate(17deg);opacity:0}}
-@media(max-width:900px){
-  .signin-page{height:100dvh;min-height:0;grid-template-columns:1fr;grid-template-rows:220px minmax(calc(100dvh - 220px),auto);overflow-y:auto;background:#111115}
-  .signin-art{grid-row:1;min-height:220px;border-bottom:1px solid var(--signin-line)}
-  .signin-sidebar{grid-row:2;min-height:calc(100dvh - 220px);padding:28px clamp(22px,7vw,48px) 24px;border-right:0;box-shadow:0 -22px 60px rgba(0,0,0,.32)}
-  .signin-header{position:absolute;left:clamp(22px,7vw,48px);right:clamp(22px,7vw,48px);top:-192px;z-index:4}
-  .signin-back{color:rgba(255,255,255,.68)}
-  .signin-auth{max-width:440px;padding:48px 0 38px}
-  .signin-copy{margin-bottom:34px}
-  .signin-copy h1{font-size:clamp(34px,8vw,44px)}
-  .signin-footer{text-align:center}
-  .signin-art-mark-wrap{width:136px;left:50%;top:57%}
-  .signin-art-orbits{width:420px;left:50%;top:58%}
+.login-original{
+  position:relative;
+  min-height:100dvh;
+  padding:24px;
+  overflow:hidden;
+  isolation:isolate;
+  background:#101014;
 }
-@media(max-width:480px){
-  .signin-page{grid-template-rows:176px minmax(calc(100dvh - 176px),auto)}
-  .signin-art{min-height:176px}
-  .signin-sidebar{min-height:calc(100dvh - 176px);padding:24px 20px 20px}
-  .signin-header{left:20px;right:20px;top:-151px}
-  .signin-brand img{width:116px}
-  .signin-auth{padding:38px 0 30px}
-  .signin-copy{margin-bottom:28px}
-  .signin-copy h1{font-size:34px}
-  .signin-copy p{margin-top:12px;font-size:13px}
-  .signin-form{gap:17px}
-  .signin-control{height:52px}
-  .signin-submit{min-height:52px}
-  .signin-art-mark-wrap{width:112px;top:59%}
-  .signin-art-orbits{width:330px;top:60%}
+.login-original-card{
+  position:relative;
+  z-index:1;
+  border-radius:8px;
+  box-shadow:0 24px 80px rgba(0,0,0,.42);
 }
-@media(max-width:480px) and (max-height:700px){
-  .signin-page{grid-template-rows:160px minmax(calc(100dvh - 160px),auto)}
-  .signin-art{min-height:160px}
-  .signin-sidebar{min-height:calc(100dvh - 160px)}
-  .signin-header{top:-137px}
-  .signin-art-mark-wrap{width:102px;top:60%}
+.login-original-card .fg input,
+.login-original-card .btn-primary,
+.login-original-card .ibox{
+  border-radius:5px;
 }
-@media(max-height:700px) and (min-width:901px){
-  .signin-sidebar{padding-top:26px;padding-bottom:22px}
-  .signin-auth{padding:30px 0}
-  .signin-copy{margin-bottom:26px}
-  .signin-copy h1{font-size:36px}
-  .signin-form{gap:16px}
-  .signin-control{height:49px}
-  .signin-submit{min-height:50px}
-  .signin-switch{margin-top:18px}
+.login-original-card .fg input:focus-visible,
+.login-original-card .btn-primary:focus-visible,
+.login-mode-toggle:focus-visible{
+  outline:2px solid #ea1330;
+  outline-offset:3px;
+}
+.login-mode-toggle:disabled{cursor:wait;opacity:.55}
+.login-hero-beams{
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  overflow:hidden;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 50% 75%,rgba(234,19,48,.13),transparent 62%);
+}
+.login-hero-beams i{
+  position:absolute;
+  width:110px;
+  height:1000px;
+  top:-120px;
+  left:calc(50% + 410px);
+  transform:rotate(39deg);
+  background:linear-gradient(90deg,transparent,rgba(234,19,48,.08) 40%,rgba(234,19,48,.42) 98%,#ff556b);
+  filter:blur(1px);
+  opacity:.6;
+  animation:login-hero-beam 7s ease-in-out infinite alternate;
+}
+.login-hero-beams i:nth-child(2){left:calc(50% + 570px);width:65px;animation-delay:-3s;opacity:.4}
+.login-hero-beams i:nth-child(3){left:calc(50% - 660px);width:180px;animation-delay:-5s;opacity:.2}
+@keyframes login-hero-beam{
+  from{opacity:.15;translate:0 -30px}
+  to{opacity:.6;translate:25px 20px}
+}
+@media(max-width:560px){
+  .login-original{padding:18px}
+  .login-original-card{padding:26px}
+  .login-hero-beams i{left:calc(50% + 145px);width:70px}
+  .login-hero-beams i:nth-child(2){left:calc(50% + 245px);width:45px}
+  .login-hero-beams i:nth-child(3){left:calc(50% - 330px);width:130px}
 }
 @media(prefers-reduced-motion:reduce){
-  .signin-form,.signin-spinner,.signin-art-mark-wrap,.signin-blade,.signin-art-sheen{animation:none!important}
-  .signin-back,.signin-control,.signin-password-toggle,.signin-submit{transition:none!important}
+  .login-hero-beams i{animation:none}
 }
