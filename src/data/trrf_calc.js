@@ -61,6 +61,16 @@ export function alturaEdificacaoBase(estrutura) {
   return num(estrutura.alturaEdificacao)
 }
 
+/** Verdadeiro só quando a edificação é de fato térrea: 1 pavimento acima do
+ *  solo E a altura pura (`alturaEdificacaoBase`) é 0 — ou seja, sem subsolo
+ *  (com subsolo, a altura pura passa a ser a profundidade dele, item 4.31
+ *  NT 03 CBMMA, e deixa de ser 0). Usado só pra rotular a altura na
+ *  tela/memorial ("0 m (Edificação Térrea)"), nunca na classificação em si
+ *  (que já trata h=0 normalmente como Classe P1). */
+export function edificacaoEhTerrea(estrutura) {
+  return (parseInt(estrutura.nPavimentos) || 1) === 1 && alturaEdificacaoBase(estrutura) === 0
+}
+
 /** Altura da edificação a usar na classificação (item 4.31, NT 03 CBMMA):
  *  do piso de descarga ao piso do último pavimento habitado
  *  (`alturaEdificacaoBase`). Quando o subsolo tem ocupação (ver

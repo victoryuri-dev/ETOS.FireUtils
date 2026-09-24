@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { ESTADOS_DISPONIVEIS } from '../../data/normas/index'
-import { alturaEdificacaoBase } from '../../data/trrf_calc'
+import { alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
 import SwitchToggle from '../ui/SwitchToggle'
@@ -15,8 +15,9 @@ const S = {
   desc: 'text-[13px] text-ink-faint leading-[1.6]',
 }
 
-const ALERTAS = (h, sub) => {
+const ALERTAS = (h, sub, terrea) => {
   const m = []
+  if (terrea)            m.push({ t:'green', i:'check', txt:'0 m (Edificação Térrea).' })
   if (h > 0  && h <= 6)  m.push({ t:'green', i:'check', txt:'Edificacao terrea — Classe: Terrea.' })
   if (h > 6  && h <= 12) m.push({ t:'green', i:'check', txt:'Altura 6-12 m — Classe: Baixa altura.' })
   if (h > 12 && h <= 23) m.push({ t:'amber', i:'warn',  txt:'Altura acima de 12 m — Classe: Media altura. Verifique exigencia de escada enclausurada.' })
@@ -32,9 +33,10 @@ const MATERIAIS_ESTRUTURA = ['Concreto armado', 'Estrutura metalica', 'Alvenaria
 function EstruturaModal({ est, index, dispatch, onClose }) {
   const set = f => e => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field: f, value: e.target.value })
 
-  const nPav = parseInt(est.nPavimentos) || 1
-  const sub  = parseInt(est.nSubsolos)   || 0
-  const h    = alturaEdificacaoBase(est)
+  const nPav   = parseInt(est.nPavimentos) || 1
+  const sub    = parseInt(est.nSubsolos)   || 0
+  const h      = alturaEdificacaoBase(est)
+  const terrea = edificacaoEhTerrea(est)
 
   // Normaliza dado antigo (string unica) salvo antes do campo virar multi-selecao.
   const materiais = Array.isArray(est.estrutura) ? est.estrutura : [est.estrutura].filter(Boolean)
@@ -116,7 +118,7 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
                 <input type="number" step="0.1" value={est.altura} onChange={set('altura')}/>
               </div>
               <div className="fg">
-                <label>Altura piso a piso (m) <span className="req">*</span></label>
+                <label>Altura piso a piso (m) <span className="req">*</span>{terrea && <span className="fhint">— Edificação Térrea</span>}</label>
                 <input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} readOnly/>
               </div>
             </div>
@@ -142,7 +144,7 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
             )}
           </div>
 
-          {ALERTAS(h, sub).map((m, i) => (
+          {ALERTAS(h, sub, terrea).map((m, i) => (
             <div key={i} className={`ibox ${m.t} mb-2.5`}>
               <Icon name={m.i} size={14} color={`var(--color-${m.t})`} className="shrink-0"/>
               <span>{m.txt}</span>
