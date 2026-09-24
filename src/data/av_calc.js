@@ -27,19 +27,16 @@ export function calcGatilho(altura, afastamento, isCondominio, gatilho) {
 }
 
 /** Dimensionamento completo da via de acesso (item 5.1.1) */
-export function calcAcessoViatura(inputs, params, ctx) {
-  const { larguraMin, alturaLivreMin, cargaMinKg, cargaEixos, desnivelMaxPct, portao, retorno, distancia } = params
-  const { temHidrantes } = ctx
+export function calcAcessoViatura(inputs, params) {
+  const { larguraMin, alturaLivreMin, cargaMinKg, cargaEixos, desnivelMaxPct, portao, retorno } = params
 
   const larguraAdotada     = numOr(inputs.larguraAdotada, larguraMin)
   const alturaLivreAdotada = numOr(inputs.alturaLivreAdotada, alturaLivreMin)
   const desnivelLong       = numOr(inputs.desnivelLongAdotado, desnivelMaxPct)
   const desnivelTransv     = numOr(inputs.desnivelTransvAdotado, desnivelMaxPct)
   const extensaoVia        = num(inputs.extensaoVia)
-  const distanciaAdotada   = num(inputs.distanciaAdotada)
 
   const exigeRetorno = extensaoVia > retorno.extensaoGatilho
-  const distanciaMaxima = temHidrantes ? distancia.comHidrante : distancia.semHidrante
   const exigeSaidaIndependente = !inputs.manobraRetornoOk
 
   const portaoRes = inputs.temPortao ? {
@@ -67,11 +64,6 @@ export function calcAcessoViatura(inputs, params, ctx) {
       manobraOk: !!inputs.manobraRetornoOk,
       saidaIndependente: saidaIndepRes,
     },
-    distancia: {
-      adotada: distanciaAdotada, maxima: distanciaMaxima,
-      baseadoEm: temHidrantes ? 'hidrante' : 'edificacao',
-      atende: distanciaAdotada <= distanciaMaxima,
-    },
   }
 
   const checagens = [
@@ -83,7 +75,6 @@ export function calcAcessoViatura(inputs, params, ctx) {
     portaoRes ? (portaoRes.largura.atende && portaoRes.altura.atende) : true,
     exigeRetorno ? (!!resultado.retorno.tipoRetorno && (resultado.retorno.tipoRetorno !== 'outro' || !!resultado.retorno.outroDesc)) : true,
     saidaIndepRes ? (saidaIndepRes.largura.atende && saidaIndepRes.altura.atende) : true,
-    resultado.distancia.atende,
   ]
   resultado.atendeGeral = checagens.every(Boolean)
 

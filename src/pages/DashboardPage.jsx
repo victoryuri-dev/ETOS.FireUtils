@@ -64,7 +64,7 @@ function getSystemProgress(key, state) {
   if (key === 'extintores' && state.extintores?.length) return { tone: 'progress', label: `${state.extintores.length} lançamento${state.extintores.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
   if (key === 'iluminacao' && state.iluminacao?.length) return { tone: 'progress', label: `${state.iluminacao.length} lançamento${state.iluminacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
   if (key === 'sinalizacao' && state.sinalizacao?.length) return { tone: 'progress', label: `${state.sinalizacao.length} lançamento${state.sinalizacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
-  if (key === 'acesso_viatura' && (state.acessoViatura?.larguraAdotada || state.acessoViatura?.distanciaAdotada)) {
+  if (key === 'acesso_viatura' && state.acessoViatura?.larguraAdotada) {
     return { tone: 'progress', label: 'Em preenchimento', detail: 'Parâmetros informados' }
   }
   return { tone: 'todo', label: 'A desenvolver', detail: 'Abra para dimensionar' }

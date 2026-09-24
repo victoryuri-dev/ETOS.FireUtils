@@ -320,7 +320,6 @@ const INITIAL_STATE = {
     temPortao: false, portaoLargura: '', portaoAltura: '',
     extensaoVia: '', tipoRetorno: '', tipoRetornoOutroDesc: '',
     manobraRetornoOk: true, saidaIndepLargura: '', saidaIndepAltura: '',
-    distanciaAdotada: '',
   },
   // Classificação do Sistema de Hidrantes/Mangotinhos (NT 22 CBMMA) pro
   // memorial descritivo — registro único por projeto (a NT-22 não obriga
