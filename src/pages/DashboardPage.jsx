@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useProjeto } from '../context/ProjetoContext'
 import { useNorma } from '../hooks/useNorma'
 import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
@@ -47,9 +47,11 @@ const DIMENSIONING_CONFIG_STEPS = [
 
 const fmtNumber = value => value ? Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—'
 
-function getFireLoad(state) {
-  return Object.values(state.cargaState || {})
-    .flatMap(item => Object.values(item || {}))
+function getFireLoad(cargaState) {
+  return Object.values(cargaState || {})
+    .flatMap(item => item && ('metodo' in item || 'cargaIncendio' in item || 'valorManual' in item)
+      ? [item]
+      : Object.values(item || {}))
     .reduce((highest, item) => {
       const value = item?.metodo === 'levantamento' ? Number(item?.valorManual) || 0 : item?.cargaIncendio || 0
       return Math.max(highest, value)
@@ -74,20 +76,11 @@ function Metric({ label, value, unit, detail }) {
   return <div className="dashboard-metric"><span>{label}</span><strong>{value}<small>{unit}</small></strong><p>{detail}</p></div>
 }
 
-function ActionItem({ index, title, description, button, onClick, tone = 'default' }) {
-  return (
-    <li className={`dashboard-action dashboard-action--${tone}`}>
-      <span className="dashboard-action__index">{String(index).padStart(2, '0')}</span>
-      <div><strong>{title}</strong><p>{description}</p></div>
-      <button type="button" onClick={onClick} aria-label={`${button}: ${title}`}>{button}<Icon name="right" size={14}/></button>
-    </li>
-  )
-}
-
 export default function DashboardPage({ onGoConfig, onNavigate }) {
   const { state } = useProjeto()
   const { info } = useNorma()
-  const { sistemas } = useMedidasObrigatorias()
+  const { sistemas, porEstrutura } = useMedidasObrigatorias()
+  const [selectedStructureId, setSelectedStructureId] = useState('all')
 
   const data = useMemo(() => {
     const structures = state.estruturas || []
@@ -97,33 +90,50 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       .sort((a, b) => Number(b.required) - Number(a.required))
     const configSteps = state.tipoProjeto === 'dimensionamento' ? DIMENSIONING_CONFIG_STEPS : COMPLETE_CONFIG_STEPS
     const configuredSteps = configSteps.filter(step => step.test(state, activeSystems))
-    const nextConfigStep = configSteps.find(step => !step.test(state, activeSystems))
     const groups = [...new Set((state.pavimentos || []).map(p => p.grupo).filter(Boolean))].sort()
     const divisions = [...new Set((state.pavimentos || []).map(p => p.divisao).filter(Boolean))].sort()
     const floorCount = structures.reduce((sum, item) => sum + (Number(item.nPavimentos) || 0), 0)
     const basementCount = structures.reduce((sum, item) => sum + (Number(item.nSubsolos) || 0), 0)
     const area = Number(state.areaConstruidaTotal) || structures.reduce((sum, item) => sum + (Number(item.areaTotal) || 0), 0)
     const height = structures.reduce((highest, item) => Math.max(highest, Number(item.altura) || 0), 0)
-    const fireLoad = getFireLoad(state)
-    const resolvedSystems = activeSystems.filter(system => system.progress.tone === 'done')
+    const fireLoad = getFireLoad(state.cargaState)
     const systemsWithData = activeSystems.filter(system => system.progress.tone !== 'todo')
     const configPercent = Math.round((configuredSteps.length / configSteps.length) * 100)
     const hasTechnicalData = Boolean(state.nome || area || height || fireLoad || groups.length || state.rtNome)
-    const actions = []
 
-    if (nextConfigStep) actions.push({ title: `Concluir ${nextConfigStep.label.toLowerCase()}`, description: 'Há informações essenciais que ainda precisam ser confirmadas na configuração.', button: 'Configurar', onClick: onGoConfig, tone: 'urgent' })
-    if (hasTechnicalData) {
-      const hydrants = activeSystems.find(system => system.key === 'hidrantes')
-      if (hydrants && hydrants.progress.tone !== 'done') actions.push({ title: 'Dimensionar hidrantes', description: state.hidrantes?.tipo ? 'A classificação está pronta. Importe o cálculo hidráulico produzido no Revit.' : 'Defina a classificação do sistema e prepare o cálculo hidráulico.', button: 'Abrir sistema', onClick: () => onNavigate?.('hidrantes') })
-      const nextSystem = activeSystems.find(system => system.key !== 'hidrantes' && system.progress.tone !== 'done')
-      if (nextSystem) actions.push({ title: `Revisar ${nextSystem.label.toLowerCase()}`, description: nextSystem.required ? 'Sistema exigido pela classificação do projeto.' : 'Sistema opcional habilitado para este projeto.', button: 'Continuar', onClick: () => onNavigate?.(nextSystem.key) })
-      actions.push({ title: 'Revisar a documentação', description: 'Confira os documentos montados com os dados atuais do projeto.', button: 'Ver documentos', onClick: () => onNavigate?.('documentos') })
+    const selectedStructure = structures.find(item => item.id === selectedStructureId)
+    const selectedPavements = selectedStructure
+      ? (state.pavimentos || []).filter(item => item.estruturaId === selectedStructure.id)
+      : (state.pavimentos || [])
+    const structureSystems = selectedStructure
+      ? porEstrutura.find(item => item.estrutura.id === selectedStructure.id)?.sistemas || {}
+      : sistemas
+    const summarySystems = SYSTEMS.filter(system => structureSystems[system.key]?.ativo || structureSystems[system.key]?.obrigatorio)
+    const summaryGroups = [...new Set(selectedPavements.map(item => item.grupo).filter(Boolean))].sort()
+    const summaryDivisions = [...new Set(selectedPavements.map(item => item.divisao).filter(Boolean))].sort()
+    const summary = selectedStructure ? {
+      label: selectedStructure.nome,
+      area: Number(selectedStructure.areaTotal) || 0,
+      height: Number(selectedStructure.altura) || 0,
+      floorCount: Number(selectedStructure.nPavimentos) || 0,
+      basementCount: Number(selectedStructure.nSubsolos) || 0,
+      fireLoad: getFireLoad(state.cargaState?.[selectedStructure.id]),
+      groups: summaryGroups,
+      divisions: summaryDivisions,
+      systemCount: summarySystems.length,
+      requiredCount: summarySystems.filter(system => structureSystems[system.key]?.obrigatorio).length,
+    } : {
+      label: 'Visão geral', area, height, floorCount, basementCount, fireLoad,
+      groups: summaryGroups, divisions: summaryDivisions,
+      systemCount: activeSystems.length,
+      requiredCount: activeSystems.filter(system => system.required).length,
     }
 
-    return { activeSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, floorCount, basementCount, area, height, fireLoad, resolvedSystems, systemsWithData, configPercent, hasTechnicalData, actions: actions.slice(0, 3) }
-  }, [state, sistemas, onGoConfig, onNavigate])
+    return { activeSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsWithData, configPercent, hasTechnicalData, summary }
+  }, [state, sistemas, porEstrutura, selectedStructureId])
 
   const projectReady = data.configPercent === 100
+  const address = [state.endereco, state.numero, state.bairro, state.cidade && `${state.cidade} — ${state.uf || 'MA'}`].filter(Boolean).join(', ')
   return (
     <main className="dashboard-shell">
       <div className="dashboard-content">
@@ -152,34 +162,42 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
           </div>
         </section>
 
-        <section className="dashboard-main-grid">
-          <div className="dashboard-panel dashboard-priorities">
-            <div className="dashboard-section-heading"><div><h2>Próximas ações</h2><p>O que merece sua atenção agora</p></div><span>{data.actions.length}</span></div>
-            <ol>{data.actions.map((action, index) => <ActionItem key={action.title} index={index + 1} {...action}/>)}</ol>
-          </div>
-          <aside className="dashboard-panel dashboard-context">
-            <div className="dashboard-section-heading"><div><h2>Contexto técnico</h2><p>Referências para decisão</p></div></div>
+        <section className="dashboard-information-grid">
+          <article className="dashboard-panel dashboard-identification">
+            <div className="dashboard-section-heading"><div><h2>Identificação do projeto</h2><p>Dados administrativos e responsáveis</p></div><Icon name="info" size={15}/></div>
             <dl>
-              <div><dt>Classificação</dt><dd>{data.divisions.join(', ') || 'Não definida'}</dd></div>
-              <div><dt>Situação</dt><dd>{state.situacao === 'existente' ? 'Edificação existente' : state.situacao === 'nova' ? 'Edificação nova' : 'Não definida'}</dd></div>
+              <div><dt>Nome do projeto</dt><dd>{state.nome || 'Não informado'}</dd></div>
+              <div><dt>Localização</dt><dd>{address || 'Não informada'}</dd></div>
+              <div><dt>Proprietário</dt><dd>{state.propNome || 'Não informado'}</dd></div>
+              <div><dt>Responsável pelo uso</dt><dd>{state.respRazaoSocial || 'Não informado'}</dd></div>
               {state.tipoProjeto === 'dimensionamento' ? <div><dt>Modalidade</dt><dd>Apenas dimensionamento</dd></div> : <>
                 <div><dt>Responsável técnico</dt><dd>{state.rtNome || 'Não informado'}</dd></div>
-                <div><dt>CREA / CAU</dt><dd>{state.rtConselho || 'Não informado'}</dd></div>
+                <div><dt>Registro / ART</dt><dd>{[state.rtConselho, state.artNumero].filter(Boolean).join(' · ') || 'Não informado'}</dd></div>
               </>}
-              <div><dt>Estruturas</dt><dd>{(state.estruturas || []).length}</dd></div>
             </dl>
-            <button type="button" className="dashboard-text-button" onClick={onGoConfig}>Ver configuração completa <Icon name="right" size={13}/></button>
-          </aside>
-        </section>
+            <button type="button" className="dashboard-text-button" onClick={onGoConfig}>Editar identificação <Icon name="right" size={13}/></button>
+          </article>
 
-        <section className="dashboard-technical" aria-label="Resumo técnico">
-          <div className="dashboard-section-heading"><div><h2>Resumo técnico</h2><p>Dados consolidados da edificação</p></div></div>
-          <div className="dashboard-metrics">
-            <Metric label="Área construída" value={fmtNumber(data.area)} unit={data.area ? 'm²' : ''} detail={`${(state.estruturas || []).length} estrutura${(state.estruturas || []).length === 1 ? '' : 's'}`}/>
-            <Metric label="Altura máxima" value={fmtNumber(data.height)} unit={data.height ? 'm' : ''} detail={`${data.floorCount} pavimento${data.floorCount === 1 ? '' : 's'}${data.basementCount ? ` · ${data.basementCount} subsolo${data.basementCount === 1 ? '' : 's'}` : ''}`}/>
-            <Metric label="Carga de incêndio" value={fmtNumber(data.fireLoad)} unit={data.fireLoad ? 'MJ/m²' : ''} detail={data.fireLoad ? (data.fireLoad <= 300 ? 'Risco baixo' : data.fireLoad <= 1200 ? 'Risco médio' : 'Risco alto') : 'Aguardando classificação'}/>
-            <Metric label="Sistemas aplicáveis" value={data.activeSystems.length || '—'} unit="" detail={`${data.activeSystems.filter(item => item.required).length} obrigatórios`}/>
-          </div>
+          <article className="dashboard-panel dashboard-technical" aria-label="Resumo técnico">
+            <div className="dashboard-section-heading dashboard-technical__heading">
+              <div><h2>Resumo técnico</h2><p>Dados da visão selecionada</p></div>
+              <label className="dashboard-building-filter">
+                <span>Edificação</span>
+                <select value={selectedStructureId} onChange={event => setSelectedStructureId(event.target.value)}>
+                  <option value="all">Visão geral</option>
+                  {(state.estruturas || []).map(structure => <option key={structure.id} value={structure.id}>{structure.nome}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="dashboard-metrics">
+              <Metric label="Área construída" value={fmtNumber(data.summary.area)} unit={data.summary.area ? 'm²' : ''} detail={selectedStructureId === 'all' ? `${(state.estruturas || []).length} edificações` : data.summary.label}/>
+              <Metric label="Altura" value={fmtNumber(data.summary.height)} unit={data.summary.height ? 'm' : ''} detail={`${data.summary.floorCount} pavimento${data.summary.floorCount === 1 ? '' : 's'}${data.summary.basementCount ? ` · ${data.summary.basementCount} subsolo${data.summary.basementCount === 1 ? '' : 's'}` : ''}`}/>
+              <Metric label="Carga de incêndio" value={fmtNumber(data.summary.fireLoad)} unit={data.summary.fireLoad ? 'MJ/m²' : ''} detail={data.summary.fireLoad ? (data.summary.fireLoad <= 300 ? 'Risco baixo' : data.summary.fireLoad <= 1200 ? 'Risco médio' : 'Risco alto') : 'Aguardando classificação'}/>
+              <Metric label="Classificação" value={data.summary.groups.join(', ') || '—'} unit="" detail={data.summary.divisions.join(', ') || 'Divisões não definidas'}/>
+              <Metric label="Sistemas aplicáveis" value={data.summary.systemCount || '—'} unit="" detail={`${data.summary.requiredCount} obrigatórios`}/>
+              <Metric label="Situação" value={state.situacao === 'existente' ? 'Existente' : state.situacao === 'nova' ? 'Nova' : '—'} unit="" detail={info?.nome || 'Norma não definida'}/>
+            </div>
+          </article>
         </section>
 
         <section className="dashboard-systems">
