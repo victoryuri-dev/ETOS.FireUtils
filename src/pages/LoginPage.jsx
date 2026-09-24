@@ -53,6 +53,12 @@ export default function LoginPage() {
       <div className="login-hero-beams" aria-hidden="true"><i/><i/><i/></div>
 
       <section className="login-original-card w-full max-w-[380px] bg-surface border border-border border-solid p-8" aria-labelledby="login-title">
+        {busy && isLogin && (
+          <div className="login-card-loader" role="status" aria-live="polite" aria-label="Entrando">
+            <span aria-hidden="true"/>
+          </div>
+        )}
+
         <img src={logo} alt="Fire Utils" className="h-9 w-auto mb-7"/>
 
         <h1 id="login-title" className="text-[15px] font-semibold text-ink mb-1">

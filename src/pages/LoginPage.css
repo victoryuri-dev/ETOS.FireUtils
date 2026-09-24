@@ -12,6 +12,24 @@
   border-radius:8px;
   box-shadow:0 24px 80px rgba(0,0,0,.42);
 }
+.login-card-loader{
+  position:absolute;
+  z-index:5;
+  inset:0;
+  display:grid;
+  place-items:center;
+  border-radius:inherit;
+  background:rgba(20,20,24,.82);
+  cursor:wait;
+}
+.login-card-loader>span{
+  width:30px;
+  height:30px;
+  border:3px solid rgba(255,255,255,.24);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:login-card-spin .72s linear infinite;
+}
 .login-original-card .fg input,
 .login-original-card .btn-primary,
 .login-original-card .ibox{
@@ -50,6 +68,7 @@
   from{opacity:.15;translate:0 -30px}
   to{opacity:.6;translate:25px 20px}
 }
+@keyframes login-card-spin{to{transform:rotate(360deg)}}
 @media(max-width:560px){
   .login-original{padding:18px}
   .login-original-card{padding:26px}
@@ -59,4 +78,5 @@
 }
 @media(prefers-reduced-motion:reduce){
   .login-hero-beams i{animation:none}
+  .login-card-loader>span{animation-duration:1.4s}
 }
