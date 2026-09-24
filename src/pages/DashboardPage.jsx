@@ -58,14 +58,20 @@ function getFireLoad(cargaState) {
     }, 0)
 }
 
-function getSystemProgress(key, state) {
+function getSystemProgress(key, state, structureId = null) {
+  const scopedItems = items => structureId
+    ? (items || []).filter(item => item.estruturaId === structureId)
+    : (items || [])
   if (key === 'hidrantes') {
     if (state.hidrantes?.dimensionamento) return { tone: 'done', label: 'Sincronizado com o Revit', detail: 'Cálculo hidráulico disponível' }
     if (state.hidrantes?.tipo) return { tone: 'progress', label: 'Em dimensionamento', detail: 'Classificação definida' }
   }
-  if (key === 'extintores' && state.extintores?.length) return { tone: 'progress', label: `${state.extintores.length} lançamento${state.extintores.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
-  if (key === 'iluminacao' && state.iluminacao?.length) return { tone: 'progress', label: `${state.iluminacao.length} lançamento${state.iluminacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
-  if (key === 'sinalizacao' && state.sinalizacao?.length) return { tone: 'progress', label: `${state.sinalizacao.length} lançamento${state.sinalizacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
+  const extintores = scopedItems(state.extintores)
+  const iluminacao = scopedItems(state.iluminacao)
+  const sinalizacao = scopedItems(state.sinalizacao)
+  if (key === 'extintores' && extintores.length) return { tone: 'progress', label: `${extintores.length} lançamento${extintores.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
+  if (key === 'iluminacao' && iluminacao.length) return { tone: 'progress', label: `${iluminacao.length} lançamento${iluminacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
+  if (key === 'sinalizacao' && sinalizacao.length) return { tone: 'progress', label: `${sinalizacao.length} lançamento${sinalizacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
   if (key === 'acesso_viatura' && state.acessoViatura?.larguraAdotada) {
     return { tone: 'progress', label: 'Em preenchimento', detail: 'Parâmetros informados' }
   }
@@ -109,6 +115,13 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       ? porEstrutura.find(item => item.estrutura.id === selectedStructure.id)?.sistemas || {}
       : sistemas
     const summarySystems = SYSTEMS.filter(system => structureSystems[system.key]?.ativo || structureSystems[system.key]?.obrigatorio)
+    const displayedSystems = summarySystems
+      .map(system => ({
+        ...system,
+        required: Boolean(structureSystems[system.key]?.obrigatorio),
+        progress: getSystemProgress(system.key, state, selectedStructure?.id),
+      }))
+      .sort((a, b) => Number(b.required) - Number(a.required))
     const summaryGroups = [...new Set(selectedPavements.map(item => item.grupo).filter(Boolean))].sort()
     const summaryDivisions = [...new Set(selectedPavements.map(item => item.divisao).filter(Boolean))].sort()
     const summary = selectedStructure ? {
@@ -129,7 +142,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       requiredCount: activeSystems.filter(system => system.required).length,
     }
 
-    return { activeSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsWithData, configPercent, hasTechnicalData, summary }
+    return { activeSystems, displayedSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsWithData, configPercent, hasTechnicalData, summary }
   }, [state, sistemas, porEstrutura, selectedStructureId])
 
   const projectReady = data.configPercent === 100
@@ -201,8 +214,8 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
         </section>
 
         <section className="dashboard-systems">
-          <div className="dashboard-section-heading dashboard-section-heading--systems"><div><h2>Sistemas do projeto</h2><p>Status baseado nos dados cadastrados em cada medida</p></div><span>{data.activeSystems.length} aplicáveis</span></div>
-          {data.activeSystems.length ? <div className="dashboard-system-list">{data.activeSystems.map(system => (
+          <div className="dashboard-section-heading dashboard-section-heading--systems"><div><h2>Sistemas do projeto</h2><p>{selectedStructureId === 'all' ? 'Status consolidado de todas as edificações' : `Sistemas aplicáveis a ${data.summary.label}`}</p></div><span>{data.displayedSystems.length} aplicáveis</span></div>
+          {data.displayedSystems.length ? <div className="dashboard-system-list">{data.displayedSystems.map(system => (
             <button type="button" className="dashboard-system" key={system.key} onClick={() => onNavigate?.(system.key)}>
               <span className={`dashboard-system__icon dashboard-system__icon--${system.progress.tone}`}><Icon name={system.icon} size={17}/></span>
               <span className="dashboard-system__name"><strong>{system.label}</strong><small>{system.required ? 'Obrigatório' : 'Opcional habilitado'}</small></span>
