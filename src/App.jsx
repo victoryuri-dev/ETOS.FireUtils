@@ -64,7 +64,7 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
   const navigate = useNavigate()
 
   return (
-    <header className="flex items-center justify-between px-6 h-16 border-b border-border border-solid shrink-0 z-100">
+    <header className="flex items-center justify-between gap-3 px-6 h-16 border-b border-border border-solid shrink-0 z-100">
       {/* Logo — omitida dentro de um projeto, ja mostrada no topo do aside */}
       {!isProjectPage && (
         <div className="flex items-center gap-2.5">
@@ -75,7 +75,7 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
       {/* Nav — breadcrumb estilo url: Projeto / UF / nome. So aparece dentro
           de um projeto, ja que fora dele nao ha contexto pra mostrar. */}
       {isProjectPage && (
-        <nav className="flex items-center gap-1.5 text-[14px]">
+        <nav className="flex items-center gap-1.5 text-[14px] min-w-0 overflow-hidden whitespace-nowrap">
           <button onClick={onGoProjetos} className="text-ink-muted hover:text-ink transition-colors cursor-pointer">
             PROJETOS
           </button>
@@ -84,7 +84,7 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
             <span className="text-ink-muted">{state.uf}</span>
           </>}
           <span className="text-ink-hint">/</span>
-          <span className="text-ink font-medium">{state.nome || 'Sem nome'}</span>
+          <span className="text-ink font-medium truncate">{state.nome || 'Sem nome'}</span>
           {syncStatus && (
             <span className="ml-2 pl-2.5 border-l border-solid border-border">
               <SaveStatusIndicator status={syncStatus}/>
@@ -94,7 +94,7 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
       )}
 
       {/* Direita — conta */}
-      <div className="flex items-center gap-2 relative">
+      <div className="flex items-center gap-2 relative shrink-0">
         <button
           onClick={() => setMenuOpen(o => !o)}
           title={user?.email}
@@ -145,7 +145,14 @@ function MedidaRoute() {
 function DashboardRoute() {
   const { id } = useParams()
   const navigate = useNavigate()
-  return <DashboardPage onGoConfig={() => navigate(`/projeto/${id}/config`)}/>
+  return (
+    <DashboardPage
+      onGoConfig={() => navigate(`/projeto/${id}/config`)}
+      onNavigate={(pageKey) => navigate(pageKey === 'documentos'
+        ? `/projeto/${id}/documentos`
+        : `/projeto/${id}/medida/${pageKey}`)}
+    />
+  )
 }
 
 function ConfigRoute() {
