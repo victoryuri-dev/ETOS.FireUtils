@@ -163,7 +163,7 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
           ref={cardRef}
           className="dashboard-technical-card dashboard-technical-card--active"
           tabIndex={0}
-          aria-label={`${activeCard.name}. Arraste para os lados ou use as setas para trocar de edificação.`}
+          aria-label={`${activeCard.name}. Use os botões ou as setas do teclado para trocar de edificação.`}
           onKeyDown={event => {
             if (event.key === 'ArrowLeft') moveTo(-1)
             if (event.key === 'ArrowRight') moveTo(1)
@@ -176,6 +176,13 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
           <div className="dashboard-technical-card__name">
             <span>Nome da edificação</span>
             <h3>{activeCard.name}</h3>
+            {cards.length > 1 && (
+              <div className="dashboard-technical-card__nav" onPointerDown={event => event.stopPropagation()}>
+                <button type="button" onClick={() => moveTo(-1)} aria-label="Edificação anterior"><Icon name="chevL" size={14}/></button>
+                <span><strong>{String(activeIndex + 1).padStart(2, '0')}</strong> / {String(cards.length).padStart(2, '0')}</span>
+                <button type="button" onClick={() => moveTo(1)} aria-label="Próxima edificação"><Icon name="chevR" size={14}/></button>
+              </div>
+            )}
           </div>
           <dl className="dashboard-technical-card__metrics">
             <div><dt>Área construída</dt><dd>{fmtNumber(activeCard.area)}<small>{activeCard.area ? ' m²' : ''}</small></dd></div>
@@ -183,17 +190,6 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
             <div><dt>Risco de incêndio</dt><dd>{getRiskLabel(activeCard.fireLoad)}</dd><small>{activeCard.fireLoad ? `${fmtNumber(activeCard.fireLoad)} MJ/m² de carga de incêndio` : 'Carga de incêndio não informada'}</small></div>
           </dl>
         </article>
-      </div>
-      <div className="dashboard-card-stack__navigation">
-        <div className="dashboard-card-stack__arrows">
-          <button type="button" onClick={() => moveTo(-1)} disabled={cards.length < 2} aria-label="Edificação anterior"><Icon name="chevL" size={16}/></button>
-          <span><strong>{String(activeIndex + 1).padStart(2, '0')}</strong> / {String(cards.length).padStart(2, '0')}</span>
-          <button type="button" onClick={() => moveTo(1)} disabled={cards.length < 2} aria-label="Próxima edificação"><Icon name="chevR" size={16}/></button>
-        </div>
-        <div className="dashboard-card-stack__dots" role="radiogroup" aria-label="Selecionar visão técnica">
-          {cards.map(card => <button type="button" role="radio" className={card.id === selectedId ? 'is-active' : ''} key={card.id} onClick={() => onSelect(card.id)} aria-label={`Ver ${card.name}`} aria-checked={card.id === selectedId}/>) }
-        </div>
-        <span>Arraste para explorar as edificações</span>
       </div>
     </div>
   )
@@ -328,24 +324,26 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
 
         </section>
 
-        <section className="dashboard-technical" aria-label="Resumo técnico">
-          <div className="dashboard-section-heading dashboard-technical__heading">
-            <div><h2>Resumo técnico</h2><p>O card selecionado define os sistemas exibidos abaixo</p></div>
-            <span>{selectedStructureId === 'all' ? 'Todas as edificações' : data.summary.label}</span>
+        <section className="dashboard-split">
+          <div className="dashboard-technical" aria-label="Resumo técnico">
+            <div className="dashboard-technical__heading">
+              <div><h2>Resumo técnico</h2><p>O card selecionado define os sistemas exibidos ao lado</p></div>
+              <span>{selectedStructureId === 'all' ? 'Todas as edificações' : data.summary.label}</span>
+            </div>
+            <TechnicalCardStack cards={data.technicalCards} selectedId={selectedStructureId} systemsCount={data.displayedSystems.length} onSelect={setSelectedStructureId}/>
           </div>
-          <TechnicalCardStack cards={data.technicalCards} selectedId={selectedStructureId} systemsCount={data.displayedSystems.length} onSelect={setSelectedStructureId}/>
-        </section>
 
-        <section className="dashboard-systems">
-          <div className="dashboard-section-heading dashboard-section-heading--systems"><div><h2>Sistemas aplicados</h2><p>{selectedStructureId === 'all' ? 'Status consolidado de todas as edificações' : `Sistemas aplicáveis a ${data.summary.label}`}</p></div><span>{data.displayedSystems.length} aplicáveis</span></div>
-          {data.displayedSystems.length ? <div className="dashboard-system-list">{data.displayedSystems.map(system => (
-            <button type="button" className="dashboard-system" key={system.key} onClick={() => onNavigate?.(system.key)}>
-              <span className={`dashboard-system__icon dashboard-system__icon--${system.progress.tone}`}><Icon name={system.icon} size={17}/></span>
-              <span className="dashboard-system__name"><strong>{system.label}</strong><small>{system.required ? 'Obrigatório' : 'Opcional habilitado'}</small></span>
-              <span className={`dashboard-system__status dashboard-system__status--${system.progress.tone}`}><strong>{system.progress.label}</strong><small>{system.progress.detail}</small></span>
-              <Icon name="right" size={15} className="dashboard-system__arrow"/>
-            </button>
-          ))}</div> : <div className="dashboard-empty"><Icon name="settings" size={18}/><div><strong>Nenhum sistema definido</strong><p>Conclua a classificação e as medidas de segurança na configuração.</p></div><button type="button" onClick={onGoConfig}>Configurar projeto</button></div>}
+          <div className="dashboard-systems">
+            <div className="dashboard-section-heading dashboard-section-heading--systems"><div><h2>Sistemas aplicados</h2><p>{selectedStructureId === 'all' ? 'Status consolidado de todas as edificações' : `Sistemas aplicáveis a ${data.summary.label}`}</p></div><span>{data.displayedSystems.length} aplicáveis</span></div>
+            {data.displayedSystems.length ? <div className="dashboard-system-list">{data.displayedSystems.map(system => (
+              <button type="button" className="dashboard-system" key={system.key} onClick={() => onNavigate?.(system.key)}>
+                <span className={`dashboard-system__icon dashboard-system__icon--${system.progress.tone}`}><Icon name={system.icon} size={17}/></span>
+                <span className="dashboard-system__name"><strong>{system.label}</strong><small>{system.required ? 'Obrigatório' : 'Opcional habilitado'}</small></span>
+                <span className={`dashboard-system__status dashboard-system__status--${system.progress.tone}`}><strong>{system.progress.label}</strong><small>{system.progress.detail}</small></span>
+                <Icon name="right" size={15} className="dashboard-system__arrow"/>
+              </button>
+            ))}</div> : <div className="dashboard-empty"><Icon name="settings" size={18}/><div><strong>Nenhum sistema definido</strong><p>Conclua a classificação e as medidas de segurança na configuração.</p></div><button type="button" onClick={onGoConfig}>Configurar projeto</button></div>}
+          </div>
         </section>
 
         <section className={`dashboard-documents ${!data.hasTechnicalData ? 'dashboard-documents--disabled' : ''}`}>
