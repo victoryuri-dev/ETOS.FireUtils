@@ -220,7 +220,7 @@ function SobreEdificacao({ state, totalPaginas }) {
     { titulo: 'Responsável Técnico', campos: [
       ['Responsável Técnico', state.rtNome],
       ['Registro Profissional', state.rtConselho],
-      ['Número da ART / RRT', state.artNumero],
+      ['Número da ART / RRT', state.usaArt ? state.artNumero : ''],
     ] },
     { titulo: 'Responsável pelo Uso', campos: [
       ['Razão Social', state.respRazaoSocial],

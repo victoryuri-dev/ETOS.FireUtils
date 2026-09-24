@@ -11,7 +11,7 @@ function dadosExemplo() {
   return {
     nome: 'Loja Comercial Centro (exemplo)', dataInicio: '2026-02-01', fase: 'Em desenvolvimento',
     endereco: 'Rua Grande', numero: '123', complemento: 'Sala 2', bairro: 'Centro', cidade: 'Sao Luis', uf: 'MA', cep: '65010-000',
-    situacao: 'nova', anoAlvara: '2027', numeroAlvara: '',
+    situacao: 'nova', numeroAlvara: '',
     anoConstrucao: '', situacaoCBM: 'Sem AVCB anterior',
     numeroAVCB: '', validadeAVCB: '', condicoesAtuais: '',
     areaTerreno: '500', areaConstruidaTotal: '650', quantidadePublico: '80', areaComplementar: '20',

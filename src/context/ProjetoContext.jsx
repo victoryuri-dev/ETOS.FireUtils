@@ -301,7 +301,7 @@ const INITIAL_STATE = {
   tipoProjeto: 'completo',
   nome: '', dataInicio: '', fase: 'Em desenvolvimento',
   endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'MA', cep: '',
-  situacao: 'nova', anoAlvara: '', numeroAlvara: '',
+  situacao: 'nova', numeroAlvara: '',
   anoConstrucao: '', situacaoCBM: 'Sem AVCB anterior',
   numeroAVCB: '', validadeAVCB: '', condicoesAtuais: '',
   areaTerreno: '', areaConstruidaTotal: '', quantidadePublico: '', areaComplementar: '',
@@ -324,6 +324,7 @@ const INITIAL_STATE = {
   cnaePrincipal: '', cnaePrincipalDesc: '',
   rtNome: '', rtCpf: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
+  usaArt: true,
   artNumero: '', artData: '', artTipoServico: 'Projeto', artValorObra: '',
   pavimentos: [pavimentoTerreo('est-1')],
   // Todos por-estrutura: chave = id da estrutura. cargaState guarda, dentro

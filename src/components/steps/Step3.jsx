@@ -3,6 +3,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { usePerfil, temDadosRT } from '../../hooks/usePerfil'
 import FormSection from '../ui/FormSection'
 import Icon from '../ui/Icon'
+import SwitchToggle from '../ui/SwitchToggle'
 const S={section:'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',header:'mb-8',stepLbl:'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',title:'text-[22px] font-semibold text-ink mb-[5px]',desc:'text-[13px] text-ink-faint leading-[1.6]'}
 
 export default function Step3({ step, totalSteps }) {
@@ -73,19 +74,32 @@ export default function Step3({ step, totalSteps }) {
           <div className="fg"><label>Telefone</label><input type="tel" value={state.rtTelefone} onChange={set('rtTelefone')}/></div>
         </div>
       </FormSection>
-      <FormSection title="ART" description="Dados desta obra — não vêm do perfil, mudam de projeto para projeto.">
-        <div className="g2 mb-3">
-          <div className="fg"><label>Numero da ART <span className="req">*</span></label><input value={state.artNumero} onChange={set('artNumero')}/></div>
-          <div className="fg"><label>Data de emissao</label><input type="date" value={state.artData} onChange={set('artData')}/></div>
-        </div>
-        <div className="g2">
-          <div className="fg"><label>Tipo de servico</label>
-            <select value={state.artTipoServico} onChange={set('artTipoServico')}>
-              <option>Projeto</option><option>Execucao</option><option>Projeto e execucao</option><option>Consultoria / Laudo</option>
-            </select>
-          </div>
-          <div className="fg"><label>Valor da obra (R$)</label><input value={state.artValorObra} onChange={set('artValorObra')} placeholder="R$ 0,00"/></div>
-        </div>
+      <FormSection
+        title="ART"
+        description={state.usaArt ? 'Dados desta obra — não vêm do perfil, mudam de projeto para projeto.' : 'Desativada — não entra no memorial descritivo.'}
+        extra={
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-[11px] text-ink-faint">Utiliza ART</span>
+            <SwitchToggle checked={state.usaArt} onChange={v => dispatch({ type:'SET_FIELD', field:'usaArt', value:v })}/>
+          </label>
+        }
+      >
+        {state.usaArt && (
+          <>
+            <div className="g2 mb-3">
+              <div className="fg"><label>Numero da ART <span className="req">*</span></label><input value={state.artNumero} onChange={set('artNumero')}/></div>
+              <div className="fg"><label>Data de emissao</label><input type="date" value={state.artData} onChange={set('artData')}/></div>
+            </div>
+            <div className="g2">
+              <div className="fg"><label>Tipo de servico</label>
+                <select value={state.artTipoServico} onChange={set('artTipoServico')}>
+                  <option>Projeto</option><option>Execucao</option><option>Projeto e execucao</option><option>Consultoria / Laudo</option>
+                </select>
+              </div>
+              <div className="fg"><label>Valor da obra (R$)</label><input value={state.artValorObra} onChange={set('artValorObra')} placeholder="R$ 0,00"/></div>
+            </div>
+          </>
+        )}
       </FormSection>
     </div>
   )

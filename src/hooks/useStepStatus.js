@@ -18,8 +18,9 @@ function getStatus(n, state) {
       return 'empty'
     }
     case 3: {
-      if (state.rtNome && state.artNumero) return 'done'
-      if (state.rtNome || state.artNumero)  return 'partial'
+      const artOk = !state.usaArt || state.artNumero
+      if (state.rtNome && artOk) return 'done'
+      if (state.rtNome || state.artNumero) return 'partial'
       return 'empty'
     }
     case 4: {

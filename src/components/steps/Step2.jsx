@@ -331,9 +331,8 @@ export default function Step2({ step, totalSteps }) {
           </div>
 
           {state.situacao === 'nova' && (
-            <div className="g2">
-              <div className="fg"><label>Ano previsto de conclusao</label><input type="number" value={state.anoAlvara} onChange={set('anoAlvara')} placeholder="2027"/></div>
-              <div className="fg"><label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/></div>
+            <div className="fg">
+              <label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/>
             </div>
           )}
 

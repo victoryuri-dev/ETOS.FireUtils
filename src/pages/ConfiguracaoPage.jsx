@@ -13,8 +13,8 @@ import Step7 from '../components/steps/Step7'
 
 const STEPS_CONFIG_COMPLETO = [
   { label:'Identificacao',       sub:'Local, norma, proprietario e empresa' },
-  { label:'Edificacao',          sub:'Tipo, dimensoes, estrutura' },
   { label:'Responsavel tecnico', sub:'Projetista e ART' },
+  { label:'Edificacao',          sub:'Tipo, dimensoes, estrutura' },
   { label:'Classificacao',       sub:'Ocupacao por pavimento' },
   { label:'Carga de Incendio',   sub:'CNAE e carga por divisao' },
   { label:'Medidas de seguranca',sub:'Sistemas exigidos' },
@@ -42,7 +42,10 @@ const STEPS = { 1:Step1, 2:Step2, 3:Step3, 4:Step4, 5:Step5, 6:Step6, 7:Step7 }
 // originais de 1 a 7 (2=Edificacao, 4=Classificacao, etc.), entao o modo
 // dimensionamento so precisa dizer "na posicao 1, mostra o Step/status 2"
 // em vez de duplicar aquela logica com numeros novos.
-const ORDEM_COMPLETO = [1, 2, 3, 4, 5, 6, 7]
+// Responsavel tecnico (Step3) exibido na posicao 2, antes de Edificacao
+// (Step2) — so a ordem de exibicao muda, os numeros originais dos steps
+// (usados por useStepStatus.js) continuam os mesmos.
+const ORDEM_COMPLETO = [1, 3, 2, 4, 5, 6, 7]
 const ORDEM_DIMENSIONAMENTO = [2, 4, 5, 6]
 
 export default function ConfiguracaoPage({ onGoDashboard }) {
