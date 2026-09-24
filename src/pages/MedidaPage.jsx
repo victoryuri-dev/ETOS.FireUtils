@@ -4,6 +4,7 @@ import { SISTEMA_ICON } from '../data/sistemasIcons'
 const SIST_LABELS = {
   acesso_viatura:      'Acesso de Viatura em Edificações',
   seg_estrutural:      'Segurança Estrutural Contra Incêndio',
+  compart_horizontal:  'Compartimentação Horizontal',
   compart_vertical:    'Compartimentação Vertical',
   controle_acabamento: 'Controle de Materiais de Acabamento',
   saida_emergencia:    'Saída de Emergência',

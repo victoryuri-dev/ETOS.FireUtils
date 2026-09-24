@@ -258,6 +258,23 @@ function novaEstrutura(nome, id) {
     nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', alturaEdificacao: '',
     estrutura: ['Concreto armado'],
     obsSegEstrutural: '',
+    // Compartimentação horizontal/vertical (NT 09 CBMMA) — elementos de
+    // proteção efetivamente adotados (chaves de ELEMENTOS_COMPART_HORIZONTAL/
+    // VERTICAL em normas/MA/compartimentacao.js) e condições especiais
+    // (dispensas) confirmadas pelo responsável técnico para esta estrutura.
+    elementosCompartHorizontal: [],
+    elementosCompartVertical: [],
+    condicoesEspeciaisCompartHorizontal: [],
+    condicoesEspeciaisCompartVertical: [],
+    obsCompartimentacao: '',
+    // Substituição por sistema alternativo (notas de rodapé da Tabela 6,
+    // NT 01 CBMMA — ver SUBSTITUICOES_COMPARTIMENTACAO em
+    // normas/MA/compartimentacao.js). null = sem isenção; senão, a `key` da
+    // combinação escolhida (isenta a compartimentação correspondente do
+    // cumprimento da área máxima do Anexo B da NT 09 e habilita os sistemas
+    // substitutos desta estrutura).
+    isencaoCompartHorizontal: null,
+    isencaoCompartVertical: null,
   }
 }
 
@@ -292,7 +309,16 @@ const INITIAL_STATE = {
   usoSubsolo: '', coberturaHabitavel: 'Nao',
   compartVertical: 'Sem compartimentacao',
   fachada: 'Convencional', cobertura: 'Laje impermeabilizada',
-  estruturas: [{ id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0, nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', alturaEdificacao: '', estrutura: ['Concreto armado'], obsSegEstrutural: '' }],
+  estruturas: [{
+    id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0,
+    nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', alturaEdificacao: '',
+    estrutura: ['Concreto armado'],
+    obsSegEstrutural: '',
+    elementosCompartHorizontal: [], elementosCompartVertical: [],
+    condicoesEspeciaisCompartHorizontal: [], condicoesEspeciaisCompartVertical: [],
+    obsCompartimentacao: '',
+    isencaoCompartHorizontal: null, isencaoCompartVertical: null,
+  }],
   propNome: '', propDocumento: '', propTelefone: '', propEmail: '',
   respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '', respEmail: '',
   cnaePrincipal: '', cnaePrincipalDesc: '',
@@ -330,6 +356,13 @@ const INITIAL_STATE = {
   // Ausente = ainda não respondida (a tela pergunta antes de liberar o
   // checklist de quantidades).
   iluminacaoBalizamentoAplicado: {},
+  // Área de compartimentação horizontal considerada por pavimento (chave =
+  // pavimentoId) — item 5.1.2, NT 09 CBMMA: deve somar a área de todos os
+  // pavimentos e mezaninos interligados com o pavimento em questão, não só
+  // a área do próprio pavimento (state.pavimentos[].area, cadastrada na
+  // Etapa 2). Ausente/vazio = usa a área do próprio pavimento (nenhuma
+  // interligação declarada).
+  areaCompartimentacaoHorizontal: {},
   acessoViatura: {
     afastamentoMeioFio: '', isCondominio: false,
     larguraAdotada: '', alturaLivreAdotada: '',
@@ -813,6 +846,8 @@ function reducer(state, action) {
     }
     case 'SET_BALIZAMENTO_APLICADO':
       return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
+    case 'SET_AREA_COMPARTIMENTACAO':
+      return { ...state, areaCompartimentacaoHorizontal: { ...state.areaCompartimentacaoHorizontal, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':
       return { ...state, acessoViatura: { ...state.acessoViatura, ...action.changes } }
     case 'SET_PLANO_EMERGENCIA':

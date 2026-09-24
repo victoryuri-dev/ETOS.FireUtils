@@ -5,6 +5,7 @@
 
 import { textoMemorialAcessoViatura } from './acesso_viatura'
 import { textoMemorialSegEstrutural } from './seg_estrutural'
+import { textoMemorialCompartHorizontal, textoMemorialCompartVertical } from './compartimentacao'
 import { textoMemorialExtintores } from './extintores'
 import { textoMemorialIluminacao } from './iluminacao'
 import { textoMemorialSinalizacao } from './sinalizacao'
@@ -16,6 +17,8 @@ import { textoMemorialCalculoHidrantes } from './hidrantesCalculo'
 export const MEMORIAL_BUILDERS = {
   acesso_viatura:      textoMemorialAcessoViatura,
   seg_estrutural:      textoMemorialSegEstrutural,
+  compart_horizontal:  textoMemorialCompartHorizontal,
+  compart_vertical:    textoMemorialCompartVertical,
   extintores:          textoMemorialExtintores,
   iluminacao:          textoMemorialIluminacao,
   sinalizacao:         textoMemorialSinalizacao,
@@ -55,8 +58,10 @@ const ORDEM_SECOES = [
  * projeto. `sistemas` é o resultado derivado de useMedidasObrigatorias() —
  * mesma fonte usada pelo Anexo B — não o `state.sistemas` bruto. `porEstrutura`
  * (mesmo hook) só é repassado pra frente — necessário pros builders que
- * precisam de dado por-estrutura (ex.: saida_emergencia.js, pra chuveiros/
- * detecção na distância máxima a percorrer), não pelo agregado do projeto.
+ * precisam de dado por-estrutura, não pelo agregado do projeto (ex.:
+ * compartimentação, quando a exigência varia entre estruturas do projeto;
+ * saida_emergencia.js, pra chuveiros/detecção na distância máxima a
+ * percorrer).
  *
  * As seções saem na ordem de ORDEM_SECOES, não na ordem em que as medidas
  * aparecem em `sistemas`.

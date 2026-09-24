@@ -8,7 +8,7 @@ import logoSymbol from '../../assets/ETOS-SYMBOLL.png'
 const SISTEMAS = [
   { key:'acesso_viatura',      icon:'van',                   label:'Acesso de Viatura' },
   { key:'seg_estrutural',      icon:'segEstruturalMedida',   label:'Seg. Estrutural' },
-  { key:'compart_horizontal',  icon:'stair',                 label:'Compartimentação Horizontal' },
+  { key:'compart_horizontal',  icon:'wallCompart',           label:'Compartimentação Horizontal' },
   { key:'compart_vertical',    icon:'stair',                 label:'Compartimentação Vertical' },
   { key:'controle_acabamento', icon:'sign',                  label:'Controle de Acabamento' },
   { key:'saida_emergencia',    icon:'saidaEmergenciaMedida', label:'Saídas de Emergência' },
