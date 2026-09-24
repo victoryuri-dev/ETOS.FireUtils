@@ -26,7 +26,7 @@ No mobile, o mesmo painel ocupa a largura disponível com margens curtas, sem ro
 
 ### Interaction
 
-Somente o fundo possui movimento contínuo em repouso. Ao enviar o login, um overlay bloqueia o painel e apresenta um loader branco centralizado até a autenticação responder. Troca entre login e cadastro, foco, erro e sucesso possuem estados próprios.
+Somente o fundo possui movimento contínuo em repouso. Ao enviar o login, um overlay bloqueia o painel e apresenta no centro o símbolo FireUtils pulsante usado pelo loader da landing até a autenticação responder. Troca entre login e cadastro, foco, erro e sucesso possuem estados próprios.
 
 ### Motion grammar
 

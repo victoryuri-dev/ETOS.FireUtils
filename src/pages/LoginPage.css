@@ -22,13 +22,13 @@
   background:rgba(20,20,24,.82);
   cursor:wait;
 }
-.login-card-loader>span{
-  width:30px;
-  height:30px;
-  border:3px solid rgba(255,255,255,.24);
-  border-top-color:#fff;
-  border-radius:50%;
-  animation:login-card-spin .72s linear infinite;
+.login-loader-mark{
+  width:34px;
+  height:44px;
+  overflow:visible;
+  fill:#ea1330;
+  filter:drop-shadow(0 0 22px rgba(234,19,48,.32));
+  animation:login-mark-pulse 1.15s ease-in-out infinite;
 }
 .login-original-card .fg input,
 .login-original-card .btn-primary,
@@ -68,7 +68,10 @@
   from{opacity:.15;translate:0 -30px}
   to{opacity:.6;translate:25px 20px}
 }
-@keyframes login-card-spin{to{transform:rotate(360deg)}}
+@keyframes login-mark-pulse{
+  0%,100%{opacity:.38;transform:translateY(4px) scale(.94)}
+  50%{opacity:1;transform:translateY(-3px) scale(1)}
+}
 @media(max-width:560px){
   .login-original{padding:18px}
   .login-original-card{padding:26px}
@@ -78,5 +81,5 @@
 }
 @media(prefers-reduced-motion:reduce){
   .login-hero-beams i{animation:none}
-  .login-card-loader>span{animation-duration:1.4s}
+  .login-loader-mark{animation:none;opacity:1;transform:none}
 }

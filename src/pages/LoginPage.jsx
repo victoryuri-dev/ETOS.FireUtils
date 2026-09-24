@@ -55,7 +55,11 @@ export default function LoginPage() {
       <section className="login-original-card w-full max-w-[380px] bg-surface border border-border border-solid p-8" aria-labelledby="login-title">
         {busy && isLogin && (
           <div className="login-card-loader" role="status" aria-live="polite" aria-label="Entrando">
-            <span aria-hidden="true"/>
+            <svg className="login-loader-mark" viewBox="0 0 168 216" aria-hidden="true">
+              <path d="M168 0V154.523H121.426V50.9454L168 0Z"/>
+              <path d="M103.129 61.4769V216H58.2179V112.422L103.129 61.4769Z"/>
+              <path d="M44.9109 112.985H0V164.492L44.9109 112.985Z"/>
+            </svg>
           </div>
         )}
 
