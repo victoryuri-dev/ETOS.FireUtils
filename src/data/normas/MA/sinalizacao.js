@@ -29,6 +29,7 @@ import s15 from '../../../assets/sinalizacao/s15.png'
 import s16 from '../../../assets/sinalizacao/s16.png'
 import s17 from '../../../assets/sinalizacao/s17.png'
 import s18 from '../../../assets/sinalizacao/s18.jpg'
+import e1  from '../../../assets/sinalizacao/e1.webp'
 import e2  from '../../../assets/sinalizacao/e2.png'
 import e3  from '../../../assets/sinalizacao/e3.png'
 import e5  from '../../../assets/sinalizacao/e5.jpg'
@@ -107,6 +108,8 @@ export const TIPOS_PLACA = [
     img: s18, localInstalacao: 'Indicação da forma de acionamento da barra antipânico instalada sobre a porta corta-fogo' },
 
   // Equipamentos de combate a incêndio — fundo vermelho (NBR 13434-3)
+  { key: 'e1', codigo: 'E1', categoria: 'equipamentos', label: 'Telefone para uso em caso de incêndio',
+    img: e1, localInstalacao: 'A 1,80 m de altura, imediatamente acima do equipamento sinalizado' },
   { key: 'e2', codigo: 'E2', categoria: 'equipamentos', label: 'Acionador manual de alarme de incêndio',
     img: e2, localInstalacao: 'A 1,80 m de altura, imediatamente acima do equipamento sinalizado' },
   { key: 'e3', codigo: 'E3', categoria: 'equipamentos', label: 'Comando manual da bomba de incêndio',
