@@ -8,8 +8,8 @@
 
 1. Identidade e estado da configuração do projeto.
 2. Identificação do projeto com dados administrativos e responsáveis.
-3. Resumo técnico na visão geral ou filtrado por edificação.
-4. Sistemas aplicáveis no mesmo recorte do resumo, com estado derivado dos dados persistidos.
+3. Resumo técnico em card stack, na visão geral ou filtrado por edificação.
+4. Sistemas aplicados alinhados ao resumo e no mesmo recorte da seleção, com estado derivado dos dados persistidos.
 5. Acesso à documentação gerada.
 
 ## Regras
@@ -27,16 +27,19 @@
 - Em projetos completos, a configuração considera identificação, edificação, responsável técnico, classificação, carga de incêndio e medidas de segurança. Na modalidade de apenas dimensionamento, identificação e responsável técnico ficam fora desse cálculo.
 - Um sistema só pode aparecer como concluído quando houver evidência persistida própria. Dados parciais podem produzir o estado em andamento; na ausência de evidência, o estado permanece “A desenvolver”.
 - A identificação apresenta nome, localização, proprietário e responsável pelo uso. Projetos completos também mostram responsável técnico e registro/ART; na modalidade de apenas dimensionamento, esses campos dão lugar à modalidade.
-- O resumo técnico inicia em “Visão geral”. Nessa visão, área, pavimentos e subsolos representam os totais do projeto, a altura e a carga de incêndio usam os maiores valores encontrados, e classificação e sistemas aplicáveis consolidam todas as edificações.
-- O filtro de edificação controla o Resumo técnico e a lista Sistemas do projeto. Ao selecionar uma edificação, área, altura, pavimentos, subsolos, carga de incêndio e classificação passam a usar os dados vinculados a ela; situação e norma continuam sendo dados do projeto.
+- O Resumo técnico é um card stack alinhado, na sequência da página, a Sistemas aplicados. A pilha começa por “Visão geral do projeto” e acrescenta um card para cada edificação cadastrada.
+- Cada card apresenta nome da edificação, área construída, quantidade de pavimentos com a altura como informação secundária e risco de incêndio com a carga de incêndio como informação secundária. Na visão geral, área e pavimentos representam os totais do projeto, enquanto altura e carga de incêndio usam os maiores valores encontrados.
+- A seleção do card controla o Resumo técnico e a lista Sistemas aplicados. Ao selecionar uma edificação, os campos do card usam os dados vinculados a ela; situação e norma continuam sendo dados do projeto.
 - Em “Visão geral”, a lista de sistemas consolida todas as edificações. No recorte de uma edificação, ela mostra somente os sistemas aplicáveis à estrutura selecionada, deriva desse mesmo recorte a indicação de “Obrigatório” ou “Opcional habilitado” e atualiza as contagens de sistemas aplicáveis e obrigatórios. Contagens de lançamentos vinculados a uma estrutura também devem considerar apenas a edificação selecionada.
-- O filtro oferece apenas edificações cadastradas e preserva “Visão geral” como opção agregada.
+- A pilha oferece apenas as edificações cadastradas e preserva “Visão geral do projeto” como opção agregada.
 - O acesso aos documentos permanece indisponível enquanto não houver qualquer dado técnico do projeto.
 
 ## Navegação e adaptação
 
-- Linhas de sistema e chamadas documentais são atalhos para as respectivas telas; a identificação leva à configuração, enquanto o filtro muda em conjunto o Resumo técnico e Sistemas do projeto.
-- A partir de 1050 px para baixo, identificação e resumo técnico passam a ocupar linhas separadas, e a lista de sistemas usa uma coluna; as métricas mantêm três colunas até o breakpoint móvel.
+- Linhas de sistema e chamadas documentais são atalhos para as respectivas telas; a identificação leva à configuração, enquanto a seleção do card muda em conjunto o Resumo técnico e Sistemas aplicados.
+- Arraste horizontal, setas anterior/próxima, indicadores de posição e as teclas de seta esquerda/direita trocam a seleção. O card ativo recebe foco por teclado; os indicadores formam um `radiogroup`, cada opção expõe estado `radio` selecionado e os cartões de fundo ficam ocultos da árvore de acessibilidade.
+- A mudança de seleção é anunciada por uma região de status com `aria-live="polite"` e `aria-atomic="true"`, informando o card ativo e a quantidade de sistemas aplicáveis. Os controles mantêm nomes acessíveis e foco visível.
+- A partir de 1050 px para baixo, a lista de sistemas usa uma coluna; as métricas do card mantêm três colunas até o breakpoint móvel.
 - Em até 720 px, o menu lateral permanece recolhido em trilho de ícones, as seções seguem em uma coluna e o nome longo do projeto pode truncar no cabeçalho para preservar a conta e o estado de sincronização.
-- Em até 720 px, o filtro ocupa a largura do painel e as métricas passam a uma única coluna.
+- Em até 720 px, o card organiza nome e métricas em uma coluna. Setas e indicadores oferecem alvos de toque de 44 px, e a faixa de indicadores pode rolar horizontalmente quando não couber na largura disponível.
 - O menu lateral só lista medidas obrigatórias ou opcionais habilitadas, usando a mesma fonte de verdade apresentada no dashboard.

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import gsap from 'gsap'
 import { useProjeto } from '../context/ProjetoContext'
 import { useNorma } from '../hooks/useNorma'
 import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
@@ -78,8 +79,124 @@ function getSystemProgress(key, state, structureId = null) {
   return { tone: 'todo', label: 'A desenvolver', detail: 'Abra para dimensionar' }
 }
 
-function Metric({ label, value, unit, detail }) {
-  return <div className="dashboard-metric"><span>{label}</span><strong>{value}<small>{unit}</small></strong><p>{detail}</p></div>
+const getRiskLabel = fireLoad => {
+  if (!fireLoad) return 'Aguardando classificação'
+  if (fireLoad <= 300) return 'Risco baixo'
+  if (fireLoad <= 1200) return 'Risco médio'
+  return 'Risco alto'
+}
+
+function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
+  const cardRef = useRef(null)
+  const drag = useRef({ active: false, startX: 0, deltaX: 0 })
+  const activeIndex = Math.max(0, cards.findIndex(card => card.id === selectedId))
+  const activeCard = cards[activeIndex] || cards[0]
+  const stackedCards = cards.length > 1
+    ? Array.from({ length: Math.min(2, cards.length - 1) }, (_, index) => cards[(activeIndex + index + 1) % cards.length])
+    : []
+
+  const moveTo = direction => {
+    if (cards.length < 2) return
+    const nextIndex = (activeIndex + direction + cards.length) % cards.length
+    const node = cardRef.current
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!node || reduceMotion) {
+      onSelect(cards[nextIndex].id)
+      return
+    }
+    gsap.killTweensOf(node)
+    gsap.to(node, {
+      x: direction > 0 ? -90 : 90,
+      rotate: direction > 0 ? -2.2 : 2.2,
+      opacity: 0,
+      duration: .18,
+      ease: 'power2.in',
+      onComplete: () => {
+        onSelect(cards[nextIndex].id)
+        requestAnimationFrame(() => {
+          gsap.fromTo(node,
+            { x: direction > 0 ? 70 : -70, rotate: direction > 0 ? 1.5 : -1.5, opacity: 0 },
+            { x: 0, rotate: 0, opacity: 1, duration: .38, ease: 'power3.out', clearProps: 'transform,opacity' })
+        })
+      },
+    })
+  }
+
+  const handlePointerDown = event => {
+    drag.current = { active: true, startX: event.clientX, deltaX: 0 }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    gsap.killTweensOf(cardRef.current)
+  }
+
+  const handlePointerMove = event => {
+    if (!drag.current.active) return
+    const deltaX = Math.max(-150, Math.min(150, event.clientX - drag.current.startX))
+    drag.current.deltaX = deltaX
+    gsap.set(cardRef.current, { x: deltaX, rotate: deltaX * .012, opacity: 1 - Math.abs(deltaX) / 500 })
+  }
+
+  const handlePointerEnd = () => {
+    if (!drag.current.active) return
+    drag.current.active = false
+    const deltaX = drag.current.deltaX
+    if (Math.abs(deltaX) > 64) {
+      moveTo(deltaX < 0 ? 1 : -1)
+      return
+    }
+    gsap.to(cardRef.current, { x: 0, rotate: 0, opacity: 1, duration: .35, ease: 'power3.out', clearProps: 'transform,opacity' })
+  }
+
+  if (!activeCard) return null
+
+  return (
+    <div className="dashboard-card-stack">
+      <div className="dashboard-sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {activeCard.name}. {systemsCount} sistema{systemsCount === 1 ? '' : 's'} aplicáve{systemsCount === 1 ? 'l' : 'is'}.
+      </div>
+      <div className="dashboard-card-stack__stage">
+        {stackedCards.slice().reverse().map((card, reverseIndex) => (
+          <div className="dashboard-technical-card dashboard-technical-card--back" data-depth={stackedCards.length - reverseIndex} key={card.id} aria-hidden="true">
+            <span>{card.name}</span>
+          </div>
+        ))}
+        <article
+          ref={cardRef}
+          className="dashboard-technical-card dashboard-technical-card--active"
+          tabIndex={0}
+          aria-label={`${activeCard.name}. Arraste para os lados ou use as setas para trocar de edificação.`}
+          onKeyDown={event => {
+            if (event.key === 'ArrowLeft') moveTo(-1)
+            if (event.key === 'ArrowRight') moveTo(1)
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+        >
+          <div className="dashboard-technical-card__name">
+            <span>Nome da edificação</span>
+            <h3>{activeCard.name}</h3>
+          </div>
+          <dl className="dashboard-technical-card__metrics">
+            <div><dt>Área construída</dt><dd>{fmtNumber(activeCard.area)}<small>{activeCard.area ? ' m²' : ''}</small></dd></div>
+            <div><dt>Quantidade de pavimentos</dt><dd>{activeCard.floorCount || '—'}</dd><small>{activeCard.height ? `${fmtNumber(activeCard.height)} m de altura${activeCard.id === 'all' ? ' máxima' : ''}` : 'Altura não informada'}</small></div>
+            <div><dt>Risco de incêndio</dt><dd>{getRiskLabel(activeCard.fireLoad)}</dd><small>{activeCard.fireLoad ? `${fmtNumber(activeCard.fireLoad)} MJ/m² de carga de incêndio` : 'Carga de incêndio não informada'}</small></div>
+          </dl>
+        </article>
+      </div>
+      <div className="dashboard-card-stack__navigation">
+        <div className="dashboard-card-stack__arrows">
+          <button type="button" onClick={() => moveTo(-1)} disabled={cards.length < 2} aria-label="Edificação anterior"><Icon name="chevL" size={16}/></button>
+          <span><strong>{String(activeIndex + 1).padStart(2, '0')}</strong> / {String(cards.length).padStart(2, '0')}</span>
+          <button type="button" onClick={() => moveTo(1)} disabled={cards.length < 2} aria-label="Próxima edificação"><Icon name="chevR" size={16}/></button>
+        </div>
+        <div className="dashboard-card-stack__dots" role="radiogroup" aria-label="Selecionar visão técnica">
+          {cards.map(card => <button type="button" role="radio" className={card.id === selectedId ? 'is-active' : ''} key={card.id} onClick={() => onSelect(card.id)} aria-label={`Ver ${card.name}`} aria-checked={card.id === selectedId}/>) }
+        </div>
+        <span>Arraste para explorar as edificações</span>
+      </div>
+    </div>
+  )
 }
 
 export default function DashboardPage({ onGoConfig, onNavigate }) {
@@ -124,7 +241,23 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       .sort((a, b) => Number(b.required) - Number(a.required))
     const summaryGroups = [...new Set(selectedPavements.map(item => item.grupo).filter(Boolean))].sort()
     const summaryDivisions = [...new Set(selectedPavements.map(item => item.divisao).filter(Boolean))].sort()
+    const makeStructureSummary = structure => {
+      const structurePavements = (state.pavimentos || []).filter(item => item.estruturaId === structure.id)
+      return {
+        id: structure.id,
+        name: structure.nome || 'Edificação sem nome',
+        area: Number(structure.areaTotal) || 0,
+        height: Number(structure.altura) || 0,
+        floorCount: Number(structure.nPavimentos) || 0,
+        basementCount: Number(structure.nSubsolos) || 0,
+        fireLoad: getFireLoad(state.cargaState?.[structure.id]),
+        groups: [...new Set(structurePavements.map(item => item.grupo).filter(Boolean))].sort(),
+        divisions: [...new Set(structurePavements.map(item => item.divisao).filter(Boolean))].sort(),
+      }
+    }
     const summary = selectedStructure ? {
+      id: selectedStructure.id,
+      name: selectedStructure.nome || 'Edificação sem nome',
       label: selectedStructure.nome,
       area: Number(selectedStructure.areaTotal) || 0,
       height: Number(selectedStructure.altura) || 0,
@@ -136,13 +269,15 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       systemCount: summarySystems.length,
       requiredCount: summarySystems.filter(system => structureSystems[system.key]?.obrigatorio).length,
     } : {
-      label: 'Visão geral', area, height, floorCount, basementCount, fireLoad,
+      id: 'all', name: 'Visão geral do projeto', label: 'Visão geral', area, height, floorCount, basementCount, fireLoad,
       groups: summaryGroups, divisions: summaryDivisions,
       systemCount: activeSystems.length,
       requiredCount: activeSystems.filter(system => system.required).length,
     }
 
-    return { activeSystems, displayedSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsWithData, configPercent, hasTechnicalData, summary }
+    const technicalCards = [{ id: 'all', name: 'Visão geral do projeto', area, height, floorCount, basementCount, fireLoad }, ...structures.map(makeStructureSummary)]
+
+    return { activeSystems, displayedSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsWithData, configPercent, hasTechnicalData, summary, technicalCards }
   }, [state, sistemas, porEstrutura, selectedStructureId])
 
   const projectReady = data.configPercent === 100
@@ -191,30 +326,18 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
             <button type="button" className="dashboard-text-button" onClick={onGoConfig}>Editar identificação <Icon name="right" size={13}/></button>
           </article>
 
-          <article className="dashboard-panel dashboard-technical" aria-label="Resumo técnico">
-            <div className="dashboard-section-heading dashboard-technical__heading">
-              <div><h2>Resumo técnico</h2><p>Dados da visão selecionada</p></div>
-              <label className="dashboard-building-filter">
-                <span>Edificação</span>
-                <select value={selectedStructureId} onChange={event => setSelectedStructureId(event.target.value)}>
-                  <option value="all">Visão geral</option>
-                  {(state.estruturas || []).map(structure => <option key={structure.id} value={structure.id}>{structure.nome}</option>)}
-                </select>
-              </label>
-            </div>
-            <div className="dashboard-metrics">
-              <Metric label="Área construída" value={fmtNumber(data.summary.area)} unit={data.summary.area ? 'm²' : ''} detail={selectedStructureId === 'all' ? `${(state.estruturas || []).length} edificações` : data.summary.label}/>
-              <Metric label="Altura" value={fmtNumber(data.summary.height)} unit={data.summary.height ? 'm' : ''} detail={`${data.summary.floorCount} pavimento${data.summary.floorCount === 1 ? '' : 's'}${data.summary.basementCount ? ` · ${data.summary.basementCount} subsolo${data.summary.basementCount === 1 ? '' : 's'}` : ''}`}/>
-              <Metric label="Carga de incêndio" value={fmtNumber(data.summary.fireLoad)} unit={data.summary.fireLoad ? 'MJ/m²' : ''} detail={data.summary.fireLoad ? (data.summary.fireLoad <= 300 ? 'Risco baixo' : data.summary.fireLoad <= 1200 ? 'Risco médio' : 'Risco alto') : 'Aguardando classificação'}/>
-              <Metric label="Classificação" value={data.summary.groups.join(', ') || '—'} unit="" detail={data.summary.divisions.join(', ') || 'Divisões não definidas'}/>
-              <Metric label="Sistemas aplicáveis" value={data.summary.systemCount || '—'} unit="" detail={`${data.summary.requiredCount} obrigatórios`}/>
-              <Metric label="Situação" value={state.situacao === 'existente' ? 'Existente' : state.situacao === 'nova' ? 'Nova' : '—'} unit="" detail={info?.nome || 'Norma não definida'}/>
-            </div>
-          </article>
+        </section>
+
+        <section className="dashboard-technical" aria-label="Resumo técnico">
+          <div className="dashboard-section-heading dashboard-technical__heading">
+            <div><h2>Resumo técnico</h2><p>O card selecionado define os sistemas exibidos abaixo</p></div>
+            <span>{selectedStructureId === 'all' ? 'Todas as edificações' : data.summary.label}</span>
+          </div>
+          <TechnicalCardStack cards={data.technicalCards} selectedId={selectedStructureId} systemsCount={data.displayedSystems.length} onSelect={setSelectedStructureId}/>
         </section>
 
         <section className="dashboard-systems">
-          <div className="dashboard-section-heading dashboard-section-heading--systems"><div><h2>Sistemas do projeto</h2><p>{selectedStructureId === 'all' ? 'Status consolidado de todas as edificações' : `Sistemas aplicáveis a ${data.summary.label}`}</p></div><span>{data.displayedSystems.length} aplicáveis</span></div>
+          <div className="dashboard-section-heading dashboard-section-heading--systems"><div><h2>Sistemas aplicados</h2><p>{selectedStructureId === 'all' ? 'Status consolidado de todas as edificações' : `Sistemas aplicáveis a ${data.summary.label}`}</p></div><span>{data.displayedSystems.length} aplicáveis</span></div>
           {data.displayedSystems.length ? <div className="dashboard-system-list">{data.displayedSystems.map(system => (
             <button type="button" className="dashboard-system" key={system.key} onClick={() => onNavigate?.(system.key)}>
               <span className={`dashboard-system__icon dashboard-system__icon--${system.progress.tone}`}><Icon name={system.icon} size={17}/></span>
