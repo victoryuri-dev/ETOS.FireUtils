@@ -9,43 +9,59 @@
 import { getIluminacao } from '../normas/index'
 import { calcularBalizamento, nomeEspecificacao } from '../iluminacao_calc'
 
-function blocosDoPavimento(pav, itensPav, balizamentoAplicado, equipamentosUsados, norma) {
-  const { PONTOS_BALIZAMENTO } = norma
-  const itensAclaramento = itensPav.filter(i => i.categoria === 'aclaramento')
-  const itensBalizamento = itensPav.filter(i => i.categoria === 'balizamento')
-  const blocos = [{ tipo: 'titulo2', texto: pav.label }]
+// Matriz pavimento x equipamento (em vez de uma tabela por pavimento) —
+// só entram como coluna os equipamentos com ao menos 1 unidade cadastrada
+// em algum pavimento desta estrutura, pra não poluir com colunas zeradas
+// quando estruturas diferentes usam especificações diferentes.
+function tabelaAclaramento(pavs, itensPorPav, equipamentosUsados) {
+  const colunas = equipamentosUsados.filter(eq =>
+    pavs.some(p => itensPorPav.get(p.id).some(i => i.tipoEquipamento === eq.key && (i.quantidade || 0) > 0))
+  )
+  if (colunas.length === 0) return null
 
-  if (itensAclaramento.length > 0) {
-    blocos.push({
-      tipo: 'tabela',
-      colunas: ['Equipamento', 'Qtd.'],
-      linhas: itensAclaramento.map(i => {
-        const eq = equipamentosUsados.find(e => e.key === i.tipoEquipamento)
-        return [eq?.label || i.tipoEquipamento, String(i.quantidade || 0)]
-      }),
-    })
-  } else {
-    blocos.push({ tipo: 'paragrafo', texto: `Nenhuma luminária de aclaramento cadastrada em ${pav.label}.` })
+  return {
+    tipo: 'tabela',
+    colunas: ['Pavimento', ...colunas.map(eq => eq.label)],
+    linhas: pavs.map(p => {
+      const itens = itensPorPav.get(p.id)
+      return [p.label, ...colunas.map(eq => String(itens.find(i => i.tipoEquipamento === eq.key)?.quantidade || 0))]
+    }),
   }
+}
 
-  // Balizamento narra a resposta explícita à pergunta "foi aplicado?" —
-  // distingue "não aplicado" (decisão do projetista) de "ainda não
-  // respondido" (pendência), em vez de tratar os dois como ausência de dado.
-  if (balizamentoAplicado === false) {
-    blocos.push({ tipo: 'paragrafo', texto: `Não foram aplicadas luminárias de balizamento em ${pav.label}.` })
-  } else if (balizamentoAplicado === true && itensBalizamento.length > 0) {
-    const baliz = calcularBalizamento(itensBalizamento, PONTOS_BALIZAMENTO)
-    blocos.push({
-      tipo: 'tabela',
-      colunas: ['Ponto de balizamento', 'Qtd.'],
-      linhas: PONTOS_BALIZAMENTO
-        .filter(p => baliz.porPonto[p.key] > 0)
-        .map(p => [p.label, String(baliz.porPonto[p.key])]),
-    })
-  } else if (balizamentoAplicado === true) {
-    blocos.push({ tipo: 'paragrafo', texto: `Balizamento aplicado em ${pav.label}, mas as quantidades por ponto ainda não foram cadastradas.` })
-  } else {
-    blocos.push({ tipo: 'paragrafo', texto: `Pendente de definição: ainda não foi informado se há luminárias de balizamento em ${pav.label}.` })
+// Mesma lógica em matriz pra balizamento — só entra pavimento com algo
+// cadastrado (linha) e ponto com alguma unidade nessa estrutura (coluna).
+function tabelaBalizamento(pavs, itensBalizPorPav, pontosBalizamento) {
+  const pavsComItens = pavs.filter(p => itensBalizPorPav.get(p.id).length > 0)
+  if (pavsComItens.length === 0) return null
+
+  const porPontoDaEstrutura = calcularBalizamento(pavsComItens.flatMap(p => itensBalizPorPav.get(p.id)), pontosBalizamento).porPonto
+  const colunas = pontosBalizamento.filter(pt => porPontoDaEstrutura[pt.key] > 0)
+  if (colunas.length === 0) return null
+
+  return {
+    tipo: 'tabela',
+    colunas: ['Pavimento', ...colunas.map(c => c.label)],
+    linhas: pavsComItens.map(p => {
+      const { porPonto } = calcularBalizamento(itensBalizPorPav.get(p.id), pontosBalizamento)
+      return [p.label, ...colunas.map(c => String(porPonto[c.key] || 0))]
+    }),
+  }
+}
+
+function blocosDaEstrutura(est, pavs, itensDaEstrutura, equipamentosUsados, norma) {
+  const itensPorPav = new Map(pavs.map(p => [p.id, itensDaEstrutura.filter(i => i.pavimentoId === p.id && i.categoria === 'aclaramento')]))
+  const itensBalizPorPav = new Map(pavs.map(p => [p.id, itensDaEstrutura.filter(i => i.pavimentoId === p.id && i.categoria === 'balizamento')]))
+
+  const blocos = [{ tipo: 'titulo2', texto: est.nome }]
+
+  const tabAclar = tabelaAclaramento(pavs, itensPorPav, equipamentosUsados)
+  blocos.push(tabAclar || { tipo: 'paragrafo', texto: `Nenhuma luminária de aclaramento cadastrada em ${est.nome}.` })
+
+  const tabBaliz = tabelaBalizamento(pavs, itensBalizPorPav, norma.PONTOS_BALIZAMENTO)
+  if (tabBaliz) {
+    blocos.push({ tipo: 'titulo3', texto: 'Luminárias de Balizamento' })
+    blocos.push(tabBaliz)
   }
 
   return blocos
@@ -97,19 +113,11 @@ export function textoMemorialIluminacao(state) {
     })
   }
 
-  const balizamentoAplicadoMap = state.iluminacaoBalizamentoAplicado || {}
   const blocosPavimentos = (state.estruturas || []).flatMap(est => {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     if (pavs.length === 0) return []
-    return [
-      { tipo: 'titulo2', texto: est.nome },
-      ...pavs.flatMap(pav => blocosDoPavimento(
-        pav,
-        (state.iluminacao || []).filter(i => i.pavimentoId === pav.id),
-        balizamentoAplicadoMap[pav.id],
-        equipamentosUsados, norma,
-      )),
-    ]
+    const itensDaEstrutura = (state.iluminacao || []).filter(i => pavs.some(p => p.id === i.pavimentoId))
+    return blocosDaEstrutura(est, pavs, itensDaEstrutura, equipamentosUsados, norma)
   })
 
   if (blocosPavimentos.length === 0) {
