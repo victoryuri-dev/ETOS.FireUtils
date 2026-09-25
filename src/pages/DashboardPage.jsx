@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useProjeto } from '../context/ProjetoContext'
 import { useNorma } from '../hooks/useNorma'
@@ -10,7 +10,7 @@ import './DashboardPage.css'
 const DIAS_SEMANA_ABREV = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
-// ── Heatmap de atividade ─────────────────────────────────────────────────
+// ── Heatmap de atividade — últimos 2 meses ──────────────────────────────
 // Uma linha por (projeto, dia) em atividade_diaria, incrementada a cada
 // salvamento bem-sucedido no Supabase (ver registrarAtividade em
 // ProjetoContext.jsx). Cada quadrado representa um dia; a intensidade do
@@ -18,18 +18,39 @@ const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'se
 // (não um valor absoluto fixo), pra continuar legível tanto num projeto
 // pouco editado quanto num muito editado.
 //
-// O número de dias mostrados não é fixo em 30 — a quantidade de semanas
-// (colunas) é calculada a partir do espaço real disponível na box, com
-// quadrados de tamanho fixo (não esticados). O dia atual cai sempre na
+// A janela é sempre "2 meses corridos até hoje" — a box nasce do tamanho
+// da grade (quadrado fixo), não o contrário. O dia atual cai sempre na
 // última coluna (a mais à direita), igual ao GitHub.
-const CELULA_GAP = 3
-const LINHA_MES_ALTURA = 16
-const MIN_COLUNAS = 5
+const CELULA = 11 // gap entre quadrados fica em DashboardPage.css (.dashboard-activity__grid)
+const LINHA_MES_ALTURA = 14
 
-function buildActivityDays(registros, totalDias) {
+function timeAgo(iso) {
+  if (!iso) return '—'
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return 'agora'
+  if (min < 60) return `há ${min} min`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `há ${h}h`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `há ${d} dia${d !== 1 ? 's' : ''}`
+  const mo = Math.floor(d / 30)
+  return `há ${mo} ${mo !== 1 ? 'meses' : 'mês'}`
+}
+
+// Constrói a janela de exatamente 2 meses corridos terminando hoje, já
+// alinhada por semana (o primeiro dia cai sempre num domingo) — igual à
+// lógica de âncora usada nas colunas.
+function buildActivityDays(registros) {
   const contagemPorDia = new Map((registros || []).map(r => [r.dia, r.contagem]))
   const hoje = new Date()
   hoje.setHours(0, 0, 0, 0)
+  const inicio = new Date(hoje)
+  inicio.setMonth(inicio.getMonth() - 2)
+  const ancora = new Date(inicio)
+  ancora.setDate(ancora.getDate() - ancora.getDay())
+  const totalDias = Math.round((hoje - ancora) / 86400000) + 1
+
   const dias = []
   for (let i = totalDias - 1; i >= 0; i--) {
     const data = new Date(hoje)
@@ -40,35 +61,8 @@ function buildActivityDays(registros, totalDias) {
   return dias
 }
 
-function ActivityHeatmap({ registros }) {
-  const containerRef = useRef(null)
-  const [grade, setGrade] = useState(null) // { colunas, celula } — null até a primeira medição
-
-  useLayoutEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const medir = () => {
-      const { width, height } = el.getBoundingClientRect()
-      if (!width || !height) return
-      // Tamanho do quadrado nasce da ALTURA (7 linhas fixas de dia da
-      // semana) e é reaproveitado pra largura — garante quadrado de
-      // verdade, não um retângulo esticado pra caber na altura da box.
-      const celula = Math.max(8, Math.floor((height - LINHA_MES_ALTURA - CELULA_GAP * 6) / 7))
-      const colunas = Math.max(MIN_COLUNAS, Math.floor((width + CELULA_GAP) / (celula + CELULA_GAP)))
-      setGrade(prev => (prev && prev.colunas === colunas && prev.celula === celula) ? prev : { colunas, celula })
-    }
-    medir()
-    const ro = new ResizeObserver(medir)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  // Quantos dias cobrem exatamente `colunas` semanas terminando hoje —
-  // a coluna mais à esquerda sempre começa num domingo (semana cheia); só
-  // a coluna mais à direita (a semana atual) pode vir parcial.
-  const hojeDow = new Date().getDay()
-  const totalDias = grade ? (grade.colunas - 1) * 7 + hojeDow + 1 : 0
-  const dias = useMemo(() => buildActivityDays(registros, totalDias), [registros, totalDias])
+function ActivityHeatmap({ registros, ultimaAlteracao }) {
+  const dias = useMemo(() => buildActivityDays(registros), [registros])
   const maxContagem = Math.max(0, ...dias.map(d => d.contagem))
 
   const nivel = contagem => {
@@ -80,11 +74,10 @@ function ActivityHeatmap({ registros }) {
     return 4
   }
 
-  // `dias[0]` é sempre um domingo por construção (totalDias foi escolhido
-  // exatamente pra isso — ver comentário acima) — serve de âncora direta,
-  // sem precisar recalcular o início da semana.
-  const ancora = dias.length ? dias[0].data : null
+  // `dias[0]` é sempre um domingo por construção — serve de âncora direta.
+  const ancora = dias[0].data
   const colunaDe = data => Math.floor((data - ancora) / 86400000 / 7)
+  const totalColunas = colunaDe(dias[dias.length - 1].data) + 1
 
   const rotulosMes = []
   let ultimoMes = null
@@ -100,36 +93,37 @@ function ActivityHeatmap({ registros }) {
   // última coluna (a mais à direita), igual ao GitHub. Ganha destaque
   // próprio (branco) em vez de seguir a escala de vermelho, pra ficar
   // sempre localizável de primeira, tenha ou não atividade registrada.
-  const chaveHoje = dias.length ? dias[dias.length - 1].chave : null
+  const chaveHoje = dias[dias.length - 1].chave
 
   return (
-    <div
-      ref={containerRef}
-      className="dashboard-activity__grid"
-      style={grade ? {
-        gridTemplateColumns: `repeat(${grade.colunas}, ${grade.celula}px)`,
-        gridTemplateRows: `${LINHA_MES_ALTURA}px repeat(7, ${grade.celula}px)`,
-        justifyContent: 'end',
-      } : undefined}
-    >
-      {rotulosMes.map(r => (
-        <span key={r.coluna} className="dashboard-activity__month" style={{ gridColumn: r.coluna + 1 }}>{r.texto}</span>
-      ))}
-      {dias.map(d => {
-        const ehHoje = d.chave === chaveHoje
-        const rotulo = `${d.contagem} ${d.contagem === 1 ? 'atividade' : 'atividades'} — ${DIAS_SEMANA_ABREV[d.data.getDay()]}, ${d.data.getDate()} de ${MESES_ABREV[d.data.getMonth()]}${ehHoje ? ' (hoje)' : ''}`
-        return (
-          <span
-            key={d.chave}
-            className={`dashboard-activity__cell ${ehHoje ? 'dashboard-activity__cell--today' : `dashboard-activity__cell--l${nivel(d.contagem)}`}`}
-            style={{ gridColumn: colunaDe(d.data) + 1, gridRow: d.data.getDay() + 2 }}
-            title={rotulo}
-            aria-label={rotulo}
-            role="img"
-          />
-        )
-      })}
-    </div>
+    <>
+      <div
+        className="dashboard-activity__grid"
+        style={{
+          gridTemplateColumns: `repeat(${totalColunas}, ${CELULA}px)`,
+          gridTemplateRows: `${LINHA_MES_ALTURA}px repeat(7, ${CELULA}px)`,
+        }}
+      >
+        {rotulosMes.map(r => (
+          <span key={r.coluna} className="dashboard-activity__month" style={{ gridColumn: r.coluna + 1 }}>{r.texto}</span>
+        ))}
+        {dias.map(d => {
+          const ehHoje = d.chave === chaveHoje
+          const rotulo = `${d.contagem} ${d.contagem === 1 ? 'atividade' : 'atividades'} — ${DIAS_SEMANA_ABREV[d.data.getDay()]}, ${d.data.getDate()} de ${MESES_ABREV[d.data.getMonth()]}${ehHoje ? ' (hoje)' : ''}`
+          return (
+            <span
+              key={d.chave}
+              className={`dashboard-activity__cell ${ehHoje ? 'dashboard-activity__cell--today' : `dashboard-activity__cell--l${nivel(d.contagem)}`}`}
+              style={{ gridColumn: colunaDe(d.data) + 1, gridRow: d.data.getDay() + 2 }}
+              title={rotulo}
+              aria-label={rotulo}
+              role="img"
+            />
+          )
+        })}
+      </div>
+      <p className="dashboard-activity__updated">Última alteração {timeAgo(ultimaAlteracao)}</p>
+    </>
   )
 }
 
@@ -333,15 +327,14 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
   const [selectedStructureId, setSelectedStructureId] = useState('all')
   const [atividade, setAtividade] = useState([])
 
-  // O heatmap decide em tempo real quantos dias cabem na box (ver
-  // ActivityHeatmap) — busca uma janela generosa o bastante pra cobrir até
-  // o cenário de quadrados bem pequenos (~180 dias), nunca menos do que o
-  // heatmap possa vir a precisar.
+  // O heatmap mostra 2 meses corridos (ver ActivityHeatmap) — busca uma
+  // janela um pouco mais folgada (75 dias) pra sempre cobrir isso mesmo
+  // com o alinhamento por semana no início da janela.
   useEffect(() => {
     if (!state.id) { setAtividade([]); return }
     let cancelado = false
     const inicio = new Date()
-    inicio.setDate(inicio.getDate() - 179)
+    inicio.setDate(inicio.getDate() - 74)
     supabase
       .from('atividade_diaria')
       .select('dia,contagem')
@@ -461,8 +454,8 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
             </div>
           </section>
 
-          <aside className="dashboard-panel dashboard-activity" aria-label="Atividade recente do projeto — últimos 30 dias">
-            <ActivityHeatmap registros={atividade}/>
+          <aside className="dashboard-panel dashboard-activity" aria-label="Atividade recente do projeto — últimos 2 meses">
+            <ActivityHeatmap registros={atividade} ultimaAlteracao={state.updatedAt}/>
           </aside>
         </div>
 
