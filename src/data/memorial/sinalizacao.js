@@ -16,7 +16,7 @@ const LARGURAS_TABELA = ['52px', '56px', 'auto', '48px']
 
 // Granularidade só até estrutura (sem pavimento) — ver comentário no topo de
 // SinalizacaoPage.jsx.
-function blocosDaEstrutura(est, itensEst, tiposPlaca, categorias) {
+function blocosDaEstrutura(est, itensEst, tiposPlaca) {
   const blocos = [{ tipo: 'titulo2', texto: est.nome }]
 
   if (itensEst.length === 0) {
@@ -25,16 +25,13 @@ function blocosDaEstrutura(est, itensEst, tiposPlaca, categorias) {
   }
 
   const { porTipo } = calcularSinalizacaoEstrutura(itensEst, tiposPlaca)
+  const tiposUsados = tiposPlaca.filter(t => porTipo[t.key] > 0)
 
-  categorias.forEach(cat => {
-    const tiposCat = tiposPlaca.filter(t => t.categoria === cat.key && porTipo[t.key] > 0)
-    if (tiposCat.length === 0) return
-    blocos.push({
-      tipo: 'tabela',
-      colunas: ['', 'Código', 'Placa', 'Qtd.'],
-      larguras: LARGURAS_TABELA,
-      linhas: tiposCat.map(t => [{ tipo: 'imagem', src: t.img, alt: t.codigo }, t.codigo, t.label, String(porTipo[t.key])]),
-    })
+  blocos.push({
+    tipo: 'tabela',
+    colunas: ['', 'Código', 'Placa', 'Qtd.'],
+    larguras: LARGURAS_TABELA,
+    linhas: tiposUsados.map(t => [{ tipo: 'imagem', src: t.img, alt: t.codigo }, t.codigo, t.label, String(porTipo[t.key])]),
   })
 
   return blocos
@@ -42,7 +39,7 @@ function blocosDaEstrutura(est, itensEst, tiposPlaca, categorias) {
 
 export function textoMemorialSinalizacao(state) {
   const norma = getSinalizacao(state.uf)
-  const { TIPOS_PLACA, CATEGORIAS, NOTAS } = norma
+  const { TIPOS_PLACA, NOTAS } = norma
   const itensSinalizacao = state.sinalizacao || []
 
   const blocos = [{
@@ -51,7 +48,7 @@ export function textoMemorialSinalizacao(state) {
   }]
 
   const blocosEstruturas = (state.estruturas || []).flatMap(est =>
-    blocosDaEstrutura(est, itensSinalizacao.filter(i => i.estruturaId === est.id), TIPOS_PLACA, CATEGORIAS)
+    blocosDaEstrutura(est, itensSinalizacao.filter(i => i.estruturaId === est.id), TIPOS_PLACA)
   )
 
   if (blocosEstruturas.length === 0) {
