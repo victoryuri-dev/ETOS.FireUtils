@@ -137,19 +137,21 @@ export const ELEMENTOS_COMPART_VERTICAL = [
 ]
 
 // ── Condições especiais (dispensas e regras específicas) ────────────────────
-// Chave usada no checklist da tela — texto e referência ao item da NT 09.
+// Chave usada no checklist da tela — `label` é o texto curto mostrado ao lado
+// do checkbox; `texto` é a redação completa da NT, mostrada só sob demanda
+// (InfoTip) pra não poluir a lista com parágrafos inteiros.
 export const CONDICOES_ESPECIAIS_HORIZONTAL = [
-  { key: 'estacionamento_exclusivo', ref: '5.5.1', texto: 'Área destinada exclusivamente a estacionamento de veículos — compartimentação horizontal dispensada.' },
-  { key: 'unidades_autonomas_ei60',  ref: '5.5.2', texto: 'Grupos A (A-2/A-3), B e H (H-2/H-3): paredes entre unidades autônomas e áreas comuns com TRRF mínimo de 60 min (EI-60), independente do TRRF da edificação — dispensável se houver chuveiros automáticos (item 5.5.4).' },
-  { key: 'subsolo_pcf_p90',          ref: '5.5.7', texto: 'Escadas/rampas de circulação vindas de subsolo compartimentadas com PCF P-90 (EI-90) em relação aos demais pisos, independente da área máxima.' },
-  { key: 'drywall_acima_6_5m',       ref: '5.5.10', texto: 'Parede de drywall com altura acima de 6,5 m — exige atestado do fabricante e ART/documento de responsabilidade técnica da instalação.' },
+  { key: 'estacionamento_exclusivo', ref: '5.5.1', label: 'Área exclusiva de estacionamento de veículos', texto: 'Área destinada exclusivamente a estacionamento de veículos — compartimentação horizontal dispensada.' },
+  { key: 'unidades_autonomas_ei60',  ref: '5.5.2', label: 'Unidades autônomas com parede EI-60', texto: 'Grupos A (A-2/A-3), B e H (H-2/H-3): paredes entre unidades autônomas e áreas comuns com TRRF mínimo de 60 min (EI-60), independente do TRRF da edificação — dispensável se houver chuveiros automáticos (item 5.5.4).' },
+  { key: 'subsolo_pcf_p90',          ref: '5.5.7', label: 'Subsolo com PCF P-90', texto: 'Escadas/rampas de circulação vindas de subsolo compartimentadas com PCF P-90 (EI-90) em relação aos demais pisos, independente da área máxima.' },
+  { key: 'drywall_acima_6_5m',       ref: '5.5.10', label: 'Drywall acima de 6,5 m', texto: 'Parede de drywall com altura acima de 6,5 m — exige atestado do fabricante e ART/documento de responsabilidade técnica da instalação.' },
 ]
 
 export const CONDICOES_ESPECIAIS_VERTICAL = [
-  { key: 'interligacao_ate_3_pavimentos', ref: '6.5.1', texto: 'Interligação de até 3 pavimentos consecutivos acima do térreo por átrios, escadas, rampas ou escadas rolantes, desde que a soma das áreas desses pavimentos não ultrapasse a área máxima de compartimentação.' },
-  { key: 'subsolo_dutos_shafts',          ref: '6.5.2', texto: 'Dutos e shafts de instalações dos subsolos compartimentados integralmente em relação ao térreo, piso de descarga e demais pisos elevados, independente da área máxima.' },
-  { key: 'subsolo_pcf_p90',               ref: '6.5.3', texto: 'Escadas/rampas de circulação vindas de subsolo compartimentadas com PCF P-90 (EI-90) em relação aos demais pisos, independente da área máxima.' },
-  { key: 'dispositivo_enrolar_sprinklers',ref: '7.1',   texto: 'Dispositivos automatizados de enrolar corta-fogo só podem substituir portas/vedadores em edificações protegidas por chuveiros automáticos, nas situações do item 7.1 (interligação de até 2 pavimentos, pavimento de estacionamento, ou ampliação de edificação existente).' },
+  { key: 'interligacao_ate_3_pavimentos', ref: '6.5.1', label: 'Interligação de até 3 pavimentos', texto: 'Interligação de até 3 pavimentos consecutivos acima do térreo por átrios, escadas, rampas ou escadas rolantes, desde que a soma das áreas desses pavimentos não ultrapasse a área máxima de compartimentação.' },
+  { key: 'subsolo_dutos_shafts',          ref: '6.5.2', label: 'Dutos/shafts do subsolo compartimentados', texto: 'Dutos e shafts de instalações dos subsolos compartimentados integralmente em relação ao térreo, piso de descarga e demais pisos elevados, independente da área máxima.' },
+  { key: 'subsolo_pcf_p90',               ref: '6.5.3', label: 'Subsolo com PCF P-90', texto: 'Escadas/rampas de circulação vindas de subsolo compartimentadas com PCF P-90 (EI-90) em relação aos demais pisos, independente da área máxima.' },
+  { key: 'dispositivo_enrolar_sprinklers',ref: '7.1',   label: 'Dispositivo de enrolar + chuveiros automáticos', texto: 'Dispositivos automatizados de enrolar corta-fogo só podem substituir portas/vedadores em edificações protegidas por chuveiros automáticos, nas situações do item 7.1 (interligação de até 2 pavimentos, pavimento de estacionamento, ou ampliação de edificação existente).' },
 ]
 
 // ── Substituição por sistemas alternativos (notas de rodapé da Tabela 6, NT 01 CBMMA) ──
