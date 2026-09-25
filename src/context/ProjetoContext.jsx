@@ -129,6 +129,18 @@ function novoItemSinalizacao(estruturaId, tipoPlaca, quantidade, id) {
   return { id: id || idSinalizacao(), estruturaId, tipoPlaca, quantidade }
 }
 
+// Mesma lógica de idExtintor/idIluminacao/idSinalizacao — evita colisão
+// entre notas criadas no mesmo milissegundo (checklist do Dashboard).
+let notaSeq = 0
+function idNota() {
+  notaSeq += 1
+  return `nota-${Date.now().toString(36)}-${notaSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+function novaNota(id) {
+  return { id: id || idNota(), texto: '', feito: false }
+}
+
 // Normaliza um estado salvo (localStorage ou payload de LOAD) contra
 // INITIAL_STATE — protege objetos aninhados que ganharam campos novos desde
 // que o projeto foi salvo (ex.: manobraRetornoOk, iluminacaoSistema.especi-
@@ -339,6 +351,10 @@ const INITIAL_STATE = {
   extintores: [],
   iluminacao: [],
   sinalizacao: [],
+  // Checklist de notas do projeto, exibido no Dashboard ao lado de
+  // Identificação — { id, texto, feito }. Uso livre do projetista (não
+  // entra em nenhum cálculo normativo nem no memorial).
+  notas: [],
   // Sistema de iluminação de emergência escolhido para o projeto todo (não
   // varia por pavimento) — perguntado antes de liberar as quantidades por
   // pavimento em IluminacaoPage.jsx. `localizacaoFonte` só se aplica a
@@ -701,6 +717,17 @@ function reducer(state, action) {
       return { ...state, sinalizacao: state.sinalizacao.map(s => s.id === action.id ? { ...s, ...action.changes } : s) }
     case 'REMOVE_SINALIZACAO':
       return { ...state, sinalizacao: state.sinalizacao.filter(s => s.id !== action.id) }
+    case 'ADD_NOTA':
+      return { ...state, notas: [...state.notas, { ...novaNota(action.id), texto: action.texto || '' }] }
+    case 'SET_NOTA_TEXTO':
+      return { ...state, notas: state.notas.map(n => n.id === action.id ? { ...n, texto: action.texto } : n) }
+    // `action.value` já vem resolvido (ver resolverAcaoLocal) — replica o
+    // valor final pras outras abas, não um "inverte de novo" que pode
+    // convergir errado se duas abas marcarem perto uma da outra.
+    case 'TOGGLE_NOTA':
+      return { ...state, notas: state.notas.map(n => n.id === action.id ? { ...n, feito: action.value } : n) }
+    case 'REMOVE_NOTA':
+      return { ...state, notas: state.notas.filter(n => n.id !== action.id) }
     // Substitui só o cadastro de sinalização das estruturas presentes no
     // lote importado (ver resolverImportacaoSinalizacao em
     // SinalizacaoPage.jsx) — os itens já chegam com estruturaId resolvido
@@ -949,6 +976,7 @@ function resolverAcaoLocal(action, state) {
     case 'ADD_AMBIENTE_SE':
     case 'CRIAR_SAIDA':
     case 'CRIAR_ACESSO':
+    case 'ADD_NOTA':
       return action.id ? action : { ...action, id: idParaTipo(action.type)() }
     case 'IMPORT_EXTINTORES':
       return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idExtintor() }) }
@@ -966,6 +994,11 @@ function resolverAcaoLocal(action, state) {
       const base = state.riscosEspeciaisPorEstrutura[action.estruturaId] || RISCOS_DEFAULT
       return { ...action, value: !base[action.key] }
     }
+    case 'TOGGLE_NOTA': {
+      if (action.value !== undefined) return action
+      const atual = !!state.notas.find(n => n.id === action.id)?.feito
+      return { ...action, value: !atual }
+    }
     default:
       return action
   }
@@ -977,6 +1010,7 @@ function idParaTipo(tipo) {
   if (tipo === 'ADD_SINALIZACAO')  return idSinalizacao
   if (tipo === 'ADD_ESTRUTURA')    return idEstrutura
   if (tipo === 'ADD_AMBIENTE_SE')  return idAmbienteSE
+  if (tipo === 'ADD_NOTA')         return idNota
   if (tipo === 'CRIAR_SAIDA' || tipo === 'CRIAR_ACESSO') return idAcesso
   return idEspecEquip // ADD_ESPECIFICACAO_EQUIPAMENTO / SET_EQUIPAMENTO_USADO
 }
