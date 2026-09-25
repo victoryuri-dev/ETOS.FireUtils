@@ -326,10 +326,6 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
 
         <section className="dashboard-split">
           <div className="dashboard-technical" aria-label="Resumo técnico">
-            <div className="dashboard-technical__heading">
-              <h2>Resumo técnico</h2>
-              <span>{selectedStructureId === 'all' ? 'Todas as edificações' : data.summary.label}</span>
-            </div>
             <TechnicalCardStack cards={data.technicalCards} selectedId={selectedStructureId} systemsCount={data.displayedSystems.length} onSelect={setSelectedStructureId}/>
           </div>
 
