@@ -86,9 +86,33 @@ function idSinalizacao() {
   return `sin-${Date.now().toString(36)}-${sinalizacaoSeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
-// Mesma lógica de idExtintor/idIluminacao/idSinalizacao — evita colisão
-// entre ambientes cadastrados no mesmo milissegundo (Saída de Emergência,
-// SaidaEmergenciaPage.jsx).
+// entre linhas do CMAR cadastradas no mesmo milissegundo.
+let acabamentoSeq = 0
+function idAcabamento() {
+  acabamentoSeq += 1
+  return `cmar-${Date.now().toString(36)}-${acabamentoSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Linha do CMAR (Controle de Material de Acabamento e Revestimento) — uma
+// por combinação estrutura+chave (`chave` = `${divisao}|${elemento}`, ver
+// cmar_calc.js). `origem` discrimina se a classe vem do catálogo de
+// materiais incombustíveis ('incombustivel', classe sempre 'I') ou de
+// cadastro manual ('manual', exige classeAdotada + fabricante + laudoNumero
+// preenchidos para a classe ser considerada comprovada — ver
+// classeResolvida em cmar_calc.js, nunca presume classe sem essa
+// documentação). `normasEnsaio` é o campo livre do Quadro Resumo do
+// memorial (ex.: "ISO 1182, NBR 9442") — não participa da comparação de
+// classe, só da citação no memorial.
+function novaLinhaAcabamento(estruturaId, chave) {
+  return {
+    id: idAcabamento(), estruturaId, chave,
+    origem: '', materialId: '', materialNome: '',
+    classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '',
+  }
+}
+
+// Mesma lógica de idAcabamento — evita colisão entre ambientes cadastrados
+// no mesmo milissegundo (Saída de Emergência, SaidaEmergenciaPage.jsx).
 let ambienteSESeq = 0
 function idAmbienteSE() {
   ambienteSESeq += 1
@@ -339,6 +363,7 @@ const INITIAL_STATE = {
   extintores: [],
   iluminacao: [],
   sinalizacao: [],
+  acabamentos: [],
   // Sistema de iluminação de emergência escolhido para o projeto todo (não
   // varia por pavimento) — perguntado antes de liberar as quantidades por
   // pavimento em IluminacaoPage.jsx. `localizacaoFonte` só se aplica a
@@ -510,6 +535,7 @@ function reducer(state, action) {
         extintores: state.extintores.filter(e => e.estruturaId !== action.id),
         iluminacao: state.iluminacao.filter(i => i.estruturaId !== action.id),
         sinalizacao: state.sinalizacao.filter(s => s.estruturaId !== action.id),
+        acabamentos: state.acabamentos.filter(a => a.estruturaId !== action.id),
         cargaState: semChave(state.cargaState, action.id),
         sistemasPorEstrutura: semChave(state.sistemasPorEstrutura, action.id),
         riscosEspeciaisPorEstrutura: semChave(state.riscosEspeciaisPorEstrutura, action.id),
@@ -712,6 +738,17 @@ function reducer(state, action) {
       const preservados = state.sinalizacao.filter(s => !estruturasDoLote.has(s.estruturaId))
       return { ...state, sinalizacao: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() }))] }
     }
+    // Upsert de uma linha do CMAR — identificada por estrutura+chave (não
+    // por id), já que a tela deriva as linhas a partir das divisões da
+    // estrutura (ver montarLinhas em cmar_calc.js) em vez de o usuário
+    // criar cada linha manualmente.
+    case 'SET_ACABAMENTO': {
+      const { estruturaId, chave, changes } = action
+      const idx = state.acabamentos.findIndex(a => a.estruturaId === estruturaId && a.chave === chave)
+      if (idx === -1) {
+        return { ...state, acabamentos: [...state.acabamentos, { ...novaLinhaAcabamento(estruturaId, chave), ...changes }] }
+      }
+      return { ...state, acabamentos: state.acabamentos.map((a, i) => i === idx ? { ...a, ...changes } : a) }
     // Ambientes de Saída de Emergência (SaidaEmergenciaPage.jsx) — vivem
     // dentro do pavimento (population/dimensionamento é por pavimento, não
     // um cadastro à parte como extintor/iluminação/sinalização). Só são

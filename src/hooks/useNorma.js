@@ -1,5 +1,5 @@
 import { useProjeto } from '../context/ProjetoContext'
-import { getOcupacoes, getGrupos, getCargaMap, getNormaInfo, buscarCNAE, getCNAEsDivisao, temCNAECadastrado, getAV, getTRRF, getExtintores, getIluminacao, getSinalizacao, getCompartimentacao, getHidrantes } from '../data/normas/index'
+import { getOcupacoes, getGrupos, getCargaMap, getNormaInfo, buscarCNAE, getCNAEsDivisao, temCNAECadastrado, getAV, getTRRF, getExtintores, getIluminacao, getSinalizacao, getControleAcabamento, getCompartimentacao, getHidrantes } from '../data/normas/index'
 export function useNorma() {
   const { state } = useProjeto()
   const uf = state.uf || 'MA'
@@ -17,6 +17,7 @@ export function useNorma() {
     extintores:  getExtintores(uf),
     iluminacao:  getIluminacao(uf),
     sinalizacao: getSinalizacao(uf),
+    cmar:        getControleAcabamento(uf),
     compart:     getCompartimentacao(uf),
     hidrantes:   getHidrantes(uf),
   }

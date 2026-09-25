@@ -9,6 +9,7 @@ import { textoMemorialCompartHorizontal, textoMemorialCompartVertical } from './
 import { textoMemorialExtintores } from './extintores'
 import { textoMemorialIluminacao } from './iluminacao'
 import { textoMemorialSinalizacao } from './sinalizacao'
+import { textoMemorialControleAcabamento } from './controle_acabamento'
 import { textoMemorialGerenciamentoRisco } from './gerenciamento_risco'
 import { textoMemorialSaidaEmergencia } from './saida_emergencia'
 import { textoMemorialHidrantes } from './hidrantes'
@@ -19,6 +20,7 @@ export const MEMORIAL_BUILDERS = {
   seg_estrutural:      textoMemorialSegEstrutural,
   compart_horizontal:  textoMemorialCompartHorizontal,
   compart_vertical:    textoMemorialCompartVertical,
+  controle_acabamento: textoMemorialControleAcabamento,
   extintores:          textoMemorialExtintores,
   iluminacao:          textoMemorialIluminacao,
   sinalizacao:         textoMemorialSinalizacao,

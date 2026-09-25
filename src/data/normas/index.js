@@ -19,6 +19,7 @@ import * as MA_TRRF from './MA/trrf'
 import * as MA_EXT  from './MA/extintores'
 import * as MA_ILU  from './MA/iluminacao'
 import * as MA_SIN  from './MA/sinalizacao'
+import * as MA_CMAR from './MA/controle_acabamento'
 import * as MA_COMP from './MA/compartimentacao'
 import * as MA_NTS  from './MA/nts'
 import * as MA_HID  from './MA/hidrantes'
@@ -35,6 +36,7 @@ const NORMAS_TRRF = { MA: MA_TRRF }
 const NORMAS_EXT  = { MA: MA_EXT }
 const NORMAS_ILU  = { MA: MA_ILU }
 const NORMAS_SIN  = { MA: MA_SIN }
+const NORMAS_CMAR = { MA: MA_CMAR }
 const NORMAS_COMP = { MA: MA_COMP }
 const NORMAS_HID  = { MA: MA_HID }
 // getNts() não é parametrizado por UF hoje (só existe o MA_NTS estático,
@@ -189,6 +191,10 @@ export function getSinalizacao(uf) {
 // mesmo estágio de getMedidas() hoje, só o arquivo estático
 // (normas/MA/compartimentacao.js) como fonte.
 export function getCompartimentacao(uf) { return NORMAS_COMP[uf] ?? NORMAS_COMP['MA'] }
+// getControleAcabamento: mesmo estágio de getCompartimentacao — ainda não
+// migrado pra base normativa central, só o arquivo estático
+// (normas/MA/controle_acabamento.js) como fonte.
+export function getControleAcabamento(uf) { return NORMAS_CMAR[uf] ?? NORMAS_CMAR['MA'] }
 export function getNts(uf) {
   const remoto = getNormaRemota(uf, 'nts')
   return remoto ? renomearDaBaseCentral(remoto, CHAVES_NTS) : NTS_PADRAO
