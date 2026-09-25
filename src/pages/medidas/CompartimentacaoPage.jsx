@@ -46,14 +46,17 @@ function Checklist({ titulo, tip, opcoes, valores, onToggle }) {
   )
 }
 
-function ObrigatoriedadeBadge({ obrigatorio, isenta }) {
-  if (obrigatorio && isenta) {
-    return (
-      <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-[rgba(29,158,117,.20)] border-green-border text-green">
-        <Icon name="check" size={12}/> Isenta — sistema substituto
-      </span>
-    )
-  }
+function BadgeVerde({ texto }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-[rgba(29,158,117,.20)] border-green-border text-green">
+      <Icon name="check" size={12}/> {texto}
+    </span>
+  )
+}
+
+function ObrigatoriedadeBadge({ obrigatorio, isenta, compartimentoUnico }) {
+  if (obrigatorio && isenta) return <BadgeVerde texto="Isento por Medida de Proteção Alternativa"/>
+  if (obrigatorio && compartimentoUnico) return <BadgeVerde texto="Não exigida — Compartimento Único"/>
   return obrigatorio ? (
     <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-[rgba(192,21,42,.20)] border-red-border text-red">
       <Icon name="check" size={12}/> Exigida
@@ -266,7 +269,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
             <Icon name={SISTEMA_ICON.compart_horizontal} size={15} color="var(--color-red)"/>
             <span className="text-xs font-bold text-ink">Compartimentação Horizontal</span>
           </div>
-          <ObrigatoriedadeBadge obrigatorio={obrigH} isenta={!!isencaoH}/>
+          <ObrigatoriedadeBadge obrigatorio={obrigH} isenta={!!isencaoH} compartimentoUnico={resultadoArea.dentroDoLimite}/>
         </div>
         {obrigH ? (
           <div className="py-3.5 px-[18px] flex flex-col gap-4">
