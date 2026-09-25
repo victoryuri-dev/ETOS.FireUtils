@@ -7,10 +7,11 @@
 ## Hierarquia
 
 1. Identidade e estado da configuração do projeto.
-2. Identificação do projeto com dados administrativos e responsáveis.
-3. Resumo técnico em card stack, na visão geral ou filtrado por edificação.
-4. Sistemas aplicados alinhados ao resumo e no mesmo recorte da seleção, com estado derivado dos dados persistidos.
-5. Acesso à documentação gerada.
+2. Situação do projeto, ao lado do heatmap de atividade.
+3. Identificação do projeto com dados administrativos e responsáveis.
+4. Resumo técnico em card stack, na visão geral ou filtrado por edificação.
+5. Sistemas aplicados alinhados ao resumo e no mesmo recorte da seleção, com estado derivado dos dados persistidos.
+6. Acesso à documentação gerada.
 
 ## Regras
 
@@ -20,6 +21,7 @@
 - A identificação deve refletir os dados já cadastrados e oferecer acesso direto à configuração para edição.
 - Priorizar densidade legível e comparação rápida; evitar uma coleção uniforme de cartões.
 - Manter o conteúdo funcional em larguras menores, reorganizando colunas sem esconder dados essenciais.
+- O heatmap de atividade mostra só dado real e persistido (contagem de salvamentos por dia em atividade_diaria) — nunca um valor sintético; sem histórico anterior à criação dessa tabela, os dias mais antigos aparecem honestamente como zero.
 
 ## Contrato de estado
 
@@ -33,6 +35,7 @@
 - Em “Visão geral”, a lista de sistemas consolida todas as edificações. No recorte de uma edificação, ela mostra somente os sistemas aplicáveis à estrutura selecionada, deriva desse mesmo recorte a indicação de “Obrigatório” ou “Opcional habilitado” e atualiza as contagens de sistemas aplicáveis e obrigatórios. Contagens de lançamentos vinculados a uma estrutura também devem considerar apenas a edificação selecionada.
 - A pilha oferece apenas as edificações cadastradas e preserva “Visão geral do projeto” como opção agregada.
 - O acesso aos documentos permanece indisponível enquanto não houver qualquer dado técnico do projeto.
+- O heatmap de atividade fica ao lado de Situação do projeto, esticado (`align-items:stretch`) até a mesma altura. Não tem título nem legenda visíveis — a caixa carrega o nome acessível via `aria-label`. Os quadrados nunca esticam pra preencher espaço: o tamanho do quadrado nasce da altura disponível (7 linhas fixas, um por dia da semana) e é reaplicado à largura pra descobrir quantas semanas cabem, medido em tempo real (ResizeObserver) — não em um número fixo de dias. O dia atual sempre cai na última coluna (mais à direita, grid alinhado com `justify-content:end`) e recebe destaque branco sólido em vez de seguir a escala de vermelho, ficando localizável mesmo sem atividade registrada.
 
 ## Navegação e adaptação
 
