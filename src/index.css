@@ -117,11 +117,10 @@
   margin: 6mm;
 }
 
-/* Memorial Descritivo: a folha (.memorial-secao) ja tem 210x297mm e zera o
-   proprio padding na impressao (print:p-0, ver MemorialDescritivoPage.jsx)
-   pra sair sem nenhuma margem embutida — quem for imprimir/exportar decide
-   a propria margem no dialogo do navegador. A pagina tambem nao pode somar
-   margem por cima, senao a folha fica maior que a area imprimivel e cada
+/* Memorial Descritivo: a folha (.memorial-secao) ja tem 210x297mm com
+   margem de 2,5cm nos 4 lados no proprio padding (ver FOLHA em
+   MemorialDescritivoPage.jsx), entao a pagina impressa nao pode somar
+   margem por cima — senao a folha fica maior que a area imprimivel e cada
    secao vaza pra uma segunda pagina. Pagina nomeada so afeta quem usa
    `page: memorial` (ver .print-area-memorial), sem alterar o Anexo B. */
 @page memorial {
@@ -129,6 +128,21 @@
   margin: 0;
 }
 .print-area-memorial { page: memorial; }
+
+/* Tipografia fixa do memorial — Arial em tudo (titulos inclusive) e corpo
+   de texto sempre 12pt, sem variante print: nenhuma: tem que ficar
+   IDENTICO na tela e na impressao/exportacao. Regras fora de qualquer
+   @layer pra sempre vencer as classes utilitarias do Tailwind (arbitrary
+   values tipo text-[12.5px]) que cada bloco do memorial ja usa. Titulos
+   (h1/h2/h3) e sub/sup (formatarFormula) ficam de fora do tamanho fixo de
+   proposito — sub/sup precisam continuar menores que o texto ao redor, e
+   titulo nao e "corpo de texto". */
+.print-area-memorial, .print-area-memorial * {
+  font-family: Arial, Helvetica, sans-serif;
+}
+.print-area-memorial *:not(h1):not(h2):not(h3):not(sup):not(sub) {
+  font-size: 12pt;
+}
 
 @media print {
   body *{visibility:hidden}

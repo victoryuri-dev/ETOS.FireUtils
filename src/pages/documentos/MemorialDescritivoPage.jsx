@@ -35,12 +35,11 @@ const PRIMEIRA_SECAO_MEDIDA = 6
 // impressao isso vira mais de uma pagina para as secoes longas, quebradas
 // pelo navegador.
 //
-// Na tela, a folha simula as margens ABNT NBR 14724 (3cm topo/rodape, 2cm
-// laterais) no proprio padding, so pra ficar com cara de pagina impressa
-// durante a edicao. Na impressao (print:p-0) esse padding some de propo-
-// sito — sem margem embutida, quem configurar a impressao decide o proprio
-// espacamento no dialogo do navegador.
-const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none pt-[3cm] pr-[2cm] pb-[3cm] pl-[2cm] print:p-0'
+// Margem fixa de 2,5cm nos quatro lados, igual na tela e na impressao (sem
+// variante print:) — a visualizacao no site precisa bater exatamente com o
+// que sai impresso/exportado, sem padding extra so pra tela nem zerado so
+// na impressao.
+const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none p-[2.5cm]'
 
 // Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
 // borda clara. Centralizado aqui pra que as tabelas das medidas, do Anexo de
