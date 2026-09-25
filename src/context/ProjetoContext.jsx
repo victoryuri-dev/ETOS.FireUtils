@@ -1109,6 +1109,15 @@ export function ProjetoProvider({ children }) {
     if (!user || !state.id || !state.saveReady || conflito || versaoRef.current == null) return
     setSyncStatus('saving')
     clearTimeout(saveTimer.current)
+    // Best-effort — não bloqueia nem falha o salvamento principal se der
+    // erro (ex.: migration da tabela atividade_diaria ainda não aplicada).
+    // Alimenta o heatmap de atividade do dashboard (Etapa/Dashboard →
+    // "Atividade"), um incremento por salvamento bem-sucedido no dia.
+    const registrarAtividade = () => {
+      supabase.rpc('registrar_atividade', { p_projeto_id: state.id }).then(({ error: rpcError }) => {
+        if (rpcError) console.error('Falha ao registrar atividade do projeto:', rpcError.message)
+      })
+    }
     saveTimer.current = setTimeout(async () => {
       pendingLocalRef.current = false
       const versaoLocal = versaoRef.current
@@ -1147,6 +1156,7 @@ export function ProjetoProvider({ children }) {
           if (!retryError && retry && retry.length > 0) {
             versaoRef.current = retry[0].version
             setSyncStatus('saved')
+            registrarAtividade()
             return
           }
           setConflito(true); setSyncStatus(null); return
@@ -1157,10 +1167,12 @@ export function ProjetoProvider({ children }) {
         if (insertErr) { console.error('Falha ao criar projeto no Supabase:', insertErr.message); setSyncStatus('error'); return }
         versaoRef.current = 1
         setSyncStatus('saved')
+        registrarAtividade()
         return
       }
       versaoRef.current = data[0].version
       setSyncStatus('saved')
+      registrarAtividade()
     }, 800)
     return () => clearTimeout(saveTimer.current)
   }, [state, user, conflito])

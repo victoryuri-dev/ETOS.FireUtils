@@ -1,10 +1,103 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useProjeto } from '../context/ProjetoContext'
 import { useNorma } from '../hooks/useNorma'
 import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
+import { supabase } from '../lib/supabase'
 import Icon from '../components/ui/Icon'
 import './DashboardPage.css'
+
+const DIAS_SEMANA_ABREV = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+// ── Heatmap de atividade — últimos 30 dias ──────────────────────────────
+// Uma linha por (projeto, dia) em atividade_diaria, incrementada a cada
+// salvamento bem-sucedido no Supabase (ver registrarAtividade em
+// ProjetoContext.jsx). Cada quadrado representa um dia; a intensidade do
+// vermelho é relativa ao dia de maior contagem na própria janela de 30
+// dias (não um valor absoluto fixo), pra continuar legível tanto num
+// projeto pouco editado quanto num muito editado.
+function buildActivityDays(registros) {
+  const contagemPorDia = new Map((registros || []).map(r => [r.dia, r.contagem]))
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const dias = []
+  for (let i = 29; i >= 0; i--) {
+    const data = new Date(hoje)
+    data.setDate(data.getDate() - i)
+    const chave = data.toISOString().slice(0, 10)
+    dias.push({ data, chave, contagem: contagemPorDia.get(chave) || 0 })
+  }
+  return dias
+}
+
+function ActivityHeatmap({ registros }) {
+  const dias = useMemo(() => buildActivityDays(registros), [registros])
+  const maxContagem = Math.max(0, ...dias.map(d => d.contagem))
+
+  const nivel = contagem => {
+    if (!contagem || !maxContagem) return 0
+    const proporcao = contagem / maxContagem
+    if (proporcao <= 0.25) return 1
+    if (proporcao <= 0.5) return 2
+    if (proporcao <= 0.75) return 3
+    return 4
+  }
+
+  // Colunas = semanas (domingo a sábado, como no GitHub); ancora na
+  // primeira semana que contém o dia mais antigo da janela, pra alinhar
+  // os quadrados aos dias de semana corretos em vez de simplesmente
+  // agrupar de 7 em 7 a partir do início dos 30 dias.
+  const primeiroDia = dias[0].data
+  const ancora = new Date(primeiroDia)
+  ancora.setDate(ancora.getDate() - ancora.getDay())
+  const colunaDe = data => Math.floor((data - ancora) / 86400000 / 7)
+  const totalColunas = colunaDe(dias[dias.length - 1].data) + 1
+
+  const rotulosMes = []
+  let ultimoMes = null
+  dias.forEach(d => {
+    const mes = d.data.getMonth()
+    if (mes !== ultimoMes) {
+      rotulosMes.push({ coluna: colunaDe(d.data), texto: MESES_ABREV[mes] })
+      ultimoMes = mes
+    }
+  })
+
+  const totalPeriodo = dias.reduce((soma, d) => soma + d.contagem, 0)
+
+  return (
+    <>
+      <div
+        className="dashboard-activity__grid"
+        style={{ gridTemplateColumns: `repeat(${totalColunas}, 12px)` }}
+      >
+        {rotulosMes.map(r => (
+          <span key={r.coluna} className="dashboard-activity__month" style={{ gridColumn: r.coluna + 1 }}>{r.texto}</span>
+        ))}
+        {dias.map(d => {
+          const rotulo = `${d.contagem} ${d.contagem === 1 ? 'atividade' : 'atividades'} — ${DIAS_SEMANA_ABREV[d.data.getDay()]}, ${d.data.getDate()} de ${MESES_ABREV[d.data.getMonth()]}`
+          return (
+            <span
+              key={d.chave}
+              className={`dashboard-activity__cell dashboard-activity__cell--l${nivel(d.contagem)}`}
+              style={{ gridColumn: colunaDe(d.data) + 1, gridRow: d.data.getDay() + 2 }}
+              title={rotulo}
+              aria-label={rotulo}
+              role="img"
+            />
+          )
+        })}
+      </div>
+      <div className="dashboard-activity__legend">
+        <span>Menos</span>
+        {[0, 1, 2, 3, 4].map(l => <span key={l} className={`dashboard-activity__cell dashboard-activity__cell--l${l}`}/>)}
+        <span>Mais</span>
+      </div>
+      <p className="dashboard-activity__total">{totalPeriodo} {totalPeriodo === 1 ? 'salvamento' : 'salvamentos'} nos últimos 30 dias</p>
+    </>
+  )
+}
 
 const SYSTEMS = [
   { key: 'acesso_viatura', icon: 'van', label: 'Acesso de Viatura' },
@@ -204,6 +297,26 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
   const { info } = useNorma()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const [selectedStructureId, setSelectedStructureId] = useState('all')
+  const [atividade, setAtividade] = useState([])
+
+  // Busca só os últimos 30 dias — o heatmap não olha pra trás disso.
+  useEffect(() => {
+    if (!state.id) { setAtividade([]); return }
+    let cancelado = false
+    const inicio = new Date()
+    inicio.setDate(inicio.getDate() - 29)
+    supabase
+      .from('atividade_diaria')
+      .select('dia,contagem')
+      .eq('projeto_id', state.id)
+      .gte('dia', inicio.toISOString().slice(0, 10))
+      .then(({ data: registros, error }) => {
+        if (cancelado) return
+        if (error) { console.error('Falha ao carregar atividade do projeto:', error.message); setAtividade([]); return }
+        setAtividade(registros || [])
+      })
+    return () => { cancelado = true }
+  }, [state.id])
 
   const data = useMemo(() => {
     const structures = state.estruturas || []
@@ -294,21 +407,28 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
           <button type="button" className="btn-primary dashboard-header__button" onClick={onGoConfig}><Icon name="settings" size={14}/> Editar configuração</button>
         </header>
 
-        <section className="dashboard-overview" aria-label="Situação geral do projeto">
-          <div className="dashboard-overview__lead">
-            <div className="dashboard-overview__copy">
-              <span>Situação do projeto</span>
-              <h2>{projectReady ? 'Configuração pronta para dimensionamento.' : data.hasTechnicalData ? 'Há dados da base técnica para revisar.' : 'Comece pela configuração do projeto.'}</h2>
-              <p>{projectReady ? `${data.activeSystems.length} sistemas foram identificados para desenvolvimento e conferência.` : data.hasTechnicalData ? `${data.configStepCount - data.configuredSteps.length} etapa${data.configStepCount - data.configuredSteps.length === 1 ? '' : 's'} da configuração ainda precisa${data.configStepCount - data.configuredSteps.length === 1 ? '' : 'm'} de atenção.` : 'Cadastre a edificação para identificar as exigências e iniciar os dimensionamentos.'}</p>
+        <div className="dashboard-top-row">
+          <section className="dashboard-overview" aria-label="Situação geral do projeto">
+            <div className="dashboard-overview__lead">
+              <div className="dashboard-overview__copy">
+                <span>Situação do projeto</span>
+                <h2>{projectReady ? 'Configuração pronta para dimensionamento.' : data.hasTechnicalData ? 'Há dados da base técnica para revisar.' : 'Comece pela configuração do projeto.'}</h2>
+                <p>{projectReady ? `${data.activeSystems.length} sistemas foram identificados para desenvolvimento e conferência.` : data.hasTechnicalData ? `${data.configStepCount - data.configuredSteps.length} etapa${data.configStepCount - data.configuredSteps.length === 1 ? '' : 's'} da configuração ainda precisa${data.configStepCount - data.configuredSteps.length === 1 ? '' : 'm'} de atenção.` : 'Cadastre a edificação para identificar as exigências e iniciar os dimensionamentos.'}</p>
+              </div>
+              <div className="dashboard-overview__score" aria-label={`${data.configPercent}% concluído`}><strong>{data.configPercent}<small>%</small></strong><span>base técnica</span></div>
             </div>
-            <div className="dashboard-overview__score" aria-label={`${data.configPercent}% concluído`}><strong>{data.configPercent}<small>%</small></strong><span>base técnica</span></div>
-          </div>
-          <div className="dashboard-stages">
-            <div className={projectReady ? 'is-complete' : 'is-current'}><span>01</span><strong>Configuração</strong><small>{data.configuredSteps.length} de {data.configStepCount} etapas</small></div>
-            <div className={projectReady ? 'is-current' : ''}><span>02</span><strong>Sistemas</strong><small>{data.systemsWithData.length} com dados cadastrados</small></div>
-            <div><span>03</span><strong>Documentação</strong><small>Memorial e anexos</small></div>
-          </div>
-        </section>
+            <div className="dashboard-stages">
+              <div className={projectReady ? 'is-complete' : 'is-current'}><span>01</span><strong>Configuração</strong><small>{data.configuredSteps.length} de {data.configStepCount} etapas</small></div>
+              <div className={projectReady ? 'is-current' : ''}><span>02</span><strong>Sistemas</strong><small>{data.systemsWithData.length} com dados cadastrados</small></div>
+              <div><span>03</span><strong>Documentação</strong><small>Memorial e anexos</small></div>
+            </div>
+          </section>
+
+          <aside className="dashboard-panel dashboard-activity" aria-label="Atividade recente do projeto">
+            <div className="dashboard-activity__head"><h2>Atividade</h2><span>Últimos 30 dias</span></div>
+            <ActivityHeatmap registros={atividade}/>
+          </aside>
+        </div>
 
         <section className="dashboard-information-grid">
           <article className="dashboard-panel dashboard-identification">
