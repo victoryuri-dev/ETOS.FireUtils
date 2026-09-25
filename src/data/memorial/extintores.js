@@ -31,7 +31,7 @@ function blocosDoPavimento(pav, extintoresDoPav, state, norma) {
   const blocos = [{ tipo: 'titulo2', texto: pav.label }]
 
   if (!risco) {
-    blocos.push({ tipo: 'paragrafo', texto: `A carga de incêndio de ${pav.label} ainda não foi classificada — a área-limite para unidade única (item 5.2.1.4.2, NT 21 CBMMA) não pôde ser verificada.` })
+    blocos.push({ tipo: 'paragrafo', texto: `A carga de incêndio de ${pav.label} ainda não foi classificada — o risco predominante não pôde ser determinado.` })
   } else {
     blocos.push({ tipo: 'campo', label: 'Risco predominante', valor: RISCO_LABEL[risco] })
   }

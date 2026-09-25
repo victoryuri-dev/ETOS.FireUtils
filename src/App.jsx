@@ -8,31 +8,65 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabase } from './lib/supabase'
 import { criarProjetoExemplo } from './data/projetoExemplo'
 import LoginPage      from './pages/LoginPage'
+import LandingPage    from './pages/LandingPage'
 import ProjectAside   from './components/layout/ProjectAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
 import ProjetosPage   from './pages/ProjetosPage'
+import PerfilPage     from './pages/PerfilPage'
 import DocumentosPage from './pages/DocumentosPage'
 import MedidaPage            from './pages/MedidaPage'
 import SaidaEmergenciaPage   from './pages/medidas/SaidaEmergenciaPage'
 import HidrantesPage          from './pages/medidas/HidrantesPage'
 import AcessoViaturaPage      from './pages/medidas/AcessoViaturaPage'
 import SegurancaEstruturalPage from './pages/medidas/SegurancaEstruturalPage'
+import CompartimentacaoPage    from './pages/medidas/CompartimentacaoPage'
 import ExtintoresPage         from './pages/medidas/ExtintoresPage'
 import IluminacaoPage         from './pages/medidas/IluminacaoPage'
 import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
 import ControleAcabamentoPage from './pages/medidas/ControleAcabamentoPage'
+import GerenciamentoRiscoPage from './pages/medidas/GerenciamentoRiscoPage'
 import Icon           from './components/ui/Icon'
+import Loader         from './components/ui/Loader'
 import logo           from './assets/fireutils-logo.png'
+
+// ── SaveStatusIndicator ───────────────────────────────────────────────
+// Mostra se o projeto esta sendo sincronizado com o servidor ou se ja foi
+// salvo — ve syncStatus (ProjetoContext), atualizado pelo autosave debounced.
+// Fica invisivel ate a primeira sincronizacao (ex: sem usuario logado, ou
+// projeto ainda nao pronto pra salvar).
+function SaveStatusIndicator({ status }) {
+  if (!status) return null
+  if (status === 'saving') {
+    return (
+      <span className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+        <Icon name="spinner" size={12} className="animate-spin"/> Salvando...
+      </span>
+    )
+  }
+  if (status === 'error') {
+    return (
+      <span className="flex items-center gap-1.5 text-[11px] text-red">
+        <Icon name="warn" size={12}/> Erro ao salvar
+      </span>
+    )
+  }
+  return (
+    <span className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+      <Icon name="checkCircle" size={12} className="text-green"/> Salvo
+    </span>
+  )
+}
 
 // ── AppHeader ─────────────────────────────────────────────────────────
 function AppHeader({ onGoProjetos, isProjectPage }) {
   const { user, signOut } = useAuth()
-  const { state } = useProjeto()
+  const { state, syncStatus } = useProjeto()
   const [menuOpen, setMenuOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
-    <header className="flex items-center justify-between px-6 h-16 border-b border-border border-solid shrink-0 z-100">
+    <header className="flex items-center justify-between gap-3 px-6 h-16 border-b border-border border-solid shrink-0 z-100">
       {/* Logo — omitida dentro de um projeto, ja mostrada no topo do aside */}
       {!isProjectPage && (
         <div className="flex items-center gap-2.5">
@@ -43,7 +77,7 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
       {/* Nav — breadcrumb estilo url: Projeto / UF / nome. So aparece dentro
           de um projeto, ja que fora dele nao ha contexto pra mostrar. */}
       {isProjectPage && (
-        <nav className="flex items-center gap-1.5 text-[14px]">
+        <nav className="flex items-center gap-1.5 text-[14px] min-w-0 overflow-hidden whitespace-nowrap">
           <button onClick={onGoProjetos} className="text-ink-muted hover:text-ink transition-colors cursor-pointer">
             PROJETOS
           </button>
@@ -52,12 +86,17 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
             <span className="text-ink-muted">{state.uf}</span>
           </>}
           <span className="text-ink-hint">/</span>
-          <span className="text-ink font-medium">{state.nome || 'Sem nome'}</span>
+          <span className="text-ink font-medium truncate">{state.nome || 'Sem nome'}</span>
+          {syncStatus && (
+            <span className="ml-2 pl-2.5 border-l border-solid border-border">
+              <SaveStatusIndicator status={syncStatus}/>
+            </span>
+          )}
         </nav>
       )}
 
       {/* Direita — conta */}
-      <div className="flex items-center gap-2 relative">
+      <div className="flex items-center gap-2 relative shrink-0">
         <button
           onClick={() => setMenuOpen(o => !o)}
           title={user?.email}
@@ -72,6 +111,12 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
               <div className="px-3 py-2 text-[11px] text-ink-faint border-b border-border border-solid truncate">
                 {user?.email}
               </div>
+              <button
+                onClick={() => { setMenuOpen(false); navigate('/perfil') }}
+                className="w-full text-left px-3 py-2 text-[12px] text-ink-muted hover:text-ink hover:bg-surface-2 flex items-center gap-2"
+              >
+                <Icon name="settings" size={13}/> Perfil e configurações
+              </button>
               <button
                 onClick={() => { setMenuOpen(false); signOut() }}
                 className="w-full text-left px-3 py-2 text-[12px] text-ink-muted hover:text-ink hover:bg-surface-2 flex items-center gap-2"
@@ -92,17 +137,26 @@ function MedidaRoute() {
   if (sistKey === 'hidrantes')         return <HidrantesPage/>
   if (sistKey === 'acesso_viatura')    return <AcessoViaturaPage/>
   if (sistKey === 'seg_estrutural')    return <SegurancaEstruturalPage/>
+  if (sistKey === 'compart_horizontal' || sistKey === 'compart_vertical') return <CompartimentacaoPage/>
   if (sistKey === 'extintores')        return <ExtintoresPage/>
   if (sistKey === 'iluminacao')        return <IluminacaoPage/>
   if (sistKey === 'sinalizacao')       return <SinalizacaoPage/>
   if (sistKey === 'controle_acabamento') return <ControleAcabamentoPage/>
+  if (sistKey === 'gerenciamento_risco') return <GerenciamentoRiscoPage/>
   return <MedidaPage sistKey={sistKey}/>
 }
 
 function DashboardRoute() {
   const { id } = useParams()
   const navigate = useNavigate()
-  return <DashboardPage onGoConfig={() => navigate(`/projeto/${id}/config`)}/>
+  return (
+    <DashboardPage
+      onGoConfig={() => navigate(`/projeto/${id}/config`)}
+      onNavigate={(pageKey) => navigate(pageKey === 'documentos'
+        ? `/projeto/${id}/documentos`
+        : `/projeto/${id}/medida/${pageKey}`)}
+    />
+  )
 }
 
 function ConfigRoute() {
@@ -122,9 +176,9 @@ function ProjetosRoute() {
     navigate(`/projeto/${proj.id}/dashboard`)
   }
 
-  const handleNewProject = () => {
+  const handleNewProject = (tipo = 'completo') => {
     const ids = newIds()
-    dispatch({ type: 'NEW_PROJECT', ...ids })
+    dispatch({ type: 'NEW_PROJECT', ...ids, tipo })
     navigate(`/projeto/${ids.id}/config`)
   }
 
@@ -142,6 +196,18 @@ function ProjetosRoute() {
         onNewProject={handleNewProject}
         onNovoProjetoExemplo={handleNovoProjetoExemplo}
       />
+    </div>
+  )
+}
+
+// ── PerfilRoute ───────────────────────────────────────────────────────
+// Página da conta — fora do contexto de um projeto, como "Meus projetos".
+function PerfilRoute() {
+  const navigate = useNavigate()
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
+      <PerfilPage/>
     </div>
   )
 }
@@ -221,7 +287,11 @@ function ProjectLayout() {
 
   return (
     <>
-      <ProjectAside activePage={activePage} onNavigate={handleNavigate}/>
+      <ProjectAside
+        activePage={activePage}
+        onNavigate={handleNavigate}
+        onSairDoProjeto={() => navigate('/projetos')}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage/>
         {conflito && (
@@ -276,19 +346,21 @@ function AppInner() {
 
   if (loading) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-bg text-ink-faint text-[13px]">
-        Carregando…
+      <div className="w-screen h-screen flex items-center justify-center bg-bg">
+        <Loader size={40}/>
       </div>
     )
   }
 
   return (
     <Routes>
+      <Route path="/landing" element={<LandingPage/>}/>
       <Route path="/login" element={<LoginRoute/>}/>
 
       <Route element={<AuthedLayout/>}>
         <Route path="/" element={<Navigate to="/projetos" replace/>}/>
         <Route path="/projetos" element={<ProjetosRoute/>}/>
+        <Route path="/perfil" element={<PerfilRoute/>}/>
 
         <Route path="/projeto/:id" element={<ProjectLayout/>}>
           <Route index element={<Navigate to="dashboard" replace/>}/>

@@ -56,7 +56,7 @@ function maxCarga(pavimentos, cargaEst, cnaesDiv) {
 // que a pagina especifica ja calculou) pra que o mesmo resumo apareca, com
 // os mesmos dados, em toda tela que lista estruturas — e va aparecendo aos
 // poucos, conforme cada etapa anterior e preenchida.
-export default function EstruturaHeaderInfo({ estrutura }) {
+export default function EstruturaHeaderInfo({ estrutura, apenasOcupacao = false }) {
   const { state } = useProjeto()
   const { cnaesDiv } = useNorma()
 
@@ -70,12 +70,12 @@ export default function EstruturaHeaderInfo({ estrutura }) {
   const q = maxCarga(pavimentos, cargaEst, cnaesDiv)
   const cls = q > 0 ? getCls(q) : null
 
-  if (!divsOcupacao.length && !q && !areaEstrutura) return null
+  if (!divsOcupacao.length && (apenasOcupacao || (!q && !areaEstrutura))) return null
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap justify-end">
-      {areaEstrutura > 0 && <Chip icon="area">{areaEstrutura} m²</Chip>}
-      {q > 0 && <Chip tone={cls} icon="flame">{RISCO_LBL[cls]}</Chip>}
+      {!apenasOcupacao && areaEstrutura > 0 && <Chip icon="area">{areaEstrutura} m²</Chip>}
+      {!apenasOcupacao && q > 0 && <Chip tone={cls} icon="flame">{RISCO_LBL[cls]}</Chip>}
       {divsOcupacao.length > 0 && (
         <Chip tone={edificacaoMista ? 'amber' : 'red'} icon="newbld">{divsOcupacao.join(' • ')}</Chip>
       )}

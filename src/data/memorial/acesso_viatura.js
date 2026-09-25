@@ -12,7 +12,6 @@ export function textoMemorialAcessoViatura(state, sistemas) {
   const { GATILHO, VIA_ACESSO } = getAV(state.uf)
   const inputs = state.acessoViatura || {}
   const altura = (state.estruturas || []).reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
-  const temHidrantes = !!(sistemas || state.sistemas)?.hidrantes?.ativo
 
   const gat = calcGatilho(altura, inputs.afastamentoMeioFio, inputs.isCondominio, GATILHO)
   const paragrafos = []
@@ -31,7 +30,7 @@ export function textoMemorialAcessoViatura(state, sistemas) {
     return { titulo: 'Acesso de Viatura', paragrafos }
   }
 
-  const r = calcAcessoViatura(inputs, VIA_ACESSO, { temHidrantes })
+  const r = calcAcessoViatura(inputs, VIA_ACESSO)
 
   paragrafos.push(
     `A via de acesso possui largura de ${fmt(r.largura.adotada)} m e altura livre de ${fmt(r.alturaLivre.adotada)} m, ${ok(r.largura.atende && r.alturaLivre.atende)} às dimensões mínimas de ${fmt(r.largura.minima)} m e ${fmt(r.alturaLivre.minima)} m exigidas pelos itens 5.1.1.1 e 5.1.1.2 da NT 06/2021 CBMMA.`
@@ -68,10 +67,6 @@ export function textoMemorialAcessoViatura(state, sistemas) {
       `Como as ruas internas não possibilitam manobra de retorno da viatura para saída pelo portão de acesso, foi prevista saída independente com largura de ${fmt(r.retorno.saidaIndependente.largura.adotada)} m e altura de ${fmt(r.retorno.saidaIndependente.altura.adotada)} m, ${ok(r.retorno.saidaIndependente.largura.atende && r.retorno.saidaIndependente.altura.atende)} às dimensões mínimas exigidas pelo item 5.1.1.6.2 da NT 06/2021 CBMMA.`
     )
   }
-
-  paragrafos.push(
-    `A via de acesso dista ${fmt(r.distancia.adotada)} m d${r.distancia.baseadoEm === 'hidrante' ? 'o hidrante de recalque' : 'a edificação'}, ${ok(r.distancia.atende)} ao limite máximo de ${r.distancia.maxima} m estabelecido pelo item 5.1.1.7 da NT 06/2021 CBMMA${r.distancia.baseadoEm === 'hidrante' ? ' (edificação com previsão de sistema de hidrantes/mangotinhos)' : ''}.`
-  )
 
   return { titulo: 'Acesso de Viatura', paragrafos, atendeGeral: r.atendeGeral }
 }

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
+import { ESTADOS_DISPONIVEIS } from '../../data/normas/index'
+import { alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
 import SwitchToggle from '../ui/SwitchToggle'
+import InfoTip from '../ui/InfoTip'
 
 const S = {
   section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
@@ -12,8 +15,9 @@ const S = {
   desc: 'text-[13px] text-ink-faint leading-[1.6]',
 }
 
-const ALERTAS = (h, sub) => {
+const ALERTAS = (h, sub, terrea) => {
   const m = []
+  if (terrea)            m.push({ t:'green', i:'check', txt:'0 m (Edificação Térrea).' })
   if (h > 0  && h <= 6)  m.push({ t:'green', i:'check', txt:'Edificacao terrea — Classe: Terrea.' })
   if (h > 6  && h <= 12) m.push({ t:'green', i:'check', txt:'Altura 6-12 m — Classe: Baixa altura.' })
   if (h > 12 && h <= 23) m.push({ t:'amber', i:'warn',  txt:'Altura acima de 12 m — Classe: Media altura. Verifique exigencia de escada enclausurada.' })
@@ -29,8 +33,10 @@ const MATERIAIS_ESTRUTURA = ['Concreto armado', 'Estrutura metalica', 'Alvenaria
 function EstruturaModal({ est, index, dispatch, onClose }) {
   const set = f => e => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field: f, value: e.target.value })
 
-  const h   = parseFloat(est.alturaPisoPiso) || 0
-  const sub = parseInt(est.nSubsolos)        || 0
+  const nPav   = parseInt(est.nPavimentos) || 1
+  const sub    = parseInt(est.nSubsolos)   || 0
+  const h      = alturaEdificacaoBase(est)
+  const terrea = edificacaoEhTerrea(est)
 
   // Normaliza dado antigo (string unica) salvo antes do campo virar multi-selecao.
   const materiais = Array.isArray(est.estrutura) ? est.estrutura : [est.estrutura].filter(Boolean)
@@ -39,36 +45,40 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'estrutura', value: next })
   }
 
-  // Predio terreo (1 pavimento acima do solo): a altura piso a piso (piso de
-  // descarga ao ultimo pavimento habitado) e 0 sem subsolo, ou igual a
-  // profundidade do subsolo quando ele existe — o "ultimo pavimento" e o
-  // proprio terreo, entao a medida parte do subsolo (item 4.31, NT 03 CBMMA).
-  const alturaTerrea = (novoSub, novaProfundidade) => novoSub > 0 ? novaProfundidade : 0
+  // "Altura piso a piso" e sempre bloqueada — soma Profundidade do subsolo +
+  // Altura da edificacao. Predio terreo (1 pavimento acima do solo) nao tem
+  // o campo "Altura da edificacao" na tela (o proprio terreo e o "ultimo
+  // pavimento"): a soma vira so a profundidade do subsolo, ou 0 sem subsolo
+  // — mesma excecao do item 4.31, NT 03 CBMMA, ja embutida em
+  // alturaEdificacaoBase (ver trrf_calc.js, usada tambem na classificacao
+  // de TRRF, pra nunca ter duas fontes de verdade sobre essa altura).
+  const alturaPisoPisoSoma = candidato => {
+    const base = alturaEdificacaoBase(candidato)
+    const nPavCand = parseInt(candidato.nPavimentos) || 1
+    return nPavCand === 1 ? base : (parseFloat(candidato.profundidadeSubsolo) || 0) + base
+  }
 
   const handleNPav = e => {
     const v = parseInt(e.target.value) || 1
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nPavimentos', value:v })
     dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav:v, nSub:sub })
-    if (v === 1) {
-      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaTerrea(sub, est.profundidadeSubsolo) })
-    } else if (parseInt(est.nPavimentos) === 1) {
-      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value:'' })
-    }
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, nPavimentos:v }) })
   }
   const handleNSub = e => {
     const v = parseInt(e.target.value) || 0
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nSubsolos', value:v })
     dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav: est.nPavimentos, nSub:v })
-    if (parseInt(est.nPavimentos) === 1) {
-      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaTerrea(v, est.profundidadeSubsolo) })
-    }
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, nSubsolos:v }) })
   }
   const handleProfundidade = e => {
     const v = e.target.value
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'profundidadeSubsolo', value:v })
-    if (parseInt(est.nPavimentos) === 1) {
-      dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaTerrea(sub, v) })
-    }
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, profundidadeSubsolo:v }) })
+  }
+  const handleAlturaEdificacao = e => {
+    const v = e.target.value
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaEdificacao', value:v })
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, alturaEdificacao:v }) })
   }
 
   return (
@@ -103,27 +113,38 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
             <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Dimensoes</div>
             <div className="g3 mb-3">
               <div className="fg"><label>Area construida total (m2) <span className="req">*</span></label><input type="number" value={est.areaTotal} onChange={set('areaTotal')}/></div>
-              <div className="fg"><label>Altura total (m) <span className="req">*</span></label><input type="number" step="0.1" value={est.altura} onChange={set('altura')}/></div>
               <div className="fg">
-                <label>Altura piso a piso (m) <span className="req">*</span></label>
-                <input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} onChange={set('alturaPisoPiso')} readOnly={parseInt(est.nPavimentos) === 1}/>
+                <label>Altura total (m) <span className="req">*</span><InfoTip text="medida entre o nível do solo ao ponto mais alto da edificação"/></label>
+                <input type="number" step="0.1" value={est.altura} onChange={set('altura')}/>
+              </div>
+              <div className="fg">
+                <label>Altura piso a piso (m) <span className="req">*</span>{terrea && <span className="fhint">— Edificação Térrea</span>}</label>
+                <input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} readOnly/>
               </div>
             </div>
             <div className="g2">
               <div className="fg"><label>No de pavimentos acima do solo <span className="req">*</span></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
               <div className="fg"><label>No de subsolos</label><input type="number" min="0" value={est.nSubsolos} onChange={handleNSub}/></div>
             </div>
-            {sub > 0 && (
+            {(sub > 0 || nPav > 1) && (
               <div className="g2 mt-3">
-                <div className="fg">
-                  <label>Profundidade do subsolo (m) <span className="req">*</span></label>
-                  <input type="number" step="0.1" min="0" value={est.profundidadeSubsolo ?? ''} onChange={handleProfundidade}/>
-                </div>
+                {sub > 0 && (
+                  <div className="fg">
+                    <label>Profundidade do subsolo (m) <span className="req">*</span><InfoTip text="medida entre o piso de descarga da edificação ao piso do subsolo"/></label>
+                    <input type="number" step="0.1" min="0" value={est.profundidadeSubsolo ?? ''} onChange={handleProfundidade}/>
+                  </div>
+                )}
+                {nPav > 1 && (
+                  <div className="fg">
+                    <label>Altura da edificação (m) <span className="req">*</span><InfoTip text="medida entre o nível do piso de descarga ao piso do último pavimento"/></label>
+                    <input type="number" step="0.1" min="0" value={est.alturaEdificacao ?? ''} onChange={handleAlturaEdificacao}/>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {ALERTAS(h, sub).map((m, i) => (
+          {ALERTAS(h, sub, terrea).map((m, i) => (
             <div key={i} className={`ibox ${m.t} mb-2.5`}>
               <Icon name={m.i} size={14} color={`var(--color-${m.t})`} className="shrink-0"/>
               <span>{m.txt}</span>
@@ -215,8 +236,9 @@ function EstruturaCard({ est, index, canRemove, dispatch, onOpen }) {
   )
 }
 
-export default function Step2() {
+export default function Step2({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
+  const dimensionamento = state.tipoProjeto === 'dimensionamento'
   const [openId, setOpenId] = useState(null)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
 
@@ -255,71 +277,104 @@ export default function Step2() {
   return (
     <div className={S.section}>
       <div className={S.header}>
-        <div className={S.stepLbl}>Etapa 2 de 7</div>
+        <div className={S.stepLbl}>Etapa {step} de {totalSteps}</div>
         <h2 className={S.title}>Edificacao</h2>
         <p className={S.desc}>Situacao da edificacao e as estruturas (torres/blocos) que a compoem. Clique em uma estrutura para editar suas dimensoes e sistema construtivo — o numero de pavimentos de cada uma gera automaticamente os cards de classificacao na etapa 4.</p>
       </div>
 
-      {/* Situacao: nova ou existente */}
-      <FormSection title="Situacao">
-        <div className="grid grid-cols-2 gap-2 mb-3.5">
-          {[
-            { k:'nova',      icon:'newbld', t:'Edificacao nova',      s:'Em projeto ou construcao' },
-            { k:'existente', icon:'oldbld', t:'Edificacao existente', s:'Regularizacao / adequacao' },
-          ].map(o => (
-            <div key={o.k} className={optClass(state.situacao === o.k)}
-              onClick={() => dispatch({ type:'SET_FIELD', field:'situacao', value:o.k })}>
-              <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${state.situacao===o.k ? 'bg-red-dim text-red' : 'bg-white/5 text-ink-faint'}`}>
-                <Icon name={o.icon} size={17}/>
-              </div>
-              <div>
-                <div className={`text-[13px] font-medium ${state.situacao===o.k ? 'text-red' : 'text-ink-muted'}`}>{o.t}</div>
-                <div className="text-[11px] text-ink-faint mt-0.5">{o.s}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {state.situacao === 'nova' && (
-          <div className="g2">
-            <div className="fg"><label>Ano previsto de conclusao</label><input type="number" value={state.anoAlvara} onChange={set('anoAlvara')} placeholder="2027"/></div>
-            <div className="fg"><label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/></div>
-          </div>
-        )}
-
-        {state.situacao === 'existente' && (
-          <>
-            <div className="ibox amber mt-2">
-              <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-              <span>Para edificacoes existentes o CBMMA pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
-            </div>
-            <div className="g2 mb-3">
-              <div className="fg"><label>Ano de construcao</label><input type="number" value={state.anoConstrucao} onChange={set('anoConstrucao')} placeholder="Ex: 1998"/></div>
-              <div className="fg"><label>Situacao perante o CBMMA</label>
-                <select value={state.situacaoCBM} onChange={set('situacaoCBM')}>
-                  <option>Sem AVCB anterior</option>
-                  <option>AVCB vencido</option>
-                  <option>AVCB em vigor — renovacao</option>
-                  <option>Em regularizacao</option>
-                </select>
-              </div>
-            </div>
-            <div className="g2 mb-3">
-              <div className="fg"><label>No do AVCB anterior</label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
-              <div className="fg"><label>Validade do AVCB</label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
+      {/* Projeto "apenas dimensionamento" pula Identificacao (Step1) — nome
+          do projeto e estado (usado pra escolher a norma) entram aqui. */}
+      {dimensionamento && (
+        <FormSection title="Identificacao">
+          <div className="g2 mb-3">
+            <div className="fg">
+              <label>Nome do projeto <span className="req">*</span></label>
+              <input value={state.nome} onChange={set('nome')} placeholder="Ex: Edificio Comercial Centro"/>
             </div>
             <div className="fg">
-              <label>Condicoes atuais relevantes para o PPCI</label>
-              <textarea value={state.condicoesAtuais} onChange={set('condicoesAtuais')} placeholder="Descreva brevemente..."/>
+              <label>Estado <span className="req">*</span></label>
+              <select value={state.uf} onChange={set('uf')}>
+                {ESTADOS_DISPONIVEIS.map(e => {
+                  const habilitado = e.ativo || e.ativoDimensionamento
+                  return (
+                    <option key={e.uf} value={e.uf} disabled={!habilitado}>
+                      {e.nome}{!habilitado ? ' — em breve' : ''}
+                    </option>
+                  )
+                })}
+              </select>
             </div>
-          </>
-        )}
-      </FormSection>
+          </div>
+        </FormSection>
+      )}
 
-      {/* Terreno e area construida (parametros globais do projeto) */}
-      <FormSection title="Terreno e area construida">
-        <div className="g2 mb-3">
-          <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
+      {/* Situacao: nova ou existente — nao se aplica a um projeto que so
+          dimensiona sistemas, sem gerar o Anexo B/PPCI completo. */}
+      {!dimensionamento && (
+        <FormSection title="Situacao">
+          <div className="grid grid-cols-2 gap-2 mb-3.5">
+            {[
+              { k:'nova',      icon:'newbld', t:'Edificacao nova',      s:'Em projeto ou construcao' },
+              { k:'existente', icon:'oldbld', t:'Edificacao existente', s:'Regularizacao / adequacao' },
+            ].map(o => (
+              <div key={o.k} className={optClass(state.situacao === o.k)}
+                onClick={() => dispatch({ type:'SET_FIELD', field:'situacao', value:o.k })}>
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${state.situacao===o.k ? 'bg-red-dim text-red' : 'bg-white/5 text-ink-faint'}`}>
+                  <Icon name={o.icon} size={17}/>
+                </div>
+                <div>
+                  <div className={`text-[13px] font-medium ${state.situacao===o.k ? 'text-red' : 'text-ink-muted'}`}>{o.t}</div>
+                  <div className="text-[11px] text-ink-faint mt-0.5">{o.s}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {state.situacao === 'nova' && (
+            <div className="fg">
+              <label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/>
+            </div>
+          )}
+
+          {state.situacao === 'existente' && (
+            <>
+              <div className="ibox amber mt-2">
+                <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+                <span>Para edificacoes existentes o CBMMA pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
+              </div>
+              <div className="g2 mb-3">
+                <div className="fg"><label>Ano de construcao</label><input type="number" value={state.anoConstrucao} onChange={set('anoConstrucao')} placeholder="Ex: 1998"/></div>
+                <div className="fg"><label>Situacao perante o CBMMA</label>
+                  <select value={state.situacaoCBM} onChange={set('situacaoCBM')}>
+                    <option>Sem AVCB anterior</option>
+                    <option>AVCB vencido</option>
+                    <option>AVCB em vigor — renovacao</option>
+                    <option>Em regularizacao</option>
+                  </select>
+                </div>
+              </div>
+              <div className="g2 mb-3">
+                <div className="fg"><label>No do AVCB anterior</label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
+                <div className="fg"><label>Validade do AVCB</label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
+              </div>
+              <div className="fg">
+                <label>Condicoes atuais relevantes para o PPCI</label>
+                <textarea value={state.condicoesAtuais} onChange={set('condicoesAtuais')} placeholder="Descreva brevemente..."/>
+              </div>
+            </>
+          )}
+        </FormSection>
+      )}
+
+      {/* Terreno e area construida (parametros globais do projeto) — no modo
+          dimensionamento so a area construida total interessa (nenhum
+          calculo de saida/hidrante/sprinkler usa terreno, publico ou area
+          complementar). */}
+      <FormSection title={dimensionamento ? 'Area construida' : 'Terreno e area construida'}>
+        <div className={dimensionamento ? '' : 'g2 mb-3'}>
+          {!dimensionamento && (
+            <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
+          )}
           <div className="fg">
             <label>
               Area construida total (m2)
@@ -338,10 +393,12 @@ export default function Step2() {
             />
           </div>
         </div>
-        <div className="g2">
-          <div className="fg"><label>Quantidade de publico</label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
-          <div className="fg"><label>Area complementar (m2)</label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
-        </div>
+        {!dimensionamento && (
+          <div className="g2">
+            <div className="fg"><label>Quantidade de publico</label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
+            <div className="fg"><label>Area complementar (m2)</label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
+          </div>
+        )}
       </FormSection>
 
       {/* Estruturas */}

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-23T18:00:00-03:00",
+  "title": "Design System: FireUtils",
+  "extensions": {
+    "colorMeta": {
+      "brand-primary": {
+        "role": "primary",
+        "displayName": "Vermelho de Sinal",
+        "canonical": "#EA1330",
+        "tonalRamp": ["#3A0710", "#640B18", "#920E20", "#C01029", "#EA1330", "#F45469", "#FA9BA7", "#FDE3E7"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Campo Técnico",
+        "canonical": "#0E0F13",
+        "tonalRamp": ["#0E0F13", "#16171D", "#24252C", "#3D3E46", "#5F6069", "#898A92", "#BFC0C5", "#F1F1F3"]
+      },
+      "success": {
+        "role": "success",
+        "displayName": "Verde de Confirmação",
+        "canonical": "#1D9E75",
+        "tonalRamp": ["#062A20", "#0B4937", "#106B50", "#168D69", "#1D9E75", "#57BE9E", "#9DDCC8", "#E1F5EE"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Estrutura", "purpose": "Mensagens principais e títulos de alta presença." },
+      "body": { "displayName": "Operação", "purpose": "Formulários, instruções e conteúdo técnico cotidiano." },
+      "label": { "displayName": "Controle", "purpose": "Rótulos, estados e ações auxiliares." }
+    },
+    "shadows": [
+      { "name": "panel-ambient", "value": "0 32px 90px rgba(0,0,0,.48)", "purpose": "Elevar painéis protagonistas sobre o campo escuro." },
+      { "name": "action-raised", "value": "0 19px 38px rgba(130,0,20,.32)", "purpose": "Resposta de hover da ação primária." }
+    ],
+    "motion": [
+      { "name": "entrance", "value": "expo.out", "purpose": "Entrada coordenada das regiões principais." },
+      { "name": "state", "value": "200ms ease", "purpose": "Hover, foco e pequenas mudanças de controle." },
+      { "name": "signal", "value": "5s cubic-bezier(.65,0,.35,1) infinite", "purpose": "Percurso contínuo em diagramas reais de fluxo." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "560px" },
+      { "name": "stack", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação dominante para concluir uma tarefa.",
+      "html": "<button class=\"ds-btn-primary\">ENTRAR NA PLATAFORMA</button>",
+      "css": ".ds-btn-primary{min-height:56px;padding:0 18px;border:0;border-radius:8px;background:#EA1330;color:#fff;font:600 14px Inter,sans-serif;box-shadow:0 14px 32px rgba(130,0,20,.22);transition:transform .2s ease,background .2s ease,box-shadow .2s ease}.ds-btn-primary:hover{transform:translateY(-2px);background:#F21A38;box-shadow:0 19px 38px rgba(130,0,20,.32)}.ds-btn-primary:focus-visible{outline:2px solid #EA1330;outline-offset:4px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo escuro com foco vermelho e leitura de alto contraste.",
+      "html": "<label class=\"ds-field\"><span>E-mail</span><input placeholder=\"voce@escritorio.com.br\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:9px;color:#D5D5D9;font:500 13px Inter,sans-serif}.ds-field input{height:54px;padding:0 15px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#0E0F13;color:#E6E9ED;font:400 15px Inter,sans-serif;outline:none}.ds-field input::placeholder{color:#9999A2}.ds-field input:focus-visible{border-color:rgba(234,19,48,.7);outline:2px solid #EA1330;outline-offset:3px}"
+    },
+    {
+      "name": "Elevated Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Contêiner protagonista para uma tarefa concentrada.",
+      "html": "<section class=\"ds-panel\"><h2>Acesse seus projetos.</h2><p>Use seu e-mail e senha para continuar.</p></section>",
+      "css": ".ds-panel{max-width:500px;padding:42px;border-radius:16px;background:#16171D;color:#E6E9ED;box-shadow:0 32px 90px rgba(0,0,0,.48)}.ds-panel h2{margin:0;font:600 34px/1.12 'Space Grotesk',sans-serif;letter-spacing:-.025em}.ds-panel p{margin:9px 0 0;color:rgba(255,255,255,.70);font:400 14px/1.55 Inter,sans-serif}"
+    },
+    {
+      "name": "Inline Action",
+      "kind": "button",
+      "refersTo": "button-inline",
+      "description": "Ação secundária textual sem competir com o botão principal.",
+      "html": "<button class=\"ds-inline-action\">Criar uma conta</button>",
+      "css": ".ds-inline-action{padding:0;border:0;background:transparent;color:#F3F3F5;font:600 13px Inter,sans-serif;text-decoration:underline;text-decoration-color:rgba(234,19,48,.65);text-underline-offset:4px}.ds-inline-action:hover{color:#FF6478}.ds-inline-action:focus-visible{outline:2px solid #EA1330;outline-offset:4px}"
+    },
+    {
+      "name": "Technical Flow",
+      "kind": "custom",
+      "refersTo": "technical-flow",
+      "description": "Linha técnica que explica uma relação real entre etapas do produto.",
+      "html": "<div class=\"ds-flow\"><span>Revit</span><i></i><span>FireUtils</span><i></i><span>Memorial</span></div>",
+      "css": ".ds-flow{display:flex;align-items:center;gap:12px;color:#E6E9ED;font:600 13px 'Space Grotesk',sans-serif}.ds-flow i{width:64px;height:1px;background:linear-gradient(90deg,#EA1330,rgba(255,255,255,.15))}.ds-flow span{white-space:nowrap}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Conexão Técnica",
+    "overview": "O FireUtils transforma a precisão de um ambiente de projeto em uma interface digital clara e contínua. A identidade é escura, concentrada e profissional; o vermelho aparece como sinal de fluxo, seleção ou ação, enquanto linhas finas e superfícies tonais organizam informações densas sem criar ruído.",
+    "keyCharacteristics": [
+      "Campo quase preto com superfícies próximas, separadas por tom e linhas discretas.",
+      "Vermelho usado para conduzir atenção, nunca para preencher a tela.",
+      "Space Grotesk nos títulos e Inter na operação cotidiana.",
+      "Geometria técnica precisa e movimento com propósito.",
+      "Boa leitura e hierarquia preservadas em desktop e mobile."
+    ],
+    "rules": [
+      { "name": "The Signal Red Rule", "body": "O vermelho marca ação, estado ativo, risco ou percurso. Elementos secundários permanecem neutros para preservar seu valor de sinal.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Space Grotesk comunica estrutura; Inter comunica operação. Monoespaçada fica reservada a dados, medidas e notação técnica.", "section": "typography" },
+      { "name": "The One Separator Rule", "body": "Um contêiner usa contraste tonal, linha ou sombra como separador principal.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar vermelho para guiar atenção e indicar ação ou estado.",
+      "Do manter textos auxiliares com contraste mínimo de 4.5:1.",
+      "Do respeitar prefers-reduced-motion em toda animação contínua ou de entrada."
+    ],
+    "donts": [
+      "Don't transformar toda informação em cartões iguais.",
+      "Don't usar brilhos, blur ou gradientes como substitutos para hierarquia.",
+      "Don't inventar cobertura normativa, clientes, preços ou resultados comerciais."
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -6,14 +6,17 @@
   --color-green: #1D9E75; --color-green-dim: rgba(29,158,117,.12); --color-green-border: rgba(29,158,117,.35);
   --color-amber: #c98a1a; --color-amber-dim: rgba(186,117,23,.12); --color-amber-border: rgba(186,117,23,.35);
   --color-blue-dim: rgba(80,140,220,.10); --color-blue-border: rgba(80,140,220,.30);
-    --color-bg: #101012;
-    --color-surface: #151518;
-    --color-surface-2: #1e1e22;
+    --color-bg: #0e0f13;
+    --color-surface: #16171d;
+    --color-surface-2: #1d1e24;
   --color-border: rgba(255,255,255,.11); --color-border-2: rgba(255,255,255,.06);
-  --color-ink: #eaeaea; --color-ink-muted: rgba(255,255,255,.70);
+  --color-ink: #e6e9ed; --color-ink-muted: rgba(255,255,255,.70);
   --color-ink-faint: rgba(255,255,255,.50); --color-ink-hint: rgba(255,255,255,.40);
-  --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
-  --font-sans: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  /* Bordas discretas — nunca muito arredondadas */
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px;
+  /* Inter carrega os textos acessórios (pequenos, cinza, informativos); Space
+     Grotesk fica reservada a títulos e textos de ênfase via .font-heading */
+  --font-sans: 'Inter', -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --font-heading: 'Space Grotesk', -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
 
@@ -27,14 +30,30 @@
   ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.15)}
   input,select,textarea{width:100%;background:var(--color-surface-2);border:.5px solid var(--color-border);color:var(--color-ink);font-size:13px;padding:9px 12px;border-radius:var(--radius-md);outline:none;font-family:var(--font-sans);transition:border-color .15s}
   input:focus,select:focus,textarea:focus{border-color:var(--color-red-border)}
+  /* Lista suspensa nativa do <select> não herda estilo do elemento pai —
+     sem isso, o menu abre com fundo branco do sistema operacional mesmo
+     com o <select> em si transparente/escuro. */
+  select option{background:var(--color-surface-2);color:var(--color-ink)}
   input[readonly]{opacity:.45;cursor:default}
   textarea{resize:vertical;min-height:70px}
   button{font-family:var(--font-sans);cursor:pointer}
 }
 
 @layer components {
-  .btn-primary{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;background:var(--color-red);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-md)}
-  .btn-primary:hover{background:#a01122}
+  .btn-primary{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;background:var(--color-red);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-md);transitio:.3s}
+  /* Variante do botão "Criar novo projeto": mesmo vermelho, mas o texto
+     nasce preto e só vira branco no hover — como Tailwind gera as
+     utilities depois do layer components, uma utility (text-black) não
+     conseguiria sobrescrever o color:#fff acima, então a regra vai direto
+     aqui, no mesmo layer, depois de .btn-primary (vence por ordem). */
+  .btn-primary-novo{color:#000}
+  .btn-primary-novo:hover{color:#fff}
+  /* Pelo mesmo motivo, rounded-r-none/rounded-l-none (utilities) não
+     conseguem zerar o border-radius herdado de .btn-primary — os dois
+     metades do botão split ficavam com canto arredondado por dentro,
+     abrindo uma "fresta" do fundo da página entre elas. */
+  .btn-primary-novo-l{border-top-right-radius:0;border-bottom-right-radius:0}
+  .btn-primary-novo-r{border-top-left-radius:0;border-bottom-left-radius:0}
   .btn-success{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;background:var(--color-green);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-md)}
   .btn-success:hover{background:#178a65}
   .btn-ghost{display:inline-flex;align-items:center;gap:6px;font-size:12px;background:transparent;color:var(--color-ink-muted);border:.5px solid var(--color-border);padding:7px 15px;border-radius:var(--radius-md)}
@@ -60,6 +79,37 @@
   .carga-class.low{background:var(--color-green-dim);border:.5px solid var(--color-green-border);color:var(--color-green)}
   .carga-class.med{background:var(--color-amber-dim);border:.5px solid var(--color-amber-border);color:var(--color-amber)}
   .carga-class.high{background:var(--color-red-dim);border:.5px solid var(--color-red-border);color:var(--color-red)}
+
+  /* Loader (marca animada, 3 barras em cascata) — ver ui/Loader.jsx.
+     Reservado pra estados de carregamento de TELA (uma seção/página
+     inteira ainda sem conteúdo) — indicadores pequenos e pontuais
+     (salvando, buscando CNPJ etc.) continuam com o spinner girando comum
+     (Icon name="spinner" + animate-spin). Cor sempre herdada via
+     currentColor, então o mesmo componente funciona em qualquer contexto
+     (texto preto, cinza, branco, vermelho...). */
+  .loader-mark{display:inline-block;overflow:visible;flex-shrink:0}
+  .loader-bar{animation:loader-cascade 4.1s cubic-bezier(.16,1,.3,1) infinite}
+  .loader-bar-3{animation-delay:0s}
+  .loader-bar-2{animation-delay:.14s}
+  .loader-bar-1{animation-delay:.28s}
+}
+
+/* Logo parada (0%), some pra cima suavemente (0% -> 12.2%, 0.5s, ease-in-out
+   em vez da curva mais brusca de antes), reaparece de baixo quase sem
+   intervalo (14.63% -> 26.83%, 0.5s, só 0.1s de "salto" invisível entre as
+   duas) e segura parada na logo até fechar o ciclo de 4.1s — os últimos
+   73.17% (26.83% a 100%) são exatamente 3s parada, o delay pedido entre um
+   looping de subir/descer e o próximo. */
+@keyframes loader-cascade {
+  0%      { transform: translateY(0); opacity: 1; animation-timing-function: cubic-bezier(.65,0,.35,1); }
+  12.2%   { transform: translateY(-216px); opacity: 0; }
+  14.63%  { transform: translateY(216px); opacity: 0; animation-timing-function: cubic-bezier(.16,1,.3,1); }
+  26.83%  { transform: translateY(0); opacity: 1; }
+  100%    { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-bar { animation: none !important; transform: none; opacity: 1; }
 }
 
 @page {
@@ -67,12 +117,15 @@
   margin: 6mm;
 }
 
-/* Memorial Descritivo: margens de encadernacao (topo/inferior maiores para
-   numero de pagina) — pagina nomeada so afeta quem usa `page: memorial`
-   (ver .print-area-memorial), sem alterar o Anexo B. */
+/* Memorial Descritivo: a folha (.memorial-secao) ja tem 210x297mm com as
+   margens ABNT NBR 14724 no proprio padding, entao a pagina impressa nao
+   pode somar margem por cima — senao a folha fica maior que a area
+   imprimivel e cada secao vaza pra uma segunda pagina. Pagina nomeada so
+   afeta quem usa `page: memorial` (ver .print-area-memorial), sem alterar
+   o Anexo B. */
 @page memorial {
   size: A4 portrait;
-  margin: 3cm 2cm;
+  margin: 0;
 }
 .print-area-memorial { page: memorial; }
 

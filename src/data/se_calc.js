@@ -6,18 +6,26 @@
 
 /** Largura mínima de PT para N UPs (recebe array LARGURAS_MINIMAS.PT) */
 export function getLargMinPT(nUp, ptTable) {
-  return ptTable.find(e => e.nUp === nUp) ?? (nUp > ptTable.at(-1).nUp ? ptTable.at(-1) : ptTable[0])
+  return ptTable.find(e => e.n_up === nUp) ?? (nUp > ptTable.at(-1).n_up ? ptTable.at(-1) : ptTable[0])
 }
 
-/** Capacidades por UP para um pavimento (mínima entre divisões presentes) */
-export function capPavimento(pav, taxaPopulacional) {
-  const divs = [...new Set(pav.ambientes.map(a => a.divisao).filter(d => d && taxaPopulacional[d]))]
+/** Capacidades por UP (mínima entre divisões presentes) para uma lista
+ * qualquer de ambientes — generaliza capPavimento pra poder ser aplicada
+ * também a um nó de Acesso (subconjunto de ambientes), não só ao
+ * pavimento inteiro. */
+export function capAmbientes(ambientes, taxaPopulacional) {
+  const divs = [...new Set(ambientes.map(a => a.divisao).filter(d => d && taxaPopulacional[d]))]
   if (!divs.length) return { AD: 100, ER: 75, PT: 100 }
   return {
     AD: Math.min(...divs.map(d => taxaPopulacional[d].AD)),
     ER: Math.min(...divs.map(d => taxaPopulacional[d].ER)),
     PT: Math.min(...divs.map(d => taxaPopulacional[d].PT)),
   }
+}
+
+/** Capacidades por UP para um pavimento inteiro (mínima entre divisões presentes) */
+export function capPavimento(pav, taxaPopulacional) {
+  return capAmbientes(pav.ambientes, taxaPopulacional)
 }
 
 /** Calcula a população de um ambiente */
@@ -41,52 +49,225 @@ export function pavMaisPopuloso(pavimentos, taxaPopulacional) {
     .reduce((mx, p) => calcPopPav(p, taxaPopulacional) > (mx ? calcPopPav(mx, taxaPopulacional) : -1) ? p : mx, null)
 }
 
-/** Cálculo de AD para um pavimento */
+/** Cálculo de largura/UPs a partir de população e capacidade por UP —
+ * fórmula compartilhada por AD (Acessos/Descarga) e ER (Escadas/Rampas):
+ * só muda qual capacidade e largura mínima entram. */
+function calcLarguraFluxo(pop, cap, minimo, larguras) {
+  const n  = Math.ceil(pop / cap)
+  const lc = +(n * larguras.LARG_UP).toFixed(2)
+  return { n, lc, la: Math.max(lc, minimo), lMin: minimo }
+}
+
+/** Cálculo de AD (Acessos/Descarga) para um pavimento ou nó de Acesso */
 export function calcAD(pop, capAD, larguras) {
-  const n  = Math.ceil(pop / capAD)
-  const lc = +(n * larguras.LARG_UP).toFixed(2)
-  return { n, lc, la: Math.max(lc, larguras.AD), lMin: larguras.AD }
+  return calcLarguraFluxo(pop, capAD, larguras.AD, larguras)
 }
 
-/** Cálculo de ER para o pavimento mais populoso */
+/** Cálculo de ER (Escadas/Rampas) */
 export function calcER(pop, capER, larguras) {
-  const n  = Math.ceil(pop / capER)
-  const lc = +(n * larguras.LARG_UP).toFixed(2)
-  return { n, lc, la: Math.max(lc, larguras.ER), lMin: larguras.ER }
+  return calcLarguraFluxo(pop, capER, larguras.ER, larguras)
 }
 
-/** Cálculo de PT para um pavimento */
-export function calcPT(pop, capPT, larguras) {
-  const n      = Math.ceil(pop / capPT)
-  const lc     = +(n * larguras.LARG_UP).toFixed(2)
+/** Largura de porta pra N UP: dentro da faixa tabelada (n_up com entrada
+ * exata em larguras.PT), o valor cadastrado na tabela manda — mesmo que
+ * N×LARG_UP desse um número maior, é a norma (a tabela) que define a
+ * largura pra essa faixa, não a multiplicação. Só extrapola
+ * multiplicando por LARG_UP quando N passa do maior n_up tabelado (fora
+ * da faixa coberta — ver getLargMinPT). Sem isso, editar a tabela
+ * (ex.: via Supabase) não tinha efeito nenhum nas faixas onde
+ * N×LARG_UP já era maior que o valor cadastrado. */
+function larguraPT(n, larguras) {
   const ptInfo = getLargMinPT(n, larguras.PT)
-  return { n, lc, la: Math.max(lc, ptInfo.largura), lMin: ptInfo.largura, tipo: ptInfo.tipo }
+  const lc     = +(n * larguras.LARG_UP).toFixed(2)
+  const dentroTabela = larguras.PT.some(e => e.n_up === n)
+  return { lc, ptInfo, la: dentroTabela ? ptInfo.largura : Math.max(lc, ptInfo.largura) }
 }
 
-/** Retorna o bloco de distância para uma divisão */
-export function getBlocoDistancia(divisao, blocosDistancia) {
-  return blocosDistancia.find(b => b.divisoes.includes(divisao)) ?? null
+/** Cálculo de PT — recebe a população e a capacidade já resolvidas por
+ * quem chama (um ambiente sozinho, na rede de saída; ou um pavimento
+ * inteiro, no modelo antigo) */
+export function calcPT(pop, capPT, larguras) {
+  const n = Math.ceil(pop / capPT)
+  const { lc, ptInfo, la } = larguraPT(n, larguras)
+  return { n, lc, la, lMin: ptInfo.largura, tipo: ptInfo.tipo }
 }
 
-/** Distância máxima para uma divisão com os parâmetros dados */
-export function getDistancia(divisao, pisoDescarga, nUpsAD, temChuveiros, temDeteccao, blocosDistancia) {
-  const bloco = getBlocoDistancia(divisao, blocosDistancia)
-  if (!bloco) return null
-  const andar  = pisoDescarga ? bloco.piso_de_descarga : bloco.demais_andares
-  const chuv   = temChuveiros ? 'com_chuveiros' : 'sem_chuveiros'
-  const saidas = nUpsAD > 1 ? 'mais_de_uma_saida' : 'saida_unica'
+// ── Rede de saída (Ambiente -> Acesso -> Acesso/Descarga ou Escada/Rampa) ────
+//
+// Substitui o modelo antigo de "um AD e um ER por pavimento inteiro" por uma
+// árvore montada pelo usuário, sem limite de profundidade:
+//
+//   ambiente.acessoId : string|null
+//     -- a qual nó de Acesso este ambiente alimenta (null = ainda não
+//        posicionado na árvore).
+//
+//   acesso = { id, nome, alimentaEm: string|null }
+//     -- `alimentaEm` aponta pro id de outro acesso (cascata: a população
+//        deste nó soma na do próximo) ou é null quando este acesso É a
+//        RAIZ da árvore daquele pavimento.
+//     -- A "quantidade de saídas" do pavimento NÃO é um campo armazenado —
+//        é sempre a contagem de raízes (ver contarSaidasPavimento), já que
+//        a criação de saídas é dinâmica.
+//
+// O tipo de cálculo de um nó (ver tipoDoNo) depende só da posição na árvore
+// e de `pavimento.pisoDescarga`:
+//   - Nó raiz (alimentaEm=null) num piso de descarga        -> AD (Saída)
+//   - Nó raiz (alimentaEm=null) num pavimento QUALQUER OUTRO -> ER (a raiz
+//     ali é a escada/rampa que desce até o piso de descarga — cada
+//     pavimento dimensiona a própria escada pela população que chega até
+//     ela pela SUA árvore, não mais pelo "pavimento mais populoso da
+//     estrutura" fixo).
+//   - Qualquer nó que NÃO é raiz (alimenta outro acesso) -> sempre AD,
+//     em qualquer pavimento (é sempre um "acesso" interno, corredor/porta
+//     de passagem, nunca a escada em si).
+//
+// Portas (PT) não passam por essa árvore: são por ambiente, direto —
+// ver calcNoAmbientePT.
+
+/** Quantidade de saídas de um pavimento = quantidade de raízes da árvore
+ * (acessos com alimentaEm null) — nunca um campo indicado manualmente. */
+export function contarSaidasPavimento(acessos) {
+  return (acessos || []).filter(ac => ac.alimentaEm === null).length
+}
+
+/** Decide o tipo de cálculo/rótulo de um nó da árvore — ver explicação
+ * acima. `pisoDescarga` é o campo do pavimento (não do nó). */
+export function tipoDoNo(acesso, pisoDescarga) {
+  const isRaiz = acesso.alimentaEm === null
+  if (isRaiz && !pisoDescarga) return { tipo: 'ER', label: 'ESCADA/RAMPA' }
+  return { tipo: 'AD', label: 'ACESSO/DESCARGA' }
+}
+
+function ambientesDiretosDoAcesso(acessoId, ambientes) {
+  return ambientes.filter(a => a.acessoId === acessoId)
+}
+
+function acessosFilhosDiretos(acessoId, acessos) {
+  return acessos.filter(ac => ac.alimentaEm === acessoId)
+}
+
+/** Todos os ambientes que alimentam um nó de Acesso, direta ou
+ * indiretamente (atravessando quantos níveis de cascata houver) — usado
+ * pra achar a capacidade (mínimo AD/ER) do nó. */
+export function ambientesDoAcesso(acessoId, ambientes, acessos) {
+  const diretos = ambientesDiretosDoAcesso(acessoId, ambientes)
+  const dosFilhos = acessosFilhosDiretos(acessoId, acessos)
+    .flatMap(ac => ambientesDoAcesso(ac.id, ambientes, acessos))
+  return [...diretos, ...dosFilhos]
+}
+
+/** População acumulada de um nó de Acesso: soma dos ambientes que o
+ * alimentam direto + a população (já acumulada) de qualquer outro acesso
+ * que também o alimente (cascata) — recursivo, sem limite de profundidade. */
+export function calcPopAcesso(acessoId, ambientes, acessos, taxaPopulacional) {
+  const diretos = ambientesDiretosDoAcesso(acessoId, ambientes)
+    .reduce((s, a) => s + calcPopAmb(a, taxaPopulacional), 0)
+  const dosFilhos = acessosFilhosDiretos(acessoId, acessos)
+    .reduce((s, ac) => s + calcPopAcesso(ac.id, ambientes, acessos, taxaPopulacional), 0)
+  return diretos + dosFilhos
+}
+
+/** Pacote pronto (população, capacidade, dimensionamento) pra um nó de
+ * Acesso da rede de saída. `tipo` ('AD'|'ER') vem de tipoDoNo — decide se
+ * usa a capacidade/largura mínima de Acessos/Descarga ou de Escadas/Rampas. */
+export function calcNoAcesso(acessoId, ambientes, acessos, taxaPopulacional, larguras, tipo = 'AD') {
+  const pop      = calcPopAcesso(acessoId, ambientes, acessos, taxaPopulacional)
+  const cap      = capAmbientes(ambientesDoAcesso(acessoId, ambientes, acessos), taxaPopulacional)
+  const capValor = tipo === 'ER' ? cap.ER : cap.AD
+  const dim      = tipo === 'ER' ? calcER(pop, capValor, larguras) : calcAD(pop, capValor, larguras)
+  return { pop, cap, capValor, dim, tipo }
+}
+
+/** Pacote pronto (população, capacidade, dimensionamento PT) pra um
+ * ambiente — a porta é sempre por ambiente, nunca agregada com outros. */
+export function calcNoAmbientePT(amb, taxaPopulacional, larguras) {
+  const pop   = calcPopAmb(amb, taxaPopulacional)
+  const capPT = taxaPopulacional[amb.divisao]?.PT ?? 100
+  const pt    = calcPT(pop, capPT, larguras)
+  return { pop, capPT, pt }
+}
+
+/** Dimensionamentos padrão de um nó recém-criado — raiz num piso de
+ * descarga nasce só com AD; raiz em outro pavimento nasce só com ER;
+ * qualquer nó que não é raiz nasce só com AD (nunca é a escada em si) —
+ * mesmo critério que tipoDoNo. PT sempre nasce ligado. O usuário pode
+ * depois ligar/desligar cada um independente (ver SET_ACESSO_DIM) —
+ * ex.: o ponto de descarga que recebe tanto o corredor (AD) quanto a
+ * escada que desce até ali (ER) precisa dos dois ao mesmo tempo. */
+export function dimsPadrao(acesso, pisoDescarga) {
+  const isRaiz = acesso.alimentaEm === null
+  if (isRaiz) return pisoDescarga ? { AD: true, ER: false, PT: true } : { AD: false, ER: true, PT: true }
+  return { AD: true, ER: false, PT: true }
+}
+
+/** `acesso.dims` com fallback pro padrão de tipoDoNo — projetos criados
+ * antes deste campo existir não têm `dims` gravado; sem isso, um nó
+ * antigo apareceria sem nenhum dimensionamento marcado. */
+export function dimsDoAcesso(acesso, pisoDescarga) {
+  if (acesso.dims) return acesso.dims
+  const { tipo } = tipoDoNo(acesso, pisoDescarga)
+  return { AD: tipo === 'AD', ER: tipo === 'ER', PT: true }
+}
+
+/** Dimensionamento de um nó de Acesso pra cada AD/ER/PT independentemente
+ * habilitado em `dims` — ao contrário do modelo antigo (um nó só podia ser
+ * AD OU ER), agora os dois podem coexistir no mesmo nó (ex.: o piso de
+ * descarga que é ao mesmo tempo corredor de saída e chegada da escada).
+ * Portas reaproveita o maior N de UP entre AD/ER habilitados (a porta
+ * precisa comportar o maior fluxo que passa por ali) — mesmo N mínimo de 1
+ * mesmo que nenhum dos dois esteja ligado, pra nunca calcular porta com
+ * 0 UP. Retorna null em cada campo cujo dimensionamento está desligado. */
+export function calcDimsAcesso(acessoId, ambientes, acessos, taxaPopulacional, larguras, dims) {
+  const pop = calcPopAcesso(acessoId, ambientes, acessos, taxaPopulacional)
+  const cap = capAmbientes(ambientesDoAcesso(acessoId, ambientes, acessos), taxaPopulacional)
+  const ad  = dims.AD ? calcAD(pop, cap.AD, larguras) : null
+  const er  = dims.ER ? calcER(pop, cap.ER, larguras) : null
+  const nPorta = Math.max(ad?.n || 0, er?.n || 0, 1)
+  const pt  = dims.PT ? calcPortaNoAcesso(nPorta, larguras) : null
+  return { pop, cap, ad, er, pt, nPorta }
+}
+
+/** Largura mínima da porta de um nó de Acesso/Saída/Escada-Rampa —
+ * reaproveita o mesmo N de UP já calculado pro AD/ER daquele box (ver
+ * calcNoAcesso) em vez de recalcular população/capacidade: a mesma vazão
+ * que passa pelo corredor/escada precisa caber na porta daquele ponto.
+ * Só busca a largura mínima de porta pra esse N na tabela PT — mesma
+ * lógica de calcPT, sem o passo de `Math.ceil(pop / capacidade)`. */
+export function calcPortaNoAcesso(n, larguras) {
+  const { lc, ptInfo, la } = larguraPT(n, larguras)
+  return { n, lc, la, lMin: ptInfo.largura, tipo: ptInfo.tipo }
+}
+
+/** Retorna o grupo de distância (terreo/demais) para uma divisão, a
+ * partir do formato { mapa_ocupacao, grupos } (divisão -> id do grupo -> dados). */
+export function getGrupoDistancia(divisao, distanciasMaximas) {
+  const id = distanciasMaximas?.mapa_ocupacao?.[divisao]
+  return id ? (distanciasMaximas.grupos?.[id] ?? null) : null
+}
+
+/** Distância máxima para uma divisão com os parâmetros dados.
+ * `nSaidas`: quantidade de saídas do ponto em questão — no modelo de
+ * rede, vem de contarSaidasPavimento (raízes da árvore daquele
+ * pavimento), não mais indicado manualmente nem inferido do n de UPs. */
+export function getDistancia(divisao, pisoDescarga, nSaidas, temChuveiros, temDeteccao, distanciasMaximas) {
+  const grupo = getGrupoDistancia(divisao, distanciasMaximas)
+  if (!grupo) return null
+  const andar  = pisoDescarga ? grupo.terreo : grupo.demais
+  const chuv   = temChuveiros ? 'com_chuveiro' : 'sem_chuveiro'
+  const saidas = nSaidas > 1 ? 'mais_saidas' : 'saida_unica'
   const detec  = temDeteccao ? 'com_deteccao' : 'sem_deteccao'
-  return andar[chuv]?.[saidas]?.[detec] ?? null
+  return andar?.[chuv]?.[saidas]?.[detec] ?? null
 }
 
-/** Distância mínima (mais restritiva) para um pavimento inteiro */
-export function getDistanciaPavimento(pav, nUpsAD, temChuveiros, temDeteccao, blocosDistancia) {
-  const divs = [...new Set(pav.ambientes.map(a => a.divisao).filter(Boolean))]
-  if (!divs.length) return null
-  const vals = divs
-    .map(d => getDistancia(d, pav.tipo === 'descarga', nUpsAD, temChuveiros, temDeteccao, blocosDistancia))
-    .filter(v => v !== null)
-  return vals.length ? Math.min(...vals) : null
+/** Distância máxima de um pavimento — usa a classificação de ocupação já
+ * configurada nele na Etapa 4 (pav.divisao, ver Step4.jsx), não as
+ * divisões dos ambientes cadastrados aqui em Saída de Emergência. Assim
+ * aparece pra qualquer pavimento classificado, mesmo sem nenhum ambiente
+ * ainda cadastrado na árvore de Acessos e Descargas. `pav.pisoDescarga` é
+ * um booleano explícito por pavimento — ver ProjetoContext.jsx. */
+export function getDistanciaPavimento(pav, nSaidas, temChuveiros, temDeteccao, distanciasMaximas) {
+  if (!pav.divisao) return null
+  return getDistancia(pav.divisao, pav.pisoDescarga, nSaidas, temChuveiros, temDeteccao, distanciasMaximas)
 }
 
 /** Retorna as opções de taxa disponíveis para a divisão */

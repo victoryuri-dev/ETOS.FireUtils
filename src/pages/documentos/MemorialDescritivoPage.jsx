@@ -1,9 +1,9 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial } from '../../data/memorial/registry'
-import { NTS_PADRAO_MA, NT_CARGA_INCENDIO, NTS_POR_SISTEMA } from '../../data/normas/MA/nts'
 import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS } from '../../utils/anexoB'
-import { getCNAEsDivisao, getOcupacoes } from '../../data/normas/index'
+import { getCNAEsDivisao, getOcupacoes, getNts } from '../../data/normas/index'
+import { edificacaoEhTerrea } from '../../data/trrf_calc'
 import Icon from '../../components/ui/Icon'
 
 // Memorial descritivo: um documento para impressão, uma pagina A4 por medida
@@ -20,12 +20,39 @@ const PAGINA_CARACTERIZACAO = 5
 const PAGINA_MEDIDAS_APLICADAS = 6
 const PRIMEIRA_PAGINA_MEDIDA = 7
 
-// Cada pagina do memorial e uma folha A4 independente na tela (tamanho e
-// sombra reais, com espaco entre folhas) — no impresso a sombra/arredondamento
-// somem e a margem fica a cargo da @page nomeada "memorial" (index.css):
-// 3cm em cima e embaixo (numero de pagina), 2cm na esquerda e na direita.
-// O padding abaixo replica essas mesmas medidas na tela.
-const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none pt-[3cm] pb-[3cm] pl-[2cm] pr-[2cm] print:pt-0 print:pb-0 print:pl-0 print:pr-0'
+// Numeracao dos topicos (1., 1.1, 2. ...), independente da paginacao acima:
+// Objetivo e Legislacao dividem a pagina 3 mas sao dois topicos, entao daqui
+// pra frente numero de topico e numero de pagina andam defasados em 1.
+const SECAO_OBJETIVO = 1
+const SECAO_LEGISLACAO = 2
+const SECAO_SOBRE_EDIFICACAO = 3
+const SECAO_CARACTERIZACAO = 4
+const SECAO_MEDIDAS_APLICADAS = 5
+const PRIMEIRA_SECAO_MEDIDA = 6
+
+// Uma folha por secao: largura de A4 (210mm) e altura MINIMA de A4, nao
+// fixa — a folha cresce com o conteudo em vez de cortar ou paginar. Na
+// impressao isso vira mais de uma pagina para as secoes longas, quebradas
+// pelo navegador.
+//
+// Margens (3cm topo/rodape, 2cm nas laterais) moram aqui, no padding da
+// folha; a @page "memorial" (index.css) fica com margem 0 justamente pra
+// nao somar por cima.
+const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none pt-[3cm] pr-[2cm] pb-[3cm] pl-[2cm]'
+
+// Numero da pagina no rodape, dentro da faixa de margem inferior — `absolute`
+// se posiciona pela borda da folha, nao pelo padding dela, dai os insets
+// repetirem as margens.
+const NUM_PAGINA = 'absolute bottom-[1.5cm] right-[2cm] text-[10px] text-[#8a8a8c]'
+
+// Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
+// borda clara. Centralizado aqui pra que as tabelas das medidas, do Anexo de
+// medidas aplicadas e da caracterizacao nao divirjam com o tempo.
+const TABELA = 'w-full border-collapse text-[10.5px] text-black'
+const TABELA_THEAD = 'bg-[#f3f4f6]'
+const TABELA_TH = 'border border-solid border-[#d1d5db] px-2.5 py-2 font-bold'
+const TABELA_TD = 'border border-solid border-[#d1d5db] px-2.5 py-2'
+const zebra = i => (i % 2 === 0 ? 'bg-white' : 'bg-[#fafbfc]')
 
 // Mesmos limiares de classificacao de risco usados no dashboard do projeto
 // (DashboardPage.jsx: getCargaCls/getCargaLbl) — mantidos aqui com a
@@ -65,9 +92,13 @@ function numeroPagina(atual, total) {
 }
 
 function Capa({ state, totalPaginas }) {
-  const edificacao = state.respFantasia || state.respRazaoSocial || state.nome || '[Nome Fantasia da Empresa ou Condomínio]'
-  const enderecoCompleto = enderecoCompletoDe(state)
-  const proprietario = state.propNome || '[Nome Completo ou Razão Social]'
+  // Nome do projeto é o único campo garantido em qualquer modo de projeto
+  // (ver ProjetoContext.jsx tipoProjeto) — os demais só aparecem se
+  // preenchidos, sem placeholder entre colchetes no documento final.
+  const edificacao = state.respFantasia || state.respRazaoSocial || state.nome || ''
+  const enderecoCompleto = enderecoCompletoDe(state, '')
+  const proprietario = state.propNome || ''
+  const temContato = state.respCNPJ || state.respTelefone
 
   return (
     <div className={FOLHA}>
@@ -75,10 +106,12 @@ function Capa({ state, totalPaginas }) {
         <div className="w-[150px] h-[60px] border border-dashed border-[#c9c9cb] bg-[#eeeeef] flex items-center justify-center text-center px-2">
           <span className="text-[10px] font-bold text-[#8a8a8c] uppercase tracking-[.04em]">Logo da empresa</span>
         </div>
-        <div className="text-[10.5px] text-black leading-relaxed">
-          <div>CNPJ: {state.respCNPJ || 'XX.XXX.XXX/0001-XX'}</div>
-          <div>Telefone: {state.respTelefone || '(XX) XXXXX-XXXX'}</div>
-        </div>
+        {temContato && (
+          <div className="text-[10.5px] text-black leading-relaxed">
+            {state.respCNPJ && <div>CNPJ: {state.respCNPJ}</div>}
+            {state.respTelefone && <div>Telefone: {state.respTelefone}</div>}
+          </div>
+        )}
       </div>
 
       <div className="text-center my-auto py-16">
@@ -89,12 +122,12 @@ function Capa({ state, totalPaginas }) {
       </div>
 
       <div className="text-center text-[12px] text-black flex flex-col gap-1.5 pb-8">
-        <div><strong>Edificação:</strong> {edificacao}</div>
-        <div><strong>Endereço:</strong> {enderecoCompleto}</div>
-        <div><strong>Proprietário:</strong> {proprietario}</div>
+        {edificacao && <div><strong>Edificação:</strong> {edificacao}</div>}
+        {enderecoCompleto && <div><strong>Endereço:</strong> {enderecoCompleto}</div>}
+        {proprietario && <div><strong>Proprietário:</strong> {proprietario}</div>}
       </div>
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(1, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(1, totalPaginas)}</div>
     </div>
   )
 }
@@ -102,7 +135,7 @@ function Capa({ state, totalPaginas }) {
 function Sumario({ topicos, totalPaginas }) {
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[20px] font-bold text-black uppercase tracking-[.04em] text-center mt-10 mb-14">Sumário</h1>
+      <h1 className="font-heading text-[20px] font-bold text-black uppercase tracking-[.04em] text-center mt-10 mb-16">Sumário</h1>
 
       <div className="max-w-[480px] mx-auto w-full flex flex-col gap-3.5">
         {topicos.map((t, i) => (
@@ -114,12 +147,13 @@ function Sumario({ topicos, totalPaginas }) {
         ))}
       </div>
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_SUMARIO, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_SUMARIO, totalPaginas)}</div>
     </div>
   )
 }
 
-function Introducao({ sistemas, totalPaginas }) {
+function Introducao({ sistemas, totalPaginas, uf }) {
+  const { NTS_PADRAO_MA, NT_CARGA_INCENDIO, NTS_POR_SISTEMA } = getNts(uf)
   const nts = Object.entries(sistemas || {})
     .filter(([, s]) => s.ativo || s.obrigatorio)
     .map(([key]) => NTS_POR_SISTEMA[key])
@@ -130,71 +164,104 @@ function Introducao({ sistemas, totalPaginas }) {
 
   return (
     <div className={FOLHA}>
-      <h2 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-2">Objetivo</h2>
-      <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-8">
-        Memorial Técnico Descritivo apresentado ao Corpo de Bombeiros Militar do Estado do Maranhão (CBMMA), como
-        requisito legal para análise, aprovação e regularização do Projeto de Segurança Contra Incêndio e Pânico da
-        edificação.
-      </p>
+      <div className="mb-8">
+        <h2 className="font-heading text-[14px] font-bold text-black mb-3">
+          <span className="text-[#6b7280]">{SECAO_OBJETIVO}.</span> Objetivo
+        </h2>
+        <p className="text-[12.5px] text-black leading-[1.85] text-justify">
+          Memorial Técnico Descritivo apresentado ao Corpo de Bombeiros Militar do Estado do Maranhão (CBMMA), como
+          requisito legal para análise, aprovação e regularização do Projeto de Segurança Contra Incêndio e Pânico da
+          edificação.
+        </p>
+      </div>
 
-      <h2 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-2">Sobre a Legislação</h2>
-      <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3">
-        O projeto foi desenvolvido atendendo as determinações do Decreto Estadual, que regulamenta a Lei, e que, por
-        sua vez, dispõe sobre a segurança contra incêndio e pânico e dá outras providências. O projeto atende também
-        as Normas Brasileiras (NBR&apos;s) da Associação Brasileira de Normas Técnicas (ABNT), assim como as
-        seguintes instruções técnicas:
-      </p>
-      <ul className="text-[12.5px] text-black leading-[1.85] list-none">
-        {NTS_PADRAO_MA.map(nt => <li key={nt.numero}>{nt.numero} - {nt.nome}</li>)}
-        {nts.map(nt => <li key={nt.numero}>{nt.numero} - {nt.nome}</li>)}
-      </ul>
+      <div>
+        <h2 className="font-heading text-[14px] font-bold text-black mb-3">
+          <span className="text-[#6b7280]">{SECAO_LEGISLACAO}.</span> Sobre a Legislação
+        </h2>
+        <div>
+          <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3">
+            O projeto foi desenvolvido atendendo as determinações do Decreto Estadual, que regulamenta a Lei, e que, por
+            sua vez, dispõe sobre a segurança contra incêndio e pânico e dá outras providências. O projeto atende também
+            as Normas Brasileiras (NBR&apos;s) da Associação Brasileira de Normas Técnicas (ABNT), assim como as
+            seguintes instruções técnicas:
+          </p>
+          <ul className="text-[12px] text-black leading-[1.8] list-none pl-2">
+            {NTS_PADRAO_MA.map(nt => (
+              <li key={nt.numero} className="mb-1"><strong>{nt.numero}</strong> — {nt.nome}</li>
+            ))}
+            {nts.map(nt => (
+              <li key={nt.numero} className="mb-1"><strong>{nt.numero}</strong> — {nt.nome}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_INTRODUCAO, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_INTRODUCAO, totalPaginas)}</div>
     </div>
   )
 }
 
+// Sem valor, o campo nem aparece — evita linhas tipo "Endereço: " em
+// branco num documento que projetos "apenas dimensionamento" nunca
+// preenchem (ver ProjetoContext.jsx tipoProjeto).
 function CampoDiscriminado({ label, value }) {
+  if (!value) return null
   return <div><strong>{label}:</strong> {value}</div>
 }
 
 function SobreEdificacao({ state, totalPaginas }) {
+  const endereco = enderecoCompletoDe(state, '')
+
+  // Subitem só entra na numeração se tiver ao menos um campo preenchido —
+  // assim "3.1, 3.2, 3.3" nunca pula um número quando um bloco some (ver
+  // ProjetoContext.jsx tipoProjeto).
+  const blocos = [
+    { titulo: 'Responsável Técnico', campos: [
+      ['Responsável Técnico', state.rtNome],
+      ['Registro Profissional', state.rtConselho],
+      ['Número da ART / RRT', state.usaArt ? state.artNumero : ''],
+    ] },
+    { titulo: 'Responsável pelo Uso', campos: [
+      ['Razão Social', state.respRazaoSocial],
+      ['Nome Fantasia', state.respFantasia],
+      ['CNPJ', state.respCNPJ],
+      ['Telefone', state.respTelefone],
+      ['E-mail', state.respEmail],
+    ] },
+    { titulo: 'Proprietário do Imóvel', campos: [
+      ['Nome / Razão Social', state.propNome],
+      ['CPF / CNPJ', state.propDocumento],
+      ['Telefone', state.propTelefone],
+      ['E-mail', state.propEmail],
+    ] },
+    { titulo: 'Dados do Imóvel', campos: [
+      ['Endereço', endereco],
+      ['Área construída total', state.areaConstruidaTotal ? `${state.areaConstruidaTotal} m²` : ''],
+      ['Área do terreno', state.areaTerreno ? `${state.areaTerreno} m²` : ''],
+    ] },
+  ].filter(b => b.campos.some(([, v]) => v))
+
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6">Sobre a Edificação</h1>
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6">
+        <span className="text-[#6b7280]">{SECAO_SOBRE_EDIFICACAO}.</span> Sobre a Edificação
+      </h1>
 
-      <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Responsável Técnico</h2>
-      <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
-        <CampoDiscriminado label="Responsável Técnico" value={state.rtNome}/>
-        <CampoDiscriminado label="Registro Profissional" value={state.rtConselho}/>
-        <CampoDiscriminado label="Número da ART / RRT" value={state.artNumero}/>
-      </div>
+      {blocos.map((bloco, i) => (
+        <div key={bloco.titulo} className="mb-5 last:mb-0">
+          <h2 className="font-heading text-[13px] font-bold text-black mb-2">
+            <span className="text-[#6b7280]">{SECAO_SOBRE_EDIFICACAO}.{i + 1}</span> {bloco.titulo}
+          </h2>
+          <div className="text-[12px] text-black leading-[1.9] pl-6">
+            {bloco.campos.map(([label, value]) => (
+              <CampoDiscriminado key={label} label={label} value={value}/>
+            ))}
+          </div>
+        </div>
+      ))}
 
-      <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Responsável pelo Uso</h2>
-      <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
-        <CampoDiscriminado label="Razão Social" value={state.respRazaoSocial}/>
-        <CampoDiscriminado label="Nome Fantasia" value={state.respFantasia}/>
-        <CampoDiscriminado label="CNPJ" value={state.respCNPJ}/>
-        <CampoDiscriminado label="Telefone" value={state.respTelefone}/>
-        <CampoDiscriminado label="E-mail" value={state.respEmail}/>
-      </div>
-
-      <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Proprietário do Imóvel</h2>
-      <div className="text-[12px] text-black leading-[1.9] pl-6 mb-5">
-        <CampoDiscriminado label="Nome / Razão Social" value={state.propNome}/>
-        <CampoDiscriminado label="CPF / CNPJ" value={state.propDocumento}/>
-        <CampoDiscriminado label="Telefone" value={state.propTelefone}/>
-        <CampoDiscriminado label="E-mail" value={state.propEmail}/>
-      </div>
-
-      <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Dados do Imóvel</h2>
-      <div className="text-[12px] text-black leading-[1.9] pl-6">
-        <CampoDiscriminado label="Endereço" value={enderecoCompletoDe(state, '')}/>
-        <CampoDiscriminado label="Área construída total" value={state.areaConstruidaTotal ? `${state.areaConstruidaTotal} m²` : ''}/>
-        <CampoDiscriminado label="Área do terreno" value={state.areaTerreno ? `${state.areaTerreno} m²` : ''}/>
-      </div>
-
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_SOBRE_EDIFICACAO, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_SOBRE_EDIFICACAO, totalPaginas)}</div>
     </div>
   )
 }
@@ -202,9 +269,11 @@ function SobreEdificacao({ state, totalPaginas }) {
 function Caracterizacao({ state, porEstrutura, totalPaginas }) {
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6">Caracterização da Edificação e do Risco</h1>
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8">
+        <span className="text-[#6b7280]">{SECAO_CARACTERIZACAO}.</span> Caracterização da Edificação e do Risco
+      </h1>
 
-      {porEstrutura.map(({ estrutura: est }) => {
+      {porEstrutura.map(({ estrutura: est }, estIdx) => {
         const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
 
         // Uma linha por ocupacao: a principal de cada pavimento, mais uma
@@ -218,49 +287,54 @@ function Caracterizacao({ state, porEstrutura, totalPaginas }) {
           })
         })
 
-        const alturaPisoPisoTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' : `${est.alturaPisoPiso} m`
+        const alturaPisoPisoTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' : `${est.alturaPisoPiso} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`
 
         return (
           <div key={est.id} className="mb-7">
-            <h2 className="font-heading text-[12px] font-bold text-black mb-1.5">{est.nome}</h2>
+            <h2 className="font-heading text-[13px] font-bold text-black mb-2">
+              <span className="text-[#6b7280]">{SECAO_CARACTERIZACAO}.{estIdx + 1}</span> {est.nome}
+            </h2>
 
-            <div className="border border-solid border-[#c9c9cb] flex text-[11.5px] text-black mb-3">
-              <div className="flex-1 px-2.5 py-1.5 border-r border-solid border-[#c9c9cb]"><strong>Área construída:</strong> {est.areaTotal ? `${est.areaTotal} m²` : ''}</div>
-              <div className="flex-1 px-2.5 py-1.5 border-r border-solid border-[#c9c9cb]"><strong>Altura piso a piso:</strong> {alturaPisoPisoTxt}</div>
-              <div className="flex-1 px-2.5 py-1.5"><strong>Altura total:</strong> {est.altura ? `${est.altura} m` : ''}</div>
+            <div className="mb-4">
+              <div className="border border-solid border-[#e5e7eb] rounded bg-[#f9fafb] flex text-[11.5px] text-black">
+                <div className="flex-1 px-3 py-2.5 border-r border-solid border-[#e5e7eb]"><strong>Área construída:</strong> {est.areaTotal ? `${est.areaTotal} m²` : '—'}</div>
+                <div className="flex-1 px-3 py-2.5 border-r border-solid border-[#e5e7eb]"><strong>Altura piso a piso:</strong> {alturaPisoPisoTxt || '—'}</div>
+                <div className="flex-1 px-3 py-2.5"><strong>Altura total:</strong> {est.altura ? `${est.altura} m` : '—'}</div>
+              </div>
+
+              <h3 className="font-heading text-[12px] font-bold text-black mt-4 mb-2.5">Ocupações Identificadas</h3>
+              <table className={TABELA}>
+                <thead>
+                  <tr className={TABELA_THEAD}>
+                    <th className={`${TABELA_TH} text-left w-[135px]`}>Pavimento</th>
+                    <th className={`${TABELA_TH} text-left`}>Divisão</th>
+                    <th className={`${TABELA_TH} text-left`}>CNAE / Atividade</th>
+                    <th className={`${TABELA_TH} text-center w-[120px]`}>Carga de Incêndio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linhas.length === 0 ? (
+                    <tr><td colSpan={4} className={`${TABELA_TD} text-center text-[#9ca3af]`}>Nenhuma ocupação classificada</td></tr>
+                  ) : linhas.map((l, i) => {
+                    const cargaQ = cargaDaOcupacao(state, est.id, l.divisao, l.cnae)
+                    const desc = descricaoDivisao(state, l.divisao)
+                    return (
+                      <tr key={i} className={zebra(i)}>
+                        <td className={TABELA_TD}>{l.pavimento}</td>
+                        <td className={TABELA_TD}>{[l.divisao, desc].filter(Boolean).join(' — ')}</td>
+                        <td className={TABELA_TD}>{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
+                        <td className={`${TABELA_TD} text-center`}>{cargaQ ? `${cargaQ} MJ/m² - ${classificarCarga(cargaQ)}` : '—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
-
-            <table className="w-full border-collapse text-[11px] text-black">
-              <thead>
-                <tr>
-                  <th className="border border-solid border-[#c9c9cb] px-2 py-1 text-left w-[110px]">Pavimento</th>
-                  <th className="border border-solid border-[#c9c9cb] px-2 py-1 text-left">Divisão</th>
-                  <th className="border border-solid border-[#c9c9cb] px-2 py-1 text-left">CNAE / Atividade</th>
-                  <th className="border border-solid border-[#c9c9cb] px-2 py-1 w-[130px]">Carga de Incêndio</th>
-                </tr>
-              </thead>
-              <tbody>
-                {linhas.length === 0 ? (
-                  <tr><td colSpan={4} className="border border-solid border-[#c9c9cb] px-2 py-2 text-center text-[#8a8a8c]">Nenhuma ocupação classificada</td></tr>
-                ) : linhas.map((l, i) => {
-                  const cargaQ = cargaDaOcupacao(state, est.id, l.divisao, l.cnae)
-                  const desc = descricaoDivisao(state, l.divisao)
-                  return (
-                    <tr key={i}>
-                      <td className="border border-solid border-[#c9c9cb] px-2 py-1">{l.pavimento}</td>
-                      <td className="border border-solid border-[#c9c9cb] px-2 py-1">{[l.divisao, desc].filter(Boolean).join(' — ')}</td>
-                      <td className="border border-solid border-[#c9c9cb] px-2 py-1">{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
-                      <td className="border border-solid border-[#c9c9cb] px-2 py-1 text-center">{cargaQ ? `${cargaQ} MJ/m² - ${classificarCarga(cargaQ)}` : ''}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
           </div>
         )
       })}
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_CARACTERIZACAO, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_CARACTERIZACAO, totalPaginas)}</div>
     </div>
   )
 }
@@ -288,26 +362,26 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
 
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6 leading-[1.3]">
-        Medidas de Segurança Contra Incêndio e Emergência do Projeto
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8 leading-[1.3]">
+        <span className="text-[#6b7280]">{SECAO_MEDIDAS_APLICADAS}.</span> Medidas de Segurança Contra Incêndio e Emergência do Projeto
       </h1>
 
       {multiplasEstruturas ? (
-        <table className="w-full border-collapse text-[11px] text-black mb-8">
+        <table className={`${TABELA} mb-8`}>
           <thead>
-            <tr>
-              <th className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-left">Medidas de Segurança Aplicadas</th>
+            <tr className={TABELA_THEAD}>
+              <th className={`${TABELA_TH} text-left`}>Medidas de Segurança Aplicadas</th>
               {porEstrutura.map(({ estrutura: est }) => (
-                <th key={est.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 w-[70px]">{est.nome}</th>
+                <th key={est.id} className={`${TABELA_TH} w-[70px]`}>{est.nome}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {medidas.map(m => (
-              <tr key={m.key}>
-                <td className="border border-solid border-[#c9c9cb] px-2.5 py-1.5">{m.label}</td>
+            {medidas.map((m, i) => (
+              <tr key={m.key} className={zebra(i)}>
+                <td className={TABELA_TD}>{m.label}</td>
                 {porEstrutura.map(pe => (
-                  <td key={pe.estrutura.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-center text-[16px] font-bold leading-none">
+                  <td key={pe.estrutura.id} className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
                     {pe.sistemas[m.key]?.ativo ? 'X' : ''}
                   </td>
                 ))}
@@ -316,32 +390,41 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
           </tbody>
         </table>
       ) : (
-        <ul className="border border-solid border-[#c9c9cb] text-[11.5px] text-black list-none mb-8">
-          {medidas.map((m, i) => (
-            <li key={m.key} className={`px-2.5 py-1.5 ${i < medidas.length - 1 ? 'border-b border-solid border-[#c9c9cb]' : ''}`}>{m.label}</li>
-          ))}
-        </ul>
+        <table className={`${TABELA} mb-8`}>
+          <thead>
+            <tr className={TABELA_THEAD}>
+              <th className={`${TABELA_TH} text-left`}>Medidas de Segurança Aplicadas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {medidas.map((m, i) => (
+              <tr key={m.key} className={zebra(i)}>
+                <td className={TABELA_TD}>{m.label}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
       {riscosAtivosGlobal.length > 0 && (
         <>
           <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mb-2">Riscos Especiais</h2>
           {multiplasEstruturas ? (
-            <table className="w-full border-collapse text-[11px] text-black">
+            <table className={TABELA}>
               <thead>
-                <tr>
-                  <th className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-left">Risco Especial</th>
+                <tr className={TABELA_THEAD}>
+                  <th className={`${TABELA_TH} text-left`}>Risco Especial</th>
                   {porEstrutura.map(({ estrutura: est }) => (
-                    <th key={est.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 w-[70px]">{est.nome}</th>
+                    <th key={est.id} className={`${TABELA_TH} w-[70px]`}>{est.nome}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {riscosAtivosGlobal.map(r => (
-                  <tr key={r.key}>
-                    <td className="border border-solid border-[#c9c9cb] px-2.5 py-1.5">{r.label}</td>
+                {riscosAtivosGlobal.map((r, i) => (
+                  <tr key={r.key} className={zebra(i)}>
+                    <td className={TABELA_TD}>{r.label}</td>
                     {porEstrutura.map(pe => (
-                      <td key={pe.estrutura.id} className="border border-solid border-[#c9c9cb] px-2.5 py-1.5 text-center text-[16px] font-bold leading-none">
+                      <td key={pe.estrutura.id} className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
                         {riscosPorEstrutura[pe.estrutura.id]?.[r.key] ? 'X' : ''}
                       </td>
                     ))}
@@ -350,11 +433,20 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
               </tbody>
             </table>
           ) : (
-            <div className="grid grid-cols-2 border border-solid border-[#c9c9cb] divide-x divide-y divide-[#c9c9cb] text-[11.5px] text-black">
-              {riscosAtivosUnica.map((label, i) => (
-                <div key={i} className="px-2.5 py-1.5">{label}</div>
-              ))}
-            </div>
+            <table className={TABELA}>
+              <thead>
+                <tr className={TABELA_THEAD}>
+                  <th className={`${TABELA_TH} text-left`}>Risco Especial</th>
+                </tr>
+              </thead>
+              <tbody>
+                {riscosAtivosUnica.map((label, i) => (
+                  <tr key={i} className={zebra(i)}>
+                    <td className={TABELA_TD}>{label}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
           {outrosDescsMultiplas.length > 0 && (
             <p className="text-[10.5px] text-black leading-[1.6] mt-1.5 mb-0">
@@ -364,78 +456,235 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
         </>
       )}
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">{numeroPagina(PAGINA_MEDIDAS_APLICADAS, totalPaginas)}</div>
+      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_MEDIDAS_APLICADAS, totalPaginas)}</div>
     </div>
   )
+}
+
+// Texto de um item de bloco 'lista' (ver abaixo) — string simples (ex.: os
+// avisos "estilo: alerta" de extintores.js/seg_estrutural.js) renderiza como
+// está; { label, valor } (ex.: gerenciamento_risco.js) renderiza com o rotulo
+// em negrito e o valor normal, igual ao bloco 'campo'.
+function ListaItemTexto({ item }) {
+  if (!item || typeof item !== 'object') return item
+  if (!item.label) return item.texto ?? null
+  return <><strong>{item.label}:</strong> <span className="whitespace-pre-line">{item.valor}</span></>
+}
+
+// Um nó do bloco 'organograma' (ver memorial/saida_emergencia.js) — raiz e
+// Circulação em negrito/maiúsculo, ambiente em texto normal; filhos ficam
+// recuados dentro de uma faixa com borda à esquerda, imitando o colchete
+// que agrupa visualmente "o que esse nó alimenta" (sem limite de
+// profundidade — Circulação pode ter outra Circulação dentro).
+function OrganogramaNo({ no }) {
+  return (
+    <div className="mb-1 last:mb-0">
+      <div className={no.bold
+        ? 'font-heading text-[12.5px] font-bold text-black uppercase tracking-[.02em]'
+        : 'text-[12px] text-black'
+      }>
+        {no.texto}
+      </div>
+      {no.sub?.length > 0 && (
+        <div className="pl-4 ml-1 mt-1 pb-0.5 border-l border-solid border-[#999]">
+          {no.sub.map((s, i) => <OrganogramaNo key={i} no={s}/>)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Um <li> de bloco 'lista', com sub-lista recursiva (item.sub pode ter seus
+// próprios itens com sub, sem limite de profundidade — ex.: riscos especiais
+// com mais de uma estrutura viram Riscos > Estrutura > risco, 3 níveis).
+function ListaLi({ item, estilo }) {
+  return (
+    <li className={
+      estilo === 'alerta'
+        ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
+        // 'lettered': o próprio texto já traz o prefixo ("a) ..." — ver
+        // memorial/saida_emergencia.js), então sem marcador "•" duplicado.
+        : estilo === 'lettered'
+        ? 'text-[12px] text-black leading-[1.6] mb-1 pl-4'
+        : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
+    }>
+      <ListaItemTexto item={item}/>
+      {item?.sub?.length > 0 && (
+        <ul className="list-none mt-1 ml-2">
+          {item.sub.map((s, j) => <ListaLi key={j} item={s} estilo={estilo}/>)}
+        </ul>
+      )}
+    </li>
+  )
+}
+
+function escaparHtml(texto) {
+  return String(texto).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+// Converte a notação de engenharia em texto simples (memorial/hidrantesCalculo.js,
+// ex.: "Q^1,85", "P_hd01") em sobrescrito/subscrito de verdade — mesma
+// conversão que o memorial.py do antigo plugin fazia (_sup/_sub) antes de
+// virar HTML, só que aqui direto no bloco 'formula' do memorial do site.
+function formatarFormula(texto) {
+  let t = escaparHtml(texto)
+  // Expoentes: "^1,85" ou "^−4,87" (inclui o sinal de menos unicode "−",
+  // usado nos coeficientes de Hazen-Williams) -> <sup>1,85</sup>
+  t = t.replace(/\^(−?-?[0-9]+(?:,[0-9]+)?)/g, (_, exp) => `<sup>${exp}</sup>`)
+  // Subscritos: "P_hd01", "Q_hd02", "P_valv", "P_PA,alvo" -> P<sub>hd01</sub>
+  // etc. — só letras/dígitos/vírgula depois do "_", pra não confundir com
+  // separador de milhar nem cortar no meio de outra pontuação.
+  t = t.replace(/\b([A-Za-zΔ∆]+)_([A-Za-z0-9,]+)\b/g, (_, base, sub) => `${base}<sub>${sub}</sub>`)
+  return t
 }
 
 // Blocos de conteudo (opcionais, ver memorial/seg_estrutural.js) — permitem
 // que uma secao troque paragrafo corrido por tabela/lista/campo quando isso
 // deixa os valores mais faceis de achar (ex.: TRRF por pavimento). Secoes
 // que so retornam `paragrafos` (ex.: acesso_viatura.js) continuam iguais.
-function BlocoMedida({ bloco }) {
+function BlocoMedida({ bloco, numeroBloco }) {
   switch (bloco.tipo) {
+    // `semNumero` = o proprio builder ja numerou o topico (hidrantesCalculo.js
+    // precisa disso porque os titulo3 dele citam esse numero) — prefixar de
+    // novo aqui daria "15.1 1. Dados de Entrada".
     case 'titulo2':
-      return <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mt-5 mb-2 first:mt-0">{bloco.texto}</h2>
+      return <h2 className="font-heading text-[12px] font-bold text-black uppercase tracking-[.03em] mt-5 mb-2 first:mt-0">
+        {!bloco.semNumero && <span className="text-[#6b7280]">{numeroBloco} </span>}
+        {bloco.texto}
+      </h2>
+    // Sub-seção numerada dentro de um 'titulo2' (ex.: "6.1 Trecho HD01 ao
+    // Ponto A", memorial/hidrantesCalculo.js) — o marcador ja vem no texto,
+    // entao aqui e so o peso visual.
+    case 'titulo3':
+      return <h3 className="font-heading text-[12px] font-bold text-black mt-4 mb-2">{bloco.texto}</h3>
     case 'paragrafo':
       return <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{bloco.texto}</p>
-    case 'campo':
-      return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:</strong> {bloco.valor}</div>
-    case 'tabela':
+    // Equação em destaque (memorial/hidrantesCalculo.js) — texto em notação
+    // de engenharia (Q^1,85, P_hd01 etc.), convertido pra sobrescrito/
+    // subscrito de verdade (formatarFormula) — sem fração renderizada
+    // (numerador/denominador em vez de "A / B" numa linha só), única
+    // simplificação que o resto do memorial descritivo também não faz.
+    case 'formula':
       return (
-        <table className="w-full border-collapse text-[11px] text-black mb-4" style={bloco.larguras ? { tableLayout: 'fixed' } : undefined}>
+        <div
+          className="text-[12px] text-black font-mono leading-[1.6] mb-3 pl-3 border-l-2 border-solid border-[#c9c9cb] whitespace-pre-line"
+          dangerouslySetInnerHTML={{ __html: formatarFormula(bloco.texto) }}
+        />
+      )
+    case 'campo':
+      return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:</strong> <span className="whitespace-pre-line">{bloco.valor}</span></div>
+    case 'tabela': {
+      // th/td alinhados ao centro quando a tabela é majoritariamente
+      // numérica (ex.: dimensionamento de Acesso/Saída) — colunas de
+      // texto livre continuam usando `colunas`/alinhamento à esquerda.
+      // `alinhas` (opcional, ex.: memorial/hidrantesCalculo.js) dá o
+      // alinhamento POR COLUNA quando uma tabela mistura texto (rótulo à
+      // esquerda) com números (valor à direita) — tem prioridade sobre
+      // `centralizado` quando presente.
+      const alinhamento = bloco.centralizado ? 'text-center' : 'text-left'
+      const alinhaCol = i => (bloco.alinhas ? `text-${bloco.alinhas[i] || 'left'}` : alinhamento)
+      return (
+        <table className={`${TABELA} mb-4`} style={bloco.larguras ? { tableLayout: 'fixed' } : undefined}>
           {bloco.larguras && (
             <colgroup>
               {bloco.larguras.map((w, i) => <col key={i} style={{ width: w }}/>)}
             </colgroup>
           )}
           <thead>
-            <tr>
-              {bloco.colunas.map((c, i) => <th key={i} className="border border-solid border-[#c9c9cb] px-2 py-1 text-left">{c}</th>)}
-            </tr>
+            {/* `linhasCabecalho` (opcional) permite um cabeçalho com mais de
+                uma linha e células mescladas horizontalmente (colSpan) — ex.:
+                "POPULAÇÃO" | "ACESSO/DESCARGA" (3 colunas) | "PORTAS" (3
+                colunas) numa linha, com CAPACIDADE/UP/LARGURA MÍNIMA embaixo
+                de cada bloco na linha seguinte (ver memorial/saida_emergencia.js).
+                Sem isso, cai no `colunas` de sempre (uma linha só). */}
+            {bloco.linhasCabecalho
+              ? bloco.linhasCabecalho.map((linha, i) => (
+                  <tr key={i} className={TABELA_THEAD}>
+                    {linha.map((c, j) => (
+                      <th key={j} colSpan={c.colSpan} rowSpan={c.rowSpan} className={`${TABELA_TH} ${alinhamento}`}>{c.texto}</th>
+                    ))}
+                  </tr>
+                ))
+              : (
+                <tr className={TABELA_THEAD}>
+                  {bloco.colunas.map((c, i) => <th key={i} className={`${TABELA_TH} ${alinhaCol(i)}`}>{c}</th>)}
+                </tr>
+              )}
           </thead>
           <tbody>
+            {/* Célula `null` = já coberta por um rowSpan de uma linha
+                anterior (ver DIVISÃO na tabela de distâncias máximas em
+                memorial/saida_emergencia.js) — não gera <td> nenhum pra
+                não duplicar a coluna. Objeto `{ texto, rowSpan }` é uma
+                célula normal que mescla verticalmente com as próximas
+                `n-1` linhas nessa mesma posição. */}
             {bloco.linhas.map((linha, i) => (
-              <tr key={i}>
-                {linha.map((cel, j) => (
-                  <td key={j} className="border border-solid border-[#c9c9cb] px-2 py-1">
-                    {cel && typeof cel === 'object' && cel.tipo === 'imagem'
-                      ? <img src={cel.src} alt={cel.alt || ''} className="w-9 h-9 object-contain block"/>
-                      : cel}
-                  </td>
-                ))}
+              <tr key={i} className={zebra(i)}>
+                {linha.map((cel, j) => {
+                  if (cel === null) return null
+                  const temRowSpan = cel && typeof cel === 'object' && 'texto' in cel
+                  const conteudo = temRowSpan ? cel.texto : cel
+                  return (
+                    <td key={j} rowSpan={temRowSpan ? cel.rowSpan : undefined} className={`${TABELA_TD} ${alinhaCol(j)}`}>
+                      {conteudo && typeof conteudo === 'object' && conteudo.tipo === 'imagem'
+                        ? <img src={conteudo.src} alt={conteudo.alt || ''} className="w-9 h-9 object-contain block"/>
+                        : conteudo}
+                    </td>
+                  )
+                })}
               </tr>
             ))}
           </tbody>
         </table>
       )
+    }
     case 'lista':
       return (
         <ul className="list-none mb-4">
-          {bloco.itens.map((item, i) => (
-            <li key={i} className={`text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 ${bloco.estilo === 'alerta' ? 'border-l-2 border-solid border-black font-medium' : 'border-l border-solid border-[#c9c9cb]'}`}>
-              {item}
-            </li>
-          ))}
+          {bloco.itens.map((item, i) => <ListaLi key={i} item={item} estilo={bloco.estilo}/>)}
         </ul>
+      )
+    case 'organograma':
+      return (
+        <div className="mb-4">
+          {/* mb-5 aqui (em vez de deixar só o mb-1 do próprio OrganogramaNo)
+              separa uma árvore (Saída/Escada-Rampa raiz) da próxima com uma
+              linha em branco — sem isso, a última Circulação de uma árvore
+              encosta direto na raiz seguinte. */}
+          {bloco.nos.map((no, i) => (
+            <div key={i} className="mb-5 last:mb-0">
+              <OrganogramaNo no={no}/>
+            </div>
+          ))}
+        </div>
       )
     default:
       return null
   }
 }
 
-function SecaoMedida({ secao, pagina, totalPaginas }) {
+function SecaoMedida({ secao, numeroSecao, pagina, totalPaginas }) {
+  let numeroBloco = 1
+
   return (
     <div className={FOLHA}>
-      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-6">{secao.titulo}</h1>
+      <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8">
+        <span className="text-[#6b7280]">{numeroSecao}.</span> {secao.titulo}
+      </h1>
 
       {secao.blocos
-        ? secao.blocos.map((b, i) => <BlocoMedida key={i} bloco={b}/>)
+        ? secao.blocos.map((b, i) => (
+            <BlocoMedida
+              key={i}
+              bloco={b}
+              numeroBloco={b.tipo === 'titulo2' && !b.semNumero ? `${numeroSecao}.${numeroBloco++}` : null}
+            />
+          ))
         : secao.paragrafos.map((p, i) => (
-            <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{p}</p>
+            <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8 pl-2">{p}</p>
           ))}
 
-      <div className="absolute bottom-0 right-0 text-[10px] text-[#8a8a8c]">
+      <div className={NUM_PAGINA}>
         {numeroPagina(pagina, totalPaginas)}
       </div>
     </div>
@@ -445,7 +694,7 @@ function SecaoMedida({ secao, pagina, totalPaginas }) {
 export default function MemorialDescritivoPage({ onBack }) {
   const { state }    = useProjeto()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
-  const secoes = buildMemorial(state, sistemas)
+  const secoes = buildMemorial(state, sistemas, porEstrutura)
   const totalPaginas = PRIMEIRA_PAGINA_MEDIDA - 1 + secoes.length
   const topicos = [
     { titulo: 'Objetivo', pagina: PAGINA_INTRODUCAO },
@@ -476,12 +725,12 @@ export default function MemorialDescritivoPage({ onBack }) {
           <div className="print-area print-area-memorial">
             <Capa state={state} totalPaginas={totalPaginas}/>
             <Sumario topicos={topicos} totalPaginas={totalPaginas}/>
-            <Introducao sistemas={sistemas} totalPaginas={totalPaginas}/>
+            <Introducao sistemas={sistemas} totalPaginas={totalPaginas} uf={state.uf}/>
             <SobreEdificacao state={state} totalPaginas={totalPaginas}/>
             <Caracterizacao state={state} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
             <MedidasAplicadas state={state} sistemas={sistemas} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
             {secoes.map((secao, i) => (
-              <SecaoMedida key={i} secao={secao} pagina={PRIMEIRA_PAGINA_MEDIDA + i} totalPaginas={totalPaginas}/>
+              <SecaoMedida key={i} secao={secao} numeroSecao={PRIMEIRA_SECAO_MEDIDA + i} pagina={PRIMEIRA_PAGINA_MEDIDA + i} totalPaginas={totalPaginas}/>
             ))}
           </div>
         )}

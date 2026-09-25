@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import { useProjeto } from '../context/ProjetoContext'
 import AnexoBPage from './documentos/AnexoBPage'
 import MemorialDescritivoPage from './documentos/MemorialDescritivoPage'
 import Icon from '../components/ui/Icon'
@@ -12,7 +14,7 @@ const DOCUMENTOS = [
   {
     id: 'memorial-descritivo',
     titulo: 'Memorial Descritivo',
-    descricao: 'Uma pagina por medida de seguranca dimensionada, com o texto tecnico gerado a partir dos dados de cada dimensionamento.',
+    descricao: 'Uma pagina por medida de seguranca dimensionada, com o texto tecnico gerado a partir dos dados de cada dimensionamento — inclui o Plano de Emergencia (NT 16) quando aplicavel ao projeto.',
   },
 ]
 
@@ -35,7 +37,20 @@ function DocumentoCard({ doc, onAbrir }) {
 }
 
 export default function DocumentosPage() {
-  const [aberto, setAberto] = useState(null)
+  const location = useLocation()
+  const { state } = useProjeto()
+  // Anexo B pede dados (endereço, responsáveis, área do terreno...) que um
+  // projeto "apenas dimensionamento" nunca coleta — não faz sentido gerar
+  // um formulário cheio de campo em branco pra um modo pensado pra não
+  // pedir esse dado.
+  const documentos = state.tipoProjeto === 'dimensionamento'
+    ? DOCUMENTOS.filter(d => d.id !== 'anexo-b')
+    : DOCUMENTOS
+  // Permite chegar aqui com um documento ja aberto (ex.: botao "Ver no
+  // Memorial Descritivo" em GerenciamentoRiscoPage.jsx) — so usado como
+  // valor inicial, pra nao reabrir sozinho se o usuario voltar pra lista e
+  // navegar de novo.
+  const [aberto, setAberto] = useState(() => location.state?.abrir || null)
 
   if (aberto === 'anexo-b') {
     return <AnexoBPage onBack={() => setAberto(null)}/>
@@ -62,7 +77,7 @@ export default function DocumentosPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {DOCUMENTOS.map(doc => (
+            {documentos.map(doc => (
               <DocumentoCard key={doc.id} doc={doc} onAbrir={() => setAberto(doc.id)}/>
             ))}
           </div>

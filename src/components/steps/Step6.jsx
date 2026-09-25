@@ -7,6 +7,7 @@ import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 const SIST_CONFIG = [
   { key:'acesso_viatura',      icon:'van',         label:'Acesso de Viatura em Edificacoes'   },
   { key:'seg_estrutural',      icon:'wallFire',    label:'Seg. Estrutural Contra Incendio'    },
+  { key:'compart_horizontal',  icon:'wallCompart', label:'Compartimentacao Horizontal'        },
   { key:'compart_vertical',    icon:'stair',       label:'Compartimentacao Vertical'          },
   { key:'controle_acabamento', icon:'sign',        label:'Controle de Materiais de Acabamento'},
   { key:'saida_emergencia',    icon:'exit',        label:'Saida de Emergencia'                },
@@ -22,6 +23,18 @@ const SIST_CONFIG = [
   { key:'controle_fumaca',     icon:'flame',       label:'Controle de Fumaca'                 },
   { key:'central_gas',         icon:'info',        label:'Central de Gas'                     },
   { key:'spda',                icon:'warn',        label:'SPDA'                                },
+]
+
+// Projeto "apenas dimensionamento" (ver ProjetoContext.jsx tipoProjeto) só
+// dimensiona esses 3 sistemas — os outros nem entram no wizard reduzido
+// (Step2/Classificação/Carga de Incêndio ficam mais simples, sem dado
+// suficiente pra decidir obrigatoriedade dos demais). sprinklers ainda não
+// tem tela de dimensionamento própria (cai no MedidaPage genérico — ver
+// App.jsx), mas já fica disponível como sistema, igual no modo completo.
+const SIST_CONFIG_DIMENSIONAMENTO = [
+  { key:'saida_emergencia', icon:'exit', label:'Saida de Emergencia'      },
+  { key:'hidrantes',        icon:'drop', label:'Hidrantes / Mangotinho'   },
+  { key:'sprinklers',       icon:'spray',label:'Chuveiros Automaticos'    },
 ]
 
 const RISCOS_CONFIG = [
@@ -98,10 +111,10 @@ function EstruturaResumo({ pe }) {
 }
 
 // ── Grid de medidas de seguranca de uma estrutura ───────────────────────
-function MedidasGrid({ pe, dispatch }) {
+function MedidasGrid({ pe, dispatch, sistConfig }) {
   return (
     <div className="grid grid-cols-3 gap-2">
-      {SIST_CONFIG.map(s => {
+      {sistConfig.map(s => {
         const sist = pe.sistemas[s.key] || { obrigatorio: false, ativo: false }
         const on    = sist.ativo
         const obrig = sist.obrigatorio
@@ -165,14 +178,16 @@ function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
   )
 }
 
-export default function Step6() {
+export default function Step6({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
   const { porEstrutura } = useMedidasObrigatorias()
+  const dimensionamento = state.tipoProjeto === 'dimensionamento'
+  const sistConfig = dimensionamento ? SIST_CONFIG_DIMENSIONAMENTO : SIST_CONFIG
 
   return (
     <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
       <div className="mb-[26px]">
-        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 6 de 7</div>
+        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa {step} de {totalSteps}</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Medidas de Seguranca contra Incendio</h2>
         <p className="text-[13px] text-ink-faint leading-[1.6]">Sistemas e riscos especiais identificados por estrutura, com base na area construida, altura e ocupacao de cada uma. Obrigatorios nao podem ser removidos.</p>
       </div>
@@ -212,14 +227,19 @@ export default function Step6() {
 
             <div className="mb-6">
               <div className={blockTitle}>Medidas de seguranca</div>
-              <MedidasGrid pe={pe} dispatch={dispatch}/>
+              <MedidasGrid pe={pe} dispatch={dispatch} sistConfig={sistConfig}/>
             </div>
 
-            <div>
-              <div className={blockTitle}>Riscos especiais</div>
-              <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes nesta estrutura ou area de risco, conforme Anexo B da NT 01.</p>
-              <RiscosGrid estruturaId={est.id} riscos={riscos} outrosDesc={outrosDesc} dispatch={dispatch}/>
-            </div>
+            {/* Riscos especiais alimentam o Anexo B (NT 01) — sem sentido
+                num projeto "apenas dimensionamento", que nem gera esse
+                documento (ver DocumentosPage.jsx). */}
+            {!dimensionamento && (
+              <div>
+                <div className={blockTitle}>Riscos especiais</div>
+                <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes nesta estrutura ou area de risco, conforme Anexo B da NT 01.</p>
+                <RiscosGrid estruturaId={est.id} riscos={riscos} outrosDesc={outrosDesc} dispatch={dispatch}/>
+              </div>
+            )}
           </EstruturaSection>
         )
       })}

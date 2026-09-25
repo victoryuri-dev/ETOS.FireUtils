@@ -1,6 +1,5 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
-import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { calcGatilho, calcAcessoViatura } from '../../data/av_calc'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
@@ -78,17 +77,15 @@ function SectionTitle({ n, label }) {
 export default function AcessoViaturaPage() {
   const { state, dispatch } = useProjeto()
   const { av } = useNorma()
-  const { sistemas } = useMedidasObrigatorias()
   const { GATILHO, VIA_ACESSO } = av
   const inputs = state.acessoViatura
-  const temHidrantes = !!sistemas.hidrantes?.ativo
 
   const altura = state.estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
 
   const set = changes => dispatch({ type: 'SET_ACESSO_VIATURA', changes })
 
   const gat = calcGatilho(altura, inputs.afastamentoMeioFio, inputs.isCondominio, GATILHO)
-  const r = gat.exigido ? calcAcessoViatura(inputs, VIA_ACESSO, { temHidrantes }) : null
+  const r = gat.exigido ? calcAcessoViatura(inputs, VIA_ACESSO) : null
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -276,29 +273,6 @@ export default function AcessoViaturaPage() {
                   </div>
                 </Card>
               )}
-            </div>
-
-            {/* S7 — Distância até a edificação */}
-            <div>
-              <SectionTitle n={7} label="Distância até a Edificação"/>
-              <div className="ibox mb-3">
-                <Icon name="info" size={13} color="var(--color-ink-faint)" className="shrink-0"/>
-                <span className="text-xs">
-                  {temHidrantes
-                    ? `Edificação com sistema de hidrantes/mangotinhos ativo — limite de ${VIA_ACESSO.distancia.comHidrante} m até o hidrante de recalque.`
-                    : `Edificação sem sistema de hidrantes/mangotinhos — limite de ${VIA_ACESSO.distancia.semHidrante} m até a edificação.`}
-                </span>
-              </div>
-              <Card>
-                <div className="py-3.5 px-[18px]">
-                  <Field
-                    label={temHidrantes ? 'Distância adotada até o hidrante de recalque' : 'Distância adotada até a edificação'}
-                    hint={`máx. ${r.distancia.maxima} m`}
-                  >
-                    <NumberInput value={inputs.distanciaAdotada} onChange={v => set({ distanciaAdotada: v })} suffix="m" limitMax={r.distancia.maxima} required/>
-                  </Field>
-                </div>
-              </Card>
             </div>
 
           </div>

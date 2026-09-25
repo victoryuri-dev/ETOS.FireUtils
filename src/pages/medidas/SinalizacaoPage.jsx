@@ -1,53 +1,72 @@
 import { useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
-import { calcularSinalizacaoPavimento } from '../../data/sinalizacao_calc'
+import { supabase } from '../../lib/supabase'
+import { calcularSinalizacaoEstrutura } from '../../data/sinalizacao_calc'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 
-// ── Importação do firedata.json (plugin Revit) ───────────────────────
+// ── Importação do firedata.json / Supabase (plugin Revit) ────────────
 // Formato esperado (ver comentário completo no final do arquivo):
 //   { "sinalizacao": { "_timestamp": "...", "itens": [
-//       { "estrutura": "Estrutura 1", "pavimento": "Térreo", "tipoPlaca": "S1", "quantidade": 3 },
+//       { "estrutura": "Estrutura 1", "tipoPlaca": "S1", "quantidade": 3 },
 //       ...
 //   ] } }
 //
-// "estrutura" e "pavimento" são casados por nome/label contra o que já
-// está cadastrado no projeto (Etapa 2) — o plugin não precisa (e não
-// consegue) conhecer os IDs internos gerados pelo app. "tipoPlaca" aceita o
-// código oficial da placa (ex.: "S1", "E5", case-insensitive) — a chave
-// interna do catálogo (ex.: "s1") também é aceita.
-function resolverImportacaoSinalizacao(json, estruturas, pavimentos, tiposPlaca) {
+// Granularidade só até estrutura — as famílias de placa (categoria
+// "Dispositivos de Segurança", parâmetro de tipo "Código da Placa") não são
+// lançadas por pavimento no Revit, então o plugin já envia o quantitativo
+// agregado por estrutura, sem pavimento. "estrutura" é casada por nome/label
+// contra o que já está cadastrado no projeto (Etapa 2) — o plugin não
+// precisa (e não consegue) conhecer os IDs internos gerados pelo app.
+// "tipoPlaca" aceita o código oficial da placa (ex.: "S1", "E5",
+// case-insensitive) — a chave interna do catálogo (ex.: "s1") também é
+// aceita.
+//
+// `estruturaIdForcado`: presente no pull do Supabase (uma linha por
+// estrutura, já resolvida no envio — ver revit-sync), ausente no upload
+// manual de arquivo, onde essa informação não existe fora do próprio JSON.
+function resolverImportacaoSinalizacao(json, estruturas, tiposPlaca, estruturaIdForcado) {
   const dados = json?.sinalizacao
   if (!dados?.itens) throw new Error('Chave "sinalizacao.itens" não encontrada no arquivo.')
 
   const norm = s => (s || '').trim().toLowerCase()
-  const resolvidos = []
+  const grupos = new Map()
   const erros = []
+
+  const estruturaForcada = estruturaIdForcado ? estruturas.find(e => e.id === estruturaIdForcado) : null
+  if (estruturaIdForcado && !estruturaForcada) {
+    throw new Error('Estrutura vinculada não encontrada no projeto — reconfigure o vínculo no plugin.')
+  }
 
   dados.itens.forEach((it, i) => {
     const linha = `Item ${i + 1}`
-    const est = estruturas.find(e => norm(e.nome) === norm(it.estrutura))
-    if (!est) { erros.push(`${linha}: estrutura "${it.estrutura}" não encontrada no projeto.`); return }
 
-    const pav = pavimentos.find(p => p.estruturaId === est.id && norm(p.label) === norm(it.pavimento))
-    if (!pav) { erros.push(`${linha}: pavimento "${it.pavimento}" não encontrado em ${est.nome}.`); return }
+    let est
+    if (estruturaForcada) {
+      est = estruturaForcada
+    } else if (norm(it.estrutura)) {
+      est = estruturas.find(e => norm(e.nome) === norm(it.estrutura))
+      if (!est) { erros.push(`${linha}: estrutura "${it.estrutura}" não encontrada no projeto.`); return }
+    } else {
+      est = estruturas[0]
+      if (!est) { erros.push(`${linha}: nenhuma estrutura cadastrada no projeto para receber a placa.`); return }
+    }
 
     const chaveInformada = norm(it.tipoPlaca)
     const tipoInfo = tiposPlaca.find(t => t.key === chaveInformada || norm(t.codigo) === chaveInformada)
     if (!tipoInfo) { erros.push(`${linha}: placa "${it.tipoPlaca}" não reconhecida.`); return }
 
-    resolvidos.push({
-      estruturaId: est.id,
-      pavimentoId: pav.id,
-      tipoPlaca:   tipoInfo.key,
-      quantidade:  parseInt(it.quantidade) || 1,
-    })
+    const quantidade = parseInt(it.quantidade) || 1
+    const chave = `${est.id}|${tipoInfo.key}`
+    const existente = grupos.get(chave)
+    if (existente) existente.quantidade += quantidade
+    else grupos.set(chave, { estruturaId: est.id, tipoPlaca: tipoInfo.key, quantidade })
   })
 
-  return { resolvidos, erros, timestamp: dados._timestamp || null }
+  return { resolvidos: [...grupos.values()], erros, timestamp: dados._timestamp || null }
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────
@@ -82,8 +101,8 @@ function StepperButton({ onClick, title, children }) {
   )
 }
 
-// ── Uma categoria de placas dentro de um pavimento (acordeão) ───────────
-function CategoriaAccordion({ categoria, tipos, itens, estruturaId, pavimentoId, dispatch, defaultOpen = false }) {
+// ── Uma categoria de placas dentro de uma estrutura (acordeão) ─────────
+function CategoriaAccordion({ categoria, tipos, itens, estruturaId, dispatch, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
 
   const setQuantidade = (tipoPlaca, valorRaw) => {
@@ -93,7 +112,7 @@ function CategoriaAccordion({ categoria, tipos, itens, estruturaId, pavimentoId,
       if (valor <= 0) dispatch({ type: 'REMOVE_SINALIZACAO', id: item.id })
       else dispatch({ type: 'UPDATE_SINALIZACAO', id: item.id, changes: { quantidade: valor } })
     } else if (valor > 0) {
-      dispatch({ type: 'ADD_SINALIZACAO', estruturaId, pavimentoId, tipoPlaca, quantidade: valor })
+      dispatch({ type: 'ADD_SINALIZACAO', estruturaId, tipoPlaca, quantidade: valor })
     }
   }
 
@@ -168,46 +187,30 @@ function CategoriaAccordion({ categoria, tipos, itens, estruturaId, pavimentoId,
   )
 }
 
-// ── Card de um pavimento (retrátil) ──────────────────────────────────
-function PavimentoCard({ pavimento, estruturaId, itens, tiposPlaca, categorias, dispatch }) {
-  const [open, setOpen] = useState(false)
-  const resultado = calcularSinalizacaoPavimento(itens, tiposPlaca)
+// ── Conteúdo de sinalização de uma estrutura — categorias direto, sem
+// separação por pavimento (ver comentário no topo do arquivo). ──────────
+function SinalizacaoEstrutura({ estruturaId, itens, tiposPlaca, categorias, dispatch }) {
+  const resultado = calcularSinalizacaoEstrutura(itens, tiposPlaca)
   const tiposUsados = tiposPlaca.filter(t => resultado.porTipo[t.key] > 0)
 
   return (
-    <Card className="mb-4">
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 flex-wrap text-left cursor-pointer"
-      >
-        <span className="text-[13px] font-semibold text-ink">{pavimento.label}</span>
-        <div className="flex items-center gap-1.5 ml-auto">
-          {!open && tiposUsados.length > 0 && (
-            <div className="flex items-center gap-1 flex-wrap">
-              {tiposUsados.map(t => (
-                <span key={t.key} className={`inline-block py-0.5 px-1.5 rounded border text-[11px] font-mono font-semibold ${corTagCategoria(t.categoria)}`}>{t.codigo}</span>
-              ))}
-            </div>
-          )}
-          <Icon name="chevD" size={14} className={`text-ink-faint transition-transform ${open ? 'rotate-180' : ''}`}/>
-        </div>
-      </button>
-      {open && (
-        <div className="py-3.5 px-[18px]">
-          {categorias.map(cat => (
-            <CategoriaAccordion
-              key={cat.key}
-              categoria={cat}
-              tipos={tiposPlaca.filter(t => t.categoria === cat.key)}
-              itens={itens.filter(i => tiposPlaca.find(t => t.key === i.tipoPlaca)?.categoria === cat.key)}
-              estruturaId={estruturaId} pavimentoId={pavimento.id}
-              dispatch={dispatch}
-            />
-          ))}
+    <div>
+      {tiposUsados.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap mb-3">
+          <span className="text-[11px] text-ink-faint">{resultado.quantidadeTotal} placa{resultado.quantidadeTotal !== 1 ? 's' : ''} · {resultado.tiposCadastrados} tipo{resultado.tiposCadastrados !== 1 ? 's' : ''}</span>
         </div>
       )}
-    </Card>
+      {categorias.map(cat => (
+        <CategoriaAccordion
+          key={cat.key}
+          categoria={cat}
+          tipos={tiposPlaca.filter(t => t.categoria === cat.key)}
+          itens={itens.filter(i => tiposPlaca.find(t => t.key === i.tipoPlaca)?.categoria === cat.key)}
+          estruturaId={estruturaId}
+          dispatch={dispatch}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -249,7 +252,22 @@ export default function SinalizacaoPage() {
   const { TIPOS_PLACA, CATEGORIAS } = sinNorma
   const [importInfo, setImportInfo] = useState(null)
   const [importErros, setImportErros] = useState([])
+  const [buscando, setBuscando] = useState(false)
   const fileInputRef = useRef(null)
+
+  // Aplica o payload da chave "sinalizacao" (vindo de um arquivo ou do
+  // Supabase) — mesmo parser de sempre, só muda a origem do JSON.
+  const aplicarSinalizacao = (payloadSinalizacao, estruturaIdForcado) => {
+    try {
+      const { resolvidos, erros, timestamp } = resolverImportacaoSinalizacao(
+        { sinalizacao: payloadSinalizacao }, state.estruturas, TIPOS_PLACA, estruturaIdForcado
+      )
+      if (resolvidos.length > 0) dispatch({ type: 'IMPORT_SINALIZACAO', itens: resolvidos })
+      return { total: resolvidos.length, erros, timestamp }
+    } catch (err) {
+      return { total: 0, erros: [err.message || 'Dados inválidos.'], timestamp: null }
+    }
+  }
 
   const handleImport = e => {
     const file = e.target.files[0]
@@ -259,9 +277,8 @@ export default function SinalizacaoPage() {
     reader.onload = ev => {
       try {
         const json = JSON.parse(ev.target.result)
-        const { resolvidos, erros, timestamp } = resolverImportacaoSinalizacao(json, state.estruturas, state.pavimentos, TIPOS_PLACA)
-        if (resolvidos.length > 0) dispatch({ type: 'IMPORT_SINALIZACAO', itens: resolvidos })
-        setImportInfo({ timestamp, total: resolvidos.length })
+        const { total, erros, timestamp } = aplicarSinalizacao(json.sinalizacao)
+        setImportInfo({ timestamp, total })
         setImportErros(erros)
       } catch (err) {
         setImportInfo(null)
@@ -269,6 +286,37 @@ export default function SinalizacaoPage() {
       }
     }
     reader.readAsText(file, 'utf-8')
+  }
+
+  // Busca uma linha por estrutura (cada arquivo Revit sincroniza a sua) e
+  // aplica cada uma escopada — a importação de uma estrutura não mexe no
+  // cadastro das demais (ver IMPORT_SINALIZACAO em ProjetoContext.jsx).
+  const handleBuscarRevit = async () => {
+    setBuscando(true)
+    const { data, error } = await supabase
+      .from('revit_syncs_latest').select('estrutura_id, payload').eq('projeto_id', state.id).eq('medida', 'sinalizacao')
+    setBuscando(false)
+    if (error) {
+      setImportInfo(null)
+      setImportErros([`Falha ao consultar o Supabase: ${error.message}`])
+      return
+    }
+    if (!data || data.length === 0) {
+      setImportInfo(null)
+      setImportErros(['Nenhum dado de sinalização sincronizado do Revit ainda para este projeto.'])
+      return
+    }
+    let totalGeral = 0
+    const errosGeral = []
+    let timestampMaisRecente = null
+    for (const row of data) {
+      const { total, erros, timestamp } = aplicarSinalizacao(row.payload, row.estrutura_id)
+      totalGeral += total
+      errosGeral.push(...erros)
+      if (timestamp && (!timestampMaisRecente || timestamp > timestampMaisRecente)) timestampMaisRecente = timestamp
+    }
+    setImportInfo({ timestamp: timestampMaisRecente, total: totalGeral })
+    setImportErros(errosGeral)
   }
 
   return (
@@ -283,16 +331,18 @@ export default function SinalizacaoPage() {
               Sinalização de Emergência
             </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-              Cadastre as placas de sinalização de emergência utilizadas em cada pavimento, conforme a NT 20 CBMMA / NBR 13434 — proibição, alerta, orientação/saída e equipamentos de combate a incêndio.
+              Cadastre as placas de sinalização de emergência utilizadas em cada estrutura, conforme a NT 20 CBMMA / NBR 13434 — proibição, alerta, orientação/saída e equipamentos de combate a incêndio.
             </p>
           </div>
-          <div className="shrink-0">
+          <div className="shrink-0 flex flex-col items-end gap-1.5">
             <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
-            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>
+            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
               <Icon name="upload" size={13}/>
-              Importar do Revit
+              {buscando ? 'Buscando…' : 'Buscar do Revit'}
             </button>
-            <div className="text-[10px] text-ink-faint mt-[5px] text-right">firedata.json</div>
+            <button type="button" className="text-[10px] text-ink-faint hover:text-ink underline bg-transparent border-none cursor-pointer p-0" onClick={() => fileInputRef.current?.click()}>
+              ou importar de um arquivo .json
+            </button>
           </div>
         </div>
 
@@ -309,39 +359,27 @@ export default function SinalizacaoPage() {
           <div className="ibox green mb-6">
             <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
             <span className="text-xs">
-              {importInfo.total} placa{importInfo.total !== 1 ? 's' : ''} importada{importInfo.total !== 1 ? 's' : ''} do Revit{importInfo.timestamp ? ` — exportação: ${importInfo.timestamp}` : ''}. Esta importação substituiu o cadastro anterior.
+              {importInfo.total} placa{importInfo.total !== 1 ? 's' : ''} importada{importInfo.total !== 1 ? 's' : ''} do Revit{importInfo.timestamp ? ` — exportação: ${importInfo.timestamp}` : ''}. Esta importação substituiu o cadastro anterior da(s) estrutura(s) recebida(s).
             </span>
           </div>
         )}
 
         <ReferenciaNormativa sinNorma={sinNorma}/>
 
-        {state.estruturas.map(est => {
-          const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
-          return (
-            <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
-              {pavimentos.length === 0 ? (
-                <div className="ibox amber">
-                  <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-                  <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>
-                </div>
-              ) : pavimentos.map(pav => (
-                <PavimentoCard
-                  key={pav.id}
-                  pavimento={pav}
-                  estruturaId={est.id}
-                  itens={state.sinalizacao.filter(i => i.pavimentoId === pav.id)}
-                  tiposPlaca={TIPOS_PLACA}
-                  categorias={CATEGORIAS}
-                  dispatch={dispatch}
-                />
-              ))}
-            </EstruturaSection>
-          )
-        })}
+        {state.estruturas.map(est => (
+          <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
+            <SinalizacaoEstrutura
+              estruturaId={est.id}
+              itens={state.sinalizacao.filter(i => i.estruturaId === est.id)}
+              tiposPlaca={TIPOS_PLACA}
+              categorias={CATEGORIAS}
+              dispatch={dispatch}
+            />
+          </EstruturaSection>
+        ))}
 
         {state.estruturas.length === 0 && (
-          <EmptyState texto="Nenhuma estrutura cadastrada ainda — configure as estruturas e pavimentos do projeto na Etapa 2."/>
+          <EmptyState texto="Nenhuma estrutura cadastrada ainda — configure as estruturas do projeto na Etapa 2."/>
         )}
       </div>
     </div>

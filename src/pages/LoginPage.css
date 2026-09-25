@@ -1,0 +1,85 @@
+.login-original{
+  position:relative;
+  min-height:100dvh;
+  padding:24px;
+  overflow:hidden;
+  isolation:isolate;
+  background:#101014;
+}
+.login-original-card{
+  position:relative;
+  z-index:1;
+  border-radius:8px;
+  box-shadow:0 24px 80px rgba(0,0,0,.42);
+}
+.login-card-loader{
+  position:absolute;
+  z-index:5;
+  inset:0;
+  display:grid;
+  place-items:center;
+  border-radius:inherit;
+  background:rgba(20,20,24,.82);
+  cursor:wait;
+}
+.login-loader-mark{
+  width:34px;
+  height:44px;
+  overflow:visible;
+  fill:#ea1330;
+  filter:drop-shadow(0 0 22px rgba(234,19,48,.32));
+  animation:login-mark-pulse 1.15s ease-in-out infinite;
+}
+.login-original-card .fg input,
+.login-original-card .btn-primary,
+.login-original-card .ibox{
+  border-radius:5px;
+}
+.login-original-card .fg input:focus-visible,
+.login-original-card .btn-primary:focus-visible,
+.login-mode-toggle:focus-visible{
+  outline:2px solid #ea1330;
+  outline-offset:3px;
+}
+.login-mode-toggle:disabled{cursor:wait;opacity:.55}
+.login-hero-beams{
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  overflow:hidden;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 50% 75%,rgba(234,19,48,.13),transparent 62%);
+}
+.login-hero-beams i{
+  position:absolute;
+  width:110px;
+  height:1000px;
+  top:-120px;
+  left:calc(50% + 410px);
+  transform:rotate(39deg);
+  background:linear-gradient(90deg,transparent,rgba(234,19,48,.08) 40%,rgba(234,19,48,.42) 98%,#ff556b);
+  filter:blur(1px);
+  opacity:.6;
+  animation:login-hero-beam 7s ease-in-out infinite alternate;
+}
+.login-hero-beams i:nth-child(2){left:calc(50% + 570px);width:65px;animation-delay:-3s;opacity:.4}
+.login-hero-beams i:nth-child(3){left:calc(50% - 660px);width:180px;animation-delay:-5s;opacity:.2}
+@keyframes login-hero-beam{
+  from{opacity:.15;translate:0 -30px}
+  to{opacity:.6;translate:25px 20px}
+}
+@keyframes login-mark-pulse{
+  0%,100%{opacity:.38;transform:translateY(4px) scale(.94)}
+  50%{opacity:1;transform:translateY(-3px) scale(1)}
+}
+@media(max-width:560px){
+  .login-original{padding:18px}
+  .login-original-card{padding:26px}
+  .login-hero-beams i{left:calc(50% + 145px);width:70px}
+  .login-hero-beams i:nth-child(2){left:calc(50% + 245px);width:45px}
+  .login-hero-beams i:nth-child(3){left:calc(50% - 330px);width:130px}
+}
+@media(prefers-reduced-motion:reduce){
+  .login-hero-beams i{animation:none}
+  .login-loader-mark{animation:none;opacity:1;transform:none}
+}

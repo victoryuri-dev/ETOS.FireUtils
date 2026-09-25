@@ -1,416 +1,521 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import gsap from 'gsap'
 import { useProjeto } from '../context/ProjetoContext'
-import { useAuth } from '../context/AuthContext'
-import { supabase } from '../lib/supabase'
 import { useNorma } from '../hooks/useNorma'
 import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
+import { supabase } from '../lib/supabase'
 import Icon from '../components/ui/Icon'
+import './DashboardPage.css'
 
-// ── helpers ──────────────────────────────────────────────────────────
-const getCargaCls = (q) => q <= 300 ? 'low' : q <= 1200 ? 'med' : 'high'
-const getCargaLbl = (q) => q <= 300 ? 'Risco baixo · Classe I' : q <= 1200 ? 'Risco medio · Classe II' : 'Risco alto · Classe III/IV'
-const fmtNum = (n) => n ? Number(n).toLocaleString('pt-BR') : '—'
+const DIAS_SEMANA_ABREV = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
-const SIST_DISPLAY = [
-  { key:'acesso_viatura',      icon:'van',         label:'Acesso de Viatura' },
-  { key:'seg_estrutural',      icon:'wallFire',    label:'Seg. Estrutural' },
-  { key:'saida_emergencia',    icon:'exit',        label:'Saidas de Emergencia' },
-  { key:'brigada',             icon:'shieldAlert', label:'Brigada de Incendio' },
-  { key:'iluminacao',          icon:'sun',         label:'Iluminacao de Emergencia' },
-  { key:'sinalizacao',         icon:'sign',        label:'Sinalizacao de Emergencia' },
-  { key:'extintores',          icon:'ext',         label:'Extintores' },
-  { key:'hidrantes',           icon:'drop',        label:'Hidrantes / Mangotinho' },
-  { key:'alarme',              icon:'bellElectric',label:'Alarme de Incendio' },
-  { key:'deteccao',            icon:'alarmSmoke',  label:'Deteccao de Incendio' },
-  { key:'sprinklers',          icon:'spray',       label:'Chuveiros Automaticos' },
-  { key:'controle_fumaca',     icon:'flame',       label:'Controle de Fumaca' },
-  { key:'compart_vertical',    icon:'stair',       label:'Compartimentacao Vertical' },
-  { key:'controle_acabamento', icon:'sign',        label:'Controle de Acabamento' },
-  { key:'gerenciamento_risco', icon:'warn',        label:'Gerenciamento de Risco' },
-  { key:'central_gas',         icon:'info',        label:'Central de Gas' },
-  { key:'spda',                icon:'warn',        label:'SPDA' },
-]
+// ── Heatmap de atividade — últimos 2 meses ──────────────────────────────
+// Uma linha por (projeto, dia) em atividade_diaria, incrementada a cada
+// salvamento bem-sucedido no Supabase (ver registrarAtividade em
+// ProjetoContext.jsx). Cada quadrado representa um dia; a intensidade do
+// vermelho é relativa ao dia de maior contagem na própria janela exibida
+// (não um valor absoluto fixo), pra continuar legível tanto num projeto
+// pouco editado quanto num muito editado.
+//
+// A janela é sempre "2 meses corridos até hoje" — a box nasce do tamanho
+// da grade (quadrado fixo), não o contrário. O dia atual cai sempre na
+// última coluna (a mais à direita), igual ao GitHub.
+const CELULA = 11 // gap entre quadrados fica em DashboardPage.css (.dashboard-activity__grid)
+const LINHA_MES_ALTURA = 14
 
-const CHECKLIST_ITEMS = [
-  { id:'plantas',    label:'Plantas baixas do projeto (PDF)',          tag:'Obrigatorio' },
-  { id:'memorial',   label:'Memorial descritivo',                      tag:'Obrigatorio' },
-  { id:'art',        label:'ART do responsavel tecnico',               tag:'Obrigatorio' },
-  { id:'cnpj',       label:'CNPJ / documentacao do proprietario',      tag:'Obrigatorio' },
-  { id:'calc_hid',   label:'Memorial de calculo — hidrantes',          tag:'Obrigatorio' },
-  { id:'calc_said',  label:'Memorial de calculo — saidas de emergencia',tag:'Obrigatorio' },
-  { id:'laudo_cob',  label:'Laudo de cobertura (se aplicavel)',         tag:'Condicional' },
-  { id:'alvara',     label:'Habite-se / alvara de construcao',         tag:'Obrigatorio' },
-]
-
-// ── subcomponentes ────────────────────────────────────────────────────
-
-function StatCell({ label, value, unit, sub, subTag, subTagColor }) {
-  return (
-    <div className="bg-surface-2 border border-solid border-border rounded-lg py-[18px] px-[22px] flex-1">
-      <div className="text-[11px] text-ink-faint mb-2">{label}</div>
-      <div className="text-[30px] font-bold text-ink leading-none">
-        {value}<span className="text-sm font-normal text-ink-faint ml-1">{unit}</span>
-      </div>
-      {sub && (
-        <div className="text-xs text-ink-faint mt-1.5 flex items-center gap-1.5">
-          {sub}
-          {subTag && (
-            <span className={`text-[10px] font-semibold py-0.5 px-[7px] rounded-[20px] border border-solid ${subTagColor === 'green' ? 'bg-green-dim border-green-border' : subTagColor === 'amber' ? 'bg-amber-dim border-amber-border' : 'bg-red-dim border-red-border'} ${subTagColor === 'amber' ? 'text-amber' : subTagColor === 'red' ? 'text-red' : 'text-green'}`}>{subTag}</span>
-          )}
-        </div>
-      )}
-    </div>
-  )
+function timeAgo(iso) {
+  if (!iso) return '—'
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return 'agora'
+  if (min < 60) return `há ${min} min`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `há ${h}h`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `há ${d} dia${d !== 1 ? 's' : ''}`
+  const mo = Math.floor(d / 30)
+  return `há ${mo} ${mo !== 1 ? 'meses' : 'mês'}`
 }
 
-function InfoPanel({ title, icon, fields, onEdit }) {
-  return (
-    <div className="bg-surface-2 border border-solid border-border rounded-lg overflow-hidden flex-1">
-      <div className="flex items-center justify-between py-3 px-4 border-b border-solid border-border">
-        <span className="text-xs font-medium text-ink-muted flex items-center gap-1.5">
-          <Icon name={icon} size={13}/> {title}
-        </span>
-        {onEdit && (
-          <button onClick={onEdit} className="bg-transparent border-none text-ink-faint text-[11px] cursor-pointer flex items-center gap-1">
-            <Icon name="settings" size={11}/> Editar
-          </button>
-        )}
-      </div>
-      <div className="py-3 px-4">
-        {fields.map((f, i) => (
-          <div key={i} className={`flex justify-between items-center py-1.5 ${i < fields.length-1 ? 'border-b border-solid border-border-2' : ''}`}>
-            <span className="text-xs text-ink-faint">{f.label}</span>
-            <span className={`text-ink ${f.big ? 'text-xl font-bold' : 'text-[13px] font-medium'}`}>{f.value || '—'}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+// Constrói a janela de exatamente 2 meses corridos terminando hoje, já
+// alinhada por semana (o primeiro dia cai sempre num domingo) — igual à
+// lógica de âncora usada nas colunas.
+function buildActivityDays(registros) {
+  const contagemPorDia = new Map((registros || []).map(r => [r.dia, r.contagem]))
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const inicio = new Date(hoje)
+  inicio.setMonth(inicio.getMonth() - 2)
+  const ancora = new Date(inicio)
+  ancora.setDate(ancora.getDate() - ancora.getDay())
+  const totalDias = Math.round((hoje - ancora) / 86400000) + 1
+
+  const dias = []
+  for (let i = totalDias - 1; i >= 0; i--) {
+    const data = new Date(hoje)
+    data.setDate(data.getDate() - i)
+    const chave = data.toISOString().slice(0, 10)
+    dias.push({ data, chave, contagem: contagemPorDia.get(chave) || 0 })
+  }
+  return dias
 }
 
-function SistemasGrid({ sistemas, onNavigate }) {
-  const sistAtivos = SIST_DISPLAY.filter(s => sistemas[s.key]?.ativo || sistemas[s.key]?.obrigatorio)
-  return (
-    <div className="bg-surface-2 border border-solid border-border rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between py-3 px-4 border-b border-solid border-border">
-        <span className="text-xs font-medium text-ink-muted flex items-center gap-1.5">
-          <Icon name="drop" size={13}/> Sistemas de seguranca
-        </span>
-        <span className="text-[11px] text-ink-faint">{sistAtivos.length} sistemas habilitados</span>
-      </div>
-      <div className="grid grid-cols-4 gap-px bg-border">
-        {SIST_DISPLAY.map(s => {
-          const sist   = sistemas[s.key]
-          const ativo  = sist?.ativo || sist?.obrigatorio
-          const obrig  = sist?.obrigatorio
-          if (!ativo) return null
-          return (
-            <div key={s.key}
-              onClick={() => onNavigate && onNavigate(s.key)}
-              className="bg-surface-2 hover:bg-surface p-3.5 cursor-pointer flex flex-col gap-2 transition-colors duration-150"
-            >
-              <div className="flex items-center justify-between">
-                <div className={`w-[26px] h-[26px] rounded-md flex items-center justify-center ${obrig ? 'bg-red-dim text-red' : 'bg-green-dim text-green'}`}>
-                  <Icon name={s.icon} size={13}/>
-                </div>
-                {/* Status: sem dimensionamento por enquanto = pendente */}
-                <span className="text-[9px] font-semibold py-0.5 px-1.5 rounded-[20px] bg-amber-dim border border-solid border-amber-border text-amber">
-                  Pendente
-                </span>
-              </div>
-              <div className="text-[11px] font-medium text-ink-muted leading-[1.3]">{s.label}</div>
-              <div className="text-[10px] text-ink-hint">
-                {obrig ? 'Obrigatorio — NT 42/2019' : 'Opcional habilitado'}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
+function ActivityHeatmap({ registros, ultimaAlteracao }) {
+  const dias = useMemo(() => buildActivityDays(registros), [registros])
+  const maxContagem = Math.max(0, ...dias.map(d => d.contagem))
 
-// ── Integração Revit ─────────────────────────────────────────────────
-// Mostra o sync_token do projeto (Supabase, tabela `projetos`) — token que
-// o plugin do Revit usa pra enviar dados sem precisar de firedata.json.
-function IntegracaoRevit({ projetoId, userId }) {
-  const [token, setToken]     = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [busy, setBusy]       = useState(false)
-  const [copiado, setCopiado] = useState(false)
-
-  useEffect(() => {
-    if (!projetoId || !userId) return
-    let cancelado = false
-    setLoading(true)
-    supabase.from('projetos').select('sync_token').eq('id', projetoId).eq('user_id', userId).maybeSingle()
-      .then(({ data }) => { if (!cancelado) { setToken(data?.sync_token || null); setLoading(false) } })
-    return () => { cancelado = true }
-  }, [projetoId, userId])
-
-  const copiar = () => {
-    if (!token) return
-    navigator.clipboard.writeText(token)
-    setCopiado(true)
-    setTimeout(() => setCopiado(false), 1500)
+  const nivel = contagem => {
+    if (!contagem || !maxContagem) return 0
+    const proporcao = contagem / maxContagem
+    if (proporcao <= 0.25) return 1
+    if (proporcao <= 0.5) return 2
+    if (proporcao <= 0.75) return 3
+    return 4
   }
 
-  const gerarNovo = async () => {
-    if (!window.confirm(
-      'Gerar um novo token invalida o atual — se o plugin do Revit já estiver configurado com ele, para de sincronizar até você colar o novo lá. Continuar?'
-    )) return
-    setBusy(true)
-    const novo = crypto.randomUUID()
-    const { error } = await supabase.from('projetos').update({ sync_token: novo }).eq('id', projetoId).eq('user_id', userId)
-    if (!error) setToken(novo)
-    setBusy(false)
-  }
+  // `dias[0]` é sempre um domingo por construção — serve de âncora direta.
+  const ancora = dias[0].data
+  const colunaDe = data => Math.floor((data - ancora) / 86400000 / 7)
+  const totalColunas = colunaDe(dias[dias.length - 1].data) + 1
 
-  return (
-    <div className="bg-surface-2 border border-solid border-border rounded-lg overflow-hidden mb-5">
-      <div className="flex items-center justify-between py-3 px-4 border-b border-solid border-border">
-        <span className="text-xs font-medium text-ink-muted flex items-center gap-1.5">
-          <Icon name="upload" size={13}/> Integração Revit
-        </span>
-      </div>
-      <div className="p-4">
-        <div className="text-[11px] text-ink-faint mb-2.5">
-          Cole este token nas configurações do plugin Fire Utils no Revit para sincronizar os dados sem precisar exportar arquivo.
-        </div>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 bg-surface border border-solid border-border rounded-md px-3 py-2 text-[12px] text-ink-muted font-mono overflow-x-auto whitespace-nowrap">
-            {loading ? 'Carregando…' : (token || 'Token indisponível')}
-          </code>
-          <button className="btn-ghost" onClick={copiar} disabled={loading || !token}>
-            <Icon name={copiado ? 'check' : 'file'} size={12}/> {copiado ? 'Copiado' : 'Copiar'}
-          </button>
-          <button className="btn-ghost" onClick={gerarNovo} disabled={loading || busy}>
-            <Icon name="settings" size={12}/> Gerar novo
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ProgressBar({ sistemas }) {
-  const ativos  = SIST_DISPLAY.filter(s => sistemas[s.key]?.ativo || sistemas[s.key]?.obrigatorio)
-  const feitos  = 0 // dimensionamentos concluidos (sera populado quando o plugin integrar)
-  const pct     = ativos.length > 0 ? (feitos / ativos.length) * 100 : 0
-
-  return (
-    <div className="bg-surface-2 border border-solid border-border rounded-lg py-4 px-5">
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-xs font-medium text-ink-muted">Completude do projeto</span>
-        <span className="text-xs text-ink-faint">{feitos} de {ativos.length} sistemas dimensionados</span>
-      </div>
-      <div className="h-1.5 bg-border rounded-full mb-3.5 overflow-hidden">
-        <div className="h-full bg-green rounded-full transition-[width] duration-400" style={{width:`${pct}%`}}/>
-      </div>
-      <div className="flex gap-1.5 flex-wrap">
-        {ativos.map(s => (
-          <div key={s.key} className="flex items-center gap-[5px]">
-            <div className="w-[7px] h-[7px] rounded-full bg-amber"/>
-            <span className="text-[10px] text-ink-faint">{s.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function Checklist() {
-  const [checked, setChecked] = useState({})
-  const total   = CHECKLIST_ITEMS.length
-  const done    = Object.values(checked).filter(Boolean).length
-
-  return (
-    <div className="bg-surface-2 border border-solid border-border rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between py-3 px-4 border-b border-solid border-border">
-        <span className="text-xs font-medium text-ink-muted flex items-center gap-1.5">
-          <Icon name="file" size={13}/> Documentacao para entrega
-        </span>
-        <span className="text-[11px] text-ink-faint">{done} de {total} itens</span>
-      </div>
-      <div>
-        {CHECKLIST_ITEMS.map((item) => {
-          const ok = checked[item.id]
-          return (
-            <div key={item.id}
-              onClick={() => setChecked(c => ({ ...c, [item.id]: !c[item.id] }))}
-              className="flex items-center gap-3 py-2.5 px-4 cursor-pointer border-b border-solid border-border-2 transition-colors duration-100 hover:bg-white/[.02]"
-            >
-              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border border-solid ${ok ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
-                {ok && <Icon name="check" size={10} color="#fff"/>}
-              </div>
-              <span className={`flex-1 text-[13px] ${ok ? 'text-ink-faint line-through' : 'text-ink no-underline'}`}>
-                {item.label}
-              </span>
-              <span className={`text-[10px] py-0.5 px-[7px] rounded-[20px] border border-solid border-border ${item.tag === 'Condicional' ? 'bg-amber-dim text-amber' : 'bg-surface text-ink-faint'}`}>
-                {item.tag}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-export default function DashboardPage({ onGoConfig }) {
-  const { state } = useProjeto()
-  const { user } = useAuth()
-  const { info, ocupacoes } = useNorma()
-  const { sistemas } = useMedidasObrigatorias()
-  const maxQ       = Object.values(state.cargaState || {}).flatMap(porEst => Object.values(porEst || {})).reduce((acc, c) => {
-    const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0
-    return Math.max(acc, q)
-  }, 0)
-  const cargaCls   = maxQ ? getCargaCls(maxQ) : null
-  const cargaLbl   = maxQ ? getCargaLbl(maxQ) : null
-
-  // Classificacao derivada dos pavimentos
-  const grupos = {}
-  ;(state.pavimentos || []).forEach(p => {
-    if (!grupos[p.grupo]) grupos[p.grupo] = []
-    if (!grupos[p.grupo].includes(p.divisao)) grupos[p.grupo].push(p.divisao)
+  const rotulosMes = []
+  let ultimoMes = null
+  dias.forEach(d => {
+    const mes = d.data.getMonth()
+    if (mes !== ultimoMes) {
+      rotulosMes.push({ coluna: colunaDe(d.data), texto: MESES_ABREV[mes] })
+      ultimoMes = mes
+    }
   })
-  const gruposStr = Object.keys(grupos).sort().join(', ') || '—'
-  const divisoesStr = Object.values(grupos).flat().join(', ') || '—'
 
-  // Agregados das estruturas (torres/blocos)
-  const estruturas    = state.estruturas || []
-  const areaTotalSum  = estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
-  // area construida total: sempre o valor gravado no projeto (preenchido
-  // manualmente ou pelo switch "somar das estruturas" na Etapa 2) — a soma
-  // das estruturas so entra como fallback quando esse campo ainda nao foi
-  // preenchido (projeto antigo, por exemplo).
-  const areaConstruida = parseFloat(state.areaConstruidaTotal) || areaTotalSum
-  const alturaNum     = estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
-  const pavimentosSum = estruturas.reduce((s, e) => s + (parseInt(e.nPavimentos) || 0), 0)
-  const subsolosSum   = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
-  const estruturaTipos = [...new Set(estruturas.flatMap(e => Array.isArray(e.estrutura) ? e.estrutura : [e.estrutura]).filter(Boolean))].join(', ') || '—'
-  const estruturasNomes = estruturas.map(e => e.nome).join(', ')
-  const alturaLbl  = alturaNum <= 6 ? 'Terrea' : alturaNum <= 12 ? 'Baixa altura' : alturaNum <= 23 ? 'Media altura' : 'Alta'
-  const alturaColor= alturaNum <= 12 ? 'green' : alturaNum <= 23 ? 'amber' : 'red'
-
-  const isConfigurado = state.nome && state.uf && state.pavimentos?.length > 0
+  // O dia atual é sempre o último item de `dias` — cai por construção na
+  // última coluna (a mais à direita), igual ao GitHub. Ganha destaque
+  // próprio (branco) em vez de seguir a escala de vermelho, pra ficar
+  // sempre localizável de primeira, tenha ou não atividade registrada.
+  const chaveHoje = dias[dias.length - 1].chave
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-bg">
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1100px] mx-auto pt-8 px-10 pb-[60px]">
+    <>
+      <div
+        className="dashboard-activity__grid"
+        style={{
+          gridTemplateColumns: `repeat(${totalColunas}, ${CELULA}px)`,
+          gridTemplateRows: `${LINHA_MES_ALTURA}px repeat(7, ${CELULA}px)`,
+        }}
+      >
+        {rotulosMes.map(r => (
+          <span key={r.coluna} className="dashboard-activity__month" style={{ gridColumn: r.coluna + 1 }}>{r.texto}</span>
+        ))}
+        {dias.map(d => {
+          const ehHoje = d.chave === chaveHoje
+          const rotulo = `${d.contagem} ${d.contagem === 1 ? 'atividade' : 'atividades'} — ${DIAS_SEMANA_ABREV[d.data.getDay()]}, ${d.data.getDate()} de ${MESES_ABREV[d.data.getMonth()]}${ehHoje ? ' (hoje)' : ''}`
+          return (
+            <span
+              key={d.chave}
+              className={`dashboard-activity__cell ${ehHoje ? 'dashboard-activity__cell--today' : `dashboard-activity__cell--l${nivel(d.contagem)}`}`}
+              style={{ gridColumn: colunaDe(d.data) + 1, gridRow: d.data.getDay() + 2 }}
+              title={rotulo}
+              aria-label={rotulo}
+              role="img"
+            />
+          )
+        })}
+      </div>
+      <p className="dashboard-activity__updated">Última alteração {timeAgo(ultimaAlteracao)}</p>
+    </>
+  )
+}
 
-          {/* Titulo do projeto */}
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-ink mb-1.5">
-                {state.nome || 'Projeto sem nome'}
-              </h1>
-              <div className="flex items-center gap-3 text-xs text-ink-faint">
-                <span className="flex items-center gap-1"><Icon name="info" size={11}/>{state.cidade || '—'} — {state.uf || 'MA'}</span>
-                <span className="opacity-30">·</span>
-                <span>{info?.nome || 'NT 42/2019 CBMMA'}</span>
-                {gruposStr !== '—' && <>
-                  <span className="opacity-30">·</span>
-                  <span>Grupos: {gruposStr}</span>
-                </>}
-              </div>
-            </div>
-            <button className="btn-primary" onClick={onGoConfig}>
-              <Icon name="settings" size={13}/> Editar configuracao
-            </button>
+const SYSTEMS = [
+  { key: 'acesso_viatura', icon: 'van', label: 'Acesso de Viatura' },
+  { key: 'seg_estrutural', icon: 'wallFire', label: 'Segurança Estrutural' },
+  { key: 'compart_horizontal', icon: 'stair', label: 'Compartimentação Horizontal' },
+  { key: 'saida_emergencia', icon: 'exit', label: 'Saídas de Emergência' },
+  { key: 'brigada', icon: 'shieldAlert', label: 'Brigada de Incêndio' },
+  { key: 'iluminacao', icon: 'sun', label: 'Iluminação de Emergência' },
+  { key: 'sinalizacao', icon: 'sign', label: 'Sinalização de Emergência' },
+  { key: 'extintores', icon: 'ext', label: 'Extintores' },
+  { key: 'hidrantes', icon: 'hidranteMedida', label: 'Hidrantes / Mangotinhos' },
+  { key: 'alarme', icon: 'bellElectric', label: 'Alarme de Incêndio' },
+  { key: 'deteccao', icon: 'detectorMedida', label: 'Detecção de Incêndio' },
+  { key: 'sprinklers', icon: 'spray', label: 'Chuveiros Automáticos' },
+  { key: 'controle_fumaca', icon: 'flame', label: 'Controle de Fumaça' },
+  { key: 'compart_vertical', icon: 'stair', label: 'Compartimentação Vertical' },
+  { key: 'controle_acabamento', icon: 'sign', label: 'Controle de Acabamento' },
+  { key: 'gerenciamento_risco', icon: 'warn', label: 'Gerenciamento de Risco' },
+  { key: 'central_gas', icon: 'info', label: 'Central de Gás' },
+  { key: 'spda', icon: 'warn', label: 'SPDA' },
+]
+
+const COMPLETE_CONFIG_STEPS = [
+  { label: 'Identificação', test: s => [s.nome, s.endereco, s.cidade, s.propNome, s.propDocumento, s.respRazaoSocial, s.respCNPJ].every(Boolean) },
+  { label: 'Edificação', test: s => (s.estruturas || []).length > 0 && s.estruturas.every(e => e.areaTotal && e.altura) },
+  { label: 'Responsável técnico', test: s => Boolean(s.rtNome && (!s.usaArt || s.artNumero)) },
+  { label: 'Classificação', test: s => (s.pavimentos || []).length > 0 && s.pavimentos.every(p => p.divisao && p.cnae) },
+  { label: 'Carga de incêndio', test: s => {
+    const values = Object.values(s.cargaState || {}).flatMap(item => Object.values(item || {}))
+    return values.length > 0 && values.every(c => c?.metodo === 'levantamento' ? c.valorManual : c?.cargaIncendio)
+  } },
+  { label: 'Medidas de segurança', test: (_s, activeSystems) => activeSystems.length > 0 },
+]
+
+const DIMENSIONING_CONFIG_STEPS = [
+  { label: 'Edificação', test: s => Boolean(s.nome) && (s.estruturas || []).length > 0 && s.estruturas.every(e => e.areaTotal && e.altura) },
+  COMPLETE_CONFIG_STEPS[3],
+  COMPLETE_CONFIG_STEPS[4],
+  COMPLETE_CONFIG_STEPS[5],
+]
+
+const fmtNumber = value => value ? Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—'
+
+function getFireLoad(cargaState) {
+  return Object.values(cargaState || {})
+    .flatMap(item => item && ('metodo' in item || 'cargaIncendio' in item || 'valorManual' in item)
+      ? [item]
+      : Object.values(item || {}))
+    .reduce((highest, item) => {
+      const value = item?.metodo === 'levantamento' ? Number(item?.valorManual) || 0 : item?.cargaIncendio || 0
+      return Math.max(highest, value)
+    }, 0)
+}
+
+function getSystemProgress(key, state, structureId = null) {
+  const scopedItems = items => structureId
+    ? (items || []).filter(item => item.estruturaId === structureId)
+    : (items || [])
+  if (key === 'hidrantes') {
+    if (state.hidrantes?.dimensionamento) return { tone: 'done', label: 'Sincronizado com o Revit', detail: 'Cálculo hidráulico disponível' }
+    if (state.hidrantes?.tipo) return { tone: 'progress', label: 'Em dimensionamento', detail: 'Classificação definida' }
+  }
+  const extintores = scopedItems(state.extintores)
+  const iluminacao = scopedItems(state.iluminacao)
+  const sinalizacao = scopedItems(state.sinalizacao)
+  if (key === 'extintores' && extintores.length) return { tone: 'progress', label: `${extintores.length} lançamento${extintores.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
+  if (key === 'iluminacao' && iluminacao.length) return { tone: 'progress', label: `${iluminacao.length} lançamento${iluminacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
+  if (key === 'sinalizacao' && sinalizacao.length) return { tone: 'progress', label: `${sinalizacao.length} lançamento${sinalizacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
+  if (key === 'acesso_viatura' && state.acessoViatura?.larguraAdotada) {
+    return { tone: 'progress', label: 'Em preenchimento', detail: 'Parâmetros informados' }
+  }
+  return { tone: 'todo', label: 'A desenvolver', detail: 'Abra para dimensionar' }
+}
+
+const getRiskLabel = fireLoad => {
+  if (!fireLoad) return 'Aguardando classificação'
+  if (fireLoad <= 300) return 'Risco baixo'
+  if (fireLoad <= 1200) return 'Risco médio'
+  return 'Risco alto'
+}
+
+// Resumo de ocupação/divisão pro card técnico — uma única divisão mostra a
+// descrição do grupo (ex.: "Comercial") como valor principal e a própria
+// divisão (ex.: "Divisão C-1") como detalhe; mais de uma vira "Ocupação
+// mista", com as divisões listadas no detalhe (mesmo critério de
+// ocupacaoInfo em ProjetosPage.jsx).
+function getOcupacaoResumo(divisions, grupos) {
+  if (!divisions || divisions.length === 0) return { valor: '—', detalhe: 'Classificação pendente' }
+  if (divisions.length === 1) {
+    const divisao = divisions[0]
+    const letra = divisao.charAt(0)
+    return { valor: grupos?.[letra] || `Grupo ${letra}`, detalhe: `Divisão ${divisao}` }
+  }
+  return { valor: 'Ocupação mista', detalhe: divisions.join(', ') }
+}
+
+function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect, grupos }) {
+  const cardRef = useRef(null)
+  const drag = useRef({ active: false, startX: 0, deltaX: 0 })
+  const activeIndex = Math.max(0, cards.findIndex(card => card.id === selectedId))
+  const activeCard = cards[activeIndex] || cards[0]
+  const stackedCards = cards.length > 1
+    ? Array.from({ length: Math.min(2, cards.length - 1) }, (_, index) => cards[(activeIndex + index + 1) % cards.length])
+    : []
+
+  const moveTo = direction => {
+    if (cards.length < 2) return
+    const nextIndex = (activeIndex + direction + cards.length) % cards.length
+    const node = cardRef.current
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!node || reduceMotion) {
+      onSelect(cards[nextIndex].id)
+      return
+    }
+    gsap.killTweensOf(node)
+    gsap.to(node, {
+      x: direction > 0 ? -90 : 90,
+      rotate: direction > 0 ? -2.2 : 2.2,
+      opacity: 0,
+      duration: .18,
+      ease: 'power2.in',
+      onComplete: () => {
+        onSelect(cards[nextIndex].id)
+        requestAnimationFrame(() => {
+          gsap.fromTo(node,
+            { x: direction > 0 ? 70 : -70, rotate: direction > 0 ? 1.5 : -1.5, opacity: 0 },
+            { x: 0, rotate: 0, opacity: 1, duration: .38, ease: 'power3.out', clearProps: 'transform,opacity' })
+        })
+      },
+    })
+  }
+
+  const handlePointerDown = event => {
+    drag.current = { active: true, startX: event.clientX, deltaX: 0 }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    gsap.killTweensOf(cardRef.current)
+  }
+
+  const handlePointerMove = event => {
+    if (!drag.current.active) return
+    const deltaX = Math.max(-150, Math.min(150, event.clientX - drag.current.startX))
+    drag.current.deltaX = deltaX
+    gsap.set(cardRef.current, { x: deltaX, rotate: deltaX * .012, opacity: 1 - Math.abs(deltaX) / 500 })
+  }
+
+  const handlePointerEnd = () => {
+    if (!drag.current.active) return
+    drag.current.active = false
+    const deltaX = drag.current.deltaX
+    if (Math.abs(deltaX) > 64) {
+      moveTo(deltaX < 0 ? 1 : -1)
+      return
+    }
+    gsap.to(cardRef.current, { x: 0, rotate: 0, opacity: 1, duration: .35, ease: 'power3.out', clearProps: 'transform,opacity' })
+  }
+
+  if (!activeCard) return null
+  const ocup = getOcupacaoResumo(activeCard.divisions, grupos)
+
+  return (
+    <div className="dashboard-card-stack">
+      <div className="dashboard-sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {activeCard.name}. {systemsCount} sistema{systemsCount === 1 ? '' : 's'} aplicáve{systemsCount === 1 ? 'l' : 'is'}.
+      </div>
+      <div className="dashboard-card-stack__stage">
+        {stackedCards.slice().reverse().map((card, reverseIndex) => (
+          <div className="dashboard-technical-card dashboard-technical-card--back" data-depth={stackedCards.length - reverseIndex} key={card.id} aria-hidden="true">
+            <span>{card.name}</span>
           </div>
-
-          {/* Aviso se nao configurado */}
-          {!isConfigurado && (
-            <div className="ibox amber mb-6">
-              <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-              <span>Projeto nao configurado ainda. <button onClick={onGoConfig} className="bg-transparent border-none text-amber cursor-pointer font-semibold underline">Clique aqui para configurar.</button></span>
-            </div>
-          )}
-
-          {/* Barra de progresso */}
-          <div className="mb-5">
-            <ProgressBar sistemas={sistemas}/>
+        ))}
+        <article
+          ref={cardRef}
+          className="dashboard-technical-card dashboard-technical-card--active"
+          tabIndex={0}
+          aria-label={`${activeCard.name}. Arraste para os lados ou use as setas para trocar de edificação.`}
+          onKeyDown={event => {
+            if (event.key === 'ArrowLeft') moveTo(-1)
+            if (event.key === 'ArrowRight') moveTo(1)
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+        >
+          <div className="dashboard-technical-card__name">
+            <span>Nome da edificação</span>
+            <h3>{activeCard.name}</h3>
           </div>
-
-          {/* Stats */}
-          <div className="flex gap-3 mb-5">
-            <StatCell
-              label="Area construida"
-              value={fmtNum(areaConstruida)}
-              unit="m2"
-              sub={estruturasNomes || null}
-            />
-            <StatCell
-              label="Altura da edificacao"
-              value={alturaNum || '—'}
-              unit={alturaNum ? 'm' : ''}
-              sub={pavimentosSum ? `${pavimentosSum} pavimentos` : null}
-              subTag={alturaNum ? alturaLbl : null}
-              subTagColor={alturaColor}
-            />
-            <StatCell
-              label="Carga de incendio"
-              value={maxQ || '—'}
-              unit={maxQ ? 'MJ/m2' : ''}
-              subTag={cargaLbl}
-              subTagColor={cargaCls === 'low' ? 'green' : cargaCls === 'med' ? 'amber' : cargaCls === 'high' ? 'red' : null}
-            />
-          </div>
-
-          {/* Paineis de info */}
-          <div className="flex gap-3 mb-5">
-            <InfoPanel
-              title="Classificacao"
-              icon="settings"
-              onEdit={onGoConfig}
-              fields={[
-                { label:'Grupos', value: gruposStr },
-                { label:'Divisoes', value: divisoesStr },
-                { label:'Situacao', value: state.situacao === 'nova' ? 'Edificacao nova' : state.situacao === 'existente' ? 'Edificacao existente' : '—' },
-                { label:'Norma', value: info?.nome || 'NT 42/2019 CBMMA' },
-              ]}
-            />
-            <InfoPanel
-              title="Edificacao"
-              icon="newbld"
-              onEdit={onGoConfig}
-              fields={[
-                { label:'Altura maxima', value: alturaNum ? `${alturaNum} m` : '—', big:true },
-                { label:'Pavimentos', value: pavimentosSum || '—' },
-                { label:'Subsolos', value: subsolosSum || 0 },
-                { label:'Area construida', value: areaConstruida ? `${fmtNum(areaConstruida)} m2` : '—' },
-                { label:'Sistema construtivo', value: estruturaTipos },
-              ]}
-            />
-            <InfoPanel
-              title="Responsaveis"
-              icon="info"
-              onEdit={onGoConfig}
-              fields={[
-                { label:'Proprietario', value: state.propNome || '—' },
-                { label:'Responsavel pelo uso', value: state.respRazaoSocial || '—' },
-                { label:'Projetista', value: state.rtNome || '—' },
-                { label:'CREA / CAU', value: state.rtConselho || '—' },
-              ]}
-            />
-          </div>
-
-          {/* Integração Revit */}
-          {state.id && user && <IntegracaoRevit projetoId={state.id} userId={user.id}/>}
-
-          {/* Sistemas de seguranca */}
-          <div className="mb-5">
-            <SistemasGrid sistemas={sistemas}/>
-          </div>
-
-          {/* Checklist documentacao */}
-          <Checklist/>
-
+          <dl className="dashboard-technical-card__metrics">
+            <div><dt>Área construída</dt><dd>{fmtNumber(activeCard.area)}<small>{activeCard.area ? ' m²' : ''}</small></dd></div>
+            <div><dt>Quantidade de pavimentos</dt><dd>{activeCard.floorCount || '—'}<small>{activeCard.floorCount ? ` pavimento${activeCard.floorCount === 1 ? '' : 's'}` : ''}</small></dd><small>{activeCard.height ? `${fmtNumber(activeCard.height)} m de altura${activeCard.id === 'all' ? ' máxima' : ''}` : 'Altura não informada'}</small></div>
+            <div><dt>Risco de incêndio</dt><dd>{getRiskLabel(activeCard.fireLoad)}</dd><small>{activeCard.fireLoad ? `${fmtNumber(activeCard.fireLoad)} MJ/m² de carga de incêndio` : 'Carga de incêndio não informada'}</small></div>
+            <div><dt>Ocupação e divisão</dt><dd>{ocup.valor}</dd><small>{ocup.detalhe}</small></div>
+          </dl>
+        </article>
+      </div>
+      <div className="dashboard-card-stack__navigation">
+        <div className="dashboard-card-stack__arrows">
+          <button type="button" onClick={() => moveTo(-1)} disabled={cards.length < 2} aria-label="Edificação anterior"><Icon name="chevL" size={16}/></button>
+          <span><strong>{String(activeIndex + 1).padStart(2, '0')}</strong> / {String(cards.length).padStart(2, '0')}</span>
+          <button type="button" onClick={() => moveTo(1)} disabled={cards.length < 2} aria-label="Próxima edificação"><Icon name="chevR" size={16}/></button>
         </div>
+        <div className="dashboard-card-stack__dots" role="radiogroup" aria-label="Selecionar visão técnica">
+          {cards.map(card => <button type="button" role="radio" className={card.id === selectedId ? 'is-active' : ''} key={card.id} onClick={() => onSelect(card.id)} aria-label={`Ver ${card.name}`} aria-checked={card.id === selectedId}/>) }
+        </div>
+        <span>Arraste para explorar as edificações</span>
       </div>
     </div>
+  )
+}
+
+export default function DashboardPage({ onGoConfig, onNavigate }) {
+  const { state } = useProjeto()
+  const { info, grupos } = useNorma()
+  const { sistemas, porEstrutura } = useMedidasObrigatorias()
+  const [selectedStructureId, setSelectedStructureId] = useState('all')
+  const [atividade, setAtividade] = useState([])
+
+  // O heatmap mostra 2 meses corridos (ver ActivityHeatmap) — busca uma
+  // janela um pouco mais folgada (75 dias) pra sempre cobrir isso mesmo
+  // com o alinhamento por semana no início da janela.
+  useEffect(() => {
+    if (!state.id) { setAtividade([]); return }
+    let cancelado = false
+    const inicio = new Date()
+    inicio.setDate(inicio.getDate() - 74)
+    supabase
+      .from('atividade_diaria')
+      .select('dia,contagem')
+      .eq('projeto_id', state.id)
+      .gte('dia', inicio.toISOString().slice(0, 10))
+      .then(({ data: registros, error }) => {
+        if (cancelado) return
+        if (error) { console.error('Falha ao carregar atividade do projeto:', error.message); setAtividade([]); return }
+        setAtividade(registros || [])
+      })
+    return () => { cancelado = true }
+  }, [state.id])
+
+  const data = useMemo(() => {
+    const structures = state.estruturas || []
+    const activeSystems = SYSTEMS
+      .filter(system => sistemas[system.key]?.ativo || sistemas[system.key]?.obrigatorio)
+      .map(system => ({ ...system, required: Boolean(sistemas[system.key]?.obrigatorio), progress: getSystemProgress(system.key, state) }))
+      .sort((a, b) => Number(b.required) - Number(a.required))
+    const configSteps = state.tipoProjeto === 'dimensionamento' ? DIMENSIONING_CONFIG_STEPS : COMPLETE_CONFIG_STEPS
+    const configuredSteps = configSteps.filter(step => step.test(state, activeSystems))
+    const groups = [...new Set((state.pavimentos || []).map(p => p.grupo).filter(Boolean))].sort()
+    const divisions = [...new Set((state.pavimentos || []).map(p => p.divisao).filter(Boolean))].sort()
+    const floorCount = structures.reduce((sum, item) => sum + (Number(item.nPavimentos) || 0), 0)
+    const basementCount = structures.reduce((sum, item) => sum + (Number(item.nSubsolos) || 0), 0)
+    const area = Number(state.areaConstruidaTotal) || structures.reduce((sum, item) => sum + (Number(item.areaTotal) || 0), 0)
+    const height = structures.reduce((highest, item) => Math.max(highest, Number(item.altura) || 0), 0)
+    const fireLoad = getFireLoad(state.cargaState)
+    const systemsWithData = activeSystems.filter(system => system.progress.tone !== 'todo')
+    const configPercent = Math.round((configuredSteps.length / configSteps.length) * 100)
+    const hasTechnicalData = Boolean(state.nome || area || height || fireLoad || groups.length || state.rtNome)
+
+    const selectedStructure = structures.find(item => item.id === selectedStructureId)
+    const selectedPavements = selectedStructure
+      ? (state.pavimentos || []).filter(item => item.estruturaId === selectedStructure.id)
+      : (state.pavimentos || [])
+    const structureSystems = selectedStructure
+      ? porEstrutura.find(item => item.estrutura.id === selectedStructure.id)?.sistemas || {}
+      : sistemas
+    const summarySystems = SYSTEMS.filter(system => structureSystems[system.key]?.ativo || structureSystems[system.key]?.obrigatorio)
+    const displayedSystems = summarySystems
+      .map(system => ({
+        ...system,
+        required: Boolean(structureSystems[system.key]?.obrigatorio),
+        progress: getSystemProgress(system.key, state, selectedStructure?.id),
+      }))
+      .sort((a, b) => Number(b.required) - Number(a.required))
+    const summaryGroups = [...new Set(selectedPavements.map(item => item.grupo).filter(Boolean))].sort()
+    const summaryDivisions = [...new Set(selectedPavements.map(item => item.divisao).filter(Boolean))].sort()
+    const makeStructureSummary = structure => {
+      const structurePavements = (state.pavimentos || []).filter(item => item.estruturaId === structure.id)
+      return {
+        id: structure.id,
+        name: structure.nome || 'Edificação sem nome',
+        area: Number(structure.areaTotal) || 0,
+        height: Number(structure.altura) || 0,
+        floorCount: Number(structure.nPavimentos) || 0,
+        basementCount: Number(structure.nSubsolos) || 0,
+        fireLoad: getFireLoad(state.cargaState?.[structure.id]),
+        groups: [...new Set(structurePavements.map(item => item.grupo).filter(Boolean))].sort(),
+        divisions: [...new Set(structurePavements.map(item => item.divisao).filter(Boolean))].sort(),
+      }
+    }
+    const summary = selectedStructure ? {
+      id: selectedStructure.id,
+      name: selectedStructure.nome || 'Edificação sem nome',
+      label: selectedStructure.nome,
+      area: Number(selectedStructure.areaTotal) || 0,
+      height: Number(selectedStructure.altura) || 0,
+      floorCount: Number(selectedStructure.nPavimentos) || 0,
+      basementCount: Number(selectedStructure.nSubsolos) || 0,
+      fireLoad: getFireLoad(state.cargaState?.[selectedStructure.id]),
+      groups: summaryGroups,
+      divisions: summaryDivisions,
+      systemCount: summarySystems.length,
+      requiredCount: summarySystems.filter(system => structureSystems[system.key]?.obrigatorio).length,
+    } : {
+      id: 'all', name: 'Visão geral do projeto', label: 'Visão geral', area, height, floorCount, basementCount, fireLoad,
+      groups: summaryGroups, divisions: summaryDivisions,
+      systemCount: activeSystems.length,
+      requiredCount: activeSystems.filter(system => system.required).length,
+    }
+
+    const technicalCards = [{ id: 'all', name: 'Visão geral do projeto', area, height, floorCount, basementCount, fireLoad, groups, divisions }, ...structures.map(makeStructureSummary)]
+
+    return { activeSystems, displayedSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsWithData, configPercent, hasTechnicalData, summary, technicalCards }
+  }, [state, sistemas, porEstrutura, selectedStructureId])
+
+  const projectReady = data.configPercent === 100
+  const address = [state.endereco, state.numero, state.bairro, state.cidade && `${state.cidade} — ${state.uf || 'MA'}`].filter(Boolean).join(', ')
+  return (
+    <main className="dashboard-shell">
+      <div className="dashboard-content">
+        <header className="dashboard-header">
+          <div>
+            <div className="dashboard-status-line"><span className={projectReady ? 'is-ready' : ''}/>{projectReady ? 'Configuração concluída' : `${data.configPercent}% da configuração concluída`}</div>
+            <h1>{state.nome || 'Projeto sem nome'}</h1>
+            <p>{[state.cidade && `${state.cidade} — ${state.uf || 'MA'}`, info?.nome || 'NT 01/2019 CBMMA', data.groups.length && `Grupos ${data.groups.join(', ')}`].filter(Boolean).join(' · ')}</p>
+          </div>
+          <button type="button" className="btn-primary dashboard-header__button" onClick={onGoConfig}><Icon name="settings" size={14}/> Editar configuração</button>
+        </header>
+
+        <div className="dashboard-top-row">
+          <section className="dashboard-overview" aria-label="Situação geral do projeto">
+            <div className="dashboard-overview__lead">
+              <div className="dashboard-overview__copy">
+                <span>Situação do projeto</span>
+                <h2>{projectReady ? 'Configuração pronta para dimensionamento.' : data.hasTechnicalData ? 'Há dados da base técnica para revisar.' : 'Comece pela configuração do projeto.'}</h2>
+                <p>{projectReady ? `${data.activeSystems.length} sistemas foram identificados para desenvolvimento e conferência.` : data.hasTechnicalData ? `${data.configStepCount - data.configuredSteps.length} etapa${data.configStepCount - data.configuredSteps.length === 1 ? '' : 's'} da configuração ainda precisa${data.configStepCount - data.configuredSteps.length === 1 ? '' : 'm'} de atenção.` : 'Cadastre a edificação para identificar as exigências e iniciar os dimensionamentos.'}</p>
+              </div>
+              <div className="dashboard-overview__score" aria-label={`${data.configPercent}% concluído`}><strong>{data.configPercent}<small>%</small></strong><span>base técnica</span></div>
+            </div>
+            <div className="dashboard-stages">
+              <div className={projectReady ? 'is-complete' : 'is-current'}><span>01</span><strong>Configuração</strong><small>{data.configuredSteps.length} de {data.configStepCount} etapas</small></div>
+              <div className={projectReady ? 'is-current' : ''}><span>02</span><strong>Sistemas</strong><small>{data.systemsWithData.length} com dados cadastrados</small></div>
+              <div><span>03</span><strong>Documentação</strong><small>Memorial e anexos</small></div>
+            </div>
+          </section>
+
+          <aside className="dashboard-panel dashboard-activity" aria-label="Atividade recente do projeto — últimos 2 meses">
+            <h2 className="dashboard-activity__title">Atividade</h2>
+            <ActivityHeatmap registros={atividade} ultimaAlteracao={state.updatedAt}/>
+          </aside>
+        </div>
+
+        <section className="dashboard-information-grid">
+          <article className="dashboard-panel dashboard-identification">
+            <div className="dashboard-section-heading"><div><h2>Identificação do projeto</h2><p>Dados administrativos e responsáveis</p></div><Icon name="info" size={15}/></div>
+            <dl>
+              <div><dt>Nome do projeto</dt><dd>{state.nome || 'Não informado'}</dd></div>
+              <div><dt>Localização</dt><dd>{address || 'Não informada'}</dd></div>
+              <div><dt>Proprietário</dt><dd>{state.propNome || 'Não informado'}</dd></div>
+              <div><dt>Responsável pelo uso</dt><dd>{state.respRazaoSocial || 'Não informado'}</dd></div>
+              {state.tipoProjeto === 'dimensionamento' ? <div><dt>Modalidade</dt><dd>Apenas dimensionamento</dd></div> : <>
+                <div><dt>Responsável técnico</dt><dd>{state.rtNome || 'Não informado'}</dd></div>
+                <div><dt>Registro / ART</dt><dd>{[state.rtConselho, state.artNumero].filter(Boolean).join(' · ') || 'Não informado'}</dd></div>
+              </>}
+            </dl>
+            <button type="button" className="dashboard-text-button" onClick={onGoConfig}>Editar identificação <Icon name="right" size={13}/></button>
+          </article>
+
+        </section>
+
+        <section className="dashboard-technical" aria-label={`Resumo técnico — ${selectedStructureId === 'all' ? 'todas as edificações' : data.summary.label}`}>
+          <TechnicalCardStack cards={data.technicalCards} selectedId={selectedStructureId} systemsCount={data.displayedSystems.length} onSelect={setSelectedStructureId} grupos={grupos}/>
+        </section>
+
+        <section className="dashboard-systems">
+          <div className="dashboard-section-heading dashboard-section-heading--systems"><div><h2>Sistemas aplicados</h2><p>{selectedStructureId === 'all' ? 'Status consolidado de todas as edificações' : `Sistemas aplicáveis a ${data.summary.label}`}</p></div><span>{data.displayedSystems.length} aplicáveis</span></div>
+          {data.displayedSystems.length ? <div className="dashboard-system-list">{data.displayedSystems.map(system => (
+            <button type="button" className="dashboard-system" key={system.key} onClick={() => onNavigate?.(system.key)}>
+              <span className={`dashboard-system__icon dashboard-system__icon--${system.progress.tone}`}><Icon name={system.icon} size={17}/></span>
+              <span className="dashboard-system__name"><strong>{system.label}</strong><small>{system.required ? 'Obrigatório' : 'Opcional habilitado'}</small></span>
+              <span className={`dashboard-system__status dashboard-system__status--${system.progress.tone}`}><strong>{system.progress.label}</strong><small>{system.progress.detail}</small></span>
+              <Icon name="right" size={15} className="dashboard-system__arrow"/>
+            </button>
+          ))}</div> : <div className="dashboard-empty"><Icon name="settings" size={18}/><div><strong>Nenhum sistema definido</strong><p>Conclua a classificação e as medidas de segurança na configuração.</p></div><button type="button" onClick={onGoConfig}>Configurar projeto</button></div>}
+        </section>
+
+        <section className={`dashboard-documents ${!data.hasTechnicalData ? 'dashboard-documents--disabled' : ''}`}>
+          <div><span className="dashboard-documents__icon"><Icon name="file" size={19}/></span><div><h2>Memorial e documentos do projeto</h2><p>{state.tipoProjeto === 'dimensionamento' ? 'Revise o memorial descritivo montado a partir dos dimensionamentos.' : 'Revise o memorial descritivo e o Anexo B montados a partir desta configuração.'}</p></div></div>
+          <button type="button" className="btn-ghost" disabled={!data.hasTechnicalData} onClick={() => onNavigate?.('documentos')}>{data.hasTechnicalData ? 'Abrir documentos' : 'Aguardando configuração'} {data.hasTechnicalData && <Icon name="right" size={14}/>}</button>
+        </section>
+      </div>
+    </main>
   )
 }

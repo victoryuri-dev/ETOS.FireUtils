@@ -54,7 +54,17 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
 
   const handleFocus = () => { populate(query); setOpen(true) }
   const handleInput = (e) => {
-    const masked = maskCNAE(e.target.value)
+    const raw = e.target.value
+    // Assim que aparece uma letra, é busca por descrição ("hospital",
+    // "escola"...) — não pelo número do CNAE. maskCNAE descartaria toda
+    // letra digitada (só deixa passar dígito), então precisa desviar dela
+    // nesse caso pra deixar o texto livre chegar em populate().
+    if (/[a-zA-ZÀ-ſ]/.test(raw)) {
+      setQuery(raw)
+      populate(raw); setOpen(true)
+      return
+    }
+    const masked = maskCNAE(raw)
     setQuery(masked)
     if (masked.length === 9) {
       const found = findGlobally(cargaMap, masked)
@@ -66,7 +76,15 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
   const handleClear  = () => { setQuery(''); onSelect({ cnae:'', descricao:'', cargaIncendio:null }); setOpen(false) }
 
   const selectedData = value ? cnaesDiv(divisao)[value] : null
-  const naoEncontrado = query.length >= 3 && results.length === 0
+  // `results` só é populado quando o usuário interage com o campo (foco/
+  // digitação — ver populate()) — quando o CNAE chega por fora (ex.: botão
+  // "Usar esta classificação" de BuscaCnaePorCnpj, que despacha direto no
+  // pavimento sem passar por este componente), `results` fica vazio mesmo
+  // com um `value` válido, e sem o `!selectedData` aqui "CNAE não
+  // encontrado" aparecia por engano pra CNAEs que já estavam corretamente
+  // catalogados (o texto da carga de incêndio ficava certo, só a mensagem
+  // de erro que era falsa).
+  const naoEncontrado = !selectedData && query.length >= 3 && results.length === 0
 
   return (
     <div ref={ref} className="relative">
@@ -256,8 +274,9 @@ function AcessRow({ pav, acess, index, usadas }) {
 
 // ── Modal de classificação do pavimento ───────────────────────────────
 function PavModal({ pav, onClose }) {
-  const { dispatch } = useProjeto()
+  const { state, dispatch } = useProjeto()
   const { ocupacoes, grupos } = useNorma()
+  const estrutura = state.estruturas.find(e => e.id === pav.estruturaId)
 
   const gruposKeys = Object.keys(ocupacoes)
   const divisoes   = ocupacoes[pav.grupo]?.divisoes || {}
@@ -288,6 +307,7 @@ function PavModal({ pav, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between py-[18px] px-[22px] border-b border-solid border-border shrink-0">
           <div>
+            <div className="text-[10px] text-red uppercase tracking-[.06em] font-semibold mb-1">{estrutura?.nome || 'Estrutura'}</div>
             <div className="text-base font-bold text-ink mb-[3px]">{pav.label}</div>
             <div className="text-[11px] text-ink-faint">Classificacao de ocupacao</div>
           </div>
@@ -450,7 +470,7 @@ function PavCard({ pav, onOpen }) {
 }
 
 // ── Step 4 principal ──────────────────────────────────────────────────
-export default function Step4() {
+export default function Step4({ step, totalSteps }) {
   const { state }    = useProjeto()
   const [openId, setOpenId] = useState(null)
 
@@ -459,7 +479,7 @@ export default function Step4() {
   return (
     <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
       <div className="mb-[26px]">
-        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa 4 de 7</div>
+        <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa {step} de {totalSteps}</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Classificacao por pavimento</h2>
         <p className="text-[13px] text-ink-faint leading-[1.6]">Clique em um pavimento para classificar sua ocupacao principal e ocupacoes subsidiarias.</p>
       </div>
@@ -470,7 +490,7 @@ export default function Step4() {
             const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
             if (!pavsEst.length) return null
             return (
-              <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
+              <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} apenasOcupacao/>}>
                 <div>
                   <div className={blockTitle}>Pavimentos</div>
                   {pavsEst.map(pav => (

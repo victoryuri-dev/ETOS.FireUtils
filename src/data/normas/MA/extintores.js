@@ -25,6 +25,12 @@ export const TIPOS_PORTATIL = [
   { key: 'po_bc',      label: 'Pó químico BC',             capacidadeMinima: '20-B:C',     classes: ['B', 'C'] },
   { key: 'po_abc',     label: 'Pó químico ABC',            capacidadeMinima: '2-A:20-B:C', classes: ['A', 'B', 'C'] },
   { key: 'halogenado', label: 'Compostos halogenados',     capacidadeMinima: '5-B:C',      classes: ['B', 'C'] },
+  // Classe K (óleos/gorduras de cozinha) — agente químico molhado, não
+  // coberto pelo texto-base da NT 21 CBMMA transcrito aqui; as duas cargas
+  // (1-A:K e 2-A:K, ambas em cilindro de 6 L) são as comercialmente
+  // disponíveis e correspondem às famílias do plugin Revit.
+  { key: 'k_1a',       label: 'Classe K — 1-A:K',          capacidadeMinima: '1-A:K - 6L', classes: ['A', 'K'] },
+  { key: 'k_2a',       label: 'Classe K — 2-A:K',          capacidadeMinima: '2-A:K - 6L', classes: ['A', 'K'] },
 ]
 
 // ── Extintores sobre rodas / carretas — capacidade extintora mínima (item 5.1.4) ──

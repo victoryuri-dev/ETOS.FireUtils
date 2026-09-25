@@ -152,7 +152,7 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
   )
 }
 
-export default function Step5() {
+export default function Step5({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
   const { ocupacoes, cnaesDiv } = useNorma()
 
@@ -170,12 +170,40 @@ export default function Step5() {
     })
   }, [initDepsKey])
 
+  // Mantem o cargaIncendio salvo em sincronia com o CNAE da divisao quando o
+  // metodo e "tabela". Sem isso, o valor so fica gravado quando o usuario
+  // mexe manualmente no seletor de metodo (ver setMetodo em EstruturaCarga) —
+  // se o CNAE ja estava configurado antes da divisao nascer aqui (INIT_CARGA
+  // sempre inicia com cargaIncendio: null), o numero mostrado nesta tela fica
+  // certo (getCarga recalcula ao vivo), mas o valor persistido continua nulo,
+  // e riscoDoPavimento (usado por Extintores e Brigada) le so o valor salvo —
+  // o risco aparece como "nao classificado" mesmo com o CNAE preenchido.
+  const cargaSnapshotKey = estruturasDivs.map(({ est, keys, divMap }) => keys.map(code => {
+    const st = (state.cargaState[est.id] || {})[code]
+    return `${est.id}.${code}=${divMap[code]?.cnae || ''}:${st?.metodo || ''}:${st?.cargaIncendio ?? ''}`
+  }).join(',')).join(';')
+
+  useEffect(() => {
+    estruturasDivs.forEach(({ est, keys, divMap }) => {
+      keys.forEach(code => {
+        const st = (state.cargaState[est.id] || {})[code]
+        if (!st || st.metodo !== 'tabela') return
+        const cnae = divMap[code]?.cnae
+        if (!cnae) return
+        const resolvido = cnaesDiv(code)[cnae]?.cargaIncendio
+        if (resolvido != null && resolvido !== st.cargaIncendio) {
+          dispatch({ type: 'SET_CARGA', estruturaId: est.id, code, changes: { cargaIncendio: resolvido } })
+        }
+      })
+    })
+  }, [cargaSnapshotKey])
+
   const totalDivisoes = estruturasDivs.reduce((acc, e) => acc + e.keys.length, 0)
 
   return (
     <div className={S.section}>
       <div className={S.header}>
-        <div className={S.stepLbl}>Etapa 5 de 7</div>
+        <div className={S.stepLbl}>Etapa {step} de {totalSteps}</div>
         <h2 className={S.title}>Carga de Incendio</h2>
         <p className={S.desc}>A carga de incendio de cada divisao e determinada pelo CNAE configurado na etapa anterior, classificada por estrutura. Por tabela: valor normativo automatico. Por levantamento: campo livre.</p>
       </div>
