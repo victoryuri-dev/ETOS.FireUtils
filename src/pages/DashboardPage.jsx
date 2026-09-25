@@ -455,6 +455,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
           </section>
 
           <aside className="dashboard-panel dashboard-activity" aria-label="Atividade recente do projeto — últimos 2 meses">
+            <h2 className="dashboard-activity__title">Atividade</h2>
             <ActivityHeatmap registros={atividade} ultimaAlteracao={state.updatedAt}/>
           </aside>
         </div>
