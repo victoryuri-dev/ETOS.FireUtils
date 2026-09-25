@@ -210,7 +210,7 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
 
   const { organograma, listaAmbientes, nos } = montarArvorePavimento(pav)
 
-  blocos.push({ tipo: 'titulo2', texto: 'Organograma' })
+  blocos.push({ tipo: 'titulo2', texto: 'Fluxograma' })
   blocos.push({ tipo: 'organograma', nos: organograma })
 
   blocos.push({ tipo: 'titulo2', texto: 'Larguras Mínimas' })
