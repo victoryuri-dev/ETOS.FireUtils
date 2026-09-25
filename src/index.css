@@ -112,22 +112,18 @@
   .loader-bar { animation: none !important; transform: none; opacity: 1; }
 }
 
-@page {
+/* Anexo B: tamanho e margem de pagina fixos, so pra essa area (pagina
+   nomeada via .print-area-anexob) — nao afeta o Memorial Descritivo. */
+@page anexob {
   size: A4 portrait;
   margin: 6mm;
 }
+.print-area-anexob { page: anexob; }
 
-/* Memorial Descritivo: a folha (.memorial-secao) ja tem 210x297mm com
-   margem de 2,5cm nos 4 lados no proprio padding (ver FOLHA em
-   MemorialDescritivoPage.jsx), entao a pagina impressa nao pode somar
-   margem por cima — senao a folha fica maior que a area imprimivel e cada
-   secao vaza pra uma segunda pagina. Pagina nomeada so afeta quem usa
-   `page: memorial` (ver .print-area-memorial), sem alterar o Anexo B. */
-@page memorial {
-  size: A4 portrait;
-  margin: 0;
-}
-.print-area-memorial { page: memorial; }
+/* Memorial Descritivo: sem @page proprio de proposito — nenhum tamanho de
+   papel ou margem fixados aqui. Na hora de imprimir/salvar em PDF, quem
+   define papel, margem e onde a pagina quebra e a configuracao de
+   impressao do navegador/SO, nao o CSS. */
 
 /* Tipografia fixa do memorial — Arial em tudo (titulos inclusive) e corpo
    de texto sempre 12pt, sem variante print: nenhuma: tem que ficar
@@ -149,5 +145,4 @@
   .print-area,.print-area *{visibility:visible}
   .print-area{position:absolute;top:0;left:0;width:100%;margin:0;box-shadow:none;border-radius:0}
   .no-print{display:none!important}
-  .memorial-secao:not(:last-child){page-break-after:always;break-after:page}
 }

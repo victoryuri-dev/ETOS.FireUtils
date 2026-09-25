@@ -30,16 +30,11 @@ const SECAO_CARACTERIZACAO = 4
 const SECAO_MEDIDAS_APLICADAS = 5
 const PRIMEIRA_SECAO_MEDIDA = 6
 
-// Uma folha por secao: largura de A4 (210mm) e altura MINIMA de A4, nao
-// fixa — a folha cresce com o conteudo em vez de cortar ou paginar. Na
-// impressao isso vira mais de uma pagina para as secoes longas, quebradas
-// pelo navegador.
-//
-// Margem fixa de 2,5cm nos quatro lados, igual na tela e na impressao (sem
-// variante print:) — a visualizacao no site precisa bater exatamente com o
-// que sai impresso/exportado, sem padding extra so pra tela nem zerado so
-// na impressao.
-const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none p-[2.5cm]'
+// Sem tamanho de folha fixo: o preview flui como um documento normal, sem
+// simular A4 (210x297mm) nem impor margem em cm. Tamanho de papel, margens
+// e quebra de pagina ficam por conta da configuracao de impressao do
+// navegador/SO na hora de imprimir ou salvar em PDF.
+const FOLHA = 'memorial-secao relative flex flex-col w-full max-w-[900px] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none py-8 px-9 print:py-0 print:px-0'
 
 // Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
 // borda clara. Centralizado aqui pra que as tabelas das medidas, do Anexo de

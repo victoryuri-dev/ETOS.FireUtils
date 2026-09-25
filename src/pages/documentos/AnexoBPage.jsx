@@ -72,7 +72,7 @@ export default function AnexoBPage({ onBack }) {
       </div>
 
       <div className="flex-1 overflow-y-auto py-8">
-        <div className="print-area max-w-[900px] mx-auto bg-white text-black rounded-lg shadow-[0_4px_24px_rgba(0,0,0,.35)] py-8 px-9 print:py-0 print:px-0">
+        <div className="print-area print-area-anexob max-w-[900px] mx-auto bg-white text-black rounded-lg shadow-[0_4px_24px_rgba(0,0,0,.35)] py-8 px-9 print:py-0 print:px-0">
 
           {/* Cabecalho */}
           <div className="text-center mb-4 print:mb-2">
