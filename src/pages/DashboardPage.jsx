@@ -148,6 +148,23 @@ const SYSTEMS = [
   { key: 'spda', icon: 'warn', label: 'SPDA' },
 ]
 
+// Sistemas com uma tela de dimensionamento própria implementada (ver rotas
+// em App.jsx) — os demais caem na página genérica "em construção" e por
+// isso nunca são cobrados como pendentes no status do dashboard.
+const SCREENS_DISPONIVEIS = new Set([
+  'acesso_viatura', 'seg_estrutural', 'compart_horizontal', 'compart_vertical',
+  'saida_emergencia', 'extintores', 'iluminacao', 'sinalizacao', 'hidrantes', 'gerenciamento_risco',
+])
+
+// Status consolidado exibido no card do sistema: 'done' (verde) quando o
+// sistema está com todos os dados exigíveis preenchidos, 'progress'
+// (amarelo) quando é obrigatório e ainda falta preencher, e 'todo' (cinza)
+// quando foi dispensado (não obrigatório) ou ainda não tem tela própria.
+function getStatusTone(key, required, progressTone) {
+  if (!required || !SCREENS_DISPONIVEIS.has(key)) return 'todo'
+  return progressTone === 'done' ? 'done' : 'progress'
+}
+
 const COMPLETE_CONFIG_STEPS = [
   { label: 'Identificação', test: s => [s.nome, s.endereco, s.cidade, s.propNome, s.propDocumento, s.respRazaoSocial, s.respCNPJ].every(Boolean) },
   { label: 'Edificação', test: s => (s.estruturas || []).length > 0 && s.estruturas.every(e => e.areaTotal && e.altura) },
@@ -369,7 +386,11 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
     const structures = state.estruturas || []
     const activeSystems = SYSTEMS
       .filter(system => sistemas[system.key]?.ativo || sistemas[system.key]?.obrigatorio)
-      .map(system => ({ ...system, required: Boolean(sistemas[system.key]?.obrigatorio), progress: getSystemProgress(system.key, state) }))
+      .map(system => {
+        const required = Boolean(sistemas[system.key]?.obrigatorio)
+        const progress = getSystemProgress(system.key, state)
+        return { ...system, required, progress, statusTone: getStatusTone(system.key, required, progress.tone) }
+      })
       .sort((a, b) => Number(b.required) - Number(a.required))
     const configSteps = state.tipoProjeto === 'dimensionamento' ? DIMENSIONING_CONFIG_STEPS : COMPLETE_CONFIG_STEPS
     const configuredSteps = configSteps.filter(step => step.test(state, activeSystems))
@@ -393,11 +414,11 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       : sistemas
     const summarySystems = SYSTEMS.filter(system => structureSystems[system.key]?.ativo || structureSystems[system.key]?.obrigatorio)
     const displayedSystems = summarySystems
-      .map(system => ({
-        ...system,
-        required: Boolean(structureSystems[system.key]?.obrigatorio),
-        progress: getSystemProgress(system.key, state, selectedStructure?.id),
-      }))
+      .map(system => {
+        const required = Boolean(structureSystems[system.key]?.obrigatorio)
+        const progress = getSystemProgress(system.key, state, selectedStructure?.id)
+        return { ...system, required, progress, statusTone: getStatusTone(system.key, required, progress.tone) }
+      })
       .sort((a, b) => Number(b.required) - Number(a.required))
     const summaryGroups = [...new Set(selectedPavements.map(item => item.grupo).filter(Boolean))].sort()
     const summaryDivisions = [...new Set(selectedPavements.map(item => item.divisao).filter(Boolean))].sort()
@@ -503,9 +524,9 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
           <div className="dashboard-section-heading dashboard-section-heading--systems"><div><h2>Sistemas aplicados</h2><p>{selectedStructureId === 'all' ? 'Status consolidado de todas as edificações' : `Sistemas aplicáveis a ${data.summary.label}`}</p></div><span>{data.displayedSystems.length} aplicáveis</span></div>
           {data.displayedSystems.length ? <div className="dashboard-system-list">{data.displayedSystems.map(system => (
             <button type="button" className="dashboard-system" key={system.key} onClick={() => onNavigate?.(system.key)}>
-              <span className={`dashboard-system__icon dashboard-system__icon--${system.progress.tone}`}><Icon name={system.icon} size={17}/></span>
+              <span className={`dashboard-system__icon dashboard-system__icon--${system.statusTone}`}><Icon name={system.icon} size={17}/></span>
               <span className="dashboard-system__name"><strong>{system.label}</strong><small>{system.required ? 'Obrigatório' : 'Opcional habilitado'}</small></span>
-              <span className={`dashboard-system__status dashboard-system__status--${system.progress.tone}`}><strong>{system.progress.label}</strong><small>{system.progress.detail}</small></span>
+              <span className={`dashboard-system__status dashboard-system__status--${system.statusTone}`}><strong>{system.progress.label}</strong><small>{system.progress.detail}</small></span>
               <Icon name="right" size={15} className="dashboard-system__arrow"/>
             </button>
           ))}</div> : <div className="dashboard-empty"><Icon name="settings" size={18}/><div><strong>Nenhum sistema definido</strong><p>Conclua a classificação e as medidas de segurança na configuração.</p></div><button type="button" onClick={onGoConfig}>Configurar projeto</button></div>}

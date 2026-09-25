@@ -117,12 +117,13 @@
   margin: 6mm;
 }
 
-/* Memorial Descritivo: a folha (.memorial-secao) ja tem 210x297mm com as
-   margens ABNT NBR 14724 no proprio padding, entao a pagina impressa nao
-   pode somar margem por cima — senao a folha fica maior que a area
-   imprimivel e cada secao vaza pra uma segunda pagina. Pagina nomeada so
-   afeta quem usa `page: memorial` (ver .print-area-memorial), sem alterar
-   o Anexo B. */
+/* Memorial Descritivo: a folha (.memorial-secao) ja tem 210x297mm e zera o
+   proprio padding na impressao (print:p-0, ver MemorialDescritivoPage.jsx)
+   pra sair sem nenhuma margem embutida — quem for imprimir/exportar decide
+   a propria margem no dialogo do navegador. A pagina tambem nao pode somar
+   margem por cima, senao a folha fica maior que a area imprimivel e cada
+   secao vaza pra uma segunda pagina. Pagina nomeada so afeta quem usa
+   `page: memorial` (ver .print-area-memorial), sem alterar o Anexo B. */
 @page memorial {
   size: A4 portrait;
   margin: 0;

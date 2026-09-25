@@ -188,6 +188,13 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
   }
   if (raizes.length === 0) {
     blocos.push({ tipo: 'paragrafo', texto: `Nenhuma ${rotuloRaiz} cadastrada em ${pav.label} até o momento — árvore de acessos e descargas pendente.` })
+    // Sem saída/escada não há árvore pra organograma nem larguras mínimas
+    // a calcular, mas os ambientes já cadastrados no pavimento (com sua
+    // população e largura de porta) não dependem disso — seguem exibidos.
+    const { listaAmbientes } = montarArvorePavimento(pav)
+    if (listaAmbientes.length > 0) {
+      blocos.push(tabelaAmbientes(listaAmbientes, TAXA_POPULACIONAL, LARGURAS_MINIMAS))
+    }
     return blocos
   }
 
