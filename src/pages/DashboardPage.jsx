@@ -478,11 +478,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
 
         </section>
 
-        <section className="dashboard-technical" aria-label="Resumo técnico">
-          <div className="dashboard-section-heading dashboard-technical__heading">
-            <div><h2>Resumo técnico</h2><p>O card selecionado define os sistemas exibidos abaixo</p></div>
-            <span>{selectedStructureId === 'all' ? 'Todas as edificações' : data.summary.label}</span>
-          </div>
+        <section className="dashboard-technical" aria-label={`Resumo técnico — ${selectedStructureId === 'all' ? 'todas as edificações' : data.summary.label}`}>
           <TechnicalCardStack cards={data.technicalCards} selectedId={selectedStructureId} systemsCount={data.displayedSystems.length} onSelect={setSelectedStructureId}/>
         </section>
 
