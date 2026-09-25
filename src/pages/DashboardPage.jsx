@@ -153,7 +153,8 @@ const SYSTEMS = [
 // isso nunca são cobrados como pendentes no status do dashboard.
 const SCREENS_DISPONIVEIS = new Set([
   'acesso_viatura', 'seg_estrutural', 'compart_horizontal', 'compart_vertical',
-  'saida_emergencia', 'extintores', 'iluminacao', 'sinalizacao', 'hidrantes', 'gerenciamento_risco',
+  'saida_emergencia', 'extintores', 'iluminacao', 'sinalizacao', 'hidrantes',
+  'controle_acabamento', 'gerenciamento_risco',
 ])
 
 // Status consolidado exibido no card do sistema: 'done' (verde) quando o
