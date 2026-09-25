@@ -3,9 +3,14 @@
 // Usa os MESMOS calcs puros (compart_calc.js) que alimentam a tela de
 // dimensionamento — o texto nunca duplica a lógica de classificação/área
 // máxima, só narra o resultado. Mantido enxuto de propósito: só o que o
-// Corpo de Bombeiros precisa para analisar o projeto (obrigatoriedade,
-// área máxima x adotada, TRRF mínimo e solução construtiva) — sem repetir
-// o texto integral da norma.
+// Corpo de Bombeiros precisa para analisar o projeto.
+//
+// Regra geral: só entram tabela, TRRF, elementos de proteção e condições
+// especiais quando a compartimentação é EXIGIDA e NÃO ISENTA (nem por
+// substituição por sistema alternativo, nem — só a horizontal — por a
+// edificação já se enquadrar num único compartimento). Sendo isenta por
+// qualquer um desses meios, nada disso se aplica, e a seção vira só a frase
+// explicando o motivo da isenção.
 
 import { calcularAreaMaximaCompartimentacao } from '../compart_calc'
 import { getCompartimentacao } from '../normas/index'
@@ -18,8 +23,28 @@ function textosCondicoes(catalogo, chaves) {
   return catalogo.filter(o => (chaves || []).includes(o.key)).map(o => `${o.texto} (item ${o.ref})`)
 }
 
-function dispensadaBloco(nomeEst) {
-  return { tipo: 'paragrafo', texto: `${nomeEst}: dispensada para a ocupação e altura atuais desta estrutura, conforme a Tabela 5 (simplificada) ou 6 (normal) aplicável da NT 01 CBMMA.` }
+// `medida` = "Compartimentação horizontal" ou "Compartimentação vertical" —
+// o nome da estrutura já aparece no título da seção (titulo2) logo acima,
+// então não repete aqui.
+function dispensadaBloco(medida) {
+  return { tipo: 'paragrafo', texto: `${medida} dispensada para a ocupação e altura atuais desta estrutura, conforme a Tabela 5 (simplificada) ou 6 (normal) aplicável da NT 01 CBMMA.` }
+}
+
+function fmtArea(valor) {
+  return typeof valor === 'number' ? `${valor} m²` : 'sem limite definido'
+}
+
+// Único parágrafo mostrado quando a edificação se enquadra inteira num
+// único compartimento (nenhum pavimento excede a área máxima do Anexo B, e
+// todos já têm área informada — `r.dentroDoLimite`) — cita a área
+// considerada e a área máxima de cada pavimento, sem repetir a tabela.
+function textoDentroDoLimite(r) {
+  if (r.linhas.length === 1) {
+    const l = r.linhas[0]
+    return `Compartimentação horizontal dispensada: a área de compartimentação considerada (${l.area} m²) está dentro da área máxima de compartimentação permitida (${fmtArea(l.valor)}) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — ${r.tipoNome} (Anexo B, NT 09 CBMMA), de modo que a edificação se enquadra em um único compartimento.`
+  }
+  const porPavimento = r.linhas.map(l => `${l.pavimento.label}: ${l.area} m² (máximo ${fmtArea(l.valor)})`).join('; ')
+  return `Compartimentação horizontal dispensada: a área de compartimentação considerada de todos os pavimentos está dentro da área máxima de compartimentação permitida no Tipo ${r.tipo} — ${r.tipoNome} (Anexo B, NT 09 CBMMA), de modo que a edificação se enquadra em um único compartimento — ${porPavimento}.`
 }
 
 export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
@@ -34,7 +59,7 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
     if (!obrigatorio) {
-      blocos.push(dispensadaBloco(est.nome || 'Esta estrutura'))
+      blocos.push(dispensadaBloco('Compartimentação horizontal'))
       return
     }
 
@@ -42,8 +67,9 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
     if (substituicao) {
       blocos.push({
         tipo: 'paragrafo',
-        texto: `Compartimentação horizontal isenta do cumprimento da área máxima de compartimentação (Anexo B, NT 09 CBMMA), mediante adoção de ${substituicao.texto}, conforme nota de rodapé da Tabela 6 aplicável ao grupo/altura desta estrutura (NT 01 CBMMA).`,
+        texto: `Compartimentação horizontal isenta mediante adoção de ${substituicao.texto}, conforme nota de rodapé da Tabela 6 aplicável ao grupo/altura desta estrutura (NT 01 CBMMA).`,
       })
+      return
     }
 
     const pavimentos = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
@@ -51,52 +77,48 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
 
     if (!r.tipo) {
       blocos.push({ tipo: 'paragrafo', texto: `Altura de ${est.nome} ainda não informada — tipo de edificação (Anexo B, NT 09 CBMMA) e área máxima de compartimentação pendentes de definição.` })
-    } else {
-      blocos.push({ tipo: 'campo', label: 'Tipo de edificação (Anexo B, NT 09 CBMMA)', valor: `Tipo ${r.tipo} — ${r.tipoNome}` })
+      return
+    }
 
-      if (r.linhas.length > 0) {
-        blocos.push({
-          tipo: 'tabela',
-          colunas: ['Pavimento', 'Divisão', 'Área do pavimento', 'Área de compartimentação (item 5.1.2)', 'Área máxima permitida', 'Situação'],
-          linhas: r.linhas.map(l => [
-            l.pavimento.label,
-            l.pavimento.divisao || '—',
-            l.areaPavimento ? `${l.areaPavimento} m²` : '—',
-            l.area ? `${l.area} m²${l.overrideAtivo ? ' (com interligação declarada)' : ''}` : '—',
-            !l.encontrado ? '—' : typeof l.valor === 'number' ? `${l.valor} m²` : 'sem limite (item 5.5 ss.)',
-            !l.area ? 'Pendente' : l.excede ? 'Excede — subdividir compartimento' : 'Conforme',
-          ]),
-        })
-      }
+    if (r.dentroDoLimite) {
+      blocos.push({ tipo: 'paragrafo', texto: textoDentroDoLimite(r) })
+      return
+    }
 
-      if (r.pavimentosExcedentes.length > 0) {
-        blocos.push({
-          tipo: 'lista', estilo: 'alerta',
-          itens: r.pavimentosExcedentes.map(l => substituicao
-            ? `${l.pavimento.label} (${l.area} m²) excede a área máxima de compartimentação (${l.valor} m²) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — sem exigência de subdivisão, em razão da substituição por sistema alternativo indicada acima.`
-            : `ATENÇÃO: ${l.pavimento.label} (${l.area} m²) excede a área máxima de compartimentação (${l.valor} m²) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — subdividir em mais de um compartimento ou substituir por sistema alternativo (chuveiros automáticos e/ou detecção de incêndio, conforme nota de rodapé da Tabela 6 da NT 01 CBMMA aplicável).`),
-        })
-      }
+    // A partir daqui a compartimentação horizontal é exigida de fato (não
+    // isenta por nenhum meio) — mostra tipo, tabela, TRRF, elementos e
+    // condições por completo.
+    blocos.push({ tipo: 'campo', label: 'Tipo de edificação (Anexo B, NT 09 CBMMA)', valor: `Tipo ${r.tipo} — ${r.tipoNome}` })
+
+    if (r.linhas.length > 0) {
+      blocos.push({
+        tipo: 'tabela',
+        colunas: ['Pavimento', 'Divisão', 'Área do pavimento', 'Área de compartimentação (item 5.1.2)', 'Área máxima permitida', 'Situação'],
+        linhas: r.linhas.map(l => [
+          l.pavimento.label,
+          l.pavimento.divisao || '—',
+          l.areaPavimento ? `${l.areaPavimento} m²` : '—',
+          l.area ? `${l.area} m²${l.overrideAtivo ? ' (com interligação declarada)' : ''}` : '—',
+          !l.encontrado ? '—' : fmtArea(l.valor),
+          !l.area ? 'Pendente' : l.excede ? 'Excede — subdividir compartimento' : 'Conforme',
+        ]),
+      })
+    }
+
+    if (r.pavimentosExcedentes.length > 0) {
+      blocos.push({
+        tipo: 'lista', estilo: 'alerta',
+        itens: r.pavimentosExcedentes.map(l => `ATENÇÃO: ${l.pavimento.label} (${l.area} m²) excede a área máxima de compartimentação (${l.valor} m²) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — subdividir em mais de um compartimento ou substituir por sistema alternativo (chuveiros automáticos e/ou detecção de incêndio, conforme nota de rodapé da Tabela 6 da NT 01 CBMMA aplicável).`),
+      })
     }
 
     blocos.push({ tipo: 'campo', label: 'TRRF mínimo da parede de compartimentação', valor: `EI-${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} (portas/vedadores/registros podem ter até ${TRRF_REDUCAO_MAXIMA_ABERTURAS} min a menos, nunca abaixo de ${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min)` })
 
-    // Elementos de proteção (parede/porta/vedador corta-fogo etc.) só fazem
-    // sentido quando há subdivisão a construir — nem quando a compartimentação
-    // foi substituída por sistema alternativo, nem quando a edificação já se
-    // enquadra inteira num único compartimento (área dentro do limite do
-    // Anexo B, `r.dentroDoLimite`) há elemento a listar.
-    if (substituicao) {
-      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção para subdivisão não exigidos — a compartimentação horizontal foi substituída por sistema alternativo (ver acima).' })
-    } else if (r.dentroDoLimite) {
-      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção para subdivisão não exigidos — a área considerada de todos os pavimentos está dentro do limite do Anexo B, de modo que a edificação se enquadra em um único compartimento.' })
+    const elementos = labelsMarcados(ELEMENTOS_COMPART_HORIZONTAL, est.elementosCompartHorizontal)
+    if (elementos.length > 0) {
+      blocos.push({ tipo: 'lista', itens: elementos })
     } else {
-      const elementos = labelsMarcados(ELEMENTOS_COMPART_HORIZONTAL, est.elementosCompartHorizontal)
-      if (elementos.length > 0) {
-        blocos.push({ tipo: 'lista', itens: elementos })
-      } else {
-        blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
-      }
+      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
     }
 
     const condicoes = textosCondicoes(CONDICOES_ESPECIAIS_HORIZONTAL, est.condicoesEspeciaisCompartHorizontal)
@@ -126,7 +148,7 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
     if (!obrigatorio) {
-      blocos.push(dispensadaBloco(est.nome || 'Esta estrutura'))
+      blocos.push(dispensadaBloco('Compartimentação vertical'))
       blocos.push({ tipo: 'paragrafo', texto: 'Atenção (item 6.1.1, NT 09 CBMMA): a inexistência ou a quebra da compartimentação vertical, por qualquer meio, implica na somatória das áreas dos pavimentos interligados para fins de cálculo da área máxima de compartimentação horizontal.' })
       return
     }
@@ -137,17 +159,16 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
         tipo: 'paragrafo',
         texto: `Compartimentação vertical isenta mediante adoção de ${substituicaoV.texto}, conforme nota de rodapé da Tabela 6 aplicável ao grupo/altura desta estrutura (NT 01 CBMMA). A compartimentação das fachadas e a selagem dos shafts e dutos de instalações continuam exigidas, independentemente da substituição.`,
       })
+      return
     }
 
-    if (substituicaoV) {
-      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção não exigidos — a compartimentação vertical foi substituída por sistema alternativo (ver acima).' })
+    // A partir daqui a compartimentação vertical é exigida de fato (não
+    // isenta por substituição) — mostra elementos, condições e TRRF.
+    const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical)
+    if (elementos.length > 0) {
+      blocos.push({ tipo: 'lista', itens: elementos })
     } else {
-      const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical)
-      if (elementos.length > 0) {
-        blocos.push({ tipo: 'lista', itens: elementos })
-      } else {
-        blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
-      }
+      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
     }
 
     const condicoes = textosCondicoes(CONDICOES_ESPECIAIS_VERTICAL, est.condicoesEspeciaisCompartVertical)
