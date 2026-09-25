@@ -64,38 +64,32 @@ function ActivityHeatmap({ registros }) {
     }
   })
 
-  const totalPeriodo = dias.reduce((soma, d) => soma + d.contagem, 0)
+  // O dia atual é sempre o último item de `dias` — cai por construção na
+  // última coluna (a mais à direita), igual ao GitHub. Ganha destaque
+  // próprio (branco) em vez de seguir a escala de vermelho, pra ficar
+  // sempre localizável de primeira, tenha ou não atividade registrada.
+  const chaveHoje = dias[dias.length - 1].chave
 
   return (
-    <>
-      <div
-        className="dashboard-activity__grid"
-        style={{ gridTemplateColumns: `repeat(${totalColunas}, 12px)` }}
-      >
-        {rotulosMes.map(r => (
-          <span key={r.coluna} className="dashboard-activity__month" style={{ gridColumn: r.coluna + 1 }}>{r.texto}</span>
-        ))}
-        {dias.map(d => {
-          const rotulo = `${d.contagem} ${d.contagem === 1 ? 'atividade' : 'atividades'} — ${DIAS_SEMANA_ABREV[d.data.getDay()]}, ${d.data.getDate()} de ${MESES_ABREV[d.data.getMonth()]}`
-          return (
-            <span
-              key={d.chave}
-              className={`dashboard-activity__cell dashboard-activity__cell--l${nivel(d.contagem)}`}
-              style={{ gridColumn: colunaDe(d.data) + 1, gridRow: d.data.getDay() + 2 }}
-              title={rotulo}
-              aria-label={rotulo}
-              role="img"
-            />
-          )
-        })}
-      </div>
-      <div className="dashboard-activity__legend">
-        <span>Menos</span>
-        {[0, 1, 2, 3, 4].map(l => <span key={l} className={`dashboard-activity__cell dashboard-activity__cell--l${l}`}/>)}
-        <span>Mais</span>
-      </div>
-      <p className="dashboard-activity__total">{totalPeriodo} {totalPeriodo === 1 ? 'salvamento' : 'salvamentos'} nos últimos 30 dias</p>
-    </>
+    <div className="dashboard-activity__grid" style={{ gridTemplateColumns: `repeat(${totalColunas}, 1fr)` }}>
+      {rotulosMes.map(r => (
+        <span key={r.coluna} className="dashboard-activity__month" style={{ gridColumn: r.coluna + 1 }}>{r.texto}</span>
+      ))}
+      {dias.map(d => {
+        const ehHoje = d.chave === chaveHoje
+        const rotulo = `${d.contagem} ${d.contagem === 1 ? 'atividade' : 'atividades'} — ${DIAS_SEMANA_ABREV[d.data.getDay()]}, ${d.data.getDate()} de ${MESES_ABREV[d.data.getMonth()]}${ehHoje ? ' (hoje)' : ''}`
+        return (
+          <span
+            key={d.chave}
+            className={`dashboard-activity__cell ${ehHoje ? 'dashboard-activity__cell--today' : `dashboard-activity__cell--l${nivel(d.contagem)}`}`}
+            style={{ gridColumn: colunaDe(d.data) + 1, gridRow: d.data.getDay() + 2 }}
+            title={rotulo}
+            aria-label={rotulo}
+            role="img"
+          />
+        )
+      })}
+    </div>
   )
 }
 
@@ -424,8 +418,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
             </div>
           </section>
 
-          <aside className="dashboard-panel dashboard-activity" aria-label="Atividade recente do projeto">
-            <div className="dashboard-activity__head"><h2>Atividade</h2><span>Últimos 30 dias</span></div>
+          <aside className="dashboard-panel dashboard-activity" aria-label="Atividade recente do projeto — últimos 30 dias">
             <ActivityHeatmap registros={atividade}/>
           </aside>
         </div>
