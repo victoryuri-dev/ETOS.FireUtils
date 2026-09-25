@@ -126,7 +126,6 @@ function TabelaAreaMaxima({ resultado, onChangeArea, isenta }) {
               <tr className="border-b border-solid border-border">
                 <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Pavimento</th>
                 <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Divisão</th>
-                <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Área do pavimento</th>
                 <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Área de compartimentação (item 5.1.2)</th>
                 <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Área máxima permitida</th>
                 <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Situação</th>
@@ -137,7 +136,6 @@ function TabelaAreaMaxima({ resultado, onChangeArea, isenta }) {
                 <tr key={l.pavimento.id}>
                   <td className="py-2 px-3 text-xs text-ink">{l.pavimento.label}</td>
                   <td className="py-2 px-3 text-xs text-ink-faint">{l.pavimento.divisao}</td>
-                  <td className="py-2 px-3 text-xs text-ink-faint">{l.areaPavimento ? `${l.areaPavimento} m²` : '—'}</td>
                   <td className="py-2 px-3 text-xs text-ink-faint">
                     <AreaConsideradaInput linha={l} onChangeArea={onChangeArea}/> m²
                   </td>
