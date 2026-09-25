@@ -207,7 +207,22 @@ const getRiskLabel = fireLoad => {
   return 'Risco alto'
 }
 
-function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
+// Resumo de ocupação/divisão pro card técnico — uma única divisão mostra a
+// descrição do grupo (ex.: "Comercial") como valor principal e a própria
+// divisão (ex.: "Divisão C-1") como detalhe; mais de uma vira "Ocupação
+// mista", com as divisões listadas no detalhe (mesmo critério de
+// ocupacaoInfo em ProjetosPage.jsx).
+function getOcupacaoResumo(divisions, grupos) {
+  if (!divisions || divisions.length === 0) return { valor: '—', detalhe: 'Classificação pendente' }
+  if (divisions.length === 1) {
+    const divisao = divisions[0]
+    const letra = divisao.charAt(0)
+    return { valor: grupos?.[letra] || `Grupo ${letra}`, detalhe: `Divisão ${divisao}` }
+  }
+  return { valor: 'Ocupação mista', detalhe: divisions.join(', ') }
+}
+
+function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect, grupos }) {
   const cardRef = useRef(null)
   const drag = useRef({ active: false, startX: 0, deltaX: 0 })
   const activeIndex = Math.max(0, cards.findIndex(card => card.id === selectedId))
@@ -268,6 +283,7 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
   }
 
   if (!activeCard) return null
+  const ocup = getOcupacaoResumo(activeCard.divisions, grupos)
 
   return (
     <div className="dashboard-card-stack">
@@ -300,8 +316,9 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
           </div>
           <dl className="dashboard-technical-card__metrics">
             <div><dt>Área construída</dt><dd>{fmtNumber(activeCard.area)}<small>{activeCard.area ? ' m²' : ''}</small></dd></div>
-            <div><dt>Quantidade de pavimentos</dt><dd>{activeCard.floorCount || '—'}</dd><small>{activeCard.height ? `${fmtNumber(activeCard.height)} m de altura${activeCard.id === 'all' ? ' máxima' : ''}` : 'Altura não informada'}</small></div>
+            <div><dt>Quantidade de pavimentos</dt><dd>{activeCard.floorCount || '—'}<small>{activeCard.floorCount ? ` pavimento${activeCard.floorCount === 1 ? '' : 's'}` : ''}</small></dd><small>{activeCard.height ? `${fmtNumber(activeCard.height)} m de altura${activeCard.id === 'all' ? ' máxima' : ''}` : 'Altura não informada'}</small></div>
             <div><dt>Risco de incêndio</dt><dd>{getRiskLabel(activeCard.fireLoad)}</dd><small>{activeCard.fireLoad ? `${fmtNumber(activeCard.fireLoad)} MJ/m² de carga de incêndio` : 'Carga de incêndio não informada'}</small></div>
+            <div><dt>Ocupação e divisão</dt><dd>{ocup.valor}</dd><small>{ocup.detalhe}</small></div>
           </dl>
         </article>
       </div>
@@ -322,7 +339,7 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
 
 export default function DashboardPage({ onGoConfig, onNavigate }) {
   const { state } = useProjeto()
-  const { info } = useNorma()
+  const { info, grupos } = useNorma()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const [selectedStructureId, setSelectedStructureId] = useState('all')
   const [atividade, setAtividade] = useState([])
@@ -418,7 +435,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       requiredCount: activeSystems.filter(system => system.required).length,
     }
 
-    const technicalCards = [{ id: 'all', name: 'Visão geral do projeto', area, height, floorCount, basementCount, fireLoad }, ...structures.map(makeStructureSummary)]
+    const technicalCards = [{ id: 'all', name: 'Visão geral do projeto', area, height, floorCount, basementCount, fireLoad, groups, divisions }, ...structures.map(makeStructureSummary)]
 
     return { activeSystems, displayedSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsWithData, configPercent, hasTechnicalData, summary, technicalCards }
   }, [state, sistemas, porEstrutura, selectedStructureId])
@@ -479,7 +496,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
         </section>
 
         <section className="dashboard-technical" aria-label={`Resumo técnico — ${selectedStructureId === 'all' ? 'todas as edificações' : data.summary.label}`}>
-          <TechnicalCardStack cards={data.technicalCards} selectedId={selectedStructureId} systemsCount={data.displayedSystems.length} onSelect={setSelectedStructureId}/>
+          <TechnicalCardStack cards={data.technicalCards} selectedId={selectedStructureId} systemsCount={data.displayedSystems.length} onSelect={setSelectedStructureId} grupos={grupos}/>
         </section>
 
         <section className="dashboard-systems">
