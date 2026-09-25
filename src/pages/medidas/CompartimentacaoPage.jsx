@@ -229,6 +229,13 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   // já foi escolhida (pra poder trocar/remover) — no caso comum (conforme,
   // sem isenção) ficam fora, sem competir com o resultado.
   const mostrarSubstituicaoH = !!isencaoH || resultadoArea.pavimentosExcedentes.length > 0
+  // Elementos de proteção (parede/porta/vedador corta-fogo etc.) só fazem
+  // sentido quando existe subdivisão a construir: se a compartimentação foi
+  // substituída por sistema alternativo, ou se a edificação já se enquadra
+  // inteira num único compartimento (área considerada dentro do limite do
+  // Anexo B), não há o que adotar — a lista de elementos desaparece.
+  const precisaElementosH = !isencaoH && !resultadoArea.dentroDoLimite
+  const precisaElementosV = !isencaoV
 
   const toggleArr = (field, atual, key) => {
     const next = atual.includes(key) ? atual.filter(x => x !== key) : [...atual, key]
@@ -286,14 +293,23 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
 
             <Divisor/>
 
-            <div className="grid grid-cols-2 gap-6">
-              <Checklist
-                titulo="Elementos de proteção adotados"
-                tip="Itens 5.1.3 e 5.1.5, NT 09 CBMMA — a solução adotada deve constar no memorial descritivo."
-                opcoes={ELEMENTOS_COMPART_HORIZONTAL}
-                valores={elementosH}
-                onToggle={(k) => toggleArr('elementosCompartHorizontal', elementosH, k)}
-              />
+            {!precisaElementosH && !isencaoH && (
+              <div className="ibox green">
+                <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                <span className="text-xs">Área dentro do limite do Anexo B — a edificação se enquadra em um único compartimento, sem necessidade de elementos de proteção para subdivisão.</span>
+              </div>
+            )}
+
+            <div className={precisaElementosH ? 'grid grid-cols-2 gap-6' : ''}>
+              {precisaElementosH && (
+                <Checklist
+                  titulo="Elementos de proteção adotados"
+                  tip="Itens 5.1.3 e 5.1.5, NT 09 CBMMA — a solução adotada deve constar no memorial descritivo."
+                  opcoes={ELEMENTOS_COMPART_HORIZONTAL}
+                  valores={elementosH}
+                  onToggle={(k) => toggleArr('elementosCompartHorizontal', elementosH, k)}
+                />
+              )}
               <Checklist
                 titulo="Condições especiais aplicáveis"
                 opcoes={CONDICOES_ESPECIAIS_HORIZONTAL}
@@ -346,14 +362,16 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
 
             <Divisor/>
 
-            <div className="grid grid-cols-2 gap-6">
-              <Checklist
-                titulo="Elementos de proteção adotados"
-                tip="Itens 6.1.2 e 6.1.5, NT 09 CBMMA — a solução adotada deve constar no memorial descritivo."
-                opcoes={ELEMENTOS_COMPART_VERTICAL}
-                valores={elementosV}
-                onToggle={(k) => toggleArr('elementosCompartVertical', elementosV, k)}
-              />
+            <div className={precisaElementosV ? 'grid grid-cols-2 gap-6' : ''}>
+              {precisaElementosV && (
+                <Checklist
+                  titulo="Elementos de proteção adotados"
+                  tip="Itens 6.1.2 e 6.1.5, NT 09 CBMMA — a solução adotada deve constar no memorial descritivo."
+                  opcoes={ELEMENTOS_COMPART_VERTICAL}
+                  valores={elementosV}
+                  onToggle={(k) => toggleArr('elementosCompartVertical', elementosV, k)}
+                />
+              )}
               <Checklist
                 titulo="Condições especiais aplicáveis"
                 opcoes={CONDICOES_ESPECIAIS_VERTICAL}

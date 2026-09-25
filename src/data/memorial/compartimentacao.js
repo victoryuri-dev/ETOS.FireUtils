@@ -81,11 +81,22 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
 
     blocos.push({ tipo: 'campo', label: 'TRRF mínimo da parede de compartimentação', valor: `EI-${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} (portas/vedadores/registros podem ter até ${TRRF_REDUCAO_MAXIMA_ABERTURAS} min a menos, nunca abaixo de ${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min)` })
 
-    const elementos = labelsMarcados(ELEMENTOS_COMPART_HORIZONTAL, est.elementosCompartHorizontal)
-    if (elementos.length > 0) {
-      blocos.push({ tipo: 'lista', itens: elementos })
+    // Elementos de proteção (parede/porta/vedador corta-fogo etc.) só fazem
+    // sentido quando há subdivisão a construir — nem quando a compartimentação
+    // foi substituída por sistema alternativo, nem quando a edificação já se
+    // enquadra inteira num único compartimento (área dentro do limite do
+    // Anexo B, `r.dentroDoLimite`) há elemento a listar.
+    if (substituicao) {
+      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção para subdivisão não exigidos — a compartimentação horizontal foi substituída por sistema alternativo (ver acima).' })
+    } else if (r.dentroDoLimite) {
+      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção para subdivisão não exigidos — a área considerada de todos os pavimentos está dentro do limite do Anexo B, de modo que a edificação se enquadra em um único compartimento.' })
     } else {
-      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
+      const elementos = labelsMarcados(ELEMENTOS_COMPART_HORIZONTAL, est.elementosCompartHorizontal)
+      if (elementos.length > 0) {
+        blocos.push({ tipo: 'lista', itens: elementos })
+      } else {
+        blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
+      }
     }
 
     const condicoes = textosCondicoes(CONDICOES_ESPECIAIS_HORIZONTAL, est.condicoesEspeciaisCompartHorizontal)
@@ -128,11 +139,15 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
       })
     }
 
-    const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical)
-    if (elementos.length > 0) {
-      blocos.push({ tipo: 'lista', itens: elementos })
+    if (substituicaoV) {
+      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção não exigidos — a compartimentação vertical foi substituída por sistema alternativo (ver acima).' })
     } else {
-      blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
+      const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical)
+      if (elementos.length > 0) {
+        blocos.push({ tipo: 'lista', itens: elementos })
+      } else {
+        blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
+      }
     }
 
     const condicoes = textosCondicoes(CONDICOES_ESPECIAIS_VERTICAL, est.condicoesEspeciaisCompartVertical)

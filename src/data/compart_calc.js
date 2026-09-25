@@ -61,9 +61,19 @@ export function calcularAreaMaximaCompartimentacao(pavimentosOrdenados, estrutur
       return { pavimento: p, areaPavimento, area, overrideAtivo, ...busca, excede }
     })
 
+  const pavimentosExcedentes = linhas.filter(l => l.excede)
+  // Só dá pra concluir que a edificação se enquadra num único compartimento
+  // (dispensando elementos de proteção pra subdivisão) quando o tipo de
+  // edificação é conhecido, há pelo menos um pavimento classificado e TODOS
+  // já têm área informada — sem isso, "nenhum excedente" só significa que
+  // ainda não sabemos, não que está conforme.
+  const conclusivo = !!tipo && linhas.length > 0 && linhas.every(l => l.area > 0)
+  const dentroDoLimite = conclusivo && pavimentosExcedentes.length === 0
+
   return {
     tipo, tipoNome: tipoObj?.nome ?? null,
     linhas,
-    pavimentosExcedentes: linhas.filter(l => l.excede),
+    pavimentosExcedentes,
+    conclusivo, dentroDoLimite,
   }
 }
