@@ -65,10 +65,15 @@ export function useMedidasObrigatorias() {
       // da norma ou o baseline de grupo-sem-dados tenham marcado true acima.
       SEMPRE_OPCIONAL.forEach(k => { medidas[k] = false })
 
-      // Sistemas desta estrutura: obrigatorio vem da norma (medidas acima);
-      // ativo soma o toggle manual (opcional habilitado) guardado por
-      // estrutura em state.sistemasPorEstrutura — cada torre/bloco decide
-      // seus proprios sistemas opcionais, independente das demais.
+      // Sistemas desta estrutura: obrigatorio vem da norma (medidas acima).
+      // ativo segue o toggle manual quando ele existe (guardado por estrutura
+      // em state.sistemasPorEstrutura — cada torre/bloco decide os proprios
+      // sistemas, independente das demais); sem toggle manual, segue a norma.
+      // Isso permite desativar manualmente um sistema obrigatorio (o
+      // usuario decide não instalar, por conta e risco próprios) sem perder
+      // o proprio `obrigatorio` — quem le os dois campos pode continuar
+      // sinalizando (borda vermelha) que a norma exige mesmo estando
+      // desativado.
       const sistemas = {}
       Object.keys(state.sistemas || {}).forEach(k => {
         if (dimensionamento && !SISTEMAS_DIMENSIONAMENTO.has(k)) {
@@ -76,8 +81,9 @@ export function useMedidasObrigatorias() {
           return
         }
         const obrigatorio = !!medidas[k]
-        const ativoManual = !!state.sistemasPorEstrutura[est.id]?.[k]
-        sistemas[k] = { obrigatorio, ativo: obrigatorio || ativoManual }
+        const manual = state.sistemasPorEstrutura[est.id]?.[k]
+        const ativo = manual !== undefined ? manual : obrigatorio
+        sistemas[k] = { obrigatorio, ativo }
       })
 
       return {
@@ -93,8 +99,10 @@ export function useMedidasObrigatorias() {
       }
     })
 
-    // Agregado do projeto: uma medida e obrigatoria/ativa se for em QUALQUER
-    // estrutura — usado por telas que ainda tratam o projeto como um todo
+    // Agregado do projeto: `obrigatorio` e verdadeiro se a norma exigir em
+    // QUALQUER estrutura; `ativo` respeita o toggle manual de cada uma (nao
+    // forca mais true so por obrigatorio — uma estrutura pode ter desativado
+    // manualmente) — usado por telas que ainda tratam o projeto como um todo
     // (nav lateral, paginas de dimensionamento, Anexo B).
     const sistemas = {}
     Object.keys(state.sistemas || {}).forEach(k => {
@@ -103,7 +111,7 @@ export function useMedidasObrigatorias() {
         return
       }
       const obrigatorio = porEstrutura.some(pe => pe.sistemas[k]?.obrigatorio)
-      const ativo = obrigatorio || porEstrutura.some(pe => pe.sistemas[k]?.ativo)
+      const ativo = porEstrutura.some(pe => pe.sistemas[k]?.ativo)
       sistemas[k] = { obrigatorio, ativo }
     })
 

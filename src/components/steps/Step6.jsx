@@ -1,5 +1,6 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
+import { getNts } from '../../data/normas/index'
 import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
@@ -111,33 +112,52 @@ function EstruturaResumo({ pe }) {
 }
 
 // ── Grid de medidas de seguranca de uma estrutura ───────────────────────
-function MedidasGrid({ pe, dispatch, sistConfig }) {
+// Obrigatorio nao trava mais o clique: o usuario pode desativar por conta e
+// risco proprios (ex.: medida compensatoria, dispensa em analise) — o card
+// so muda de "vermelho solido" pra "vermelho contorno" (continua sinalizando
+// que a norma exige), nunca vira verde/neutro como um opcional.
+function MedidasGrid({ pe, dispatch, sistConfig, ntsPorSistema }) {
   return (
     <div className="grid grid-cols-3 gap-2">
       {sistConfig.map(s => {
         const sist = pe.sistemas[s.key] || { obrigatorio: false, ativo: false }
         const on    = sist.ativo
         const obrig = sist.obrigatorio
+        const nt    = ntsPorSistema[s.key]?.numero
+
+        const toneClass = obrig
+          ? (on ? 'border-red-border bg-red-dim' : 'border-red-border bg-transparent')
+          : (on ? 'border-green-border bg-green-dim' : 'border-border bg-transparent')
+        const badgeClass = on
+          ? (obrig ? 'bg-red border-red' : 'bg-green border-green')
+          : (obrig ? 'bg-transparent border-red-border' : 'bg-transparent border-border')
+        const iconClass = obrig ? 'bg-red-dim text-red' : on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'
+        const labelClass = obrig ? 'text-red' : on ? 'text-green' : 'text-ink-muted'
+        const statusClass = obrig ? 'text-[rgba(192,21,42,.6)]' : on ? 'text-[rgba(29,158,117,.65)]' : 'text-ink-hint'
+        const status = obrig
+          ? `Obrigatório${on ? '' : ', desativado'}${nt ? ` — ${nt}` : ''}`
+          : on ? 'Opcional — habilitado' : 'Opcional — desabilitado'
 
         return (
           <div key={s.key}
-            onClick={() => !obrig && dispatch({ type:'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: pe.estrutura.id, key:s.key })}
-            className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative transition-[border-color,background-color] duration-150 ${obrig ? 'cursor-default border-red-border bg-red-dim' : on ? 'cursor-pointer border-green-border bg-green-dim' : 'cursor-pointer border-border bg-transparent'}`}>
+            onClick={() => dispatch({ type:'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: pe.estrutura.id, key:s.key })}
+            title={obrig && !on ? 'Exigido pela norma para esta estrutura — desativado manualmente' : undefined}
+            className={`group border border-solid rounded-md p-3.5 flex flex-col gap-2 relative cursor-pointer transition-[border-color,background-color,transform,box-shadow] duration-150 motion-safe:hover:-translate-y-[2px] hover:shadow-[0_10px_22px_rgba(0,0,0,.3)] ${toneClass}`}>
             {/* Checkbox no canto */}
-            <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${obrig ? 'bg-red border-red' : on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
-              {(on || obrig) && <Icon name="check" size={9} color="#fff"/>}
+            <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center transition-colors duration-150 ${badgeClass}`}>
+              {on && <Icon name="check" size={9} color="#fff"/>}
             </div>
             {/* Icone */}
-            <div className={`w-7 h-7 rounded-md flex items-center justify-center ${obrig ? 'bg-red-dim text-red' : on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
+            <div className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors duration-150 ${iconClass}`}>
               <Icon name={s.icon} size={14}/>
             </div>
             {/* Nome */}
-            <div className={`text-xs font-medium leading-[1.3] ${obrig ? 'text-red' : on ? 'text-green' : 'text-ink-muted'}`}>
+            <div className={`text-xs font-medium leading-[1.3] ${labelClass}`}>
               {s.label}
             </div>
             {/* Status */}
-            <div className={`text-[10px] ${obrig ? 'text-[rgba(192,21,42,.6)]' : on ? 'text-[rgba(29,158,117,.65)]' : 'text-ink-hint'}`}>
-              {obrig ? 'Obrigatorio — NT 42/2019' : on ? 'Opcional — habilitado' : 'Opcional — desabilitado'}
+            <div className={`text-[10px] ${statusClass}`}>
+              {status}
             </div>
           </div>
         )
@@ -183,25 +203,26 @@ export default function Step6({ step, totalSteps }) {
   const { porEstrutura } = useMedidasObrigatorias()
   const dimensionamento = state.tipoProjeto === 'dimensionamento'
   const sistConfig = dimensionamento ? SIST_CONFIG_DIMENSIONAMENTO : SIST_CONFIG
+  const { NTS_POR_SISTEMA: ntsPorSistema } = getNts(state.uf)
 
   return (
     <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
       <div className="mb-[26px]">
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa {step} de {totalSteps}</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Medidas de Seguranca contra Incendio</h2>
-        <p className="text-[13px] text-ink-faint leading-[1.6]">Sistemas e riscos especiais identificados por estrutura, com base na area construida, altura e ocupacao de cada uma. Obrigatorios nao podem ser removidos.</p>
+        <p className="text-[13px] text-ink-faint leading-[1.6]">Sistemas e riscos especiais identificados por estrutura, com base na area construida, altura e ocupacao de cada uma. Obrigatorios podem ser desativados manualmente, mas continuam sinalizados em vermelho.</p>
       </div>
 
       <div className="ibox red">
         <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
-        <span>Sistemas <strong className="text-red">obrigatorios</strong> sao definidos pela NT 42/2019 CBMMA para a ocupacao, altura e area de cada estrutura. Sistemas opcionais podem ser habilitados por estrutura conforme necessidade tecnica.</span>
+        <span>Sistemas <strong className="text-red">obrigatorios</strong> sao definidos pela NT 01/2024 Parte 2 CBMMA para a ocupacao, altura e area de cada estrutura. Podem ser desativados por conta e risco proprios, mas o card permanece com a borda vermelha. Sistemas opcionais podem ser habilitados por estrutura conforme necessidade tecnica.</span>
       </div>
 
       {/* Legenda */}
       <div className="flex gap-4 mb-5 text-[11px] text-ink-faint">
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-red"/>
-          Obrigatorio (NT 42/2019)
+          Obrigatorio
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-green"/>
@@ -227,7 +248,7 @@ export default function Step6({ step, totalSteps }) {
 
             <div className="mb-6">
               <div className={blockTitle}>Medidas de seguranca</div>
-              <MedidasGrid pe={pe} dispatch={dispatch} sistConfig={sistConfig}/>
+              <MedidasGrid pe={pe} dispatch={dispatch} sistConfig={sistConfig} ntsPorSistema={ntsPorSistema}/>
             </div>
 
             {/* Riscos especiais alimentam o Anexo B (NT 01) — sem sentido
