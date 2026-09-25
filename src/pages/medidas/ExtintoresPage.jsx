@@ -32,9 +32,9 @@ import { SISTEMA_ICON } from '../../data/sistemasIcons'
 //
 // "tipo" é o rótulo livre do produto no Revit (não corresponde às chaves
 // internas do catálogo normativo) — o agente extintor (água/espuma/CO2/pó
-// BC/pó ABC) é inferido a partir das classes da "capacidade" (ver
+// BC/pó ABC/classe K) é inferido a partir das classes da "capacidade" (ver
 // inferirTipoKey). Quando "tipo" já bater com uma chave interna válida
-// (agua|espuma|co2|po_bc|po_abc|halogenado), ela é usada diretamente.
+// (agua|espuma|co2|po_bc|po_abc|halogenado|k_1a|k_2a), ela é usada diretamente.
 // "formato" é "Portátil" ou "Sobre rodas" (aceito sem acento/maiúsculas).
 // "carga" é a carga (peso) do agente extintor em kg.
 function normFormato(s) {
@@ -44,11 +44,20 @@ function normFormato(s) {
 // Deduz o agente extintor a partir das classes de fogo da capacidade
 // (única informação confiável do agente que o Revit exporta hoje). Não
 // distingue CO2/pó BC/halogenado — todos cobrem só B/C — então usa pó
-// químico BC como padrão nesse caso, por ser o agente mais comum.
+// químico BC como padrão nesse caso, por ser o agente mais comum. Classe K
+// (ex.: "1-A:K - 6L") também contém "A" — precisa ser checada ANTES da
+// checagem de "A" isolado, senão seria confundida com água. Como "1-A:K" e
+// "2-A:K" têm as mesmas classes (A, K), usa o multiplicador de classe A pra
+// escolher entre as duas cargas cadastradas (ver TIPOS_PORTATIL).
 function inferirTipoKey(capacidade, catalogo) {
-  const classes = new Set((capacidade || '').match(/[ABC]/g) || [])
+  const cap = capacidade || ''
+  const classes = new Set(cap.match(/[ABCK]/g) || [])
   let key = null
-  if (classes.has('A') && classes.has('B') && classes.has('C')) key = 'po_abc'
+  if (classes.has('K')) {
+    const m = cap.match(/(\d+)\s*-\s*A\s*:\s*K/i)
+    key = m?.[1] === '2' ? 'k_2a' : 'k_1a'
+  }
+  else if (classes.has('A') && classes.has('B') && classes.has('C')) key = 'po_abc'
   else if (classes.has('A') && classes.has('B')) key = 'espuma'
   else if (classes.has('A')) key = 'agua'
   else if (classes.has('B') || classes.has('C')) key = 'po_bc'

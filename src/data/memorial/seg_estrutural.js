@@ -8,7 +8,7 @@
 // tabela é mais fácil de achar um número do que um parágrafo de texto.
 
 import { getTRRF } from '../normas/index'
-import { calcularTRRF, metodologiaDosMateriais, alturaEdificacaoBase } from '../trrf_calc'
+import { calcularTRRF, metodologiaDosMateriais, alturaEdificacaoBase, edificacaoEhTerrea } from '../trrf_calc'
 
 function fmtTRRF(linha) {
   if (typeof linha.valor === 'number') return `${linha.valor} min`
@@ -38,9 +38,10 @@ function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, di
   }
 
   const alturaBase = alturaEdificacaoBase(est)
+  const alturaTxt = `${alturaBase} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`
   const valorAltura = r.subsoloSomado
-    ? `${r.classeAltura} — altura de ${alturaBase} m + ${est.profundidadeSubsolo} m de subsolo ocupado = ${r.alturaEfetiva} m (item 4.31, NT 03 CBMMA — subsolo com ocupação diferente de estacionamento)`
-    : `${r.classeAltura} — altura de ${alturaBase} m, do piso de descarga ao último pavimento habitado (item 4.31, NT 03 CBMMA)`
+    ? `${r.classeAltura} — altura de ${alturaTxt} + ${est.profundidadeSubsolo} m de subsolo ocupado = ${r.alturaEfetiva} m (item 4.31, NT 03 CBMMA — subsolo com ocupação diferente de estacionamento)`
+    : `${r.classeAltura} — altura de ${alturaTxt}, do piso de descarga ao último pavimento habitado (item 4.31, NT 03 CBMMA)`
   blocos.push({ tipo: 'campo', label: 'Classe de altura (Anexo B, NT 01 CBMMA)', valor: valorAltura })
   if (r.classeSubsolo) {
     blocos.push({ tipo: 'campo', label: 'Classe de subsolo (Anexo B, NT 01 CBMMA)', valor: `${r.classeSubsolo} — profundidade de ${est.profundidadeSubsolo} m` })

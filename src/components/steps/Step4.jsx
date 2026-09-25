@@ -274,8 +274,9 @@ function AcessRow({ pav, acess, index, usadas }) {
 
 // ── Modal de classificação do pavimento ───────────────────────────────
 function PavModal({ pav, onClose }) {
-  const { dispatch } = useProjeto()
+  const { state, dispatch } = useProjeto()
   const { ocupacoes, grupos } = useNorma()
+  const estrutura = state.estruturas.find(e => e.id === pav.estruturaId)
 
   const gruposKeys = Object.keys(ocupacoes)
   const divisoes   = ocupacoes[pav.grupo]?.divisoes || {}
@@ -306,6 +307,7 @@ function PavModal({ pav, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between py-[18px] px-[22px] border-b border-solid border-border shrink-0">
           <div>
+            <div className="text-[10px] text-red uppercase tracking-[.06em] font-semibold mb-1">{estrutura?.nome || 'Estrutura'}</div>
             <div className="text-base font-bold text-ink mb-[3px]">{pav.label}</div>
             <div className="text-[11px] text-ink-faint">Classificacao de ocupacao</div>
           </div>
@@ -488,7 +490,7 @@ export default function Step4({ step, totalSteps }) {
             const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
             if (!pavsEst.length) return null
             return (
-              <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
+              <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} apenasOcupacao/>}>
                 <div>
                   <div className={blockTitle}>Pavimentos</div>
                   {pavsEst.map(pav => (

@@ -3,6 +3,7 @@ import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial } from '../../data/memorial/registry'
 import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS } from '../../utils/anexoB'
 import { getCNAEsDivisao, getOcupacoes, getNts } from '../../data/normas/index'
+import { edificacaoEhTerrea } from '../../data/trrf_calc'
 import Icon from '../../components/ui/Icon'
 
 // Memorial descritivo: um documento para impressão, uma pagina A4 por medida
@@ -219,7 +220,7 @@ function SobreEdificacao({ state, totalPaginas }) {
     { titulo: 'Responsável Técnico', campos: [
       ['Responsável Técnico', state.rtNome],
       ['Registro Profissional', state.rtConselho],
-      ['Número da ART / RRT', state.artNumero],
+      ['Número da ART / RRT', state.usaArt ? state.artNumero : ''],
     ] },
     { titulo: 'Responsável pelo Uso', campos: [
       ['Razão Social', state.respRazaoSocial],
@@ -286,7 +287,7 @@ function Caracterizacao({ state, porEstrutura, totalPaginas }) {
           })
         })
 
-        const alturaPisoPisoTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' : `${est.alturaPisoPiso} m`
+        const alturaPisoPisoTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' : `${est.alturaPisoPiso} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`
 
         return (
           <div key={est.id} className="mb-7">

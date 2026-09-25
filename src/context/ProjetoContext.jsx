@@ -301,7 +301,7 @@ const INITIAL_STATE = {
   tipoProjeto: 'completo',
   nome: '', dataInicio: '', fase: 'Em desenvolvimento',
   endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'MA', cep: '',
-  situacao: 'nova', anoAlvara: '', numeroAlvara: '',
+  situacao: 'nova', numeroAlvara: '',
   anoConstrucao: '', situacaoCBM: 'Sem AVCB anterior',
   numeroAVCB: '', validadeAVCB: '', condicoesAtuais: '',
   areaTerreno: '', areaConstruidaTotal: '', quantidadePublico: '', areaComplementar: '',
@@ -324,6 +324,7 @@ const INITIAL_STATE = {
   cnaePrincipal: '', cnaePrincipalDesc: '',
   rtNome: '', rtCpf: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
+  usaArt: true,
   artNumero: '', artData: '', artTipoServico: 'Projeto', artValorObra: '',
   pavimentos: [pavimentoTerreo('est-1')],
   // Todos por-estrutura: chave = id da estrutura. cargaState guarda, dentro
@@ -1072,7 +1073,12 @@ export function ProjetoProvider({ children }) {
   const pendingLocalRef = useRef(false)
 
   const dispatch = useCallback((action) => {
-    pendingLocalRef.current = true
+    // LOAD (abrir o projeto) e SET_WIZARD (trocar de etapa) não são edição
+    // de dado nenhum — são navegação/boot (ver comentário de NAO_BROADCAST
+    // acima). Não marcar pendingLocalRef pra eles evita que só abrir a
+    // página ou clicar entre etapas dispare um autosave (e conte como
+    // atividade no heatmap) sem o usuário ter mudado nada de fato.
+    if (action.type !== 'LOAD' && action.type !== 'SET_WIZARD') pendingLocalRef.current = true
     if (NAO_BROADCAST.has(action.type)) { rawDispatch(action); return }
     const resolvida = resolverAcaoLocal(action, stateRef.current)
     rawDispatch(resolvida)
@@ -1108,6 +1114,15 @@ export function ProjetoProvider({ children }) {
     if (!user || !state.id || !state.saveReady || conflito || versaoRef.current == null) return
     setSyncStatus('saving')
     clearTimeout(saveTimer.current)
+    // Best-effort — não bloqueia nem falha o salvamento principal se der
+    // erro (ex.: migration da tabela atividade_diaria ainda não aplicada).
+    // Alimenta o heatmap de atividade do dashboard (Etapa/Dashboard →
+    // "Atividade"), um incremento por salvamento bem-sucedido no dia.
+    const registrarAtividade = () => {
+      supabase.rpc('registrar_atividade', { p_projeto_id: state.id }).then(({ error: rpcError }) => {
+        if (rpcError) console.error('Falha ao registrar atividade do projeto:', rpcError.message)
+      })
+    }
     saveTimer.current = setTimeout(async () => {
       pendingLocalRef.current = false
       const versaoLocal = versaoRef.current
@@ -1146,6 +1161,7 @@ export function ProjetoProvider({ children }) {
           if (!retryError && retry && retry.length > 0) {
             versaoRef.current = retry[0].version
             setSyncStatus('saved')
+            registrarAtividade()
             return
           }
           setConflito(true); setSyncStatus(null); return
@@ -1156,10 +1172,12 @@ export function ProjetoProvider({ children }) {
         if (insertErr) { console.error('Falha ao criar projeto no Supabase:', insertErr.message); setSyncStatus('error'); return }
         versaoRef.current = 1
         setSyncStatus('saved')
+        registrarAtividade()
         return
       }
       versaoRef.current = data[0].version
       setSyncStatus('saved')
+      registrarAtividade()
     }, 800)
     return () => clearTimeout(saveTimer.current)
   }, [state, user, conflito])

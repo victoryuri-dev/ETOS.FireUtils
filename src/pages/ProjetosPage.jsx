@@ -46,7 +46,7 @@ function calcCompletude(s) {
     !!(s.nome && s.endereco && s.cidade),
     !!(s.estruturas?.length && s.estruturas.every(e => e.areaTotal && e.altura)),
     !!s.propNome,
-    !!(s.rtNome && s.artNumero),
+    !!(s.rtNome && (!s.usaArt || s.artNumero)),
     !!(s.pavimentos?.length > 0 && s.pavimentos.every(pavClassificado)),
     !!(Object.keys(s.cargaState || {}).length > 0),
     true,

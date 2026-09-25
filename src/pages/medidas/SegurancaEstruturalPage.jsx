@@ -1,6 +1,6 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
-import { calcularTRRF, metodologiaDosMateriais, alturaEdificacaoBase } from '../../data/trrf_calc'
+import { calcularTRRF, metodologiaDosMateriais, alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
@@ -47,7 +47,9 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
           <div>
             <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura da edificação (piso de descarga ao último pavimento)</div>
             <div className="text-xs text-ink font-semibold">
-              {resultado.alturaEfetiva === '' || resultado.alturaEfetiva == null ? '—' : `${alturaEdificacaoBase(est)} m`} {resultado.classeAltura ? `— Classe ${resultado.classeAltura}` : ''}
+              {resultado.alturaEfetiva === '' || resultado.alturaEfetiva == null
+                ? '—'
+                : `${alturaEdificacaoBase(est)} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`} {resultado.classeAltura ? `— Classe ${resultado.classeAltura}` : ''}
             </div>
             {resultado.subsoloSomado && (
               <div className="text-[10px] text-amber mt-1">
