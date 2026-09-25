@@ -11,6 +11,18 @@
 
 const num = v => parseFloat(v) || 0
 
+/** Posição do reservatório em relação ao nível do solo — vocabulário fixo
+ *  (não varia por UF/norma, ao contrário de MATERIAIS_RESERVATORIO etc.,
+ *  por isso mora aqui, não em normas/<UF>/hidrantes.js). Usado pelo
+ *  formulário (FormularioSistema.jsx) e narrado no memorial descritivo
+ *  (memorial/hidrantes.js). */
+export const POSICOES_RESERVATORIO = [
+  { key: 'elevado',       label: 'Elevado' },
+  { key: 'nivel_solo',    label: 'Nível do solo' },
+  { key: 'semienterrado', label: 'Semienterrado' },
+  { key: 'subterraneo',   label: 'Subterrâneo' },
+]
+
 /** Coluna da Tabela 3 (1-4) para uma divisão, dada a carga de incêndio
  *  (MJ/m²) do pavimento — usa a faixa quando a divisão depende de carga,
  *  senão a coluna fixa. Retorna null se a divisão não consta na tabela. */

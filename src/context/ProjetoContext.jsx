@@ -416,7 +416,17 @@ const INITIAL_STATE = {
     estruturasSelecionadas: [],
     tipo: '', tipoVariante: 0, rti: '',
     reservatorioMaterial: '', reservatorioExclusivo: true, reservatorioVolumeTotal: '',
+    // Posição em relação ao nível do solo (elevado/nível do solo/
+    // semienterrado/subterrâneo, ver hidrantes_calc.js:POSICOES_RESERVATORIO)
+    // — narrada no memorial descritivo, sem correspondência geométrica no
+    // modelo Revit, por isso perguntada aqui.
+    reservatorioPosicao: '',
     bombaExiste: true, bombaJockey: false,
+    // Potência e vazão da bomba jockey — só fazem sentido com bombaJockey
+    // ativo; sem correspondência no modelo Revit (a bomba jockey não entra
+    // no dimensionamento hidráulico principal), por isso perguntadas aqui
+    // e só narradas no memorial (ver memorial/hidrantes.js).
+    bombaJockeyPotencia: '', bombaJockeyVazao: '',
     // Tipo de acionamento da bomba PRINCIPAL — elétrico ou combustão
     // interna (mesmas opções de bombaReservaAcionamento, ver
     // normas/<UF>/hidrantes.js:ACIONAMENTOS_BOMBA). Perguntado na Etapa 3

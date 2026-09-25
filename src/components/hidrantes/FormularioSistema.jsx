@@ -13,6 +13,7 @@
 import { useClassificacaoHidrantes } from '../../hooks/useClassificacaoHidrantes'
 import FormSection from '../ui/FormSection'
 import { inputClass, Field, Resultado, Pill, Nota, ToggleRow } from './formUi'
+import { POSICOES_RESERVATORIO } from '../../data/hidrantes_calc'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 const RISCO_COLOR = { baixo: 'text-ink-faint', medio: 'text-amber', alto: 'text-red' }
@@ -93,9 +94,8 @@ export default function FormularioSistema() {
           </div>
         )}
 
-        <div className="grid grid-cols-7 gap-3 bg-surface-2 border border-solid border-border rounded-lg p-4 mt-4">
+        <div className="grid grid-cols-6 gap-3 bg-surface-2 border border-solid border-border rounded-lg p-4 mt-4">
           <Resultado label="Tipo" value={tipoAtual ? `Tipo ${tipoAtual}` : '—'}/>
-          <Resultado label="RTI" value={h.rti ? `${h.rti} m³` : '—'}/>
           {dadosTipo && (
             <>
               <Resultado label="Esguicho" value={`DN${dadosTipo.esguicho}`}/>
@@ -108,13 +108,19 @@ export default function FormularioSistema() {
         </div>
       </FormSection>
 
-      {/* B — RTI e reservatório */}
+      {/* B — Reservatório e RTI */}
       <FormSection title="Reservatório">
-        <div className="mb-3">
+        <div className="grid grid-cols-2 gap-4 mb-3">
           <Field label="Material do reservatório">
             <select className={inputClass} value={h.reservatorioMaterial} onChange={e => set({ reservatorioMaterial: e.target.value })}>
               <option value="">Selecione...</option>
               {norma.MATERIAIS_RESERVATORIO.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Posição do reservatório">
+            <select className={inputClass} value={h.reservatorioPosicao} onChange={e => set({ reservatorioPosicao: e.target.value })}>
+              <option value="">Selecione...</option>
+              {POSICOES_RESERVATORIO.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
           </Field>
         </div>
@@ -130,6 +136,9 @@ export default function FormularioSistema() {
             </Field>
           </div>
         )}
+        <div className="grid grid-cols-2 gap-4 mt-3 bg-surface-2 border border-solid border-border rounded-lg p-4">
+          <Resultado label="RTI (Reserva Técnica de Incêndio)" hint="Tabela 3, NT 22" value={h.rti ? `${h.rti} m³` : '—'}/>
+        </div>
       </FormSection>
 
       {/* C — Rede de tubulação */}

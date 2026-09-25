@@ -5,8 +5,9 @@
 // (memorial de cálculo) é responsabilidade do plugin Revit e entra depois.
 
 import { getHidrantes } from '../normas/index'
-import { dadosDoTipo } from '../hidrantes_calc'
+import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
 
+const f2 = (n) => Number(n).toFixed(2)
 const LABEL_ACIONAMENTO = { eletrico: 'motor elétrico', combustao: 'motor de combustão interna' }
 const LABEL_CONFIG_REDE = { ramal: 'ramal único', malha: 'malha (anel) fechado' }
 const LABEL_RECALQUE = {
@@ -36,17 +37,20 @@ export function textoMemorialHidrantes(state) {
     texto: `A edificação será protegida por Sistema de Proteção por Hidrantes e Mangotinhos ${dadosTipo.label}, dimensionado conforme a NT 22/2021 CBMMA, com vazão mínima de ${dadosTipo.vazaoMin} L/min e pressão mínima de ${dadosTipo.pressaoMin} mca na válvula do hidrante mais desfavorável (Tabela 2, NT 22).`,
   })
 
+  blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
   if (h.rti) {
     blocos.push({
       tipo: 'campo', label: 'Reserva Técnica de Incêndio (RTI)',
       valor: `${h.rti} m³ — mínimo normativo conforme Tabela 3, NT 22`,
     })
   }
-
-  blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
   const materialReservatorio = norma.MATERIAIS_RESERVATORIO.find(m => m.key === h.reservatorioMaterial)
+  const posicaoReservatorio = POSICOES_RESERVATORIO.find(p => p.key === h.reservatorioPosicao)
   if (materialReservatorio) {
-    blocos.push({ tipo: 'paragrafo', texto: `O reservatório de incêndio será construído em ${materialReservatorio.label.toLowerCase()}. A posição (elevado, nível do solo, semienterrado ou subterrâneo) consta no projeto executivo (modelo Revit).` })
+    blocos.push({ tipo: 'paragrafo', texto: `O reservatório de incêndio será construído em ${materialReservatorio.label.toLowerCase()}.` })
+  }
+  if (posicaoReservatorio) {
+    blocos.push({ tipo: 'campo', label: 'Posição do reservatório', valor: posicaoReservatorio.label })
   }
   blocos.push({
     tipo: 'paragrafo',
@@ -80,10 +84,50 @@ export function textoMemorialHidrantes(state) {
         texto: 'O sistema de bombeamento de incêndio também alimenta o sistema de chuveiros automáticos (sprinklers), mediante interligação das tubulações dos reservatórios, conforme item 5.9.2 da NT 22, atendendo aos parâmetros da NT 23 — Sistema de Chuveiros Automáticos.',
       })
     }
-    blocos.push({
-      tipo: 'paragrafo',
-      texto: `Para a verificação da condição de sucção e o cálculo do NPSH disponível (Anexo C, NT 22), adotou-se altitude local de ${h.succaoAltitude ?? 0} m e temperatura da água de ${h.succaoTemperatura ?? 30} °C.`,
-    })
+
+    // NPSH só se aplica quando a condição de sucção deu NEGATIVA (a
+    // condição em si vem só da geometria — cotas da RTI e da bomba — e a
+    // altitude/temperatura aqui só importam pro cálculo do NPSH
+    // disponível, Anexo C, que só roda nesse caso; ver succao.py do
+    // plugin). Antes do primeiro "Dimensionar Hidrantes" a condição ainda
+    // não é conhecida, então o parágrafo fica de fora até então também.
+    const resDimensionamento = state.hidrantes?.dimensionamento?.res
+    if (state.hidrantes?.dimensionamento?.succao === 'negativa') {
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: `A condição de sucção resultou negativa — para a verificação e o cálculo do NPSH disponível (Anexo C, NT 22), adotou-se altitude local de ${h.succaoAltitude ?? 0} m e temperatura da água de ${h.succaoTemperatura ?? 30} °C.`,
+      })
+    }
+
+    // Especificações da bomba — pressão/vazão vêm do dimensionamento
+    // hidráulico (plugin Revit); potência é a adotada pelo RT na Etapa 3
+    // do dashboard (ver BombaESuccaoForm.jsx). Bomba jockey não passa pelo
+    // dimensionamento hidráulico principal — potência/vazão são as
+    // informadas diretamente pelo RT.
+    if (resDimensionamento || (h.bombaJockey && (h.bombaJockeyPotencia || h.bombaJockeyVazao))) {
+      const linhasBomba = []
+      if (resDimensionamento) {
+        linhasBomba.push([
+          'Bomba principal',
+          `${f2(resDimensionamento.P_RTI)} mca`,
+          `${f2(resDimensionamento.Qt)} L/min`,
+          h.bombaPotenciaAdotada ? `${h.bombaPotenciaAdotada} cv` : '—',
+        ])
+      }
+      if (h.bombaJockey) {
+        linhasBomba.push([
+          'Bomba jockey',
+          '—',
+          h.bombaJockeyVazao ? `${h.bombaJockeyVazao} L/min` : '—',
+          h.bombaJockeyPotencia ? `${h.bombaJockeyPotencia} cv` : '—',
+        ])
+      }
+      blocos.push({
+        tipo: 'tabela',
+        colunas: ['Bomba', 'Pressão', 'Vazão', 'Potência'],
+        linhas: linhasBomba,
+      })
+    }
   }
 
   blocos.push({ tipo: 'titulo2', texto: 'Rede de Tubulação' })
