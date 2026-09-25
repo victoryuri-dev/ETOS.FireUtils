@@ -35,15 +35,12 @@ const PRIMEIRA_SECAO_MEDIDA = 6
 // impressao isso vira mais de uma pagina para as secoes longas, quebradas
 // pelo navegador.
 //
-// Margens (3cm topo/rodape, 2cm nas laterais) moram aqui, no padding da
-// folha; a @page "memorial" (index.css) fica com margem 0 justamente pra
-// nao somar por cima.
-const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none pt-[3cm] pr-[2cm] pb-[3cm] pl-[2cm]'
-
-// Numero da pagina no rodape, dentro da faixa de margem inferior — `absolute`
-// se posiciona pela borda da folha, nao pelo padding dela, dai os insets
-// repetirem as margens.
-const NUM_PAGINA = 'absolute bottom-[1.5cm] right-[2cm] text-[10px] text-[#8a8a8c]'
+// Na tela, a folha simula as margens ABNT NBR 14724 (3cm topo/rodape, 2cm
+// laterais) no proprio padding, so pra ficar com cara de pagina impressa
+// durante a edicao. Na impressao (print:p-0) esse padding some de propo-
+// sito — sem margem embutida, quem configurar a impressao decide o proprio
+// espacamento no dialogo do navegador.
+const FOLHA = 'memorial-secao relative flex flex-col w-[210mm] min-h-[297mm] mx-auto mb-8 print:mb-0 bg-white text-black shadow-[0_4px_24px_rgba(0,0,0,.35)] print:shadow-none rounded-lg print:rounded-none pt-[3cm] pr-[2cm] pb-[3cm] pl-[2cm] print:p-0'
 
 // Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
 // borda clara. Centralizado aqui pra que as tabelas das medidas, do Anexo de
@@ -87,11 +84,7 @@ function descricaoDivisao(state, divisao) {
   return grupo?.divisoes?.[divisao] || ''
 }
 
-function numeroPagina(atual, total) {
-  return `${String(atual).padStart(2, '0')} / ${String(total).padStart(2, '0')}`
-}
-
-function Capa({ state, totalPaginas }) {
+function Capa({ state }) {
   // Nome do projeto é o único campo garantido em qualquer modo de projeto
   // (ver ProjetoContext.jsx tipoProjeto) — os demais só aparecem se
   // preenchidos, sem placeholder entre colchetes no documento final.
@@ -126,13 +119,11 @@ function Capa({ state, totalPaginas }) {
         {enderecoCompleto && <div><strong>Endereço:</strong> {enderecoCompleto}</div>}
         {proprietario && <div><strong>Proprietário:</strong> {proprietario}</div>}
       </div>
-
-      <div className={NUM_PAGINA}>{numeroPagina(1, totalPaginas)}</div>
     </div>
   )
 }
 
-function Sumario({ topicos, totalPaginas }) {
+function Sumario({ topicos }) {
   return (
     <div className={FOLHA}>
       <h1 className="font-heading text-[20px] font-bold text-black uppercase tracking-[.04em] text-center mt-10 mb-16">Sumário</h1>
@@ -146,13 +137,11 @@ function Sumario({ topicos, totalPaginas }) {
           </div>
         ))}
       </div>
-
-      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_SUMARIO, totalPaginas)}</div>
     </div>
   )
 }
 
-function Introducao({ sistemas, totalPaginas, uf }) {
+function Introducao({ sistemas, uf }) {
   const { NTS_PADRAO_MA, NT_CARGA_INCENDIO, NTS_POR_SISTEMA } = getNts(uf)
   const nts = Object.entries(sistemas || {})
     .filter(([, s]) => s.ativo || s.obrigatorio)
@@ -196,8 +185,6 @@ function Introducao({ sistemas, totalPaginas, uf }) {
           </ul>
         </div>
       </div>
-
-      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_INTRODUCAO, totalPaginas)}</div>
     </div>
   )
 }
@@ -210,7 +197,7 @@ function CampoDiscriminado({ label, value }) {
   return <div><strong>{label}:</strong> {value}</div>
 }
 
-function SobreEdificacao({ state, totalPaginas }) {
+function SobreEdificacao({ state }) {
   const endereco = enderecoCompletoDe(state, '')
 
   // Subitem só entra na numeração se tiver ao menos um campo preenchido —
@@ -260,13 +247,11 @@ function SobreEdificacao({ state, totalPaginas }) {
           </div>
         </div>
       ))}
-
-      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_SOBRE_EDIFICACAO, totalPaginas)}</div>
     </div>
   )
 }
 
-function Caracterizacao({ state, porEstrutura, totalPaginas }) {
+function Caracterizacao({ state, porEstrutura }) {
   return (
     <div className={FOLHA}>
       <h1 className="font-heading text-[15px] font-bold text-black uppercase tracking-[.04em] mb-8">
@@ -333,13 +318,11 @@ function Caracterizacao({ state, porEstrutura, totalPaginas }) {
           </div>
         )
       })}
-
-      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_CARACTERIZACAO, totalPaginas)}</div>
     </div>
   )
 }
 
-function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
+function MedidasAplicadas({ state, sistemas, porEstrutura }) {
   const medidas = [...MEDIDAS_ANEXO_B_COL1, ...MEDIDAS_ANEXO_B_COL2]
     .filter(m => m.key && (sistemas[m.key]?.ativo || sistemas[m.key]?.obrigatorio))
     .map(m => m.key === 'central_gas' ? { ...m, label: 'Central GLP' } : m)
@@ -455,8 +438,6 @@ function MedidasAplicadas({ state, sistemas, porEstrutura, totalPaginas }) {
           )}
         </>
       )}
-
-      <div className={NUM_PAGINA}>{numeroPagina(PAGINA_MEDIDAS_APLICADAS, totalPaginas)}</div>
     </div>
   )
 }
@@ -663,7 +644,7 @@ function BlocoMedida({ bloco, numeroBloco }) {
   }
 }
 
-function SecaoMedida({ secao, numeroSecao, pagina, totalPaginas }) {
+function SecaoMedida({ secao, numeroSecao }) {
   let numeroBloco = 1
 
   return (
@@ -683,10 +664,6 @@ function SecaoMedida({ secao, numeroSecao, pagina, totalPaginas }) {
         : secao.paragrafos.map((p, i) => (
             <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8 pl-2">{p}</p>
           ))}
-
-      <div className={NUM_PAGINA}>
-        {numeroPagina(pagina, totalPaginas)}
-      </div>
     </div>
   )
 }
@@ -695,7 +672,6 @@ export default function MemorialDescritivoPage({ onBack }) {
   const { state }    = useProjeto()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const secoes = buildMemorial(state, sistemas, porEstrutura)
-  const totalPaginas = PRIMEIRA_PAGINA_MEDIDA - 1 + secoes.length
   const topicos = [
     { titulo: 'Objetivo', pagina: PAGINA_INTRODUCAO },
     { titulo: 'Sobre a Legislação', pagina: PAGINA_INTRODUCAO },
@@ -723,14 +699,14 @@ export default function MemorialDescritivoPage({ onBack }) {
           </div>
         ) : (
           <div className="print-area print-area-memorial">
-            <Capa state={state} totalPaginas={totalPaginas}/>
-            <Sumario topicos={topicos} totalPaginas={totalPaginas}/>
-            <Introducao sistemas={sistemas} totalPaginas={totalPaginas} uf={state.uf}/>
-            <SobreEdificacao state={state} totalPaginas={totalPaginas}/>
-            <Caracterizacao state={state} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
-            <MedidasAplicadas state={state} sistemas={sistemas} porEstrutura={porEstrutura} totalPaginas={totalPaginas}/>
+            <Capa state={state}/>
+            <Sumario topicos={topicos}/>
+            <Introducao sistemas={sistemas} uf={state.uf}/>
+            <SobreEdificacao state={state}/>
+            <Caracterizacao state={state} porEstrutura={porEstrutura}/>
+            <MedidasAplicadas state={state} sistemas={sistemas} porEstrutura={porEstrutura}/>
             {secoes.map((secao, i) => (
-              <SecaoMedida key={i} secao={secao} numeroSecao={PRIMEIRA_SECAO_MEDIDA + i} pagina={PRIMEIRA_PAGINA_MEDIDA + i} totalPaginas={totalPaginas}/>
+              <SecaoMedida key={i} secao={secao} numeroSecao={PRIMEIRA_SECAO_MEDIDA + i}/>
             ))}
           </div>
         )}
