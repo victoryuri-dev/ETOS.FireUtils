@@ -5,8 +5,6 @@ import { useNorma } from '../hooks/useNorma'
 import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
 import { supabase } from '../lib/supabase'
 import Icon from '../components/ui/Icon'
-import Checkbox from '../components/ui/Checkbox'
-import InlineEditableNome from '../components/ui/InlineEditableNome'
 import './DashboardPage.css'
 
 const DIAS_SEMANA_ABREV = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
@@ -126,57 +124,6 @@ function ActivityHeatmap({ registros, ultimaAlteracao }) {
       </div>
       <p className="dashboard-activity__updated">Última alteração {timeAgo(ultimaAlteracao)}</p>
     </>
-  )
-}
-
-// ── Notas — checklist livre do projeto ───────────────────────────────────
-// Uso do projetista (lembretes, pendências à parte), sem entrar em nenhum
-// cálculo normativo nem no memorial. Item novo entra já com o texto digitado
-// (em vez de nascer vazio e exigir um segundo clique pra nomear).
-function NotasPanel({ notas, dispatch }) {
-  const [draft, setDraft] = useState('')
-
-  const adicionar = () => {
-    const texto = draft.trim()
-    if (!texto) return
-    dispatch({ type: 'ADD_NOTA', texto })
-    setDraft('')
-  }
-
-  const feitas = notas.filter(n => n.feito).length
-
-  return (
-    <article className="dashboard-panel dashboard-notes">
-      <div className="dashboard-section-heading">
-        <div><h2>Notas</h2><p>Checklist livre do projeto</p></div>
-        <Icon name="checkCircle" size={15}/>
-      </div>
-
-      <div className="dashboard-notes__list">
-        {notas.length === 0 && <p className="dashboard-notes__empty">Nenhuma nota ainda.</p>}
-        {notas.map(n => (
-          <div key={n.id} className={`dashboard-notes__item ${n.feito ? 'is-done' : ''}`}>
-            <Checkbox checked={n.feito} onChange={() => dispatch({ type: 'TOGGLE_NOTA', id: n.id })} title={n.feito ? 'Marcar como pendente' : 'Marcar como concluída'}/>
-            <InlineEditableNome value={n.texto} onCommit={texto => dispatch({ type: 'SET_NOTA_TEXTO', id: n.id, texto })} textClassName="dashboard-notes__text"/>
-            <button type="button" className="dashboard-notes__remove" onClick={() => dispatch({ type: 'REMOVE_NOTA', id: n.id })} title="Remover nota">
-              <Icon name="trash" size={12}/>
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <div className="dashboard-notes__add">
-        <input
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && adicionar()}
-          placeholder="Adicionar nota..."
-        />
-        <button type="button" className="btn-add" onClick={adicionar}><Icon name="plus" size={11}/> Adicionar</button>
-      </div>
-
-      {notas.length > 0 && <p className="dashboard-notes__count">{feitas} de {notas.length} concluídas</p>}
-    </article>
   )
 }
 
@@ -374,7 +321,7 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
 }
 
 export default function DashboardPage({ onGoConfig, onNavigate }) {
-  const { state, dispatch } = useProjeto()
+  const { state } = useProjeto()
   const { info } = useNorma()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const [selectedStructureId, setSelectedStructureId] = useState('all')
@@ -529,7 +476,6 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
             <button type="button" className="dashboard-text-button" onClick={onGoConfig}>Editar identificação <Icon name="right" size={13}/></button>
           </article>
 
-          <NotasPanel notas={state.notas} dispatch={dispatch}/>
         </section>
 
         <section className="dashboard-technical" aria-label="Resumo técnico">
