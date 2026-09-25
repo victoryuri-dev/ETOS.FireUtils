@@ -1073,7 +1073,12 @@ export function ProjetoProvider({ children }) {
   const pendingLocalRef = useRef(false)
 
   const dispatch = useCallback((action) => {
-    pendingLocalRef.current = true
+    // LOAD (abrir o projeto) e SET_WIZARD (trocar de etapa) não são edição
+    // de dado nenhum — são navegação/boot (ver comentário de NAO_BROADCAST
+    // acima). Não marcar pendingLocalRef pra eles evita que só abrir a
+    // página ou clicar entre etapas dispare um autosave (e conte como
+    // atividade no heatmap) sem o usuário ter mudado nada de fato.
+    if (action.type !== 'LOAD' && action.type !== 'SET_WIZARD') pendingLocalRef.current = true
     if (NAO_BROADCAST.has(action.type)) { rawDispatch(action); return }
     const resolvida = resolverAcaoLocal(action, stateRef.current)
     rawDispatch(resolvida)
