@@ -774,6 +774,11 @@ export default function ExtintoresPage() {
   const [importInfo, setImportInfo] = useState(null)
   const [importErros, setImportErros] = useState([])
   const [buscando, setBuscando] = useState(false)
+  // Id da estrutura sendo atualizada individualmente (botão "Atualizar" no
+  // card dela, ver handleBuscarRevitEstrutura) — null quando nenhuma está
+  // em busca. Separado de `buscando` (o "Buscar do Revit" do cabeçalho,
+  // que busca todas de uma vez).
+  const [buscandoEstruturaId, setBuscandoEstruturaId] = useState(null)
   const fileInputRef = useRef(null)
 
   // Aplica o payload da chave "extintores" (vindo de um arquivo ou do
@@ -843,6 +848,30 @@ export default function ExtintoresPage() {
     setImportErros(errosGeral)
   }
 
+  // Mesma busca de handleBuscarRevit, mas escopada a uma única estrutura
+  // (botão "Atualizar" no card dela) — útil quando só o modelo Revit
+  // daquela estrutura mudou, sem precisar re-sincronizar as demais.
+  const handleBuscarRevitEstrutura = async estruturaId => {
+    setBuscandoEstruturaId(estruturaId)
+    const { data, error } = await supabase
+      .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id)
+      .eq('medida', 'extintores').eq('estrutura_id', estruturaId).maybeSingle()
+    setBuscandoEstruturaId(null)
+    if (error) {
+      setImportInfo(null)
+      setImportErros([`Falha ao consultar o Supabase: ${error.message}`])
+      return
+    }
+    if (!data) {
+      setImportInfo(null)
+      setImportErros(['Nenhum dado de extintores sincronizado do Revit ainda para esta estrutura.'])
+      return
+    }
+    const { total, erros, timestamp } = aplicarExtintores(data.payload, estruturaId)
+    setImportInfo({ timestamp, total })
+    setImportErros(erros)
+  }
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
@@ -893,7 +922,18 @@ export default function ExtintoresPage() {
         {state.estruturas.map(est => {
           const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
           return (
-            <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
+            <EstruturaSection key={est.id} titulo={est.nome} extra={
+              <div className="flex items-center gap-2">
+                <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
+                  onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}
+                  disabled={buscandoEstruturaId === est.id}
+                  title="Buscar do Revit só os dados desta estrutura">
+                  <Icon name="upload" size={10}/>
+                  {buscandoEstruturaId === est.id ? 'Buscando…' : 'Atualizar'}
+                </button>
+                <EstruturaHeaderInfo estrutura={est}/>
+              </div>
+            }>
               {pavimentos.length === 0 ? (
                 <div className="ibox amber">
                   <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>

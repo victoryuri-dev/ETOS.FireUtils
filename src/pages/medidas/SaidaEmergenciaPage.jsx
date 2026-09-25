@@ -168,6 +168,11 @@ export default function SaidaEmergenciaPage() {
   const [importErro,   setImportErro]   = useState(null)
   const [colapsadas,   setColapsadas]   = useState({})
   const [buscando,     setBuscando]     = useState(false)
+  // Id da estrutura sendo atualizada individualmente (botão "Atualizar" no
+  // card dela, ver handleBuscarRevitEstrutura) — null quando nenhuma está
+  // em busca. Separado de `buscando` (o "Buscar do Revit" do cabeçalho,
+  // que busca todas de uma vez).
+  const [buscandoEstruturaId, setBuscandoEstruturaId] = useState(null)
   const fileInputRef = useRef(null)
 
   const toggleColapsada = estId => setColapsadas(prev => ({ ...prev, [estId]: !prev[estId] }))
@@ -232,6 +237,29 @@ export default function SaidaEmergenciaPage() {
     }
     setImportErro(errosGeral.length ? errosGeral.join(' ') : null)
     setImportInfo(timestampMaisRecente)
+  }
+
+  // Mesma busca de handleBuscarRevit, mas escopada a uma única estrutura
+  // (botão "Atualizar" no card dela) — útil quando só o modelo Revit
+  // daquela estrutura mudou, sem precisar re-sincronizar (e sobrescrever
+  // o timestamp de importação exibido) das demais.
+  const handleBuscarRevitEstrutura = async estruturaId => {
+    setBuscandoEstruturaId(estruturaId)
+    const { data, error } = await supabase
+      .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id)
+      .eq('medida', 'saidas_emergencia').eq('estrutura_id', estruturaId).maybeSingle()
+    setBuscandoEstruturaId(null)
+    if (error) {
+      setImportErro(`Falha ao consultar o Supabase: ${error.message}`)
+      return
+    }
+    if (!data) {
+      setImportErro('Nenhum dado de saídas de emergência sincronizado do Revit ainda para esta estrutura.')
+      return
+    }
+    const { erros, timestamp } = aplicarSaidas(data.payload, estruturaId)
+    setImportErro(erros.length ? erros.join(' ') : null)
+    setImportInfo(timestamp)
   }
 
   const viewPav = viewPavId ? state.pavimentos.find(p => p.id === viewPavId) : null
@@ -315,7 +343,14 @@ export default function SaidaEmergenciaPage() {
                     <Icon name={aberta ? 'chevD' : 'chevR'} size={13} color="var(--color-ink-faint)" className="shrink-0"/>
                     <Icon name="newbld" size={14} color="var(--color-red)"/> {estrutura.nome}
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
+                      onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(estrutura.id) }}
+                      disabled={buscandoEstruturaId === estrutura.id}
+                      title="Buscar do Revit só os dados desta estrutura">
+                      <Icon name="upload" size={10}/>
+                      {buscandoEstruturaId === estrutura.id ? 'Buscando…' : 'Atualizar'}
+                    </button>
                     <SistemaBadge ativo={getTemChuveiros(estrutura.id)} label="Chuveiros automáticos"/>
                     <SistemaBadge ativo={getTemDeteccao(estrutura.id)} label="Detecção de incêndio"/>
                   </div>
