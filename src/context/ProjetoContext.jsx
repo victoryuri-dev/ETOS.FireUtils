@@ -749,6 +749,7 @@ function reducer(state, action) {
         return { ...state, acabamentos: [...state.acabamentos, { ...novaLinhaAcabamento(estruturaId, chave), ...changes }] }
       }
       return { ...state, acabamentos: state.acabamentos.map((a, i) => i === idx ? { ...a, ...changes } : a) }
+    }
     // Ambientes de Saída de Emergência (SaidaEmergenciaPage.jsx) — vivem
     // dentro do pavimento (population/dimensionamento é por pavimento, não
     // um cadastro à parte como extintor/iluminação/sinalização). Só são
