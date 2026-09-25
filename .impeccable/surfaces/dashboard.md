@@ -8,7 +8,7 @@
 
 1. Identidade e estado da configuração do projeto.
 2. Situação do projeto, ao lado do heatmap de atividade.
-3. Identificação do projeto com dados administrativos e responsáveis, ao lado do checklist livre de Notas.
+3. Identificação do projeto com dados administrativos e responsáveis.
 4. Resumo técnico em card stack, na visão geral ou filtrado por edificação.
 5. Sistemas aplicados alinhados ao resumo e no mesmo recorte da seleção, com estado derivado dos dados persistidos.
 6. Acesso à documentação gerada.
@@ -35,8 +35,7 @@
 - Em “Visão geral”, a lista de sistemas consolida todas as edificações. No recorte de uma edificação, ela mostra somente os sistemas aplicáveis à estrutura selecionada, deriva desse mesmo recorte a indicação de “Obrigatório” ou “Opcional habilitado” e atualiza as contagens de sistemas aplicáveis e obrigatórios. Contagens de lançamentos vinculados a uma estrutura também devem considerar apenas a edificação selecionada.
 - A pilha oferece apenas as edificações cadastradas e preserva “Visão geral do projeto” como opção agregada.
 - O acesso aos documentos permanece indisponível enquanto não houver qualquer dado técnico do projeto.
-- O heatmap de atividade fica ao lado de Situação do projeto, esticado (`align-items:stretch`) até a mesma altura — a largura fica definida pelo próprio conteúdo do grid, só a altura acompanha a caixa vizinha. Título visível "Atividade" (sem subtítulo/legenda); o `aria-label` da caixa carrega o contexto extra ("últimos 2 meses"). Mostra sempre uma janela fixa de 2 meses corridos até hoje, com quadrado de tamanho fixo e pequeno (11px) — os quadrados em si nunca esticam pra preencher espaço, quem ocupa a altura sobrando é a caixa. O dia atual sempre cai na última coluna (mais à direita, igual ao GitHub) e recebe destaque branco sólido em vez de seguir a escala de vermelho, ficando localizável mesmo sem atividade registrada. Abaixo do grid, empurrado pro rodapé da caixa (`margin-top:auto`), um texto pequeno mostra a última alteração real do projeto (mesmo `updatedAt` usado em ProjetosPage). Só conta como atividade um salvamento de verdade confirmado no Supabase — abrir o projeto ou trocar de etapa do wizard nunca dispara isso.
-- Notas é um checklist livre do projetista (texto + concluído/pendente), ao lado de Identificação — não entra em cálculo normativo nem no memorial. Item novo já nasce com o texto digitado no campo de adicionar (sem exigir nomear depois); texto existente edita clicando (mesmo padrão inline de Extintores/Saídas de Emergência); remover é uma lixeira que só aparece no hover do item.
+- O heatmap de atividade fica ao lado de Situação do projeto, esticado (`align-items:stretch`) até a mesma altura — a largura fica definida pelo próprio conteúdo do grid, só a altura acompanha a caixa vizinha. Título visível "Atividade" (sem subtítulo/legenda); o `aria-label` da caixa carrega o contexto extra ("últimos 2 meses"). Mostra sempre uma janela fixa de 2 meses corridos até hoje, com quadrado de tamanho fixo e pequeno (11px) — os quadrados em si nunca esticam pra preencher espaço, quem ocupa a altura sobrando é a caixa. O dia atual sempre cai na última coluna (mais à direita, igual ao GitHub) e recebe destaque branco sólido em vez de seguir a escala de vermelho, ficando localizável mesmo sem atividade registrada. Abaixo do grid, empurrado pro rodapé da caixa (`margin-top:auto`), um texto pequeno mostra a última alteração real do projeto (mesmo `updatedAt` usado em ProjetosPage).
 
 ## Navegação e adaptação
 
