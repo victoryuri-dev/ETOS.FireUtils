@@ -212,6 +212,9 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
   const drag = useRef({ active: false, startX: 0, deltaX: 0 })
   const activeIndex = Math.max(0, cards.findIndex(card => card.id === selectedId))
   const activeCard = cards[activeIndex] || cards[0]
+  const stackedCards = cards.length > 1
+    ? Array.from({ length: Math.min(2, cards.length - 1) }, (_, index) => cards[(activeIndex + index + 1) % cards.length])
+    : []
 
   const moveTo = direction => {
     if (cards.length < 2) return
@@ -272,6 +275,11 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect }) {
         {activeCard.name}. {systemsCount} sistema{systemsCount === 1 ? '' : 's'} aplicáve{systemsCount === 1 ? 'l' : 'is'}.
       </div>
       <div className="dashboard-card-stack__stage">
+        {stackedCards.slice().reverse().map((card, reverseIndex) => (
+          <div className="dashboard-technical-card dashboard-technical-card--back" data-depth={stackedCards.length - reverseIndex} key={card.id} aria-hidden="true">
+            <span>{card.name}</span>
+          </div>
+        ))}
         <article
           ref={cardRef}
           className="dashboard-technical-card dashboard-technical-card--active"
