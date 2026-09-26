@@ -429,7 +429,7 @@ const INITIAL_STATE = {
     // ativo; sem correspondência no modelo Revit (a bomba jockey não entra
     // no dimensionamento hidráulico principal), por isso perguntadas aqui
     // e só narradas no memorial (ver memorial/hidrantes.js).
-    bombaJockeyPotencia: '', bombaJockeyVazao: '',
+    bombaJockeyPotencia: '', bombaJockeyVazao: '', bombaJockeyPressao: '',
     // Tipo de acionamento da bomba PRINCIPAL — elétrico ou combustão
     // interna (mesmas opções de bombaReservaAcionamento, ver
     // normas/<UF>/hidrantes.js:ACIONAMENTOS_BOMBA). Perguntado na Etapa 3

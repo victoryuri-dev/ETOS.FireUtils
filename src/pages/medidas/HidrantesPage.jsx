@@ -6,7 +6,8 @@ import { useToast } from '../../hooks/useToast'
 import StepsNav from '../../components/layout/StepsNav'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import FormularioSistema from '../../components/hidrantes/FormularioSistema'
-import BombaESuccaoForm from '../../components/hidrantes/BombaESuccaoForm'
+import { SelecaoBombas, SucaoBomba } from '../../components/hidrantes/BombaESuccaoForm'
+import FormSection from '../../components/ui/FormSection'
 import { calcPotenciaBomba } from '../../data/hidrantes_calc'
 import { getHidrantes } from '../../data/normas/index'
 
@@ -16,7 +17,6 @@ const f2  = n => Number(n).toFixed(2)
 const f3  = n => Number(n).toFixed(3)
 const fmca = n => `${f4(n)} mca`
 const lmin = n => `${f2(n)} L/min`
-const m3s  = n => `${Number(n).toFixed(4)} m³/s`
 const ms   = n => `${f3(n)} m/s`
 
 // ── Shared UI ─────────────────────────────────────────────────────────
@@ -39,12 +39,6 @@ function VelChip({ v, limite }) {
 }
 function AtendeChip({ ok }) {
   return <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid ${ok?'bg-green-dim border-green-border text-green':'bg-red-dim border-red-border text-red'}`}>{ok ? 'ATENDE' : 'NÃO ATENDE'}</span>
-}
-function Formula({ children }) {
-  return <div className="bg-bg border border-solid border-border rounded-md py-2.5 px-3.5 text-xs text-ink-muted font-mono leading-[1.6] mt-2">{children}</div>
-}
-function FormulaVal({ children }) {
-  return <strong className="text-red">{children}</strong>
 }
 function Card({ children, className='' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
@@ -401,75 +395,32 @@ function ResultadoHidraulico({ d }) {
   )
 }
 
-// ── Eficiência e Potência Adotada ────────────────────────────────────
-// Eficiência (η) e potência adotada são os dois únicos campos que o RT
-// informa na Etapa 3 — sincronizados direto com a dockpane via Supabase
-// (state.hidrantes.bombaEficiencia/bombaPotenciaAdotada), sem transformação.
-function EficienciaPotenciaAdotada({ eta, onChangeEta, potenciaAdotada, onChangePotenciaAdotada, potCv }) {
+function ValorOperacao({ rotulo, valor, unidade, conversao, tom }) {
   return (
-    <div className="grid grid-cols-2 gap-4 mb-6">
-      <div>
-        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Eficiência global da bomba (η)</div>
-        <div className="relative max-w-[220px]">
-          <input type="number" step="1" min={1} max={100}
-            className="bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 pr-8 w-full outline-none box-border"
-            value={eta} onChange={e => onChangeEta(e.target.value)}/>
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">%</span>
-        </div>
-      </div>
-      <div>
-        <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Potência adotada</div>
-        <div className="relative max-w-[220px]">
-          <input type="number" step="0.5" min={0}
-            className="bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 pr-8 w-full outline-none box-border"
-            value={potenciaAdotada} onChange={e => onChangePotenciaAdotada(e.target.value)}/>
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">cv</span>
-        </div>
-        {potenciaAdotada !== '' && potCv != null && (
-          <div className={`text-[11px] mt-1 ${Number(potenciaAdotada) >= potCv ? 'text-green' : 'text-red'}`}>
-            {Number(potenciaAdotada) >= potCv ? 'Atende a potência mínima' : `Abaixo da potência mínima calculada (${f2(potCv)} cv)`}
-          </div>
-        )}
+    <div className="py-4 px-5">
+      <div className="text-[10px] text-ink-faint uppercase tracking-[.08em] mb-1.5">{rotulo}</div>
+      <div className="flex items-baseline gap-1.5">
+        <span className={`font-mono text-xl font-bold ${tom}`}>{valor}</span>
+        <span className="text-[11px] text-ink-faint">{unidade}</span>
+        {conversao && <span className="text-[11px] text-ink-faint">· {conversao}</span>}
       </div>
     </div>
   )
 }
 
 // ── Ponto de Operação para Seleção da Bomba ────────────────────────────
-// Qt/Ht já foram mostrados na Etapa 2 (ResultadoHidraulico) e a eficiência
-// já está logo acima (EficienciaPotenciaAdotada) — aqui só o que falta:
-// a fórmula da potência mínima e as 4 grandezas que o RT leva pro catálogo
-// do fabricante pra escolher a bomba.
-function Bomba({ d, eta, potCv, potKw }) {
+// Só os valores que o RT leva pro catálogo do fabricante (sem mostrar o
+// cálculo). Qt/Ht já foram mostrados na Etapa 2 (ResultadoHidraulico).
+function Bomba({ d }) {
   const { res } = d
-  const Qt_m3s = res.Qt / 1000 / 60
   const Qt_m3h = res.Qt / 1000 * 60
-  const temEta = potCv != null
-
   return (
-    <div>
-      {temEta ? (
-        <Formula>
-          Pcv = (1000 × {m3s(Qt_m3s)} × {f4(res.P_RTI)}) / (75 × {eta/100}) = <FormulaVal>{f2(potCv)} cv</FormulaVal>
-        </Formula>
-      ) : (
-        <div className="ibox amber mb-2">
-          <span className="text-xs">Informe a eficiência global da bomba, acima, pra calcular a potência mínima.</span>
-        </div>
-      )}
-      <div className="text-xs text-ink-faint uppercase tracking-[.07em] mt-4 mb-2">Ponto de operação para seleção</div>
-      <Table>
-        <thead><tr><TH center>Q (m³/h)</TH><TH center>Hm (mca)</TH><TH center>Potência mínima (cv)</TH><TH center>Potência mínima (kW)</TH></tr></thead>
-        <tbody>
-          <tr>
-            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(Qt_m3h)}</span></td>
-            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-red font-mono">{f2(res.P_RTI)}</span></td>
-            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{temEta ? f2(potCv) : '—'}</span></td>
-            <td className="py-3 px-3.5 text-center border-b border-solid border-border-2"><span className="text-lg font-bold text-amber font-mono">{temEta ? f2(potKw) : '—'}</span></td>
-          </tr>
-        </tbody>
-      </Table>
-    </div>
+    <FormSection title="Ponto de Operação do Sistema" description="Vazão e altura manométrica que a bomba deve atender.">
+      <div className="grid grid-cols-2 border border-solid border-border rounded-md divide-x divide-solid divide-border">
+        <ValorOperacao rotulo="Vazão (Q)" valor={f2(Qt_m3h)} unidade="m³/h" conversao={`${f2(res.Qt)} L/min`} tom="text-red"/>
+        <ValorOperacao rotulo="Altura manométrica (Hm)" valor={f2(res.P_RTI)} unidade="mca" conversao={`${(res.P_RTI * 9.80665).toFixed(1)} kPa`} tom="text-red"/>
+      </div>
+    </FormSection>
   )
 }
 
@@ -505,7 +456,7 @@ export default function HidrantesPage() {
 
   const eta = state.hidrantes.bombaEficiencia
   const potenciaAdotada = state.hidrantes.bombaPotenciaAdotada
-  const { potCv, potKw } = dados ? calcPotenciaBomba(dados.res.Qt, dados.res.P_RTI, eta) : { potCv: null, potKw: null }
+  const { potCv } = dados ? calcPotenciaBomba(dados.res.Qt, dados.res.P_RTI, eta) : { potCv: null }
 
   const handleImport = e => {
     const file = e.target.files[0]
@@ -646,16 +597,17 @@ export default function HidrantesPage() {
               </div>
             ) : (
               <>
-                <BombaESuccaoForm/>
-                <EficienciaPotenciaAdotada
+                <Bomba d={dados}/>
+                <SelecaoBombas
+                  vazaoM3h={dados.res.Qt / 1000 * 60}
+                  pressaoMca={dados.res.P_RTI}
                   eta={eta}
                   onChangeEta={v => dispatch({ type: 'SET_HIDRANTES', changes: { bombaEficiencia: v } })}
                   potenciaAdotada={potenciaAdotada}
                   onChangePotenciaAdotada={v => dispatch({ type: 'SET_HIDRANTES', changes: { bombaPotenciaAdotada: v } })}
                   potCv={potCv}
                 />
-                <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Dimensionamento da Bomba de Recalque</h4>
-                <Bomba d={dados} eta={eta} potCv={potCv} potKw={potKw}/>
+                <SucaoBomba/>
               </>
             )}
           </>
