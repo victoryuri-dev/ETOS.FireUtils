@@ -30,7 +30,7 @@
 .login-original-card .fg input:focus-visible,
 .login-original-card .btn-primary:focus-visible,
 .login-mode-toggle:focus-visible{
-  outline:2px solid #ea1330;
+  outline:2px solid var(--color-red);
   outline-offset:3px;
 }
 .login-mode-toggle:disabled{cursor:wait;opacity:.55}
@@ -40,7 +40,7 @@
   z-index:-1;
   overflow:hidden;
   pointer-events:none;
-  background:radial-gradient(ellipse at 50% 75%,rgba(234,19,48,.13),transparent 62%);
+  background:radial-gradient(ellipse at 50% 75%,color-mix(in srgb,var(--color-red) 13%,transparent),transparent 62%);
 }
 .login-hero-beams i{
   position:absolute;
@@ -49,7 +49,7 @@
   top:-120px;
   left:calc(50% + 410px);
   transform:rotate(39deg);
-  background:linear-gradient(90deg,transparent,rgba(234,19,48,.08) 40%,rgba(234,19,48,.42) 98%,#ff556b);
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--color-red) 8%,transparent) 40%,color-mix(in srgb,var(--color-red) 42%,transparent) 98%,var(--color-red));
   filter:blur(1px);
   opacity:.6;
   animation:login-hero-beam 7s ease-in-out infinite alternate;

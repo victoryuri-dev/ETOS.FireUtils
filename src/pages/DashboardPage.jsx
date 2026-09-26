@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
+import useEntradaEmLote from '../hooks/useEntradaEmLote'
 import { useProjeto } from '../context/ProjetoContext'
 import { useNorma } from '../hooks/useNorma'
 import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
@@ -356,6 +357,7 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect, grupos 
 }
 
 export default function DashboardPage({ onGoConfig, onNavigate }) {
+  const shellRef = useRef(null)
   const { state } = useProjeto()
   const { info, grupos } = useNorma()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
@@ -464,10 +466,11 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
 
   const projectReady = data.configPercent === 100
   const address = [state.endereco, state.numero, state.bairro, state.cidade && `${state.cidade} — ${state.uf || 'MA'}`].filter(Boolean).join(', ')
+  useEntradaEmLote(shellRef, '.anim-entra', 'montagem')
   return (
-    <main className="dashboard-shell">
+    <main ref={shellRef} className="dashboard-shell">
       <div className="dashboard-content">
-        <header className="dashboard-header">
+        <header className="dashboard-header anim-entra">
           <div>
             <div className="dashboard-status-line"><span className={projectReady ? 'is-ready' : ''}/>{projectReady ? 'Configuração concluída' : `${data.configPercent}% da configuração concluída`}</div>
             <h1>{state.nome || 'Projeto sem nome'}</h1>
@@ -477,7 +480,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
         </header>
 
         <div className="dashboard-top-row">
-          <section className="dashboard-overview" aria-label="Situação geral do projeto">
+          <section className="dashboard-overview anim-entra" aria-label="Situação geral do projeto">
             <div className="dashboard-overview__lead">
               <div className="dashboard-overview__copy">
                 <span>Situação do projeto</span>
@@ -493,14 +496,14 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
             </div>
           </section>
 
-          <aside className="dashboard-panel dashboard-activity" aria-label="Atividade recente do projeto — últimos 2 meses">
+          <aside className="dashboard-panel dashboard-activity anim-entra" aria-label="Atividade recente do projeto — últimos 2 meses">
             <h2 className="dashboard-activity__title">Atividade</h2>
             <ActivityHeatmap registros={atividade} ultimaAlteracao={state.updatedAt}/>
           </aside>
         </div>
 
         <section className="dashboard-information-grid">
-          <article className="dashboard-panel dashboard-identification">
+          <article className="dashboard-panel dashboard-identification anim-entra">
             <div className="dashboard-section-heading"><div><h2>Identificação do projeto</h2><p>Dados administrativos e responsáveis</p></div><Icon name="info" size={15}/></div>
             <dl>
               <div><dt>Nome do projeto</dt><dd>{state.nome || 'Não informado'}</dd></div>
@@ -517,11 +520,11 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
 
         </section>
 
-        <section className="dashboard-technical" aria-label={`Resumo técnico — ${selectedStructureId === 'all' ? 'todas as edificações' : data.summary.label}`}>
+        <section className="dashboard-technical anim-entra" aria-label={`Resumo técnico — ${selectedStructureId === 'all' ? 'todas as edificações' : data.summary.label}`}>
           <TechnicalCardStack cards={data.technicalCards} selectedId={selectedStructureId} systemsCount={data.displayedSystems.length} onSelect={setSelectedStructureId} grupos={grupos}/>
         </section>
 
-        <section className="dashboard-systems">
+        <section className="dashboard-systems anim-entra">
           <div className="dashboard-section-heading dashboard-section-heading--systems"><div><h2>Sistemas aplicados</h2><p>{selectedStructureId === 'all' ? 'Status consolidado de todas as edificações' : `Sistemas aplicáveis a ${data.summary.label}`}</p></div><span>{data.displayedSystems.length} aplicáveis</span></div>
           {data.displayedSystems.length ? <div className="dashboard-system-list">{data.displayedSystems.map(system => (
             <button type="button" className="dashboard-system" key={system.key} onClick={() => onNavigate?.(system.key)}>
@@ -533,7 +536,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
           ))}</div> : <div className="dashboard-empty"><Icon name="settings" size={18}/><div><strong>Nenhum sistema definido</strong><p>Conclua a classificação e as medidas de segurança na configuração.</p></div><button type="button" onClick={onGoConfig}>Configurar projeto</button></div>}
         </section>
 
-        <section className={`dashboard-documents ${!data.hasTechnicalData ? 'dashboard-documents--disabled' : ''}`}>
+        <section className={`anim-entra dashboard-documents ${!data.hasTechnicalData ? 'dashboard-documents--disabled' : ''}`}>
           <div><span className="dashboard-documents__icon"><Icon name="file" size={19}/></span><div><h2>Memorial e documentos do projeto</h2><p>{state.tipoProjeto === 'dimensionamento' ? 'Revise o memorial descritivo montado a partir dos dimensionamentos.' : 'Revise o memorial descritivo e o Anexo B montados a partir desta configuração.'}</p></div></div>
           <button type="button" className="btn-ghost" disabled={!data.hasTechnicalData} onClick={() => onNavigate?.('documentos')}>{data.hasTechnicalData ? 'Abrir documentos' : 'Aguardando configuração'} {data.hasTechnicalData && <Icon name="right" size={14}/>}</button>
         </section>

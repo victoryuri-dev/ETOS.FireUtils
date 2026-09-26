@@ -1,6 +1,5 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
-import { getNts } from '../../data/normas/index'
 import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
@@ -93,31 +92,26 @@ function EstruturaResumo({ pe }) {
 // risco proprios (ex.: medida compensatoria, dispensa em analise) — o card
 // so muda de "vermelho solido" pra "vermelho contorno" (continua sinalizando
 // que a norma exige), nunca vira verde/neutro como um opcional.
-function MedidasGrid({ pe, dispatch, sistConfig, ntsPorSistema }) {
+function MedidasGrid({ pe, dispatch, sistConfig }) {
   return (
     <div
       className="grid gap-2"
-      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(max(130px, calc((100% - 24px) / 4)), 1fr))' }}
+      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(max(170px, calc((100% - 24px) / 4)), 1fr))' }}
     >
       {sistConfig.map(s => {
         const sist = pe.sistemas[s.key] || { obrigatorio: false, ativo: false }
         const on    = sist.ativo
         const obrig = sist.obrigatorio
-        const nt    = ntsPorSistema[s.key]?.numero
 
         const toneClass = obrig
           ? (on ? 'border-red-border bg-red-dim' : 'border-red-border bg-transparent')
           : (on ? 'border-green-border bg-green-dim' : 'border-border bg-transparent')
-        // Nome sempre em texto claro; a linha de status leva a cor do estado. O estado
-        // aparece na cor do proprio simbolo (sem caixa nem fundo): ligado = vermelho (obrigatoria) ou
-        // verde (opcional); desligado = cinza. (Cor via prop, nao classe: os simbolos proprios do Icon
-        // fixam a cor inline.)
-        const iconColor = on ? (obrig ? '#FF4757' : '#2FBF92') : 'rgba(255,255,255,.35)'
+        // O estado aparece so na cor do simbolo (sem caixa, fundo nem texto de status):
+        // ligado = vermelho (obrigatoria) ou verde (opcional); desligado = cinza. A borda
+        // vermelha do cartao marca o que a norma exige (ver legenda). Cor via prop, nao
+        // classe: os simbolos proprios do Icon fixam a cor inline.
+        const iconColor = on ? (obrig ? 'var(--color-red)' : '#2FBF92') : 'rgba(255,255,255,.35)'
         const labelClass = on || obrig ? 'text-ink' : 'text-ink-muted'
-        const statusClass = obrig ? 'text-[#FF4757]' : on ? 'text-[#2FBF92]' : 'text-ink-faint'
-        const status = obrig
-          ? `Obrigatório${nt ? ` — ${nt}` : ''}`
-          : on ? 'Opcional — habilitado' : 'Opcional — desabilitado'
 
         return (
           <div key={s.key}
@@ -126,18 +120,14 @@ function MedidasGrid({ pe, dispatch, sistConfig, ntsPorSistema }) {
             aria-checked={on}
             tabIndex={0}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type:'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: pe.estrutura.id, key:s.key }) } }}
-            title={obrig && !on ? 'Exigido pela norma para esta estrutura — desativado manualmente' : undefined}
-            className={`group border border-solid rounded-md p-3.5 flex flex-col gap-2 relative cursor-pointer transition-[border-color,background-color,transform,box-shadow] duration-150 motion-safe:hover:-translate-y-[2px] hover:shadow-[0_10px_22px_rgba(0,0,0,.3)] ${toneClass}`}>
+            title={on ? 'Habilitada' : 'Desabilitada'}
+            className={`group border border-solid rounded-md p-3.5 flex items-center relative cursor-pointer transition-[border-color,background-color,transform,box-shadow] duration-150 motion-safe:hover:-translate-y-[2px] hover:shadow-[0_10px_22px_rgba(0,0,0,.3)] ${toneClass}`}>
             {/* Simbolo + nome, alinhados */}
             <div className="flex items-center gap-2.5 min-w-0">
               <Icon name={SISTEMA_ICON[s.key] || s.icon} size={26} color={iconColor} className="shrink-0"/>
-              <div className={`text-xs font-medium leading-[1.3] ${labelClass}`}>
+              <div className={`min-w-0 [overflow-wrap:anywhere] text-xs font-medium leading-[1.3] ${labelClass}`}>
                 {s.label}
               </div>
-            </div>
-            {/* Status */}
-            <div className={`text-[11px] leading-[1.35] ${statusClass}`}>
-              {status}
             </div>
           </div>
         )
@@ -150,7 +140,10 @@ function MedidasGrid({ pe, dispatch, sistConfig, ntsPorSistema }) {
 function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
   return (
     <>
-      <div className="grid grid-cols-3 gap-2">
+      <div
+        className="grid gap-2"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(max(170px, calc((100% - 24px) / 4)), 1fr))' }}
+      >
         {RISCOS_CONFIG.map(r => {
           const on = !!riscos[r.key]
           const alternar = () => dispatch({ type:'TOGGLE_RISCO_ESTRUTURA', estruturaId, key:r.key })
@@ -164,8 +157,8 @@ function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
               onClick={alternar}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar() } }}
               className={`border border-solid rounded-md p-3.5 flex items-center gap-2.5 cursor-pointer transition-[border-color,background-color] duration-150 ${on ? 'border-red-border bg-red-dim' : 'border-border bg-transparent'}`}>
-              <Icon name={r.icon} size={26} color={on ? '#FF4757' : 'rgba(255,255,255,.35)'} className="shrink-0"/>
-              <div className={`text-xs font-medium leading-[1.3] ${on ? 'text-ink' : 'text-ink-muted'}`}>{r.label}</div>
+              <Icon name={r.icon} size={26} color={on ? 'var(--color-red)' : 'rgba(255,255,255,.35)'} className="shrink-0"/>
+              <div className={`min-w-0 [overflow-wrap:anywhere] text-xs font-medium leading-[1.3] ${on ? 'text-ink' : 'text-ink-muted'}`}>{r.label}</div>
             </div>
           )
         })}
@@ -185,7 +178,6 @@ export default function Step6({ step, totalSteps }) {
   const { porEstrutura } = useMedidasObrigatorias()
   const dimensionamento = state.tipoProjeto === 'dimensionamento'
   const sistConfig = dimensionamento ? SIST_CONFIG_DIMENSIONAMENTO : SIST_CONFIG
-  const { NTS_POR_SISTEMA: ntsPorSistema } = getNts(state.uf)
 
   return (
     <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
@@ -195,24 +187,19 @@ export default function Step6({ step, totalSteps }) {
         <p className="text-[13px] text-ink-faint leading-[1.6]">Sistemas e riscos especiais identificados por estrutura, com base na area construida, altura e ocupacao de cada uma. Obrigatorios podem ser desativados manualmente, mas continuam sinalizados em vermelho.</p>
       </div>
 
-      <div className="ibox red">
-        <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
-        <span>Sistemas <strong className="text-red">obrigatorios</strong> sao definidos pela NT 01/2024 Parte 2 CBMMA para a ocupacao, altura e area de cada estrutura. Podem ser desativados por conta e risco proprios, mas o card permanece com a borda vermelha. Sistemas opcionais podem ser habilitados por estrutura conforme necessidade tecnica.</span>
-      </div>
-
-      {/* Legenda: o estado esta no simbolo de cada medida */}
+      {/* Legenda: o estado esta na cor do simbolo de cada medida */}
       <div className="flex flex-wrap gap-x-5 gap-y-2 mb-5 text-[11px] text-ink-faint">
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-[3px] bg-[#FF4757]"/>
-          Ligada
+          <div className="w-3.5 h-3.5 bg-red"/>
+          Obrigatória (exigida pela norma)
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-[3px] border border-solid border-ink-faint"/>
-          Desligada
+          <div className="w-3.5 h-3.5 bg-[#2FBF92]"/>
+          Opcional
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-[3px] border border-solid border-red-border"/>
-          Exigida pela norma (contorno e texto vermelhos)
+          <div className="w-3.5 h-3.5 bg-[rgba(255,255,255,.35)]"/>
+          Desabilitada
         </div>
       </div>
 
@@ -231,7 +218,7 @@ export default function Step6({ step, totalSteps }) {
             )}
 
             <div className="mb-6">
-              <MedidasGrid pe={pe} dispatch={dispatch} sistConfig={sistConfig} ntsPorSistema={ntsPorSistema}/>
+              <MedidasGrid pe={pe} dispatch={dispatch} sistConfig={sistConfig}/>
             </div>
 
             {/* Riscos especiais alimentam o Anexo B (NT 01) — sem sentido

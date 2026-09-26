@@ -57,7 +57,7 @@
 .dashboard-technical-card--back[data-depth="2"]{transform:translate(32px,20px) scale(.97);opacity:.28}
 .dashboard-technical-card--active{display:grid;grid-template-columns:minmax(220px,.75fr) minmax(0,1.85fr);align-items:stretch;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.18);cursor:grab;touch-action:pan-y;user-select:none}
 .dashboard-technical-card--active:active{cursor:grabbing}.dashboard-technical-card--active:focus-visible{outline:2px solid var(--color-red);outline-offset:3px}
-.dashboard-technical-card__name{display:flex;justify-content:flex-end;flex-direction:column;padding:28px;border-right:1px solid var(--color-border-2);background:linear-gradient(145deg,rgba(234,19,48,.12),rgba(234,19,48,.015) 62%)}
+.dashboard-technical-card__name{display:flex;justify-content:flex-end;flex-direction:column;padding:28px;border-right:1px solid var(--color-border-2);background:linear-gradient(145deg,color-mix(in srgb,var(--color-red) 12%,transparent),color-mix(in srgb,var(--color-red) 1.5%,transparent) 62%)}
 .dashboard-technical-card__name span,.dashboard-technical-card__metrics dt{color:var(--color-ink-faint);font-size:9px;font-weight:600;letter-spacing:.065em;text-transform:uppercase}
 .dashboard-technical-card__name h3{margin:10px 0 0;font-family:var(--font-heading);font-size:clamp(20px,2.1vw,28px);line-height:1.08;letter-spacing:-.03em}
 .dashboard-technical-card__metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0}

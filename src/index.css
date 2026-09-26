@@ -78,7 +78,7 @@
   .carga-class{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
   .carga-class.low{background:rgba(29,158,117,.12);border:.5px solid var(--color-green-border);color:var(--color-green)}
   .carga-class.med{background:rgba(186,117,23,.12);border:.5px solid var(--color-amber-border);color:var(--color-amber)}
-  .carga-class.high{background:rgba(234,19,48,.10);border:.5px solid rgba(234,19,48,.40);color:#FF4757}
+  .carga-class.high{background:var(--color-red-dim);border:.5px solid var(--color-red-border);color:var(--color-red)}
 
   /* Loader (marca animada, 3 barras em cascata) — ver ui/Loader.jsx.
      Reservado pra estados de carregamento de TELA (uma seção/página
@@ -311,3 +311,8 @@
 .menu-secoes__item:hover:not(.is-ativo) .menu-secoes__rotulo { opacity: .8; }
 .menu-secoes__item:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
 @media (max-width: 900px) { .menu-secoes { display: none; } }
+
+/* Anel de completude dos cartões de projeto: enche ao aparecer e ao entrar com o mouse (o React remonta o traço). */
+@keyframes anel-enche-a{from{stroke-dashoffset:var(--anel-c)}to{stroke-dashoffset:var(--anel-off)}}
+.anel-progresso{animation:anel-enche-a .9s cubic-bezier(.22,1,.36,1) both}
+@media(prefers-reduced-motion:reduce){.anel-progresso{animation:none}}

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import useEntradaEmLote from '../hooks/useEntradaEmLote'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
 import { useNorma } from '../hooks/useNorma'
@@ -116,7 +117,7 @@ function riscoInfo(q) {
 const CHIP_TONE = {
   green:   'bg-[rgba(29,158,117,.12)] border-green-border text-green',
   amber:   'bg-[rgba(186,117,23,.12)] border-amber-border text-amber',
-  red:     'bg-[rgba(234,19,48,.10)] border-[rgba(234,19,48,.40)] text-[#FF4757]',
+  red:     'bg-red-dim border-red-border text-red',
   neutral: 'bg-white/[.04] border-border text-ink-faint',
 }
 
@@ -213,7 +214,16 @@ function CardActions({ onDelete, onDuplicate, className = '' }) {
 
 // ── Project card (grid) ───────────────────────────────────────────────
 
+// Total de pavimentos (com subsolos) somado entre as estruturas; "Térrea" se so ha um.
+function pavimentosLabel(proj) {
+  const total = (proj.estruturas || []).reduce((s, e) => s + (parseInt(e.nPavimentos) || 1) + (parseInt(e.nSubsolos) || 0), 0)
+  if (!total) return null
+  return total === 1 ? 'Térrea' : `${total} pavimentos`
+}
+
 function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
+  const pavLabel = pavimentosLabel(proj)
+  const [replay, setReplay] = useState(0)
   const pct    = calcCompletude(proj)
   const bar    = barToneClasses(pct)
   const ocup   = ocupacaoInfo(proj.pavimentos)
@@ -222,7 +232,8 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
   return (
     <div
       onClick={() => onOpen(proj)}
-      className="group relative bg-surface-2 hover:bg-surface border border-solid border-border hover:border-white/13 rounded-lg p-4 cursor-pointer transition-colors duration-150 flex flex-col gap-3.5"
+      onMouseEnter={() => setReplay(n => n + 1)}
+      className="card-projeto group relative bg-surface-2 hover:bg-surface border border-solid border-border hover:border-white/13 rounded-lg p-4 cursor-pointer transition-colors duration-150 flex flex-col gap-3.5"
     >
       {/* Ações (excluir / duplicar) */}
       <CardActions
@@ -232,25 +243,28 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
       />
 
       {/* Nome — exatamente como foi digitado, sem forçar caixa alta */}
-      <div className="font-heading text-[15px] font-bold text-ink leading-[1.3] pr-7 truncate">
-        {proj.nome || <span className="text-ink-faint font-normal">Sem nome</span>}
+      <div className="flex items-center gap-2.5 pr-7 min-w-0">
+        <ProgressoAnel pct={pct} textClass={bar.text} replay={replay}/>
+        <div className="font-heading text-[15px] font-bold text-ink leading-[1.3] truncate">
+          {proj.nome || <span className="text-ink-faint font-normal">Sem nome</span>}
+        </div>
       </div>
 
-      {/* Ocupação / Risco / UF / A.C.T. */}
-      <div className="flex items-center flex-wrap justify-between">
+      {/* Ocupação e risco */}
+      <div className="flex items-center gap-1.5 flex-wrap">
         <Chip tone="red">{ocup}</Chip>
         <Chip tone={risco.tone} icon="flame">{risco.label}</Chip>
-        <StatInline label="UF" value={proj.uf || '—'}/>
-        <StatInline label="A.C.T." value={fmtArea(totalArea(proj))}/>
+        {pavLabel && <Chip icon="stair">{pavLabel}</Chip>}
       </div>
 
-      {/* Completude */}
-      <div className="h-[3px] bg-border rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-[width] duration-400 ${bar.bg}`} style={{width:`${pct}%`}}/>
-      </div>
+      {/* Números-chave */}
+      <dl className="m-0 grid grid-cols-[auto_auto] justify-start gap-x-8">
+        <StatBloco label="UF" value={proj.uf || '—'}/>
+        <StatBloco label="Projeto" value={proj.tipoProjeto === 'dimensionamento' ? 'Dimensionamento' : 'Técnico'}/>
+      </dl>
 
       {/* Rodapé */}
-      <div className="flex items-center justify-between text-[10px] text-ink-faint">
+      <div className="flex items-center justify-between gap-2 pt-3 border-t border-solid border-border text-[11px] text-ink-faint">
         <span>Criado em {fmtDate(proj.createdAt)}</span>
         <span>Editado {timeAgo(proj.updatedAt)}</span>
       </div>
@@ -258,11 +272,28 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
   )
 }
 
-function StatInline({ label, value }) {
+// Anel de completude do projeto; 100% vira um check.
+function ProgressoAnel({ pct, textClass, replay = 0 }) {
+  const r = 9.5, c = 2 * Math.PI * r
   return (
-    <div className="text-[11px] whitespace-nowrap">
-      <span className="text-ink-faint uppercase tracking-wide">{label}: </span>
-      <span className="font-heading text-ink font-bold">{value}</span>
+    <span className={`relative shrink-0 w-5 h-5 ${textClass}`} title={`Completude: ${pct}%`} role="img" aria-label={`Completude ${pct}%`}>
+      <svg width="20" height="20" viewBox="0 0 24 24" className="-rotate-90">
+        <circle cx="12" cy="12" r={r} fill="none" stroke="currentColor" strokeOpacity=".2" strokeWidth="1.5"/>
+        <circle key={replay} cx="12" cy="12" r={r} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)}
+          className="anel-progresso" style={{ '--anel-c': c, '--anel-off': c * (1 - pct / 100) }}/>
+      </svg>
+      {pct === 100 && <Icon name="check" size={9} strokeWidth={2.25} className="absolute inset-0 m-auto"/>}
+    </span>
+  )
+}
+
+// Numero-chave do cartao: rotulo pequeno em cima, valor em destaque embaixo.
+function StatBloco({ label, value }) {
+  return (
+    <div>
+      <dt className="text-[10px] text-ink-faint uppercase tracking-[.08em] leading-none mb-1.5">{label}</dt>
+      <dd className="m-0 font-heading text-[14px] font-bold text-ink leading-none whitespace-nowrap">{value}</dd>
     </div>
   )
 }
@@ -335,7 +366,7 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
 
 function ConfirmModal({ tone, icon, title, message, confirmLabel, onConfirm, onCancel }) {
   const toneClass = tone === 'red'
-    ? { dot: 'bg-red-dim border-red-border text-red', btn: 'bg-red hover:bg-[#a01122]' }
+    ? { dot: 'bg-red-dim border-red-border text-red', btn: 'bg-red hover:brightness-90' }
     : { dot: 'bg-blue-dim border-blue-border text-ink', btn: 'bg-ink-muted hover:bg-ink text-bg' }
 
   return (
@@ -497,6 +528,9 @@ function FilterDropdown({ prefix, value, options, onChange }) {
 
 // ── ProjetosPage ──────────────────────────────────────────────────────
 
+// user.id -> ultima lista de projetos carregada (vive enquanto a aba estiver aberta).
+const cacheProjetos = new Map()
+
 export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjetoExemplo }) {
   const { grupos } = useNorma()
   const { user } = useAuth()
@@ -509,21 +543,26 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
   const [filterUF,     setFilterUF]     = useState('')
   const [filterGrupo,  setFilterGrupo]  = useState('')
   const [filterStatus, setFilterStatus] = useState([]) // multiselect: 'concluidos' | 'andamento' | 'rascunhos'
-  const [allProjects, setAllProjects] = useState([])
-  const [loading,     setLoading]     = useState(true)
+  // Lista em cache (por usuario) so pra nao piscar o loader ao voltar pra
+  // esta tela: mostra a ultima lista de imediato e atualiza em segundo plano.
+  const cache = user ? cacheProjetos.get(user.id) : null
+  const [allProjects, setAllProjects] = useState(cache || [])
+  const [loading,     setLoading]     = useState(!cache)
 
   // Roda a cada vez que a pagina "Meus projetos" monta (ou apos delete/recarga) —
   // garante o exemplo fixo e busca a lista de projetos do usuário no Postgres.
   useEffect(() => {
     if (!user) return
     let cancelado = false
-    setLoading(true)
+    if (!cacheProjetos.has(user.id)) setLoading(true)
     ;(async () => {
       await garantirProjetoExemploFixo(user.id)
       const { data, error } = await supabase
         .from('projetos').select('dados').eq('user_id', user.id)
       if (cancelado) return
-      setAllProjects(error ? [] : (data || []).map(row => row.dados))
+      const lista = error ? [] : (data || []).map(row => row.dados)
+      if (!error) cacheProjetos.set(user.id, lista)
+      setAllProjects(lista)
       setLoading(false)
     })()
     return () => { cancelado = true }
@@ -574,6 +613,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
     return [...gs].sort()
   }, [allProjects])
 
+  const gridRef = useRef(null)
   // Filtro + ordenação
   const filtered = useMemo(() => {
     let list = [...allProjects]
@@ -608,6 +648,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
     return list
   }, [allProjects, search, sort, filterUF, filterGrupo, filterStatus])
 
+  useEntradaEmLote(gridRef, '.card-projeto', `${loading}|${view}|${filtered.map(p => p.id).join(',')}`)
   const hasFilter = !!(search || filterUF || filterGrupo || filterStatus.length)
 
   const toggleFilterStatus = key =>
@@ -747,7 +788,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
           ) : filtered.length === 0 ? (
             <EmptyState hasFilter={hasFilter} onNew={onNewProject}/>
           ) : view === 'grid' ? (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-3">
+            <div ref={gridRef} className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-3">
               {filtered.map(proj => (
                 <ProjectCard key={proj.id} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}/>
               ))}

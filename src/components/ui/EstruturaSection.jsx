@@ -23,7 +23,7 @@ const STATUS_TONE = {
   pendente:  { pill: 'bg-white/[.04] border-border text-ink-faint',                          bar: 'bg-white/15',  dot: 'ring-1 ring-current bg-transparent' },
   andamento: { pill: 'bg-[rgba(186,117,23,.12)] border-amber-border text-amber',              bar: 'bg-amber',     dot: 'bg-current shadow-[0_0_8px_currentColor]' },
   concluido: { pill: 'bg-[rgba(29,158,117,.12)] border-green-border text-green',              bar: 'bg-green',     dot: '' },
-  atencao:   { pill: 'bg-[rgba(234,19,48,.10)] border-[rgba(234,19,48,.40)] text-[#FF4757]',                   bar: 'bg-red',       dot: 'bg-current shadow-[0_0_8px_currentColor]' },
+  atencao:   { pill: 'bg-red-dim border-red-border text-red',                   bar: 'bg-red',       dot: 'bg-current shadow-[0_0_8px_currentColor]' },
 }
 
 function StatusPill({ status }) {
