@@ -87,23 +87,22 @@
      (Icon name="spinner" + animate-spin). Cor sempre herdada via
      currentColor; o padrão do site é branco (#fff). */
   .loader-mark{display:inline-block;overflow:visible;flex-shrink:0;color:#fff}
-  .loader-bar{animation:loader-cascade 4.1s cubic-bezier(.16,1,.3,1) infinite}
+  .loader-bar{animation:loader-cascade 2.7s cubic-bezier(.16,1,.3,1) infinite}
   .loader-bar-3{animation-delay:0s}
   .loader-bar-2{animation-delay:.14s}
   .loader-bar-1{animation-delay:.28s}
 }
 
-/* Logo parada (0%), some pra cima suavemente (0% -> 12.2%, 0.5s, ease-in-out
-   em vez da curva mais brusca de antes), reaparece de baixo quase sem
-   intervalo (14.63% -> 26.83%, 0.5s, só 0.1s de "salto" invisível entre as
-   duas) e segura parada na logo até fechar o ciclo de 4.1s — os últimos
-   73.17% (26.83% a 100%) são exatamente 3s parada, o delay pedido entre um
-   looping de subir/descer e o próximo. */
+/* Ciclo de 2.7s: logo parada (0%), some pra cima suavemente (0% -> 18.52%,
+   0.5s, ease-in-out), reaparece de baixo quase sem intervalo (22.22% ->
+   40.74%, 0.5s, só 0.1s de "salto" invisível entre as duas) e segura parada na
+   logo até fechar o ciclo — os últimos 59.26% (40.74% a 100%) são 1.6s
+   parada, o delay entre um looping de subir/descer e o próximo. */
 @keyframes loader-cascade {
   0%      { transform: translateY(0); opacity: 1; animation-timing-function: cubic-bezier(.65,0,.35,1); }
-  12.2%   { transform: translateY(-216px); opacity: 0; }
-  14.63%  { transform: translateY(216px); opacity: 0; animation-timing-function: cubic-bezier(.16,1,.3,1); }
-  26.83%  { transform: translateY(0); opacity: 1; }
+  18.52%  { transform: translateY(-216px); opacity: 0; }
+  22.22%  { transform: translateY(216px); opacity: 0; animation-timing-function: cubic-bezier(.16,1,.3,1); }
+  40.74%  { transform: translateY(0); opacity: 1; }
   100%    { transform: translateY(0); opacity: 1; }
 }
 
@@ -119,24 +118,76 @@
 }
 .print-area-anexob { page: anexob; }
 
-/* Memorial Descritivo: sem @page proprio de proposito — nenhum tamanho de
-   papel ou margem fixados aqui. Na hora de imprimir/salvar em PDF, quem
-   define papel, margem e onde a pagina quebra e a configuracao de
-   impressao do navegador/SO, nao o CSS. */
+/* Memorial Descritivo: paginacao pelo Paged.js (ver PreviewPaginado). O
+   @page A4 com margem de 25mm vive no CSS entregue ao Paged.js, junto com a
+   quebra por secao — nao aqui, pra nao afetar o Anexo B nem outras telas. */
 
-/* Tipografia fixa do memorial — Arial em tudo (titulos inclusive) e corpo
-   de texto sempre 12pt, sem variante print: nenhuma: tem que ficar
-   IDENTICO na tela e na impressao/exportacao. Regras fora de qualquer
-   @layer pra sempre vencer as classes utilitarias do Tailwind (arbitrary
-   values tipo text-[12.5px]) que cada bloco do memorial ja usa. Titulos
-   (h1/h2/h3) e sub/sup (formatarFormula) ficam de fora do tamanho fixo de
-   proposito — sub/sup precisam continuar menores que o texto ao redor, e
-   titulo nao e "corpo de texto". */
+/* Tipografia fixa do memorial, IDENTICA na tela e na impressao/exportacao
+   (sem variante print:): Arial em tudo, titulos e subtitulos em negrito,
+   texto de 12pt e texto dentro de tabelas de 10pt. Regras fora de qualquer
+   @layer pra sempre vencerem as classes utilitarias do Tailwind (arbitrary
+   values tipo text-[12.5px]) que cada bloco do memorial ja usa. sub/sup
+   (formatarFormula) ficam de fora do tamanho fixo de proposito — precisam
+   continuar menores que o texto ao redor. Vale dentro das paginas geradas
+   pelo Paged.js, que ficam sob .print-area-memorial. */
 .print-area-memorial, .print-area-memorial * {
   font-family: Arial, Helvetica, sans-serif;
 }
-.print-area-memorial *:not(h1):not(h2):not(h3):not(sup):not(sub) {
+.print-area-memorial *:not(sup):not(sub) {
   font-size: 12pt;
+}
+.print-area-memorial table,
+.print-area-memorial table *:not(sup):not(sub) {
+  font-size: 10pt;
+}
+.print-area-memorial h1,
+.print-area-memorial h2,
+.print-area-memorial h3,
+.print-area-memorial h4,
+.print-area-memorial h5,
+.print-area-memorial h6 {
+  font-weight: 700;
+}
+
+/* Titulo de tabela: centralizado, negrito, 10pt e sem numero (nao entra na
+   numeracao progressiva nem no Sumario). */
+.print-area-memorial .titulo-tabela {
+  font-size: 10pt;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Gradacao dos titulos (NBR 6024): secao primaria em MAIUSCULAS e negrito;
+   secundaria e terciaria em negrito, so com iniciais maiusculas. */
+.print-area-memorial h1 { text-transform: uppercase; }
+.print-area-memorial h2,
+.print-area-memorial h3 { text-transform: none; }
+
+/* Linhas do Sumario (ver montarSumario em MemorialDescritivoPage.jsx): numero
+   e titulo, pontilhado e — via CSS do Paged.js — o numero da pagina. */
+.print-area-memorial .sumario-item {
+  display: flex;
+  align-items: baseline;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.print-area-memorial .sumario-n1 .sumario-titulo { text-transform: uppercase; }
+.print-area-memorial .sumario-titulo { min-width: 0; }
+.print-area-memorial .sumario-pagina {
+  flex: none;
+  min-width: 3ch;
+  text-align: right;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.print-area-memorial .sumario-pontos {
+  flex: 1;
+  min-width: 12px;
+  margin: 0 4pt;
+  border-bottom: 1px dotted #8a8a8c;
+  transform: translateY(-3px);
 }
 
 @media print {
@@ -144,5 +195,119 @@
   .print-area,.print-area *{visibility:visible}
   .print-area{position:absolute;top:0;left:0;width:100%;margin:0;box-shadow:none;border-radius:0}
   .no-print{display:none!important}
-  .memorial-secao:not(:last-child){page-break-after:always;break-after:page}
 }
+
+/* Preview do memorial: folhas A4 empilhadas, como um editor de texto. */
+.print-area-memorial .pagedjs_pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 8px;
+}
+.print-area-memorial .pagedjs_page {
+  flex: none;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 4px 24px rgba(0,0,0,.35);
+}
+
+@media print {
+  /* O Paged.js ja entrega paginas do tamanho do papel; aqui so tira a
+     decoracao da tela e o "height:100%" dele, que assume a pagina inteira
+     do navegador — a area de impressao e absoluta (ver .print-area). */
+  .print-area-memorial .pagedjs_pages {
+    display: block !important;
+    gap: 0;
+    padding: 0;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+  .print-area-memorial .pagedjs_page {
+    box-shadow: none;
+    height: var(--pagedjs-height) !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+  .print-area-memorial .pagedjs_sheet {
+    height: var(--pagedjs-height) !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+}
+
+/* Menu flutuante do memorial (MenuSecoes.jsx), no lado direito: parado, so
+   linhas; com o mouse em cima (ou foco de teclado), revela os nomes (pra esquerda das linhas).
+   Fundo, borda e sombra so aparecem com o menu aberto (mouse ou foco de teclado): um
+   painel escuro com desfoque, pra o texto branco continuar legivel mesmo
+   quando passa sobre a folha do documento. */
+.menu-secoes {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  z-index: 30;
+  transform: translateY(-50%);
+  padding: 12px 14px;
+  color: #fff;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  box-shadow: none;
+  transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+.menu-secoes:hover,
+.menu-secoes:has(:focus-visible) {
+  background: rgba(22, 23, 29, .94);
+  border-color: var(--color-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.menu-secoes ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: flex-end; }
+.menu-secoes__item {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 5px 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.3;
+}
+.menu-secoes__linha {
+  flex: none;
+  height: 1.5px;
+  width: 14px;
+  background: currentColor;
+  opacity: .24;
+  transition: width .3s cubic-bezier(.16,1,.3,1), opacity .3s ease, height .3s ease;
+}
+.menu-secoes__item.is-ativo .menu-secoes__linha { width: 32px; height: 2px; opacity: 1; }
+.menu-secoes__rotulo {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateX(8px);
+  font-weight: 400;
+  transition: max-width .35s cubic-bezier(.16,1,.3,1), opacity .25s ease, transform .35s cubic-bezier(.16,1,.3,1);
+}
+.menu-secoes__item.is-ativo .menu-secoes__rotulo { font-weight: 700; font-size: 14px; }
+.menu-secoes:hover .menu-secoes__rotulo,
+.menu-secoes:has(:focus-visible) .menu-secoes__rotulo {
+  max-width: 260px;
+  opacity: var(--o, .5);
+  transform: none;
+}
+.menu-secoes:hover .menu-secoes__item:not(.is-ativo) .menu-secoes__linha,
+.menu-secoes:has(:focus-visible) .menu-secoes__item:not(.is-ativo) .menu-secoes__linha { opacity: calc(var(--o, .5) * .6); }
+.menu-secoes__item:hover:not(.is-ativo) .menu-secoes__rotulo { opacity: .8; }
+.menu-secoes__item:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
+@media (max-width: 900px) { .menu-secoes { display: none; } }
