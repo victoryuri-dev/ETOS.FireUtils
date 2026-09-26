@@ -5,6 +5,7 @@ import { useCnaeCnpjLookup } from '../../hooks/useCnaeCnpjLookup'
 import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
+import InfoTip from '../ui/InfoTip'
 import { useToast } from '../../hooks/useToast'
 
 const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border flex items-center justify-between'
@@ -90,14 +91,14 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
   return (
     <div ref={ref} className="relative">
       <div className="fg">
-        <label className="text-[11px]">
+        <label>
           CNAE <span className="req">*</span>
-          <span className="fhint"> — clique para ver todos ou digite para filtrar</span>
+          <InfoTip side="bottom" align="start" text="Clique no campo para ver todos os CNAEs desta divisão, ou digite o número ou parte da descrição para filtrar."/>
         </label>
         <div className="relative">
           <Icon name="search" size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none"/>
           <input value={query} onChange={handleInput} onFocus={handleFocus}
-            placeholder="Clique para ver todos os CNAEs desta divisao..."
+            placeholder="Buscar por número ou descrição…"
             className={`pl-8 ${query ? 'pr-[30px]' : 'pr-3'}`}/>
           {query && (
             <button onClick={handleClear} className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none text-ink-faint cursor-pointer p-0.5">
@@ -125,14 +126,14 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
         )}
       </div>
       {selectedData && (
-        <div className="mt-1.5 text-[11px] text-ink-muted py-1.5 px-2.5 bg-surface-2 rounded-md border border-solid border-border">
-          <span className="font-mono text-red mr-2">{value}</span>
+        <div className="mt-2 text-[12px] text-ink-muted leading-[1.5] py-2 px-3 bg-surface-2 rounded-md border border-solid border-border">
+          <span className="font-mono text-ink mr-2">{value}</span>
           {selectedData.descricao}
         </div>
       )}
       {naoEncontrado && (
         <div className="fg mt-2">
-          <label className="text-[11px]">CNAE nao encontrado — descreva a atividade</label>
+          <label>CNAE não encontrado — descreva a atividade</label>
           <input value={descValue || ''} onChange={e => onDescChange(e.target.value)} placeholder="Descreva a atividade para referencia no memorial"/>
         </div>
       )}
@@ -140,13 +141,12 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
   )
 }
 
-// ── Cabeçalho de seção com descrição normativa ────────────────────────
-function SectionHead({ titulo, descricao, aviso }) {
+// ── Título de seção do modal; o texto normativo fica num "(?)" com hover ──
+function SecaoTitulo({ titulo, tip }) {
   return (
-    <div className="mb-3.5">
-      <div className="text-[11px] font-semibold text-ink-faint uppercase tracking-[.08em] mb-1">{titulo}</div>
-      {descricao && <p className="text-[11px] text-ink-faint leading-[1.55] mt-0 mb-1 max-w-[600px]">{descricao}</p>}
-      {aviso && <p className="text-[11px] text-amber leading-[1.55] m-0 max-w-[600px]">{aviso}</p>}
+    <div className="flex items-center gap-2 mb-4 pb-2.5 border-b border-solid border-border-2">
+      <h4 className="m-0 font-heading text-[14px] font-semibold text-ink">{titulo}</h4>
+      {tip && <InfoTip text={tip} side="bottom" align="start"/>}
     </div>
   )
 }
@@ -220,10 +220,17 @@ function AcessRow({ pav, acess, index, usadas }) {
   }
 
   return (
-    <div className="border border-solid border-border rounded-md p-3.5 bg-bg">
-      <div className="grid grid-cols-[1fr_2fr_120px] gap-2.5 mb-3">
+    <div className="border border-solid border-border rounded-lg p-4 bg-bg">
+      <div className="flex items-center justify-between mb-3.5">
+        <span className="text-[12px] font-medium text-ink-muted">Ocupação subsidiária {index + 1}</span>
+        <button className="btn-del" title="Remover ocupação subsidiária" aria-label="Remover ocupação subsidiária"
+          onClick={() => dispatch({ type:'REMOVE_ACESS', id:pav.id, index })}>
+          <Icon name="trash" size={13}/>
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-3 mb-3.5">
         <div className="fg">
-          <label className="text-[11px]">Grupo</label>
+          <label>Grupo</label>
           <select value={grupoAtual} onChange={e => setGrupo(e.target.value)}>
             {gruposKeys.map(g => (
               <option key={g} value={g}>{g} — {grupos[g] || g}</option>
@@ -231,25 +238,22 @@ function AcessRow({ pav, acess, index, usadas }) {
           </select>
         </div>
         <div className="fg">
-          <label className="text-[11px]">Divisao</label>
-          <select value={acess.divisao} onChange={e => setDivisao(e.target.value)}>
+          <label>Divisão</label>
+          <select value={acess.divisao} onChange={e => setDivisao(e.target.value)} title={divisoesGrp[acess.divisao] ? `${acess.divisao} — ${divisoesGrp[acess.divisao]}` : undefined}>
             {Object.entries(divisoesGrp).map(([code, label]) => {
               const jaUsada = usadas.has(code) && code !== acess.divisao
-              return <option key={code} value={code} disabled={jaUsada}>{code} — {label}{jaUsada?' (ja utilizada)':''}</option>
+              return <option key={code} value={code} disabled={jaUsada}>{code} — {label}{jaUsada?' (já utilizada)':''}</option>
             })}
           </select>
         </div>
-        <div className="fg">
-          <label className="text-[11px]">Area (m2)</label>
-          <input type="number" value={acess.area} onChange={e => setArea(e.target.value)} placeholder="m2"/>
-        </div>
       </div>
-      <CnaeBusca divisao={acess.divisao} value={acess.cnae || ''} descValue={acess.cnaeDesc || ''}
-        onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
-      <div className="flex justify-end mt-2.5">
-        <button className="btn-del" onClick={() => dispatch({ type:'REMOVE_ACESS', id:pav.id, index })}>
-          <Icon name="trash" size={12}/> Remover
-        </button>
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3 items-start">
+        <CnaeBusca divisao={acess.divisao} value={acess.cnae || ''} descValue={acess.cnaeDesc || ''}
+          onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
+        <div className="fg">
+          <label>Área (m²)</label>
+          <input type="number" value={acess.area} onChange={e => setArea(e.target.value)} placeholder="0"/>
+        </div>
       </div>
     </div>
   )
@@ -285,88 +289,97 @@ function PavModal({ pav, onClose }) {
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="bg-surface border border-solid border-border rounded-lg w-[700px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]"
+        className="bg-surface border border-solid border-border rounded-lg w-[760px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between py-[18px] px-[22px] border-b border-solid border-border shrink-0">
-          <div>
-            <div className="text-[10px] text-red uppercase tracking-[.06em] font-semibold mb-1">{estrutura?.nome || 'Estrutura'}</div>
-            <div className="text-base font-bold text-ink mb-[3px]">{pav.label}</div>
-            <div className="text-[11px] text-ink-faint">Classificacao de ocupacao</div>
+        <div className="flex items-center justify-between gap-4 py-[18px] px-[24px] border-b border-solid border-border shrink-0">
+          <div className="min-w-0">
+            <h3 className="m-0 flex items-center gap-2 font-heading text-[19px] font-semibold text-ink leading-tight">
+              <Icon name="stair" size={17} className="text-ink-faint shrink-0"/>{pav.label}
+            </h3>
+            <div className="text-[12px] text-ink-faint mt-1 truncate">{estrutura?.nome || 'Estrutura'}</div>
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center shrink-0">
             {pav.tipo === 'terreo' && (
-              <button className="btn-ghost text-[11px] border-red-border text-red"
-                onClick={() => dispatch({ type:'REPLICATE_TERREO', estruturaId: pav.estruturaId })}>
-                <Icon name="check" size={11}/> Repetir para todos
-              </button>
+              <>
+                <button className="btn-ghost text-[12px]"
+                  onClick={() => dispatch({ type:'REPLICATE_TERREO', estruturaId: pav.estruturaId })}>
+                  <Icon name="check" size={12}/> Repetir para todos
+                </button>
+                <InfoTip side="bottom" align="end" text="Copia esta classificação do térreo para todos os outros pavimentos desta estrutura."/>
+              </>
             )}
-            <button className="btn-ghost p-1.5" onClick={onClose}>
+            <button className="btn-ghost p-1.5" onClick={onClose} aria-label="Fechar">
               <Icon name="x" size={14}/>
             </button>
           </div>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto py-5 px-[22px]">
+        <div className="flex-1 overflow-y-auto py-6 px-[24px]">
 
           {pav.tipo === 'terreo' && <BuscaCnaePorCnpj pav={pav} dispatch={dispatch}/>}
 
           {/* Ocupação principal */}
-          <SectionHead
-            titulo="Ocupacao principal ou predominante"
-            descricao="Atividade ou uso principal exercido na edificacao ou area de risco."
-          />
+          <div className="mb-8">
+            <SecaoTitulo
+              titulo="Ocupação principal"
+              tip="Atividade ou uso principal exercido na edificação ou área de risco (ocupação predominante)."
+            />
 
-          <div className="grid grid-cols-[1fr_2fr_120px] gap-2.5 mb-3.5">
-            <div className="fg">
-              <label>Grupo</label>
-              <select value={pav.grupo} onChange={e => setGrupo(e.target.value)}>
-                {gruposKeys.map(g => (
-                  <option key={g} value={g}>{g} — {grupos[g] || g}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-3 mb-3.5">
+              <div className="fg">
+                <label>Grupo</label>
+                <select value={pav.grupo} onChange={e => setGrupo(e.target.value)}>
+                  {gruposKeys.map(g => (
+                    <option key={g} value={g}>{g} — {grupos[g] || g}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="fg">
+                <label>Divisão</label>
+                <select value={pav.divisao} onChange={e => setDivisao(e.target.value)} title={divisoes[pav.divisao] ? `${pav.divisao} — ${divisoes[pav.divisao]}` : undefined}>
+                  {Object.entries(divisoes).map(([code, label]) => {
+                    const jaUsada = pav.acess.some(a => a.divisao === code)
+                    return <option key={code} value={code} disabled={jaUsada}>{code} — {label}{jaUsada?' (já utilizada)':''}</option>
+                  })}
+                </select>
+              </div>
             </div>
-            <div className="fg">
-              <label>Divisao</label>
-              <select value={pav.divisao} onChange={e => setDivisao(e.target.value)}>
-                {Object.entries(divisoes).map(([code, label]) => {
-                  const jaUsada = pav.acess.some(a => a.divisao === code)
-                  return <option key={code} value={code} disabled={jaUsada}>{code} — {label}{jaUsada?' (ja utilizada)':''}</option>
-                })}
-              </select>
-            </div>
-            <div className="fg">
-              <label>Area (m2)</label>
-              <input type="number" value={pav.area} onChange={e => setArea(e.target.value)} placeholder="m2"/>
-            </div>
-          </div>
 
-          <div className="mb-[22px]">
-            <CnaeBusca divisao={pav.divisao} value={pav.cnae} descValue={pav.cnaeDesc}
-              onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3 items-start">
+              <CnaeBusca divisao={pav.divisao} value={pav.cnae} descValue={pav.cnaeDesc}
+                onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
+              <div className="fg">
+                <label>Área (m²)</label>
+                <input type="number" value={pav.area} onChange={e => setArea(e.target.value)} placeholder="0"/>
+              </div>
+            </div>
           </div>
 
           {/* Ocupações subsidiárias */}
-          <SectionHead
-            titulo="Ocupacao subsidiaria"
-            descricao="Atividade ou uso de apoio ou suporte, vinculada a atividade ou uso principal da ocupacao predominante em edificacao ou area de risco."
-            aviso="Quando a ocupacao subsidiaria ultrapassa 10% da area construida da estrutura, ela passa a ser tratada como ocupacao mista ou secundaria."
-          />
+          <div>
+            <SecaoTitulo
+              titulo="Ocupações subsidiárias"
+              tip="Atividade ou uso de apoio ou suporte, vinculada à atividade ou uso principal da ocupação predominante. Quando a ocupação subsidiária ultrapassa 10% da área construída da estrutura, ela passa a ser tratada como ocupação mista ou secundária."
+            />
 
-          <div className="flex flex-col gap-2.5">
-            {pav.acess.map((a, i) => (
-              <AcessRow key={i} pav={pav} acess={a} index={i} usadas={usadas}/>
-            ))}
+            {pav.acess.length > 0 && (
+              <div className="flex flex-col gap-3 mb-3">
+                {pav.acess.map((a, i) => (
+                  <AcessRow key={i} pav={pav} acess={a} index={i} usadas={usadas}/>
+                ))}
+              </div>
+            )}
+            <button className="btn-add"
+              onClick={() => dispatch({ type:'ADD_ACESS', id:pav.id })}>
+              <Icon name="plus" size={11}/> Adicionar ocupação subsidiária
+            </button>
           </div>
-          <button className="btn-add mt-2.5"
-            onClick={() => dispatch({ type:'ADD_ACESS', id:pav.id })}>
-            <Icon name="plus" size={11}/> Adicionar ocupacao subsidiaria
-          </button>
         </div>
 
         {/* Footer */}
-        <div className="py-3.5 px-[22px] border-t border-solid border-border flex justify-end shrink-0">
+        <div className="py-3.5 px-[24px] border-t border-solid border-border flex justify-end shrink-0">
           <button className="btn-primary" onClick={onClose}>Concluir</button>
         </div>
       </div>
@@ -376,76 +389,84 @@ function PavModal({ pav, onClose }) {
 
 // ── Card resumo do pavimento ──────────────────────────────────────────
 function PavCard({ pav, onOpen }) {
-  const { ocupacoes, temCNAE } = useNorma()
+  const { ocupacoes, temCNAE, cnaesDiv, grupos } = useNorma()
   const divisoes = ocupacoes[pav.grupo]?.divisoes || {}
   const divLabel = divisoes[pav.divisao] || pav.divisao || '—'
   // Divisoes sem nenhum CNAE cadastrado (ex: J-1..J-4) nunca terao pav.cnae
   // preenchido — contam como classificadas so com a divisao definida.
   const configured = !!(pav.divisao && (pav.cnae || !temCNAE(pav.divisao)))
+  const grupoLabel = grupos?.[pav.divisao?.charAt(0) || pav.grupo] || ''
+  const cnaeDesc = pav.cnae ? (pav.cnaeDesc || cnaesDiv(pav.divisao)[pav.cnae]?.descricao || '') : ''
 
   return (
     <div
       onClick={onOpen}
-      className={`bg-surface-2 rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-red-border ${configured ? 'border-[rgba(192,21,42,.25)]' : 'border-border'}`}
+      className={`bg-surface-2 rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-white/25 ${configured ? 'border-border' : 'border-dashed border-border-2'}`}
     >
-      <div className="flex items-center justify-between py-3 px-4">
-        {/* Left: ícone + nome + resumo */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-8 h-8 rounded-md border border-solid flex items-center justify-center text-xs font-bold shrink-0 ${configured ? 'bg-red-dim border-red-border text-red' : 'bg-surface border-border text-ink-faint'}`}>
-            {pav.grupo || '?'}
+      <div className="flex items-center justify-between gap-5 py-3.5 px-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-ink-faint uppercase tracking-[.06em] leading-none mb-1.5">
+            <Icon name="stair" size={13}/>{pav.label}
           </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-ink mb-[3px]">{pav.label}</div>
-            {configured ? (
-              <div className="flex flex-wrap gap-x-3 gap-y-[3px]">
-                {/* Principal */}
-                <span className="text-[11px] text-ink-faint">
-                  <span className="font-mono text-red font-semibold mr-1">{pav.divisao}</span>
-                  {divLabel}
-                </span>
-                {pav.cnae && (
-                  <span className="text-[11px] text-ink-faint">
-                    CNAE <span className="font-mono text-ink-muted">{pav.cnae}</span>
-                  </span>
-                )}
-                {pav.area && (
-                  <span className="text-[11px] text-ink-faint">
-                    {pav.area} m²
-                  </span>
-                )}
+
+          {configured ? (
+            <>
+              {/* CNAE: o que o pavimento faz (principal) */}
+              {pav.cnae ? (
+                <div className="text-[14px] font-semibold text-ink leading-[1.4]">
+                  {cnaeDesc || 'Atividade sem descrição'}
+                </div>
+              ) : (
+                <div className="text-[14px] font-semibold text-ink leading-[1.4]">{divLabel}</div>
+              )}
+              <div className="flex flex-wrap items-center gap-x-2 text-[12px] text-ink-faint mt-1.5">
+                {pav.cnae && <span>CNAE <span className="font-mono text-ink-muted">{pav.cnae}</span></span>}
+                {pav.cnae && pav.area && <span aria-hidden="true">·</span>}
+                {pav.area && <span>{pav.area} m²</span>}
               </div>
-            ) : (
-              <div className="text-[11px] text-ink-faint">Clique para classificar</div>
-            )}
-            {/* Subsidiárias */}
-            {pav.acess.length > 0 && (
-              <div className="flex flex-wrap gap-x-2 gap-y-[3px] mt-1">
-                {pav.acess.map((a, i) => {
-                  const aLabel = (ocupacoes[a.divisao?.charAt(0)]?.divisoes || {})[a.divisao] || a.divisao
-                  return (
-                    <span key={i} className="text-[10px] text-ink-faint">
-                      <span className="font-mono text-ink-muted font-semibold">{a.divisao}</span>
-                      {aLabel && aLabel !== a.divisao && <span className="ml-[3px]">{aLabel}</span>}
-                      {a.area && <span className="text-ink-hint ml-1">{a.area} m²</span>}
-                      {a.cnae && <span className="font-mono text-ink-hint ml-1">{a.cnae}</span>}
-                    </span>
-                  )
-                })}
+            </>
+          ) : (
+            <div className="text-[13px] text-ink-faint">Clique para classificar</div>
+          )}
+
+          {/* Ocupacoes subsidiarias */}
+          {pav.acess.length > 0 && (
+            <div className="mt-3 pt-2.5 border-t border-solid border-border-2 flex flex-col gap-2">
+              <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.08em]">
+                {pav.acess.length === 1 ? 'Ocupação subsidiária' : 'Ocupações subsidiárias'}
               </div>
-            )}
-          </div>
+              {pav.acess.map((a, i) => {
+                const aDivLabel = (ocupacoes[a.divisao?.charAt(0)]?.divisoes || {})[a.divisao]
+                const aCnaeDesc = a.cnae ? (a.cnaeDesc || cnaesDiv(a.divisao)[a.cnae]?.descricao || '') : ''
+                return (
+                  <div key={i} className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 text-[13px] text-ink-muted leading-[1.4]">
+                      {aCnaeDesc || aDivLabel || a.divisao}
+                      <div className="text-[11px] text-ink-faint mt-0.5">
+                        {a.cnae && <>CNAE <span className="font-mono">{a.cnae}</span></>}
+                        {a.cnae && a.area && ' · '}
+                        {a.area && `${a.area} m²`}
+                      </div>
+                    </div>
+                    <span className="font-mono text-[11px] font-semibold text-ink-muted py-0.5 px-2 rounded bg-white/[.05] border border-solid border-border shrink-0">{a.divisao}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Right: badges + seta */}
-        <div className="flex items-center gap-1.5 shrink-0 ml-3">
-          {pav.acess.length > 0 && (
-            <span className="text-[10px] py-0.5 px-[7px] rounded-[20px] bg-surface border border-solid border-border text-ink-faint">
-              +{pav.acess.length} sub.
-            </span>
+        {/* Grupo e, ao lado, a divisao (resultado, em destaque) */}
+        <div className="flex items-center gap-3 shrink-0">
+          {configured && pav.divisao && (
+            <div className="flex items-center gap-3">
+              {grupoLabel && (
+                <span className="text-[12px] text-ink-faint text-right leading-[1.35] max-w-[170px]">Grupo {pav.divisao?.charAt(0) || pav.grupo} — {grupoLabel}</span>
+              )}
+              <span className="font-mono text-[16px] font-bold text-ink py-1 px-3 rounded-md bg-red-dim border border-solid border-red-border">{pav.divisao}</span>
+            </div>
           )}
-          <div className="text-ink-faint">
-            <Icon name="chevD" size={14} className="-rotate-90"/>
-          </div>
+          <span className="text-ink-faint"><Icon name="chevD" size={14} className="-rotate-90"/></span>
         </div>
       </div>
     </div>
@@ -460,7 +481,7 @@ export default function Step4({ step, totalSteps }) {
   const openPav = state.pavimentos.find(p => p.id === openId)
 
   return (
-    <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
+    <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
       <div className="mb-[26px]">
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa {step} de {totalSteps}</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Classificacao por pavimento</h2>

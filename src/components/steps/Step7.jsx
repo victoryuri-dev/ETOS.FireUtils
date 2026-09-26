@@ -12,7 +12,7 @@ export default function Step7({ step, totalSteps }) {
   },0)
   const getDivLabel = code => { const g=code?.charAt(0); return (ocupacoes[g]?.divisoes||{})[code]||code }
   return (
-    <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
+    <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
       <div className="mb-8">
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa {step} de {totalSteps}</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Revisao e confirmacao</h2>

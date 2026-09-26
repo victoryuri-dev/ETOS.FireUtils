@@ -4,6 +4,7 @@ import { getNts } from '../../data/normas/index'
 import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
+import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 const SIST_CONFIG = [
   { key:'acesso_viatura',      icon:'van',         label:'Acesso de Viatura em Edificacoes'   },
@@ -107,35 +108,35 @@ function MedidasGrid({ pe, dispatch, sistConfig, ntsPorSistema }) {
         const toneClass = obrig
           ? (on ? 'border-red-border bg-red-dim' : 'border-red-border bg-transparent')
           : (on ? 'border-green-border bg-green-dim' : 'border-border bg-transparent')
-        const badgeClass = on
-          ? (obrig ? 'bg-red border-red' : 'bg-green border-green')
-          : (obrig ? 'bg-transparent border-red-border' : 'bg-transparent border-border')
-        const iconClass = obrig ? 'bg-red-dim text-red' : on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'
-        const labelClass = obrig ? 'text-red' : on ? 'text-green' : 'text-ink-muted'
-        const statusClass = obrig ? 'text-[rgba(192,21,42,.6)]' : on ? 'text-[rgba(29,158,117,.65)]' : 'text-ink-hint'
+        // Nome sempre em texto claro; a linha de status leva a cor do estado. O estado
+        // aparece na cor do proprio simbolo (sem caixa nem fundo): ligado = vermelho;
+        // desligado = cinza. (Cor via prop, nao classe: os simbolos proprios do Icon
+        // fixam a cor inline.)
+        const iconColor = on ? '#FF4757' : 'rgba(255,255,255,.35)'
+        const labelClass = on || obrig ? 'text-ink' : 'text-ink-muted'
+        const statusClass = obrig ? 'text-[#FF4757]' : on ? 'text-[#2FBF92]' : 'text-ink-faint'
         const status = obrig
-          ? `Obrigatório${on ? '' : ', desativado'}${nt ? ` — ${nt}` : ''}`
+          ? `Obrigatório${nt ? ` — ${nt}` : ''}`
           : on ? 'Opcional — habilitado' : 'Opcional — desabilitado'
 
         return (
           <div key={s.key}
             onClick={() => dispatch({ type:'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: pe.estrutura.id, key:s.key })}
+            role="switch"
+            aria-checked={on}
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type:'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: pe.estrutura.id, key:s.key }) } }}
             title={obrig && !on ? 'Exigido pela norma para esta estrutura — desativado manualmente' : undefined}
             className={`group border border-solid rounded-md p-3.5 flex flex-col gap-2 relative cursor-pointer transition-[border-color,background-color,transform,box-shadow] duration-150 motion-safe:hover:-translate-y-[2px] hover:shadow-[0_10px_22px_rgba(0,0,0,.3)] ${toneClass}`}>
-            {/* Checkbox no canto */}
-            <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center transition-colors duration-150 ${badgeClass}`}>
-              {on && <Icon name="check" size={9} color="#fff"/>}
-            </div>
-            {/* Icone */}
-            <div className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors duration-150 ${iconClass}`}>
-              <Icon name={s.icon} size={14}/>
-            </div>
-            {/* Nome */}
-            <div className={`text-xs font-medium leading-[1.3] ${labelClass}`}>
-              {s.label}
+            {/* Simbolo + nome, alinhados */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Icon name={SISTEMA_ICON[s.key] || s.icon} size={26} color={iconColor} className="shrink-0"/>
+              <div className={`text-xs font-medium leading-[1.3] ${labelClass}`}>
+                {s.label}
+              </div>
             </div>
             {/* Status */}
-            <div className={`text-[10px] ${statusClass}`}>
+            <div className={`text-[11px] leading-[1.35] ${statusClass}`}>
               {status}
             </div>
           </div>
@@ -152,17 +153,19 @@ function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
       <div className="grid grid-cols-3 gap-2">
         {RISCOS_CONFIG.map(r => {
           const on = !!riscos[r.key]
+          const alternar = () => dispatch({ type:'TOGGLE_RISCO_ESTRUTURA', estruturaId, key:r.key })
+          // Mesmo desenho das medidas: o estado esta na cor do proprio simbolo
+          // (ligado = vermelho, desligado = cinza), sem caixa nem marcador.
           return (
             <div key={r.key}
-              onClick={() => dispatch({ type:'TOGGLE_RISCO_ESTRUTURA', estruturaId, key:r.key })}
-              className={`border border-solid rounded-md p-3.5 flex flex-col gap-2 relative cursor-pointer transition-[border-color,background-color] duration-150 ${on ? 'border-green-border bg-green-dim' : 'border-border bg-transparent'}`}>
-              <div className={`absolute top-[9px] right-[9px] w-4 h-4 rounded-full border border-solid flex items-center justify-center ${on ? 'bg-green border-green' : 'bg-transparent border-border'}`}>
-                {on && <Icon name="check" size={9} color="#fff"/>}
-              </div>
-              <div className={`w-7 h-7 rounded-md flex items-center justify-center ${on ? 'bg-green-dim text-green' : 'bg-white/[.04] text-ink-faint'}`}>
-                <Icon name={r.icon} size={14}/>
-              </div>
-              <div className={`text-xs font-medium leading-[1.3] ${on ? 'text-green' : 'text-ink-muted'}`}>{r.label}</div>
+              role="switch"
+              aria-checked={on}
+              tabIndex={0}
+              onClick={alternar}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar() } }}
+              className={`border border-solid rounded-md p-3.5 flex items-center gap-2.5 cursor-pointer transition-[border-color,background-color] duration-150 ${on ? 'border-red-border bg-red-dim' : 'border-border bg-transparent'}`}>
+              <Icon name={r.icon} size={26} color={on ? '#FF4757' : 'rgba(255,255,255,.35)'} className="shrink-0"/>
+              <div className={`text-xs font-medium leading-[1.3] ${on ? 'text-ink' : 'text-ink-muted'}`}>{r.label}</div>
             </div>
           )
         })}
@@ -185,7 +188,7 @@ export default function Step6({ step, totalSteps }) {
   const { NTS_POR_SISTEMA: ntsPorSistema } = getNts(state.uf)
 
   return (
-    <div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
+    <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
       <div className="mb-[26px]">
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">Etapa {step} de {totalSteps}</div>
         <h2 className="text-[22px] font-semibold text-ink mb-[5px]">Medidas de Seguranca contra Incendio</h2>
@@ -197,19 +200,19 @@ export default function Step6({ step, totalSteps }) {
         <span>Sistemas <strong className="text-red">obrigatorios</strong> sao definidos pela NT 01/2024 Parte 2 CBMMA para a ocupacao, altura e area de cada estrutura. Podem ser desativados por conta e risco proprios, mas o card permanece com a borda vermelha. Sistemas opcionais podem ser habilitados por estrutura conforme necessidade tecnica.</span>
       </div>
 
-      {/* Legenda */}
-      <div className="flex gap-4 mb-5 text-[11px] text-ink-faint">
+      {/* Legenda: o estado esta no simbolo de cada medida */}
+      <div className="flex flex-wrap gap-x-5 gap-y-2 mb-5 text-[11px] text-ink-faint">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red"/>
-          Obrigatorio
+          <div className="w-3.5 h-3.5 rounded-[3px] bg-[#FF4757]"/>
+          Ligada
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-green"/>
-          Opcional habilitado
+          <div className="w-3.5 h-3.5 rounded-[3px] border border-solid border-ink-faint"/>
+          Desligada
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-border border border-solid border-border"/>
-          Opcional desabilitado
+          <div className="w-3.5 h-3.5 rounded-[3px] border border-solid border-red-border"/>
+          Exigida pela norma (contorno e texto vermelhos)
         </div>
       </div>
 
@@ -228,7 +231,6 @@ export default function Step6({ step, totalSteps }) {
             )}
 
             <div className="mb-6">
-              <div className={blockTitle}>Medidas de seguranca</div>
               <MedidasGrid pe={pe} dispatch={dispatch} sistConfig={sistConfig} ntsPorSistema={ntsPorSistema}/>
             </div>
 

@@ -20,10 +20,10 @@ import Icon from './Icon'
 // card fechado, se a configuração/os dados da estrutura estão pendentes ou
 // resolvidos: pílula ao lado do título + linha de destaque na borda esquerda.
 const STATUS_TONE = {
-  pendente:  { pill: 'bg-white/[0.05] border-border text-ink-faint',                          bar: 'bg-white/15',  dot: 'ring-1 ring-current bg-transparent' },
-  andamento: { pill: 'bg-[rgba(186,117,23,.16)] border-amber-border text-amber',              bar: 'bg-amber',     dot: 'bg-current shadow-[0_0_8px_currentColor]' },
-  concluido: { pill: 'bg-[rgba(29,158,117,.16)] border-green-border text-green',              bar: 'bg-green',     dot: '' },
-  atencao:   { pill: 'bg-[rgba(192,21,42,.18)] border-red-border text-red',                   bar: 'bg-red',       dot: 'bg-current shadow-[0_0_8px_currentColor]' },
+  pendente:  { pill: 'bg-white/[.04] border-border text-ink-faint',                          bar: 'bg-white/15',  dot: 'ring-1 ring-current bg-transparent' },
+  andamento: { pill: 'bg-[rgba(186,117,23,.12)] border-amber-border text-amber',              bar: 'bg-amber',     dot: 'bg-current shadow-[0_0_8px_currentColor]' },
+  concluido: { pill: 'bg-[rgba(29,158,117,.12)] border-green-border text-green',              bar: 'bg-green',     dot: '' },
+  atencao:   { pill: 'bg-[rgba(234,19,48,.10)] border-[rgba(234,19,48,.40)] text-[#FF4757]',                   bar: 'bg-red',       dot: 'bg-current shadow-[0_0_8px_currentColor]' },
 }
 
 function StatusPill({ status }) {
@@ -57,7 +57,7 @@ export default function EstruturaSection({ titulo, extra, status, defaultOpen = 
           size={14}
           className={`text-ink-faint shrink-0 transition-transform duration-150 group-hover:text-ink ${open ? '' : '-rotate-90'}`}
         />
-        <h3 className="text-sm font-bold text-ink m-0 min-w-0 truncate group-hover:text-red transition-colors duration-100">{titulo}</h3>
+        <h3 className="text-sm font-bold text-ink m-0 min-w-0 truncate">{titulo}</h3>
         {status && <StatusPill status={status}/>}
         <div className="flex-1"/>
         {extra}

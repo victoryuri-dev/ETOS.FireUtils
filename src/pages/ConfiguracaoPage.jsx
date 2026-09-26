@@ -71,7 +71,7 @@ export default function ConfiguracaoPage({ onGoDashboard }) {
         {ActiveStep && <ActiveStep step={step} totalSteps={totalSteps}/>}
 
         {/* Navegação do wizard — no fim do formulário, rola junto com o conteúdo */}
-        <div className="max-w-[720px] mx-auto px-12 pb-16 -mt-16 flex items-center justify-between border-t border-solid border-border pt-6">
+        <div className="max-w-[980px] mx-auto px-10 pb-16 -mt-16 flex items-center justify-between border-t border-solid border-border pt-6">
           <div className="text-xs text-ink-faint flex items-center gap-1.5">
             <Icon name="info" size={13}/>
             {step < totalSteps ? `Etapa ${step} de ${totalSteps}` : 'Projeto pronto — revise e confirme.'}

@@ -114,9 +114,9 @@ function riscoInfo(q) {
 }
 
 const CHIP_TONE = {
-  green:   'bg-green-dim border-green-border text-green',
-  amber:   'bg-amber-dim border-amber-border text-amber',
-  red:     'bg-red-dim border-red-border text-red',
+  green:   'bg-[rgba(29,158,117,.12)] border-green-border text-green',
+  amber:   'bg-[rgba(186,117,23,.12)] border-amber-border text-amber',
+  red:     'bg-[rgba(234,19,48,.10)] border-[rgba(234,19,48,.40)] text-[#FF4757]',
   neutral: 'bg-white/[.04] border-border text-ink-faint',
 }
 

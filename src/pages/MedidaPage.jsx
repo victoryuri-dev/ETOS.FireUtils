@@ -26,7 +26,7 @@ export default function MedidaPage({ sistKey }) {
   const label = SIST_LABELS[sistKey] || sistKey
 
   return (
-    <div className="flex-1 overflow-y-auto"><div className="max-w-[720px] mx-auto px-12 pt-[34px] pb-24">
+    <div className="flex-1 overflow-y-auto"><div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
       <div className="mb-[26px]">
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">
           Medidas de segurança

@@ -10,13 +10,13 @@ const RISCO_LBL = { green: 'Risco baixo', amber: 'Risco médio', red: 'Risco alt
 // padrao visual pros tres dados do cabecalho, em vez de cada um com um
 // tratamento diferente (texto solto, texto colorido, badge com borda).
 const TONE = {
-  neutral: 'bg-white/[0.07] border-border text-ink-faint',
-  green:   'bg-[rgba(29,158,117,.20)] border-green-border text-green',
-  amber:   'bg-[rgba(186,117,23,.20)] border-amber-border text-amber',
-  red:     'bg-[rgba(192,21,42,.20)] border-red-border text-red',
+  neutral: 'bg-white/[.04] border-border text-ink-faint',
+  green:   'bg-[rgba(29,158,117,.12)] border-green-border text-green',
+  amber:   'bg-[rgba(186,117,23,.12)] border-amber-border text-amber',
+  red:     'bg-[rgba(234,19,48,.10)] border-[rgba(234,19,48,.40)] text-[#FF4757]',
 }
 
-function Chip({ tone = 'neutral', icon, children }) {
+export function Chip({ tone = 'neutral', icon, children }) {
   return (
     <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold whitespace-nowrap shrink-0 ${TONE[tone]}`}>
       {icon && <Icon name={icon} size={14}/>}

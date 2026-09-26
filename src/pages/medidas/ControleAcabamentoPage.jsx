@@ -223,7 +223,7 @@ export default function ControleAcabamentoPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-[1100px] mx-auto pt-8 px-10 pb-20">
+      <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
 
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>

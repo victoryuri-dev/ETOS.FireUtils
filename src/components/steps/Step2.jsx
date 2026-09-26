@@ -6,9 +6,10 @@ import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
 import SwitchToggle from '../ui/SwitchToggle'
 import InfoTip from '../ui/InfoTip'
+import { Chip } from '../ui/EstruturaHeaderInfo'
 
 const S = {
-  section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
+  section: 'max-w-[980px] mx-auto pt-8 px-10 pb-20',
   header: 'mb-8',
   stepLbl: 'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',
   title: 'text-[22px] font-semibold text-ink mb-[5px]',
@@ -189,47 +190,48 @@ function EstruturaCard({ est, index, canRemove, dispatch, onOpen }) {
   const alturaPPPreenchida = est.alturaPisoPiso !== '' && est.alturaPisoPiso != null
   const configured = !!(est.areaTotal && est.altura) && alturaPPPreenchida
 
+  const terrea = parseInt(est.nPavimentos) === 1
+  const pavimentos = `${terrea ? 'Térrea' : `${est.nPavimentos} pavimentos`}${sub > 0 ? ` + ${sub} subsolo${sub > 1 ? 's' : ''}` : ''}`
+
   return (
     <div
       onClick={onOpen}
-      className={`bg-surface-2 rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-red-border ${configured ? 'border-[rgba(192,21,42,.25)]' : 'border-border'}`}
+      className={`bg-surface-2 rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-white/25 ${configured ? 'border-border' : 'border-dashed border-border-2'}`}
     >
-      <div className="flex items-center justify-between py-3 px-4">
-        {/* Left: icone + nome + resumo */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-8 h-8 rounded-md border border-solid flex items-center justify-center shrink-0 ${configured ? 'bg-red-dim border-red-border text-red' : 'bg-surface border-border text-ink-faint'}`}>
-            <Icon name="newbld" size={15}/>
+      <div className="flex items-center gap-4 py-3.5 px-4">
+        <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4">
+          {/* Nome */}
+          <div className="min-w-0 sm:flex-1 flex items-center gap-2.5">
+            <Icon name="newbld" size={16} className="text-ink-faint shrink-0"/>
+            <div className="min-w-0 text-[14px] font-semibold text-ink leading-[1.3] truncate">{est.nome || `Estrutura ${index + 1}`}</div>
           </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-ink mb-[3px]">{est.nome || `Estrutura ${index + 1}`}</div>
-            {configured ? (
-              <div className="flex flex-wrap gap-x-3 gap-y-[3px]">
-                <span className="text-[11px] text-ink-faint">{a} m² construida</span>
-                <span className="text-[11px] text-ink-faint">{parseInt(est.nPavimentos) === 1 ? 'Terrea' : `${est.nPavimentos} pavimentos`}</span>
-                {sub > 0 && (
-                  <span className="text-[11px] text-ink-faint">{sub} subsolo{sub > 1 ? 's' : ''}</span>
-                )}
-              </div>
-            ) : (
-              <div className="text-[11px] text-ink-faint">Clique para preencher</div>
-            )}
-          </div>
+
+          {/* Resumo em badges (mesmo estilo do cabecalho das estruturas) */}
+          {configured ? (
+            <div className="flex items-center gap-1.5 flex-wrap pl-[26px] sm:pl-0 sm:justify-end">
+              <Chip icon="area">{a} m²</Chip>
+              <Chip icon="stair">{pavimentos}</Chip>
+            </div>
+          ) : (
+            <span className="text-[13px] text-ink-faint pl-[26px] sm:pl-0">Clique para preencher</span>
+          )}
         </div>
 
-        {/* Right: remover + seta */}
-        <div className="flex items-center gap-1.5 shrink-0 ml-3">
+        {/* Remover + seta */}
+        <div className="flex items-center justify-end gap-2 shrink-0">
           {canRemove && (
             <button
               className="btn-del"
               onClick={e => { e.stopPropagation(); dispatch({ type:'REMOVE_ESTRUTURA', id: est.id }) }}
               title="Remover estrutura"
+              aria-label={`Remover ${est.nome || `estrutura ${index + 1}`}`}
             >
-              <Icon name="trash" size={12}/>
+              <Icon name="trash" size={13}/>
             </button>
           )}
-          <div className="text-ink-faint">
+          <span className="text-ink-faint">
             <Icon name="chevD" size={14} className="-rotate-90"/>
-          </div>
+          </span>
         </div>
       </div>
     </div>

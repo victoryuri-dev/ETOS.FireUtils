@@ -7,7 +7,7 @@ import FormSection from '../ui/FormSection'
 import { useToast } from '../../hooks/useToast'
 
 const S = {
-  section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
+  section: 'max-w-[980px] mx-auto pt-8 px-10 pb-20',
   header: 'mb-8',
   stepLbl: 'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',
   title: 'text-[22px] font-semibold text-ink mb-[5px]',

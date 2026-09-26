@@ -27,7 +27,7 @@ function collectDivs(pavimentos) {
 }
 
 const S = {
-  section: 'max-w-[720px] mx-auto px-12 pt-[34px] pb-24',
+  section: 'max-w-[980px] mx-auto pt-8 px-10 pb-20',
   header: 'mb-8',
   stepLbl: 'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',
   title: 'text-[22px] font-semibold text-ink mb-[5px]',
@@ -81,72 +81,75 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
             const q = getCarga(code)
             const cls = q ? getCls(q) : null
             const semCNAE = !cnae
+            const porLevantamento = st.metodo === 'levantamento'
             // Algumas divisoes (ex: J-1..J-4, varias do grupo M) nao tem
             // nenhum CNAE cadastrado na base normativa — a carga ja vem
             // definida no proprio nome da divisao, e o usuario preenche por
             // levantamento. Pra essas, o aviso de "volte a etapa 4" nunca
             // seria resolvivel, entao nem aparece.
             const temCnaeDisponivel = Object.keys(cnaesDiv(code)).length > 0
+            const descCnae = cnae ? (divMap[code]?.cnaeDesc || cnaesDiv(code)[cnae]?.descricao || '') : ''
 
             return (
-              <div key={code} className={`py-3.5 px-4 ${i < keys.length - 1 ? 'border-b border-solid border-border-2' : ''}`}>
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="py-[3px] px-2 rounded font-bold text-[12px] font-mono border border-solid bg-red-dim border-red-border text-red shrink-0">{code}</span>
-                      <span className="text-[14px] text-ink font-bold">{getDivLabel(code)}</span>
-                    </div>
-                    <div className="text-[11px] text-ink-faint mt-1.5">
-                      {cnae
-                        ? <><span className="font-mono text-red">{cnae}</span> — {divMap[code]?.cnaeDesc || cnaesDiv(code)[cnae]?.descricao || ''}</>
-                        : temCnaeDisponivel
-                          ? <span className="text-amber">Sem CNAE configurado — volte a etapa 4</span>
-                          : null
-                      }
-                    </div>
-                    <div className="text-[11px] text-ink-hint mt-1">{divMap[code]?.pavs?.join(', ')}</div>
+              <div key={code} className={`py-4 px-5 grid grid-cols-[minmax(0,1fr)_auto] gap-x-8 gap-y-3 items-center ${i < keys.length - 1 ? 'border-b border-solid border-border-2' : ''}`}>
+                {/* Identificacao: divisao (principal), CNAE e pavimentos (apoio) */}
+                <div className="min-w-0">
+                  <div className="text-[14px] font-semibold text-ink leading-[1.35]">
+                    <span className="font-mono text-[12px] text-ink-faint mr-2">{code}</span>{getDivLabel(code)}
                   </div>
-                  {cls && <span className={`carga-class ${cls} shrink-0`}>{getLbl(st.metodo === 'levantamento' ? (parseFloat(st.valorManual)||0) : (q||0))}</span>}
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <select value={st.metodo} onChange={e => setMetodo(code, e.target.value)}
-                    className="bg-surface-2 border border-solid border-border text-ink text-[11px] py-1.5 px-2.5 rounded-md outline-none w-auto">
-                    <option value="tabela">Por tabela normativa</option>
-                    <option value="levantamento">Por levantamento</option>
-                  </select>
-                  {st.metodo === 'levantamento' ? (
-                    <div className="flex items-center gap-1.5">
-                      <input type="number" value={st.valorManual} onChange={e => setValor(code, e.target.value)}
-                        className="w-[90px] text-right" placeholder="0"/>
-                      <span className="text-xs text-ink-faint whitespace-nowrap">MJ/m2</span>
+                  {cnae ? (
+                    <div className="text-[12px] text-ink-muted leading-[1.5] mt-1.5">
+                      <span className="font-mono text-ink-faint mr-1.5">{cnae}</span>{descCnae}
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <div className={`w-[90px] text-right py-2.5 px-3 bg-surface-2 border border-solid border-border rounded-md text-[13px] ${semCNAE ? 'text-ink-faint opacity-50' : 'text-ink opacity-100'}`}>
-                        {q ?? '—'}
-                      </div>
-                      <span className="text-xs text-ink-faint whitespace-nowrap">MJ/m2</span>
-                    </div>
+                  ) : temCnaeDisponivel && (
+                    <div className="text-[12px] text-amber mt-1.5">Sem CNAE configurado — volte a etapa 4</div>
                   )}
+                  <div className="flex items-center gap-1.5 text-[11px] text-ink-hint mt-1.5">
+                    <Icon name="stair" size={12}/>{divMap[code]?.pavs?.join(', ')}
+                  </div>
+                </div>
+
+                {/* Carga: metodo, valor e classe */}
+                <div className="flex flex-col items-end gap-2.5">
+                  <div className="inline-flex p-0.5 rounded-md bg-surface-2 border border-solid border-border" role="group" aria-label="Método de determinação da carga">
+                    {[['tabela', 'Tabela', 'Por tabela normativa'], ['levantamento', 'Levantamento', 'Por levantamento']].map(([valor, rotulo, dica]) => (
+                      <button
+                        key={valor}
+                        type="button"
+                        title={dica}
+                        aria-pressed={st.metodo === valor}
+                        onClick={() => setMetodo(code, valor)}
+                        className={`py-1 px-3 rounded text-[11px] font-medium border-0 cursor-pointer transition-colors duration-150 ${st.metodo === valor ? 'bg-white/[.10] text-ink' : 'bg-transparent text-ink-faint hover:text-ink-muted'}`}
+                      >{rotulo}</button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {cls && <span className={`carga-class ${cls}`}>{getLbl(porLevantamento ? (parseFloat(st.valorManual) || 0) : (q || 0))}</span>}
+                    <div className="flex items-baseline gap-1.5">
+                      {porLevantamento ? (
+                        <input type="number" value={st.valorManual} onChange={e => setValor(code, e.target.value)}
+                          className="w-[96px] text-right" placeholder="0" aria-label={`Carga de incêndio de ${code}`}/>
+                      ) : (
+                        <span className={`text-[22px] font-bold leading-none tabular-nums ${!cls ? 'text-ink-faint' : cls === 'low' ? 'text-green' : cls === 'med' ? 'text-amber' : 'text-red'} ${semCNAE ? 'opacity-50' : ''}`}>{q ?? '—'}</span>
+                      )}
+                      <span className="text-[11px] text-ink-faint whitespace-nowrap">MJ/m²</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )
           })}
-        </div>
 
-        {/* Resumo da estrutura */}
-        {maxQ > 0 && (
-          <div className="bg-surface-2 border border-solid border-border rounded-lg py-3.5 px-5 flex items-center gap-5 mt-3">
-            <div>
-              <div className={`text-[26px] font-bold leading-none ${maxCls === 'low' ? 'text-green' : maxCls === 'med' ? 'text-amber' : 'text-red'}`}>{maxQ}</div>
-              <div className="text-[11px] text-ink-faint mt-1">MJ/m2</div>
+          {/* Com mais de uma divisao, destaca qual define a estrutura (o valor
+              unico ja aparece na propria linha e a classe, no cabecalho). */}
+          {keys.length > 1 && maxQ > 0 && (
+            <div className="py-3 px-5 bg-surface-2 border-t border-solid border-border-2 flex items-center justify-between gap-4 text-[12px]">
+              <span className="text-ink-muted">Maior carga da estrutura</span>
+              <span className={`font-semibold ${maxCls === 'low' ? 'text-green' : maxCls === 'med' ? 'text-amber' : 'text-red'}`}>{maxQ} MJ/m² — {getLbl(maxQ)}</span>
             </div>
-            <div>
-              <div className={`text-[13px] font-semibold mb-[3px] ${maxCls === 'low' ? 'text-green' : maxCls === 'med' ? 'text-amber' : 'text-red'}`}>{getLbl(maxQ)}</div>
-              <div className="text-xs text-ink-muted leading-[1.5]">Maior carga entre as divisoes desta estrutura.</div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </>}
     </EstruturaSection>
   )
