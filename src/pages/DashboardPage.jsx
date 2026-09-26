@@ -5,6 +5,8 @@ import { useProjeto } from '../context/ProjetoContext'
 import { useNorma } from '../hooks/useNorma'
 import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
 import { supabase } from '../lib/supabase'
+import { getCompartimentacao } from '../data/normas/index'
+import { classificarTipoEdificacao } from '../data/compart_calc'
 import Icon from '../components/ui/Icon'
 import './DashboardPage.css'
 
@@ -335,9 +337,9 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect, grupos 
           </div>
           <dl className="dashboard-technical-card__metrics">
             <div><dt>Ocupação e divisão</dt><dd>{ocup.valor}</dd><small>{ocup.detalhe}</small></div>
-            <div><dt>Área construída</dt><dd>{fmtNumber(activeCard.area)}<small>{activeCard.area ? ' m²' : ''}</small></dd></div>
-            <div><dt>Quantidade de pavimentos</dt><dd>{activeCard.floorCount || '—'}<small>{activeCard.floorCount ? ` pavimento${activeCard.floorCount === 1 ? '' : 's'}` : ''}</small></dd><small>{activeCard.height ? `${fmtNumber(activeCard.height)} m de altura${activeCard.id === 'all' ? ' máxima' : ''}` : 'Altura não informada'}</small></div>
-            <div><dt>Risco de incêndio</dt><dd>{getRiskLabel(activeCard.fireLoad)}</dd><small>{activeCard.fireLoad ? `${fmtNumber(activeCard.fireLoad)} MJ/m² de carga de incêndio` : 'Carga de incêndio não informada'}</small></div>
+            <div><dt>Área construída</dt><dd>{fmtNumber(activeCard.area)}<small>{activeCard.area ? ' m²' : ''}</small></dd><small>{activeCard.terrain ? `Terreno ${fmtNumber(activeCard.terrain)} m²` : 'Terreno não informado'}</small></div>
+            <div><dt>Pavimentos</dt><dd>{activeCard.floorCount || '—'}<small>{activeCard.floorCount ? ` pavimento${activeCard.floorCount === 1 ? '' : 's'}` : ''}</small></dd><small>{activeCard.heightClass || 'Altura não informada'}</small></div>
+            <div><dt>Risco de incêndio</dt><dd>{getRiskLabel(activeCard.fireLoad)}</dd><small>{activeCard.fireLoad ? `${fmtNumber(activeCard.fireLoad)} MJ/m²` : 'Carga de incêndio não informada'}</small></div>
           </dl>
         </article>
       </div>
@@ -402,6 +404,18 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
     // Pavimentos = acima do solo + subsolos. Visão geral: vale a estrutura com mais pavimentos (não a soma entre estruturas)
     const totalPavimentos = item => (Number(item.nPavimentos) || 0) + (Number(item.nSubsolos) || 0)
     const floorCount = structures.reduce((max, item) => Math.max(max, totalPavimentos(item)), 0)
+    // Classificação da altura (mesma da Compartimentação, Anexo B da NT 09): usa a
+    // altura piso a piso; sem altura informada num prédio de mais de 1 pavimento, não classifica.
+    const classesTipo = getCompartimentacao(state.uf).CLASSES_TIPO_EDIFICACAO
+    const heightClassOf = item => {
+      const h = Number(item.alturaPisoPiso) || 0
+      if (h <= 0 && (Number(item.nPavimentos) || 1) + (Number(item.nSubsolos) || 0) > 1) return null
+      return classificarTipoEdificacao(h, classesTipo)?.nome || null
+    }
+    const tallest = structures.reduce((best, item) => (!best || (Number(item.alturaPisoPiso) || 0) > (Number(best.alturaPisoPiso) || 0)) ? item : best, null)
+    const heightClass = tallest ? heightClassOf(tallest) : null
+    // Terreno é do lote (parâmetro do projeto), igual em todos os cards
+    const terrain = Number(state.areaTerreno) || 0
     const basementCount = structures.reduce((max, item) => Math.max(max, Number(item.nSubsolos) || 0), 0)
     const area = Number(state.areaConstruidaTotal) || structures.reduce((sum, item) => sum + (Number(item.areaTotal) || 0), 0)
     const height = structures.reduce((highest, item) => Math.max(highest, Number(item.altura) || 0), 0)
@@ -433,8 +447,10 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
         id: structure.id,
         name: structure.nome || 'Edificação sem nome',
         area: Number(structure.areaTotal) || 0,
+        terrain,
         height: Number(structure.altura) || 0,
         floorCount: totalPavimentos(structure),
+        heightClass: heightClassOf(structure),
         basementCount: Number(structure.nSubsolos) || 0,
         fireLoad: getFireLoad(state.cargaState?.[structure.id]),
         groups: [...new Set(structurePavements.map(item => item.grupo).filter(Boolean))].sort(),
@@ -446,8 +462,10 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       name: selectedStructure.nome || 'Edificação sem nome',
       label: selectedStructure.nome,
       area: Number(selectedStructure.areaTotal) || 0,
+      terrain,
       height: Number(selectedStructure.altura) || 0,
       floorCount: totalPavimentos(selectedStructure),
+      heightClass: heightClassOf(selectedStructure),
       basementCount: Number(selectedStructure.nSubsolos) || 0,
       fireLoad: getFireLoad(state.cargaState?.[selectedStructure.id]),
       groups: summaryGroups,
@@ -455,13 +473,13 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       systemCount: summarySystems.length,
       requiredCount: summarySystems.filter(system => structureSystems[system.key]?.obrigatorio).length,
     } : {
-      id: 'all', name: 'Visão geral do projeto', label: 'Visão geral', area, height, floorCount, basementCount, fireLoad,
+      id: 'all', name: 'Visão geral do projeto', label: 'Visão geral', area, terrain, height, floorCount, heightClass, basementCount, fireLoad,
       groups: summaryGroups, divisions: summaryDivisions,
       systemCount: activeSystems.length,
       requiredCount: activeSystems.filter(system => system.required).length,
     }
 
-    const technicalCards = [{ id: 'all', name: 'Visão geral do projeto', area, height, floorCount, basementCount, fireLoad, groups, divisions }, ...structures.map(makeStructureSummary)]
+    const technicalCards = [{ id: 'all', name: 'Visão geral do projeto', area, terrain, height, floorCount, heightClass, basementCount, fireLoad, groups, divisions }, ...structures.map(makeStructureSummary)]
 
     return { activeSystems, displayedSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsWithData, configPercent, hasTechnicalData, summary, technicalCards }
   }, [state, sistemas, porEstrutura, selectedStructureId])

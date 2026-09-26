@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useCnpjLookup } from '../../hooks/useCnpjLookup'
-import { ESTADOS_DISPONIVEIS, getNormaInfo } from '../../data/normas/index'
+import { ESTADOS_DISPONIVEIS } from '../../data/normas/index'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
 import { useToast } from '../../hooks/useToast'
@@ -30,22 +30,13 @@ export default function Step1({ step, totalSteps }) {
   const [mesmoResponsavel, setMesmoResponsavel] = useState(false)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
   const setCNPJ = e => dispatch({ type:'SET_FIELD', field:'respCNPJ', value: maskCNPJ(e.target.value) })
-  const normaInfo = getNormaInfo(state.uf || 'MA')
 
-  // Retornos da busca por CNPJ viram notificações. O endereço fiscal fica mais
-  // tempo na tela porque pede uma decisão (usar ou não como endereço da obra).
+  // Erros e avisos da busca por CNPJ viram notificações.
   useEffect(() => { if (error) toast.error(error) }, [error, toast])
   useEffect(() => { if (warning) toast.warning(warning) }, [warning, toast])
-  useEffect(() => {
-    if (!enderecoFiscal) return
-    const e = enderecoFiscal
-    const id = toast.info(
-      `${e.logradouro}, ${e.numero} — ${e.bairro}, ${e.cidade} — ${e.uf}, CEP ${e.cep}. Pode ser diferente do endereco da obra — confirme antes de usar.`,
-      { title: 'Endereco fiscal encontrado', duration: 20000, action: { label: 'Usar como endereco da obra', onClick: aplicarEndereco } },
-    )
-    return () => toast.dismiss(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enderecoFiscal, toast])
+  // O endereço fiscal encontrado NÃO vira notificação: fica no corpo da página,
+  // na seção "Localizacao da obra", e continua visível depois de usar o endereço.
+  const mostrarEnderecoFiscal = !!enderecoFiscal
 
   // Mantem "Proprietario do imovel" espelhando "Responsavel pelo uso" enquanto marcado —
   // evita digitar os mesmos dados duas vezes quando e a mesma empresa/pessoa.
@@ -93,6 +84,21 @@ export default function Step1({ step, totalSteps }) {
       </FormSection>
 
       <FormSection title="Localizacao da obra">
+        {mostrarEnderecoFiscal && (
+          <div className="ibox blue mb-4 flex-col items-stretch gap-3">
+            <div className="flex items-start gap-2.5">
+              <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
+              <div className="text-xs leading-[1.6]">
+                <div className="font-semibold text-ink mb-0.5">Endereco fiscal encontrado pelo CNPJ</div>
+                {enderecoFiscal.logradouro}, {enderecoFiscal.numero} — {enderecoFiscal.bairro}, {enderecoFiscal.cidade} — {enderecoFiscal.uf}, CEP {enderecoFiscal.cep}.
+                {' '}Pode ser diferente do endereco da obra — confirme antes de usar.
+              </div>
+            </div>
+            <div className="flex gap-2 pl-6">
+              <button type="button" className="btn-ghost" onClick={aplicarEndereco}>Usar como endereco da obra</button>
+            </div>
+          </div>
+        )}
 
         <div className="g3 mb-3">
           <div className="fg col-span-2"><label>Logradouro (rua, avenida...) <span className="req">*</span></label><input value={state.endereco} onChange={set('endereco')} placeholder="Rua Grande"/></div>
@@ -116,19 +122,6 @@ export default function Step1({ step, totalSteps }) {
             </select>
           </div>
         </div>
-      </FormSection>
-
-      <FormSection title="Norma aplicavel">
-        <div className="ibox amber">
-          <Icon name="info" size={14} color="var(--color-amber)" className="shrink-0"/>
-          <span>Norma vinculada ao estado selecionado. Verifique a versao vigente antes de iniciar o dimensionamento.</span>
-        </div>
-        {normaInfo && (
-          <div className="norma-badge mt-3">
-            <Icon name="file" size={13}/>
-            <span>{normaInfo.nome} — {normaInfo.desc}</span>
-          </div>
-        )}
       </FormSection>
 
       <FormSection title="Proprietario do imovel">

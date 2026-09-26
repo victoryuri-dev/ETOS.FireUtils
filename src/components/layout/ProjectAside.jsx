@@ -53,9 +53,21 @@ function SectionLabel({ text, collapsed }) {
   return <div className="text-[10px] text-ink-faint px-5 pt-3 pb-1 tracking-[.08em] uppercase whitespace-nowrap">{text}</div>
 }
 
+// Último estado do menu lateral (recolhido/aberto), lembrado no navegador.
+const CHAVE_MENU = 'fireutils:menu-lateral-recolhido'
+function lerMenuRecolhido() {
+  try { return localStorage.getItem(CHAVE_MENU) === '1' } catch { return false }
+}
+function salvarMenuRecolhido(valor) {
+  try { localStorage.setItem(CHAVE_MENU, valor ? '1' : '0') } catch { /* sem armazenamento: só não lembra */ }
+}
+
 export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }) {
   const { sistemas } = useMedidasObrigatorias()
-  const [col, setCol] = useState(() => window.matchMedia('(max-width: 720px)').matches)
+  // Telas estreitas sempre abrem recolhidas (sem sobrescrever a preferência salva);
+  // nas demais vale a última escolha do usuário.
+  const [col, setCol] = useState(() => window.matchMedia('(max-width: 720px)').matches || lerMenuRecolhido())
+  const definirRecolhido = valor => { setCol(valor); salvarMenuRecolhido(valor) }
 
   useEffect(() => {
     const mobile = window.matchMedia('(max-width: 720px)')
@@ -77,7 +89,7 @@ export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }
       <div className="p-2 shrink-0">
         {col ? (
           <button
-            onClick={() => { if (!window.matchMedia('(max-width: 720px)').matches) setCol(false) }}
+            onClick={() => { if (!window.matchMedia('(max-width: 720px)').matches) definirRecolhido(false) }}
             title={window.matchMedia('(max-width: 720px)').matches ? 'Fire Utils' : 'Expandir menu'}
             className="w-full h-12 flex items-center justify-center rounded-lg hover:bg-white/[.06] transition-colors cursor-pointer"
           >
@@ -87,7 +99,7 @@ export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }
           <div className="h-12 flex items-center justify-between gap-2 pl-1 pr-1">
             <img src={logoFull} alt="Fire Utils" className="h-8 w-auto"/>
             <button
-              onClick={() => setCol(true)}
+              onClick={() => definirRecolhido(true)}
               title="Retrair menu"
               className="w-6 h-6 flex items-center justify-center rounded-md text-ink-faint hover:bg-white/[.06] hover:text-ink transition-colors cursor-pointer shrink-0"
             >

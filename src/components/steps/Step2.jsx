@@ -244,6 +244,10 @@ export default function Step2({ step, totalSteps }) {
   const [openId, setOpenId] = useState(null)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
 
+  // Informar alvará/AVCB/ano de construção? Projeto que já tem algum desses
+  // dados preenchido conta como "sim" (sem perder o que foi digitado).
+  const jaTemDadosLegais = !!(state.numeroAlvara || state.anoConstrucao || state.numeroAVCB || state.validadeAVCB)
+  const informarLegais = state.informarDadosLegais || (jaTemDadosLegais ? 'sim' : '')
   const optClass = (sel) =>
     `border border-solid ${sel ? 'border-red-border bg-red-dim' : 'border-border bg-transparent'} rounded-md py-3.5 px-4 cursor-pointer flex items-center gap-3`
 
@@ -332,7 +336,31 @@ export default function Step2({ step, totalSteps }) {
             ))}
           </div>
 
-          {state.situacao === 'nova' && (
+          {state.situacao === 'existente' && (
+            <div className="ibox amber mt-2 mb-3.5">
+              <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+              <span>Para edificacoes existentes o CBMMA pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
+            </div>
+          )}
+
+          {/* Pergunta: informar alvará / AVCB / ano de construção? Projetos que já
+              têm algum desses dados preenchidos contam como "sim". */}
+          <div className="mb-3.5 flex items-center justify-between gap-4 py-3 px-4 rounded-md border border-solid border-border">
+            <div className="text-[13px] font-medium text-ink">
+              {state.situacao === 'existente'
+                ? 'Deseja informar os dados de alvará, AVCB e ano de construção?'
+                : 'Deseja informar o número do alvará?'}
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <span className={`text-xs font-medium w-7 text-right ${informarLegais === 'sim' ? 'text-ink' : 'text-ink-faint'}`}>
+                {informarLegais === 'sim' ? 'Sim' : 'Não'}
+              </span>
+              <SwitchToggle checked={informarLegais === 'sim'}
+                onChange={v => dispatch({ type:'SET_FIELD', field:'informarDadosLegais', value: v ? 'sim' : 'nao' })}/>
+            </div>
+          </div>
+
+          {informarLegais === 'sim' && state.situacao === 'nova' && (
             <div className="fg">
               <label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/>
             </div>
@@ -340,10 +368,9 @@ export default function Step2({ step, totalSteps }) {
 
           {state.situacao === 'existente' && (
             <>
-              <div className="ibox amber mt-2">
-                <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-                <span>Para edificacoes existentes o CBMMA pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
-              </div>
+              {informarLegais === 'sim' && (
+              <>
+              <div className="fg mb-3 max-w-[calc(50%-8px)]"><label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/></div>
               <div className="g2 mb-3">
                 <div className="fg"><label>Ano de construcao</label><input type="number" value={state.anoConstrucao} onChange={set('anoConstrucao')} placeholder="Ex: 1998"/></div>
                 <div className="fg"><label>Situacao perante o CBMMA</label>
@@ -359,6 +386,8 @@ export default function Step2({ step, totalSteps }) {
                 <div className="fg"><label>No do AVCB anterior</label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
                 <div className="fg"><label>Validade do AVCB</label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
               </div>
+              </>
+              )}
               <div className="fg">
                 <label>Condicoes atuais relevantes para o PPCI</label>
                 <textarea value={state.condicoesAtuais} onChange={set('condicoesAtuais')} placeholder="Descreva brevemente..."/>
