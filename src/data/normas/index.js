@@ -23,6 +23,7 @@ import * as MA_CMAR from './MA/controle_acabamento'
 import * as MA_COMP from './MA/compartimentacao'
 import * as MA_NTS  from './MA/nts'
 import * as MA_HID  from './MA/hidrantes'
+import * as MA_BRIG from './MA/brigada_incendio'
 
 import * as PB_SE   from './PB/saida_emergencia'
 
@@ -39,6 +40,7 @@ const NORMAS_SIN  = { MA: MA_SIN }
 const NORMAS_CMAR = { MA: MA_CMAR }
 const NORMAS_COMP = { MA: MA_COMP }
 const NORMAS_HID  = { MA: MA_HID }
+const NORMAS_BRIG = { MA: MA_BRIG }
 // getNts() não é parametrizado por UF hoje (só existe o MA_NTS estático,
 // e o único consumidor — MemorialDescritivoPage.jsx — sempre foi
 // hardcoded pro MA também); mantido assim pra não inventar comportamento
@@ -95,6 +97,7 @@ const CHAVES_ILU  = ['AUTONOMIA_MINIMA_HORAS', 'CAMPOS_EQUIPAMENTO', 'EQUIPAMENT
 const CHAVES_SIN  = ['CATEGORIAS', 'NOTAS', 'TIPOS_PLACA']
 const CHAVES_MED  = ['LIMIARES', 'MEDIDAS', 'NOTAS_ESPECIFICAS', 'TABELA_SIMPLIFICADA']
 const CHAVES_NTS  = ['NTS_PADRAO_MA', 'NTS_POR_SISTEMA', 'NT_CARGA_INCENDIO']
+const CHAVES_BRIG = ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'OBSERVACOES_TRANSCRICAO']
 const CHAVES_HID  = [
   'NORMA', 'REFERENCIA_PRESSAO_VAZAO', 'TIPOS_SISTEMA', 'COMPONENTES_POR_TIPO',
   'LABEL_MANGUEIRA_INCENDIO', 'FAIXAS_AREA', 'TABELA3', 'DIVISOES_COLUNA',
@@ -206,6 +209,14 @@ export function getNts(uf) {
 export function getHidrantes(uf) {
   const remoto = getNormaRemota(uf, 'hidrantes')
   return remoto ? renomearDaBaseCentral(remoto, CHAVES_HID) : (NORMAS_HID[uf] ?? NORMAS_HID['MA'])
+}
+// getBrigada: migrado pra base normativa central (normas_dados — ver
+// supabase/migrations/*seed_normas_brigada*). O arquivo estático
+// (normas/MA/brigada_incendio.js) vira só o fallback offline/dev, mesmo
+// padrão dos demais getters acima.
+export function getBrigada(uf) {
+  const remoto = getNormaRemota(uf, 'brigada')
+  return remoto ? renomearDaBaseCentral(remoto, CHAVES_BRIG) : (NORMAS_BRIG[uf] ?? NORMAS_BRIG['MA'])
 }
 export function getOcupacoes(uf)   { return getNorma(uf)?.OCUPACOES ?? {} }
 export function getGrupos(uf)      {

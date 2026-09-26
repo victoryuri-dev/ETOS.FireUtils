@@ -310,8 +310,11 @@ function novaEstrutura(nome, id) {
 // valores mudam). `acessos`/`pisoDescarga`: ver árvore de Acessos e
 // Descargas (tela dedicada, dentro de Saída de Emergência) — piso de
 // descarga nasce true aqui (é o térreo), mas fica editável lá.
+// `populacaoFixa`: ocupantes fixos DESTE pavimento, usada pelo dimensionamento
+// da Brigada de Incêndio (Tabela A.1, NT 17) — não confundir com
+// state.planoEmergencia.populacaoFixa, que é o total da edificação inteira.
 function pavimentoTerreo(estruturaId) {
-  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(true), pisoDescarga: true }
+  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [], ambientes: [], acessos: acessosPadrao(true), pisoDescarga: true }
 }
 
 const INITIAL_STATE = {
@@ -564,14 +567,14 @@ function reducer(state, action) {
       const list = []
       for (let s = nSub; s >= 1; s--) {
         const id = `${estruturaId}-sub-${s}`
-        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
+        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
       }
       const terId = `${estruturaId}-P1`
       const ter = find(terId)
       list.push(ter || pavimentoTerreo(estruturaId))
       for (let p = 2; p <= nPav; p++) {
         const id = `${estruturaId}-P${p}`
-        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
+        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
       }
       const idsValidos = new Set(list.map(p => p.id))
       return {
