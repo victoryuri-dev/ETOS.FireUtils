@@ -6,6 +6,7 @@ import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import { statusEstrutura } from '../../utils/statusEstrutura'
 
 // ── Shared UI (mesmo estilo das demais páginas de medida) ────────────────
 function Card({ children, className = '' }) {
@@ -26,24 +27,23 @@ function NivelBadge({ nivel }) {
 }
 
 // ── Linha de um pavimento dentro da tabela da estrutura ──────────────
-// Recebe o cálculo já pronto (calculado uma única vez em TabelaBrigadaEstrutura,
-// que também precisa dele para os totais) — evita rodar a mesma regra duas vezes.
-function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, nivelInstalacao, notasIdentificadas, dispatch }) {
+// Recebe o cálculo já pronto (calculado uma única vez em EstruturaBrigada, que
+// também precisa dele para os totais e o status) — evita rodar a regra duas vezes.
+const TH = 'py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium'
+const TD = 'py-2 px-3 text-xs'
+
+function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, nivelInstalacao, dispatch }) {
   const divisao = pavimento.divisao
   const setPopulacao = v => dispatch({ type: 'UPDATE_PAV', id: pavimento.id, changes: { populacaoFixa: v } })
-
-  const semLinha = !linha
   const isento = linha?.isento
   const especial = resultado?.especial
 
   return (
     <tr>
-      <td className="py-2 px-2.5 border-b border-solid border-border-2 text-[13px] font-medium text-ink whitespace-nowrap">{pavimento.label}</td>
-      <td className="py-2 px-2.5 border-b border-solid border-border-2">
-        <span className="text-[11px] text-ink-faint bg-surface-2 border border-solid border-border-2 rounded py-0.5 px-1.5 font-mono">{divisao || '—'}</span>
-      </td>
-      <td className="py-2 px-2.5 border-b border-solid border-border-2"><RiscoBadge risco={risco}/></td>
-      <td className="py-2 px-2.5 border-b border-solid border-border-2">
+      <td className={`${TD} text-ink whitespace-nowrap`}>{pavimento.label}</td>
+      <td className={`${TD} text-ink-faint`}>{divisao || '—'}</td>
+      <td className={TD}><RiscoBadge risco={risco}/></td>
+      <td className={TD}>
         <input
           type="number" min="0" step="1"
           value={pavimento.populacaoFixa ?? ''}
@@ -52,8 +52,8 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
           className="w-16 text-right"
         />
       </td>
-      {semLinha ? (
-        <td className="py-2 px-2.5 border-b border-solid border-border-2" colSpan={4}>
+      {!linha ? (
+        <td className={TD} colSpan={3}>
           <span className="text-[11px] text-amber flex items-center gap-1.5">
             <Icon name="warn" size={12} color="var(--color-amber)" className="shrink-0"/>
             {divisao ? `Divisão ${divisao} não cadastrada na Tabela A.1 — verifique com o CBM competente.` : 'Classifique a divisão de ocupação na Etapa 4.'}
@@ -61,29 +61,38 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
         </td>
       ) : (
         <>
-          <td className="py-2 px-2.5 border-b border-solid border-border-2 text-center">
+          <td className={`${TD} text-center`}>
             <span className={`text-base font-bold ${isento ? 'text-ink-faint' : 'text-ink'}`}>{resultado.brigadistas ?? '—'}</span>
             {especial && <Icon name="warn" size={11} color="var(--color-amber)" className="inline-block ml-1 align-text-top" title={resultado.detalhe}/>}
           </td>
-          <td className="py-2 px-2.5 border-b border-solid border-border-2"><NivelBadge nivel={nivelTreinamento}/></td>
-          <td className="py-2 px-2.5 border-b border-solid border-border-2"><NivelBadge nivel={nivelInstalacao}/></td>
-          <td className="py-2 px-2.5 border-b border-solid border-border-2">
-            <div className="flex flex-wrap gap-1">
-              {notasIdentificadas?.map(n => <span key={n} className="text-[10px] text-ink-faint bg-surface-2 border border-solid border-border-2 rounded py-0.5 px-1.5">Nota {n}</span>)}
-            </div>
-          </td>
+          <td className={TD}><NivelBadge nivel={nivelTreinamento}/></td>
+          <td className={TD}><NivelBadge nivel={nivelInstalacao}/></td>
         </>
       )}
     </tr>
   )
 }
 
-// ── Tabela de dimensionamento de uma estrutura ────────────────────────
-function TabelaBrigadaEstrutura({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, dispatch }) {
+const ORDEM_NIVEL = { basico: 1, intermediario: 2, avancado: 3 }
+
+// ── Estrutura (card colapsável) com o dimensionamento da brigada ─────────
+// Mesma estrutura visual da Compartimentação: EstruturaSection com status +
+// um Card da medida (título + resumo) contendo a tabela por pavimento.
+function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, dispatch }) {
   const linhasCalculadas = pavimentos.map(pav => {
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
     return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela) }
   })
+
+  // Pavimento resolvido = tem linha na Tabela A.1 e já saiu número (ou é isento).
+  const resolvidos = linhasCalculadas.filter(l => l.linha && (l.linha.isento || l.resultado?.brigadistas != null)).length
+  // Status base: nunca "concluído" — o verde vem só do botão de concluir
+  // (EstruturaSection, prop `conclusao`).
+  const status = pavimentos.length === 0
+    ? statusEstrutura('pendente', 'Sem pavimentos')
+    : resolvidos === 0
+      ? statusEstrutura('pendente', 'População pendente')
+      : statusEstrutura('andamento', resolvidos === pavimentos.length ? 'Revisar e concluir' : `${resolvidos} de ${pavimentos.length} pavimentos`)
 
   // Texto de cada nota vem sempre do rodapé oficial (NOTAS_TABELA_A1) — nunca
   // uma paráfrase escrita à mão — e só aparece quando pelo menos um pavimento
@@ -102,8 +111,7 @@ function TabelaBrigadaEstrutura({ estrutura, pavimentos, cargaEst, cnaesDiv, lim
   const observacoes = [...notasTexto, ...observacoesLivres]
 
   const totalNumerico = linhasCalculadas.some(l => l.resultado?.brigadistas != null)
-  const totalBrigadistas = linhasCalculadas.reduce((s, l) => s + (l.resultado?.brigadistas || 0), 0)
-  const ORDEM_NIVEL = { basico: 1, intermediario: 2, avancado: 3 }
+  const totalBrigadistas = linhasCalculadas.reduce((t, l) => t + (l.resultado?.brigadistas || 0), 0)
   const nivelMaisAlto = (campo) => linhasCalculadas
     .map(l => l[campo])
     .filter(n => n && !n.dinamico)
@@ -112,56 +120,77 @@ function TabelaBrigadaEstrutura({ estrutura, pavimentos, cargaEst, cnaesDiv, lim
   const instalacaoMax = nivelMaisAlto('nivelInstalacao')
 
   return (
-    <>
-      <div className="border border-solid border-border rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-surface-2">
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Pavimento</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Divisão</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Risco</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border">Pop. fixa</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-center border-b border-solid border-border">Brigadistas</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Treinamento</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Instalação</th>
-              <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Notas</th>
-            </tr>
-          </thead>
-          <tbody>
-            {linhasCalculadas.map(({ pav, risco, linha, resultado, nivelTreinamento, nivelInstalacao, notasIdentificadas }) => (
-              <LinhaPavimento
-                key={pav.id}
-                pavimento={pav}
-                risco={risco}
-                linha={linha}
-                resultado={resultado}
-                nivelTreinamento={nivelTreinamento}
-                nivelInstalacao={nivelInstalacao}
-                notasIdentificadas={notasIdentificadas}
-                dispatch={dispatch}
-              />
-            ))}
-          </tbody>
+    <EstruturaSection titulo={estrutura.nome} extra={<EstruturaHeaderInfo estrutura={estrutura}/>} status={status} conclusao={pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'brigada' } : null} defaultOpen={false}>
+      <Card>
+        <div className="py-3.5 px-[18px] flex items-center justify-between border-b border-solid border-border">
+          <div className="flex items-center gap-2">
+            <Icon name={SISTEMA_ICON.brigada} size={15} color="var(--color-red)"/>
+            <span className="text-xs font-bold text-ink">Brigada de Incêndio</span>
+          </div>
           {totalNumerico && (
-            <tfoot>
-              <tr className="bg-surface-2">
-                <td className="py-2 px-2.5 text-[12px] font-semibold text-ink" colSpan={4}>Total da estrutura</td>
-                <td className="py-2 px-2.5 text-center text-base font-bold text-ink">{totalBrigadistas}</td>
-                <td className="py-2 px-2.5"><NivelBadge nivel={treinamentoMax}/></td>
-                <td className="py-2 px-2.5"><NivelBadge nivel={instalacaoMax}/></td>
-                <td/>
-              </tr>
-            </tfoot>
+            <span className="text-xs text-ink-muted">
+              Total da estrutura <strong className="text-ink text-sm ml-1">{totalBrigadistas}</strong> brigadista{totalBrigadistas === 1 ? '' : 's'}
+            </span>
           )}
-        </table>
-      </div>
-
-      {observacoes.length > 0 && (
-        <div className="text-[11px] text-ink-faint leading-[1.6] mt-2.5 flex flex-col gap-1">
-          {observacoes.map((o, i) => <span key={i}>{o}</span>)}
         </div>
-      )}
-    </>
+
+        <div className="py-3.5 px-[18px]">
+          {pavimentos.length === 0 ? (
+            <div className="ibox amber">
+              <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+              <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-solid border-border">
+                    <th className={TH}>Pavimento</th>
+                    <th className={TH}>Divisão</th>
+                    <th className={TH}>Risco</th>
+                    <th className={`${TH} text-right`}>Pop. fixa</th>
+                    <th className={`${TH} text-center`}>Brigadistas</th>
+                    <th className={TH}>Treinamento</th>
+                    <th className={TH}>Instalação</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-solid divide-border">
+                  {linhasCalculadas.map(({ pav, risco, linha, resultado, nivelTreinamento, nivelInstalacao }) => (
+                    <LinhaPavimento
+                      key={pav.id}
+                      pavimento={pav}
+                      risco={risco}
+                      linha={linha}
+                      resultado={resultado}
+                      nivelTreinamento={nivelTreinamento}
+                      nivelInstalacao={nivelInstalacao}
+                      dispatch={dispatch}
+                    />
+                  ))}
+                </tbody>
+                {totalNumerico && (
+                  <tfoot>
+                    <tr className="border-t border-solid border-border">
+                      <td className={`${TD} font-semibold text-ink`} colSpan={4}>Total da estrutura</td>
+                      <td className={`${TD} text-center text-base font-bold text-ink`}>{totalBrigadistas}</td>
+                      <td className={TD}><NivelBadge nivel={treinamentoMax}/></td>
+                      <td className={TD}><NivelBadge nivel={instalacaoMax}/></td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          )}
+
+          {observacoes.length > 0 && (
+            <div className="text-[11px] text-ink-faint leading-[1.6] mt-3 flex flex-col gap-1">
+              {observacoes.map((o, i) => <span key={i}>{o}</span>)}
+            </div>
+          )}
+
+        </div>
+      </Card>
+    </EstruturaSection>
   )
 }
 
@@ -234,30 +263,19 @@ export default function BrigadaIncendioPage() {
 
         <ReferenciaNormativa brigNorma={brigNorma}/>
 
-        {state.estruturas.map(est => {
-          const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
-          return (
-            <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
-              {pavimentos.length === 0 ? (
-                <div className="ibox amber">
-                  <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-                  <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>
-                </div>
-              ) : (
-                <TabelaBrigadaEstrutura
-                  estrutura={est}
-                  pavimentos={pavimentos}
-                  cargaEst={state.cargaState[est.id] || {}}
-                  cnaesDiv={cnaesDiv}
-                  limiaresRisco={extNorma.LIMIARES_RISCO}
-                  tabela={brigNorma.TABELA_A1}
-                  notasTabela={brigNorma.NOTAS_TABELA_A1}
-                  dispatch={dispatch}
-                />
-              )}
-            </EstruturaSection>
-          )
-        })}
+        {state.estruturas.map(est => (
+          <EstruturaBrigada
+            key={est.id}
+            estrutura={est}
+            pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
+            cargaEst={state.cargaState[est.id] || {}}
+            cnaesDiv={cnaesDiv}
+            limiaresRisco={extNorma.LIMIARES_RISCO}
+            tabela={brigNorma.TABELA_A1}
+            notasTabela={brigNorma.NOTAS_TABELA_A1}
+            dispatch={dispatch}
+          />
+        ))}
       </div>
     </div>
   )

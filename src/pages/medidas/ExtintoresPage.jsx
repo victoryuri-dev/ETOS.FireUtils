@@ -11,7 +11,7 @@ import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { useToast } from '../../hooks/useToast'
-import { statusPorProgresso } from '../../utils/statusEstrutura'
+import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 // ── Importação do firedata.json (plugin Revit) ───────────────────────
@@ -906,11 +906,26 @@ export default function ExtintoresPage() {
         {state.estruturas.map(est => {
           const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
           const comExtintor = pavimentos.filter(pav => state.extintores.some(e => e.pavimentoId === pav.id)).length
-          const status = statusPorProgresso(comExtintor, Math.max(pavimentos.length, 1), {
+          // Pavimento com extintor que não atende (classe A, B/C ou mínimo por
+          // pavimento) conta como pendência — mesmo com dados importados.
+          const pendencias = pavimentos.filter(pav => {
+            const doPav = state.extintores.filter(e => e.pavimentoId === pav.id)
+            if (doPav.length === 0) return false
+            const r = calcularPavimento(doPav, riscoDoPavimento(pav, state.cargaState, extNorma.LIMIARES_RISCO), pav.area, {
+              tiposPortatil: extNorma.TIPOS_PORTATIL, tiposSobreRodas: extNorma.TIPOS_SOBRE_RODAS,
+              areaLimite: extNorma.AREA_LIMITE_UNIDADE_UNICA,
+            })
+            return !(r.temA && r.temBC && r.minimoAtendido)
+          }).length
+          const base = statusPorProgresso(comExtintor, Math.max(pavimentos.length, 1), {
             pendente: 'Aguardando dados', andamento: `${comExtintor} de ${pavimentos.length} pavimentos`, concluido: 'Dados carregados',
           })
+          const status = pendencias > 0
+            ? statusEstrutura('andamento', `${pendencias} pavimento${pendencias === 1 ? '' : 's'} com pendência`)
+            : base
+          const semPendencias = pendencias === 0 && comExtintor >= Math.max(pavimentos.length, 1)
           return (
-            <EstruturaSection key={est.id} titulo={est.nome} status={status} defaultOpen={false} extra={
+            <EstruturaSection key={est.id} titulo={est.nome} status={status} conclusao={{ estruturaId: est.id, medida: 'extintores', auto: !!est.origemRevit?.extintores && semPendencias }} defaultOpen={false} extra={
               <div className="flex items-center gap-2">
                 <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
                   onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}

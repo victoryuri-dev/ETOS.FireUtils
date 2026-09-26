@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import Icon from './Icon'
+import { useProjeto } from '../../context/ProjetoContext'
+import { statusEstrutura } from '../../utils/statusEstrutura'
 
 // Container colapsavel para blocos "por estrutura" — usado em toda tela que
 // repete conteudo (formulario, cards, tabela) uma vez pra cada estrutura do
@@ -41,8 +43,53 @@ function StatusPill({ status }) {
   )
 }
 
-export default function EstruturaSection({ titulo, extra, status, defaultOpen = true, children }) {
+// `conclusao` ({ estruturaId, medida, auto }) liga o "concluir" manual: a
+// estrutura só fica verde quando o usuário a marca como concluída (botão no
+// fim do card) — enquanto isso, mesmo com tudo preenchido, o status fica
+// amarelo ("Revisar e concluir"), já que os dados ainda podem mudar. `auto`
+// = já vem concluída sem ação do usuário (ex.: dados sincronizados do Revit,
+// ou medida não exigida); a escolha explícita do usuário (concluir/reabrir)
+// sempre vale mais que `auto`. Fica em estrutura.concluidas[medida].
+function useConclusao(conclusao, status) {
+  const { state, dispatch } = useProjeto()
+  if (!conclusao) return { status }
+  const est = state.estruturas.find(e => e.id === conclusao.estruturaId)
+  const escolha = est?.concluidas?.[conclusao.medida]
+  const concluida = escolha ?? !!conclusao.auto
+  const definir = value => dispatch({
+    type: 'SET_ESTRUTURA_FIELD', id: conclusao.estruturaId, field: 'concluidas',
+    value: { ...(est?.concluidas || {}), [conclusao.medida]: value },
+  })
+  let efetivo = status
+  if (concluida) {
+    if (!status || status.tone !== 'concluido') efetivo = statusEstrutura('concluido', 'Concluída')
+    else if (escolha === true) efetivo = statusEstrutura('concluido', 'Concluída')
+  } else if (status?.tone === 'concluido') {
+    efetivo = statusEstrutura('andamento', 'Revisar e concluir')
+  }
+  return { status: efetivo, concluida, automatica: escolha === undefined && concluida, definir }
+}
+
+function BarraConclusao({ concluida, automatica, definir }) {
+  return (
+    <div className="flex items-center justify-between gap-3 mt-4 pt-3.5 border-t border-solid border-border">
+      <span className="text-[11px] text-ink-faint leading-[1.5]">
+        {concluida
+          ? (automatica ? 'Concluída com os dados sincronizados do Revit. Reabra se precisar revisar.' : 'Estrutura marcada como concluída. Reabra para voltar a acompanhar o status.')
+          : 'Enquanto não for marcada como concluída, a estrutura permanece em amarelo.'}
+      </span>
+      <button type="button" onClick={() => definir(!concluida)} className={concluida ? 'btn-ghost shrink-0' : 'btn-success shrink-0'}>
+        <Icon name={concluida ? 'edit' : 'check'} size={13}/>
+        {concluida ? 'Reabrir' : 'Marcar como concluída'}
+      </button>
+    </div>
+  )
+}
+
+export default function EstruturaSection({ titulo, extra, status: statusBase, conclusao, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen)
+  const c = useConclusao(conclusao, statusBase)
+  const status = c.status
   const bar = status ? (STATUS_TONE[status.tone] || STATUS_TONE.pendente).bar : null
 
   return (
@@ -57,12 +104,12 @@ export default function EstruturaSection({ titulo, extra, status, defaultOpen = 
           size={14}
           className={`text-ink-faint shrink-0 transition-transform duration-150 group-hover:text-ink ${open ? '' : '-rotate-90'}`}
         />
-        <h3 className="text-sm font-bold text-ink m-0 min-w-0 truncate">{titulo}</h3>
+        <h3 className="text-sm font-bold text-ink m-0 min-w-0 max-w-[40%] shrink-0 truncate">{titulo}</h3>
         {status && <StatusPill status={status}/>}
         <div className="flex-1"/>
-        {extra}
+        <div className="min-w-0">{extra}</div>
       </div>
-      {open && <div className="p-4">{children}</div>}
+      {open && <div className="p-4">{children}{conclusao && <BarraConclusao {...c}/>}</div>}
     </div>
   )
 }

@@ -525,6 +525,13 @@ const INITIAL_STATE = {
   },
 }
 
+// Registra que os dados da medida nas estruturas recebidas vieram do Revit
+// (estrutura.origemRevit[medida]). A tela decide se isso já vale como
+// "concluída" (só quando não há pendências); o usuário pode reabrir/concluir.
+function marcarOrigemRevit(estruturas, ids, medida) {
+  return estruturas.map(e => ids.has(e.id) ? { ...e, origemRevit: { ...(e.origemRevit || {}), [medida]: true } } : e)
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case 'SET_FIELD':
@@ -670,7 +677,7 @@ function reducer(state, action) {
     case 'IMPORT_EXTINTORES': {
       const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
       const preservados = state.extintores.filter(e => !estruturasDoLote.has(e.estruturaId))
-      return { ...state, extintores: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idExtintor() }))] }
+      return { ...state, estruturas: marcarOrigemRevit(state.estruturas, estruturasDoLote, 'extintores'), extintores: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idExtintor() }))] }
     }
     case 'ADD_ILUMINACAO':
       return { ...state, iluminacao: [...state.iluminacao, novoItemIluminacao(action.estruturaId, action.pavimentoId, action.categoria, action.overrides, action.id)] }
@@ -749,7 +756,7 @@ function reducer(state, action) {
     case 'IMPORT_SINALIZACAO': {
       const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
       const preservados = state.sinalizacao.filter(s => !estruturasDoLote.has(s.estruturaId))
-      return { ...state, sinalizacao: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() }))] }
+      return { ...state, estruturas: marcarOrigemRevit(state.estruturas, estruturasDoLote, 'sinalizacao'), sinalizacao: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() }))] }
     }
     // Upsert de uma linha do CMAR — identificada por estrutura+chave (não
     // por id), já que a tela deriva as linhas a partir das divisões da
@@ -780,7 +787,8 @@ function reducer(state, action) {
     // resolvidos no lote, preservando os demais.
     case 'IMPORT_AMBIENTES_SE': {
       const porPavimento = new Map(action.atualizacoes.map(a => [a.pavimentoId, a.ambientes]))
-      return { ...state, pavimentos: state.pavimentos.map(p => porPavimento.has(p.id) ? { ...p, ambientes: porPavimento.get(p.id) } : p) }
+      const estruturasDoLote = new Set(state.pavimentos.filter(p => porPavimento.has(p.id)).map(p => p.estruturaId))
+      return { ...state, estruturas: marcarOrigemRevit(state.estruturas, estruturasDoLote, 'saida_emergencia'), pavimentos: state.pavimentos.map(p => porPavimento.has(p.id) ? { ...p, ambientes: porPavimento.get(p.id) } : p) }
     }
     // ── Árvore de Acessos e Descargas (Ambiente -> Acesso -> Acesso/Saída) ──
     // Ver se_calc.js (calcNoAcesso/ambientesDoAcesso) pro motor de cálculo.

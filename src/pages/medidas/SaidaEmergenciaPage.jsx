@@ -5,6 +5,8 @@ import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { supabase } from '../../lib/supabase'
 import { getSE } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
+import EstruturaSection from '../../components/ui/EstruturaSection'
+import { statusEstrutura } from '../../utils/statusEstrutura'
 import { useToast } from '../../hooks/useToast'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import AcessosDescargasView from './AcessosDescargasView'
@@ -35,7 +37,7 @@ function derivarPavimentos(projetoPavs) {
 // ── Badge informativo (chuveiros/detecção — não editáveis aqui) ────────
 function SistemaBadge({ ativo, label }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[11px] py-1 px-2.5 rounded-md border border-solid ${ativo ? 'border-green-border bg-green-dim text-green' : 'border-border text-ink-faint'}`}>
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 text-[11px] py-1 px-2.5 rounded-md border border-solid ${ativo ? 'border-green-border bg-green-dim text-green' : 'border-border text-ink-faint'}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${ativo ? 'bg-green' : 'bg-border'}`}/>
       {label}
     </span>
@@ -172,7 +174,6 @@ export default function SaidaEmergenciaPage() {
     if (erro) toast.error(`Erro ao importar: ${erro}`)
     if (timestamp) toast.success(`Dados importados do Revit — última exportação: ${timestamp}. Confira os ambientes e ajuste se necessário.`)
   }
-  const [colapsadas,   setColapsadas]   = useState({})
   const [buscando,     setBuscando]     = useState(false)
   // Id da estrutura sendo atualizada individualmente (botão "Atualizar" no
   // card dela, ver handleBuscarRevitEstrutura) — null quando nenhuma está
@@ -181,7 +182,6 @@ export default function SaidaEmergenciaPage() {
   const [buscandoEstruturaId, setBuscandoEstruturaId] = useState(null)
   const fileInputRef = useRef(null)
 
-  const toggleColapsada = estId => setColapsadas(prev => ({ ...prev, [estId]: !prev[estId] }))
 
   // Aplica um lote (arquivo ou linha do Supabase) — despacha só os
   // pavimentos resolvidos no lote, preservando o resto (inclusive de outras
@@ -323,32 +323,30 @@ export default function SaidaEmergenciaPage() {
         ) : (
           <div className="flex flex-col gap-4">
             {porEstrutura.filter(g => g.dadosPav.length > 0).map(({ estrutura, dadosPav: dadosDaEstrutura }) => {
-              const aberta = !colapsadas[estrutura.id]
+              // Ambiente sem acesso atribuído = acesso direto à área de relativa
+              // segurança, não é pendência (ver AcessosDescargasView/memorial).
+              const status = statusEstrutura('concluido', 'Dados carregados')
               return (
-              <div key={estrutura.id} className="border border-solid border-border rounded-lg bg-surface overflow-hidden transition-colors hover:border-white/20">
-                <div
-                  className="flex items-center justify-between gap-4 py-3.5 px-5 cursor-pointer select-none"
-                  onClick={() => toggleColapsada(estrutura.id)}
-                >
-                  <div className="text-[13px] font-bold text-ink flex items-center gap-2">
-                    <Icon name={aberta ? 'chevD' : 'chevR'} size={13} color="var(--color-ink-faint)" className="shrink-0"/>
-                    <Icon name="newbld" size={14} color="var(--color-red)"/> {estrutura.nome}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                <EstruturaSection
+                  key={estrutura.id}
+                  titulo={estrutura.nome}
+                  status={status}
+                  conclusao={{ estruturaId: estrutura.id, medida: 'saida_emergencia', auto: !!estrutura.origemRevit?.saida_emergencia }}
+                  defaultOpen={false}
+                  extra={
+                    <div className="flex items-center gap-2 shrink-0">
                     <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
-                      onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(estrutura.id) }}
-                      disabled={buscandoEstruturaId === estrutura.id}
-                      title="Buscar do Revit só os dados desta estrutura">
-                      <Icon name="upload" size={10}/>
-                      {buscandoEstruturaId === estrutura.id ? 'Buscando…' : 'Atualizar'}
-                    </button>
-                    <SistemaBadge ativo={getTemChuveiros(estrutura.id)} label="Chuveiros automáticos"/>
-                    <SistemaBadge ativo={getTemDeteccao(estrutura.id)} label="Detecção de incêndio"/>
-                  </div>
-                </div>
-
-                {aberta && (
-                <div className="px-5 pb-5">
+                        onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(estrutura.id) }}
+                        disabled={buscandoEstruturaId === estrutura.id}
+                        title="Buscar do Revit só os dados desta estrutura">
+                        <Icon name="upload" size={10}/>
+                        {buscandoEstruturaId === estrutura.id ? 'Buscando…' : 'Atualizar'}
+                      </button>
+                      <SistemaBadge ativo={getTemChuveiros(estrutura.id)} label="Chuveiros automáticos"/>
+                      <SistemaBadge ativo={getTemDeteccao(estrutura.id)} label="Detecção de incêndio"/>
+                    </div>
+                  }
+                >
                   <DimTable>
                     <thead><tr><TH>Pavimento</TH><TH center>Amb.</TH><TH center>Pop.</TH><TH center>Saídas</TH><TH right>Dist. máxima</TH><TH/></tr></thead>
                     <tbody>
@@ -360,7 +358,7 @@ export default function SaidaEmergenciaPage() {
                           </TD>
                           <TD center muted>
                             {pav.ambientes.length}
-                            {semAcessoCount > 0 && <div className="text-[9px] text-amber mt-0.5">{semAcessoCount} sem acesso</div>}
+                            {semAcessoCount > 0 && <div className="text-[9px] text-ink-faint mt-0.5">{semAcessoCount} com acesso direto</div>}
                           </TD>
                           <TD center red bold>{pop}</TD>
                           <TD center red bold>{nSaidas}</TD>
@@ -372,9 +370,7 @@ export default function SaidaEmergenciaPage() {
                       ))}
                     </tbody>
                   </DimTable>
-                </div>
-                )}
-              </div>
+                </EstruturaSection>
               )
             })}
           </div>
