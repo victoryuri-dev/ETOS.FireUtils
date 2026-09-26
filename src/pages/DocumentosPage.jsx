@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, Navigate } from 'react-router-dom'
 import { useProjeto } from '../context/ProjetoContext'
 import AnexoBPage from './documentos/AnexoBPage'
 import MemorialDescritivoPage from './documentos/MemorialDescritivoPage'
@@ -46,17 +45,28 @@ export default function DocumentosPage() {
   const documentos = state.tipoProjeto === 'dimensionamento'
     ? DOCUMENTOS.filter(d => d.id !== 'anexo-b')
     : DOCUMENTOS
-  // Permite chegar aqui com um documento ja aberto (ex.: botao "Ver no
-  // Memorial Descritivo" em GerenciamentoRiscoPage.jsx) — so usado como
-  // valor inicial, pra nao reabrir sozinho se o usuario voltar pra lista e
-  // navegar de novo.
-  const [aberto, setAberto] = useState(() => location.state?.abrir || null)
+  // O documento aberto vive na URL (/projeto/:id/documentos/:docId), então
+  // recarregar a página ou copiar o link mantém o documento aberto.
+  const { id, docId } = useParams()
+  const navigate = useNavigate()
+  const base = `/projeto/${id}/documentos`
+  const abrir = doc => navigate(`${base}/${doc}`)
+  const voltar = () => navigate(base)
+
+  // Chegada com um documento pedido por estado (ex.: botão "Ver no Memorial
+  // Descritivo" em GerenciamentoRiscoPage.jsx): converte para a URL do documento.
+  if (!docId && location.state?.abrir) {
+    return <Navigate to={`${base}/${location.state.abrir}`} replace/>
+  }
+  const aberto = documentos.some(d => d.id === docId) ? docId : null
+  // URL de documento inexistente (ou indisponível neste tipo de projeto): volta pra lista.
+  if (docId && !aberto) return <Navigate to={base} replace/>
 
   if (aberto === 'anexo-b') {
-    return <AnexoBPage onBack={() => setAberto(null)}/>
+    return <AnexoBPage onBack={voltar}/>
   }
   if (aberto === 'memorial-descritivo') {
-    return <MemorialDescritivoPage onBack={() => setAberto(null)}/>
+    return <MemorialDescritivoPage onBack={voltar}/>
   }
 
   return (
@@ -78,7 +88,7 @@ export default function DocumentosPage() {
 
           <div className="flex flex-col gap-3">
             {documentos.map(doc => (
-              <DocumentoCard key={doc.id} doc={doc} onAbrir={() => setAberto(doc.id)}/>
+              <DocumentoCard key={doc.id} doc={doc} onAbrir={() => abrir(doc.id)}/>
             ))}
           </div>
 

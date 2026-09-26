@@ -80,7 +80,8 @@ export default function AcessoViaturaPage() {
   const { GATILHO, VIA_ACESSO } = av
   const inputs = state.acessoViatura
 
-  const altura = state.estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
+  // Maior altura piso a piso entre as estruturas (Etapa 2)
+  const altura = state.estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.alturaPisoPiso) || 0), 0)
 
   const set = changes => dispatch({ type: 'SET_ACESSO_VIATURA', changes })
 
@@ -108,7 +109,7 @@ export default function AcessoViaturaPage() {
           <SectionTitle n={1} label="Exigibilidade da Via de Acesso"/>
           <Card className="mb-3">
             <div className="py-3.5 px-[28px] flex flex-col lg:flex-row lg:justify-between gap-4.5">
-              <Field label="Altura da edificação">
+              <Field label="Maior altura piso a piso">
                 <div className={`${inputClass} bg-surface-2 flex items-center font-bold text-ink`}>{fmt(altura)} m</div>
               </Field>
               <Field label="Afastamento da edificação até o meio-fio da via pública">

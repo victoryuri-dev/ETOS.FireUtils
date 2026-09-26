@@ -376,6 +376,7 @@ function AppInner() {
           <Route path="dashboard" element={<DashboardRoute/>}/>
           <Route path="config" element={<ConfigRoute/>}/>
           <Route path="documentos" element={<DocumentosPage/>}/>
+          <Route path="documentos/:docId" element={<DocumentosPage/>}/>
           <Route path="medida/:sistKey" element={<MedidaRoute/>}/>
         </Route>
 

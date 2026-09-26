@@ -157,10 +157,12 @@ function tabelaAmbientes(listaAmbientes, taxaPopulacional, larguras) {
 function notaAcessoDireto(pav) {
   const diretos = (pav.ambientes || []).filter(a => !a.acessoId)
   if (diretos.length === 0) return null
-  const nomes = diretos.map(a => a.nome).join(', ')
+  const nomes = diretos.map(a => a.nome)
+  const lista = nomes.length === 1 ? nomes[0] : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`
+  const plural = diretos.length > 1
   return {
     tipo: 'paragrafo',
-    texto: `${diretos.length === 1 ? 'O ambiente' : 'Os ambientes'} ${nomes} ${diretos.length === 1 ? 'não foi vinculado' : 'não foram vinculados'} a nenhum acesso, saída ou escada/rampa e ${diretos.length === 1 ? 'é considerado' : 'são considerados'} com acesso direto à área de relativa segurança. Por isso, não ${diretos.length === 1 ? 'compõe' : 'compõem'} a árvore de acessos e descargas nem ${diretos.length === 1 ? 'constitui' : 'constituem'} pendência de dimensionamento; a largura das portas ${diretos.length === 1 ? 'dele' : 'deles'} segue dimensionada na tabela de população e portas dos ambientes.`,
+    texto: `${plural ? 'Os ambientes' : 'O ambiente'} ${lista} ${plural ? 'possuem portas' : 'possui porta'} em comunicação direta com a área externa livre de relativa segurança, dispensando acessos, escadas ou corredores de saída. A largura ${plural ? 'dessas portas está dimensionada' : 'dessa porta está dimensionada'} na tabela de população e portas dos ambientes.`,
   }
 }
 

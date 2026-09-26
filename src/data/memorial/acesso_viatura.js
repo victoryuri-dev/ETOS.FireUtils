@@ -11,7 +11,9 @@ const ok  = (b, simNao = ['atendendo', 'não atendendo']) => b ? simNao[0] : sim
 export function textoMemorialAcessoViatura(state, sistemas) {
   const { GATILHO, VIA_ACESSO } = getAV(state.uf)
   const inputs = state.acessoViatura || {}
-  const altura = (state.estruturas || []).reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
+  // Maior altura piso a piso entre as estruturas (Etapa 2)
+  const altura = (state.estruturas || []).reduce((mx, e) => Math.max(mx, parseFloat(e.alturaPisoPiso) || 0), 0)
+  const varias = (state.estruturas || []).length > 1
 
   const gat = calcGatilho(altura, inputs.afastamentoMeioFio, inputs.isCondominio, GATILHO)
   const paragrafos = []
@@ -22,7 +24,7 @@ export function textoMemorialAcessoViatura(state, sistemas) {
     )
   } else {
     paragrafos.push(
-      `Considerando a altura da edificação (${fmt(altura)} m) e o afastamento de ${fmt(inputs.afastamentoMeioFio)} m em relação ao meio-fio da via pública, ${gat.exigido ? 'superior' : 'dentro'} ao limite de ${gat.afastamentoMax} m estabelecido no Anexo A da NT 06/2021 CBMMA, ${gat.exigido ? 'é exigida via de acesso dedicada para viaturas do Corpo de Bombeiros.' : 'a via pública é suficiente para o acesso das viaturas, não sendo exigida via de acesso dedicada.'}`
+      `Considerando ${varias ? 'a maior altura piso a piso entre as edificações' : 'a altura piso a piso da edificação'} (${fmt(altura)} m) e o afastamento de ${fmt(inputs.afastamentoMeioFio)} m em relação ao meio-fio da via pública, ${gat.exigido ? 'superior' : 'dentro'} ao limite de ${gat.afastamentoMax} m estabelecido no Anexo A da NT 06/2021 CBMMA, ${gat.exigido ? 'é exigida via de acesso dedicada para viaturas do Corpo de Bombeiros.' : 'a via pública é suficiente para o acesso das viaturas, não sendo exigida via de acesso dedicada.'}`
     )
   }
 

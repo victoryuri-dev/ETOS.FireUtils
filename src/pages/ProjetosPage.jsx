@@ -214,9 +214,9 @@ function CardActions({ onDelete, onDuplicate, className = '' }) {
 
 // ── Project card (grid) ───────────────────────────────────────────────
 
-// Total de pavimentos (com subsolos) somado entre as estruturas; "Térrea" se so ha um.
+// Pavimentos (com subsolos) da estrutura que tem mais pavimentos; "Térrea" se e so 1.
 function pavimentosLabel(proj) {
-  const total = (proj.estruturas || []).reduce((s, e) => s + (parseInt(e.nPavimentos) || 1) + (parseInt(e.nSubsolos) || 0), 0)
+  const total = (proj.estruturas || []).reduce((mx, e) => Math.max(mx, (parseInt(e.nPavimentos) || 1) + (parseInt(e.nSubsolos) || 0)), 0)
   if (!total) return null
   return total === 1 ? 'Térrea' : `${total} pavimentos`
 }

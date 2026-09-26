@@ -399,8 +399,10 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
     const configuredSteps = configSteps.filter(step => step.test(state, activeSystems))
     const groups = [...new Set((state.pavimentos || []).map(p => p.grupo).filter(Boolean))].sort()
     const divisions = [...new Set((state.pavimentos || []).map(p => p.divisao).filter(Boolean))].sort()
-    const floorCount = structures.reduce((sum, item) => sum + (Number(item.nPavimentos) || 0), 0)
-    const basementCount = structures.reduce((sum, item) => sum + (Number(item.nSubsolos) || 0), 0)
+    // Pavimentos = acima do solo + subsolos. Visão geral: vale a estrutura com mais pavimentos (não a soma entre estruturas)
+    const totalPavimentos = item => (Number(item.nPavimentos) || 0) + (Number(item.nSubsolos) || 0)
+    const floorCount = structures.reduce((max, item) => Math.max(max, totalPavimentos(item)), 0)
+    const basementCount = structures.reduce((max, item) => Math.max(max, Number(item.nSubsolos) || 0), 0)
     const area = Number(state.areaConstruidaTotal) || structures.reduce((sum, item) => sum + (Number(item.areaTotal) || 0), 0)
     const height = structures.reduce((highest, item) => Math.max(highest, Number(item.altura) || 0), 0)
     const fireLoad = getFireLoad(state.cargaState)
@@ -432,7 +434,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
         name: structure.nome || 'Edificação sem nome',
         area: Number(structure.areaTotal) || 0,
         height: Number(structure.altura) || 0,
-        floorCount: Number(structure.nPavimentos) || 0,
+        floorCount: totalPavimentos(structure),
         basementCount: Number(structure.nSubsolos) || 0,
         fireLoad: getFireLoad(state.cargaState?.[structure.id]),
         groups: [...new Set(structurePavements.map(item => item.grupo).filter(Boolean))].sort(),
@@ -445,7 +447,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       label: selectedStructure.nome,
       area: Number(selectedStructure.areaTotal) || 0,
       height: Number(selectedStructure.altura) || 0,
-      floorCount: Number(selectedStructure.nPavimentos) || 0,
+      floorCount: totalPavimentos(selectedStructure),
       basementCount: Number(selectedStructure.nSubsolos) || 0,
       fireLoad: getFireLoad(state.cargaState?.[selectedStructure.id]),
       groups: summaryGroups,
