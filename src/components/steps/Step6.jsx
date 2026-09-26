@@ -109,10 +109,10 @@ function MedidasGrid({ pe, dispatch, sistConfig, ntsPorSistema }) {
           ? (on ? 'border-red-border bg-red-dim' : 'border-red-border bg-transparent')
           : (on ? 'border-green-border bg-green-dim' : 'border-border bg-transparent')
         // Nome sempre em texto claro; a linha de status leva a cor do estado. O estado
-        // aparece na cor do proprio simbolo (sem caixa nem fundo): ligado = vermelho;
-        // desligado = cinza. (Cor via prop, nao classe: os simbolos proprios do Icon
+        // aparece na cor do proprio simbolo (sem caixa nem fundo): ligado = vermelho (obrigatoria) ou
+        // verde (opcional); desligado = cinza. (Cor via prop, nao classe: os simbolos proprios do Icon
         // fixam a cor inline.)
-        const iconColor = on ? '#FF4757' : 'rgba(255,255,255,.35)'
+        const iconColor = on ? (obrig ? '#FF4757' : '#2FBF92') : 'rgba(255,255,255,.35)'
         const labelClass = on || obrig ? 'text-ink' : 'text-ink-muted'
         const statusClass = obrig ? 'text-[#FF4757]' : on ? 'text-[#2FBF92]' : 'text-ink-faint'
         const status = obrig
