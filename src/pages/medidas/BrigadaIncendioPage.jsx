@@ -120,7 +120,7 @@ function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresR
   const instalacaoMax = nivelMaisAlto('nivelInstalacao')
 
   return (
-    <EstruturaSection titulo={estrutura.nome} extra={<EstruturaHeaderInfo estrutura={estrutura}/>} status={status} conclusao={pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'brigada' } : null} defaultOpen={false}>
+    <EstruturaSection titulo={estrutura.nome} extra={<EstruturaHeaderInfo estrutura={estrutura} semArea/>} status={status} conclusao={pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'brigada' } : null} defaultOpen={false}>
       <Card>
         <div className="py-3.5 px-[18px] flex items-center justify-between border-b border-solid border-border">
           <div className="flex items-center gap-2">

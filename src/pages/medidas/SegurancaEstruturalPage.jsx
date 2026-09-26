@@ -50,7 +50,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
     : statusEstrutura('concluido', 'TRRF definido')
 
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={status} conclusao={{ estruturaId: est.id, medida: 'seguranca_estrutural' }} defaultOpen={false}>
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={{ estruturaId: est.id, medida: 'seguranca_estrutural' }} defaultOpen={false}>
       <Card className="mb-3">
         <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
           <div>

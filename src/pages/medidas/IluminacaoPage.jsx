@@ -490,7 +490,7 @@ export default function IluminacaoPage() {
                   pendente: 'Aguardando dados', andamento: `${comItens} de ${pavimentos.length} pavimentos`, concluido: 'Dados carregados',
                 })
                 return (
-                  <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={status} conclusao={{ estruturaId: est.id, medida: 'iluminacao' }} defaultOpen={false}>
+                  <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={{ estruturaId: est.id, medida: 'iluminacao' }} defaultOpen={false}>
                     {pavimentos.length === 0 ? (
                       <div className="ibox amber">
                         <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>

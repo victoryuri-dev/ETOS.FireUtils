@@ -285,3 +285,53 @@ export function taxaOpcoes(divisao, taxaPopulacional) {
 export function popTipoPadrao(divisao, taxaPopulacional) {
   return taxaOpcoes(divisao, taxaPopulacional)[0]?.value || 'manual'
 }
+
+// ── Tipo de escada de emergência (Anexo C, Tabela 3) ────────────────────
+// Só identifica o tipo pela altura piso a piso da estrutura x divisão de
+// ocupação; as notas da tabela são apenas exibidas (por divisão + gerais).
+// Aplica-se a edificação com mais de 1 pavimento (contando subsolos).
+// Ocupação mista: vale o tipo mais restritivo (NE < EP < PF).
+
+/** Faixa da Tabela 3 (índice em faixas_altura) para a altura H em metros. */
+export function faixaAlturaEscada(altura, faixas) {
+  const h = parseFloat(altura)
+  if (!(h > 0) || !faixas?.length) return -1
+  return faixas.findIndex(f => (f.min == null || h > f.min) && (f.max == null || h <= f.max))
+}
+
+/**
+ * @param {object} estrutura       — usa alturaPisoPiso, nPavimentos, nSubsolos
+ * @param {string[]} divisoes      — divisões de ocupação presentes na estrutura
+ * @param {object} tiposEscada     — TIPOS_ESCADA da norma (null/undefined = UF sem tabela)
+ * @returns {null | {status, faixa, porDivisao, exigido, notas}}
+ *   status: 'nao_aplica' (1 pavimento) | 'sem_altura' | 'sem_divisao' | 'ok'
+ */
+export function tipoEscadaEstrutura(estrutura, divisoes, tiposEscada) {
+  if (!tiposEscada) return null
+  const totalPav = (parseInt(estrutura.nPavimentos) || 1) + (parseInt(estrutura.nSubsolos) || 0)
+  if (totalPav <= 1) return { status: 'nao_aplica' }
+
+  const idx = faixaAlturaEscada(estrutura.alturaPisoPiso, tiposEscada.faixas_altura)
+  if (idx < 0) return { status: 'sem_altura' }
+  const divs = [...new Set((divisoes || []).filter(Boolean))].filter(d => tiposEscada.tabela[d])
+  if (divs.length === 0) return { status: 'sem_divisao', faixa: tiposEscada.faixas_altura[idx] }
+
+  const porDivisao = divs.map(d => ({ divisao: d, tipo: tiposEscada.tabela[d][idx] }))
+  const ranks = porDivisao.map(p => tiposEscada.tipos[p.tipo]?.rank).filter(r => r != null)
+  const maxRank = ranks.length ? Math.max(...ranks) : null
+  // Mais restritivo entre os que têm ranking; sem nenhum, mostra o símbolo
+  // (+ = consultar NT, - = não se aplica) da primeira divisão.
+  const exigido = maxRank != null
+    ? porDivisao.find(p => tiposEscada.tipos[p.tipo]?.rank === maxRank).tipo
+    : porDivisao[0].tipo
+  const consultar = porDivisao.some(p => p.tipo === '+')
+
+  // Notas: as específicas das divisões presentes + as gerais.
+  const chaves = [
+    ...divs.flatMap(d => tiposEscada.notas_por_divisao?.[d] || []),
+    ...(tiposEscada.notas_gerais || []),
+  ]
+  const notas = [...new Set(chaves)].map(k => ({ chave: k, texto: tiposEscada.notas[k] }))
+
+  return { status: 'ok', faixa: tiposEscada.faixas_altura[idx], porDivisao, exigido, consultar, notas }
+}

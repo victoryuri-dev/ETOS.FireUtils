@@ -178,7 +178,7 @@ function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispat
   const info = RESUMO_INFO[resumo]
 
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={STATUS_RESUMO[resumo]} conclusao={{ estruturaId: est.id, medida: 'controle_acabamento' }} defaultOpen={false}>
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={STATUS_RESUMO[resumo]} conclusao={{ estruturaId: est.id, medida: 'controle_acabamento' }} defaultOpen={false}>
       {Object.keys(tabela).length === 0 ? (
         <div className="ibox amber">
           <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>

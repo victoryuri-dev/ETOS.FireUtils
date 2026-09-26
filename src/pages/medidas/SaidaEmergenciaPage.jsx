@@ -6,11 +6,12 @@ import { supabase } from '../../lib/supabase'
 import { getSE } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
+import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { statusEstrutura } from '../../utils/statusEstrutura'
 import { useToast } from '../../hooks/useToast'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import AcessosDescargasView from './AcessosDescargasView'
-import { calcPopPav, contarSaidasPavimento, getDistanciaPavimento } from '../../data/se_calc'
+import { calcPopPav, contarSaidasPavimento, getDistanciaPavimento, tipoEscadaEstrutura } from '../../data/se_calc'
 
 // ── Helpers ───────────────────────────────────────────────────────────
 let _seq = 0
@@ -35,10 +36,12 @@ function derivarPavimentos(projetoPavs) {
 }
 
 // ── Badge informativo (chuveiros/detecção — não editáveis aqui) ────────
+// Só aparece quando o sistema realmente existe na estrutura (inativo = oculto).
 function SistemaBadge({ ativo, label }) {
+  if (!ativo) return null
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 text-[11px] py-1 px-2.5 rounded-md border border-solid ${ativo ? 'border-green-border bg-green-dim text-green' : 'border-border text-ink-faint'}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${ativo ? 'bg-green' : 'bg-border'}`}/>
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 text-[11px] py-1 px-2.5 rounded-md border border-solid border-red-border bg-red-dim text-red">
+      <span className="w-1.5 h-1.5 rounded-full bg-red"/>
       {label}
     </span>
   )
@@ -144,6 +147,102 @@ function resolverImportacaoSaidas(payloadSE, estruturaIdForcado, projetoPaviment
 }
 
 // ── Page principal ────────────────────────────────────────────────────
+// ── Tipo de escada de emergência da estrutura (Anexo C, Tabela 3) ─────
+// Identifica o tipo pela altura piso a piso x divisão(ões) — só quando a
+// edificação tem mais de 1 pavimento. As notas são apenas exibidas: as das
+// divisões presentes e as gerais (nada vira configuração).
+const TIPO_ESCADA_TOM = {
+  NE: 'border-green-border bg-green-dim text-green',
+  EP: 'border-amber-border bg-amber-dim text-amber',
+  PF: 'border-red-border bg-red-dim text-red',
+}
+function TipoEscadaEstrutura({ estrutura, divisoes, tiposEscada }) {
+  const [verNotas, setVerNotas] = useState(false)
+  const r = tipoEscadaEstrutura(estrutura, divisoes, tiposEscada)
+  if (!r || r.status === 'nao_aplica') return null
+
+  const pronto = r.status === 'ok'
+  const t = pronto ? tiposEscada.tipos[r.exigido] : null
+  const simbolo = pronto && (r.exigido === '+' || r.exigido === '-')
+  const altura = parseFloat(estrutura.alturaPisoPiso)
+
+  return (
+    <div className="mb-4 bg-surface border border-solid border-border rounded-lg overflow-hidden">
+      <div className="py-3.5 px-[18px] flex items-center justify-between gap-3 border-b border-solid border-border">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon name="stair" size={15} color="var(--color-red)"/>
+          <span className="text-xs font-bold text-ink">Tipo de escada de emergência</span>
+          <span className="text-[11px] text-ink-faint hidden sm:inline">Anexo C, Tabela 3</span>
+        </div>
+      </div>
+
+      <div className="py-3.5 px-[18px]">
+        {r.status === 'sem_altura' && (
+          <span className="text-xs text-ink-faint">Informe a altura da edificação (Etapa 2) para identificar o tipo de escada.</span>
+        )}
+        {r.status === 'sem_divisao' && (
+          <span className="text-xs text-ink-faint">Classifique a divisão de ocupação dos pavimentos (Etapa 4) para identificar o tipo de escada.</span>
+        )}
+        {pronto && (
+          <>
+            <dl className="m-0 flex flex-wrap items-start gap-x-10 gap-y-3">
+              <div>
+                <dt className="text-[10px] text-ink-faint uppercase tracking-[.08em] leading-none mb-1.5">Altura piso a piso</dt>
+                <dd className="m-0 h-6 flex items-center font-heading text-[14px] font-bold text-ink leading-none whitespace-nowrap">{altura ? `${altura.toString().replace('.', ',')} m` : '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] text-ink-faint uppercase tracking-[.08em] leading-none mb-1.5">Faixa de altura</dt>
+                <dd className="m-0 h-6 flex items-center font-heading text-[14px] font-bold text-ink leading-none whitespace-nowrap">{r.faixa.label}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] text-ink-faint uppercase tracking-[.08em] leading-none mb-1.5">{r.porDivisao.length > 1 ? 'Divisões (mais restritiva vale)' : 'Divisão'}</dt>
+                <dd className="m-0 min-h-6 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  {r.porDivisao.map(p => (
+                    <span key={p.divisao} className={`font-heading text-[14px] font-bold leading-none ${p.tipo === r.exigido ? 'text-ink' : 'text-ink-faint'}`}>
+                      {p.divisao}{r.porDivisao.length > 1 && <span className="text-[10px] font-medium text-ink-faint ml-1">{p.tipo}</span>}
+                    </span>
+                  ))}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[10px] text-ink-faint uppercase tracking-[.08em] leading-none mb-1.5">Tipo exigido</dt>
+                <dd className="m-0 h-6 flex items-center">
+                  <span className={`inline-flex items-center h-6 px-2.5 rounded-full border border-solid text-[11px] font-semibold whitespace-nowrap ${TIPO_ESCADA_TOM[r.exigido] || 'border-border text-ink-faint'}`}>
+                    {simbolo ? t.nome : `${r.exigido} — ${t.nome}`}
+                  </span>
+                </dd>
+              </div>
+            </dl>
+            {r.consultar && (
+              <div className="ibox amber mt-3">
+                <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+                <span className="text-xs">Ocupação não coberta pela tabela: consultar NT, normas ou regulamentos específicos.</span>
+              </div>
+            )}
+            <div className="mt-3.5 pt-3 border-t border-solid border-border">
+              <button type="button" onClick={() => setVerNotas(v => !v)}
+                className="inline-flex items-center gap-1 text-[11px] text-ink-faint hover:text-ink bg-transparent border-none cursor-pointer p-0">
+                <Icon name="chevD" size={12} className={`transition-transform ${verNotas ? 'rotate-180' : ''}`}/>
+                {verNotas ? 'Ocultar notas' : `Notas da tabela (${r.notas.length})`}
+              </button>
+              {verNotas && (
+                <ul className="flex flex-col gap-2 m-0 mt-3 pl-0 list-none">
+                  {r.notas.map(n => (
+                    <li key={n.chave} className="flex gap-2 text-[11px] text-ink-muted leading-[1.6]">
+                      <strong className="text-ink shrink-0 w-4">{/^\d+$/.test(n.chave) ? `(${n.chave})` : `${n.chave})`}</strong>
+                      <span>{n.texto}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function SaidaEmergenciaPage() {
   const { state, dispatch } = useProjeto()
   const { uf, info, ocupacoes } = useNorma()
@@ -273,8 +372,7 @@ export default function SaidaEmergenciaPage() {
     const pop             = calcPopPav(p, seNorma.TAXA_POPULACIONAL)
     const nSaidas         = Math.max(1, contarSaidasPavimento(p.acessos))
     const dist            = getDistanciaPavimento(p, nSaidas, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)
-    const semAcessoCount  = p.ambientes.filter(a => !a.acessoId).length
-    return { pav:p, pop, nSaidas, dist, semAcessoCount }
+    return { pav:p, pop, nSaidas, dist }
   })
 
   const porEstrutura = state.estruturas.map(est => ({
@@ -335,22 +433,24 @@ export default function SaidaEmergenciaPage() {
                   defaultOpen={false}
                   extra={
                     <div className="flex items-center gap-2 shrink-0">
-                    <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
+                      <EstruturaHeaderInfo estrutura={estrutura} mostrar={['pavimentos', 'ocupacao']}/>
+                      <SistemaBadge ativo={getTemChuveiros(estrutura.id)} label="Chuveiros automáticos"/>
+                      <SistemaBadge ativo={getTemDeteccao(estrutura.id)} label="Detecção de incêndio"/>
+                      <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
                         onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(estrutura.id) }}
                         disabled={buscandoEstruturaId === estrutura.id}
                         title="Buscar do Revit só os dados desta estrutura">
                         <Icon name="upload" size={10}/>
                         {buscandoEstruturaId === estrutura.id ? 'Buscando…' : 'Atualizar'}
                       </button>
-                      <SistemaBadge ativo={getTemChuveiros(estrutura.id)} label="Chuveiros automáticos"/>
-                      <SistemaBadge ativo={getTemDeteccao(estrutura.id)} label="Detecção de incêndio"/>
                     </div>
                   }
                 >
+                  <TipoEscadaEstrutura estrutura={estrutura} divisoes={dadosDaEstrutura.map(d => d.pav.divisao)} tiposEscada={seNorma.TIPOS_ESCADA}/>
                   <DimTable>
                     <thead><tr><TH>Pavimento</TH><TH center>Amb.</TH><TH center>Pop.</TH><TH center>Saídas</TH><TH right>Dist. máxima</TH><TH/></tr></thead>
                     <tbody>
-                      {dadosDaEstrutura.map(({ pav, pop, nSaidas, dist, semAcessoCount }) => (
+                      {dadosDaEstrutura.map(({ pav, pop, nSaidas, dist }) => (
                         <tr key={pav.id} onClick={() => setViewPavId(pav.id)} className="cursor-pointer transition-colors duration-100 hover:bg-white/[.025]">
                           <TD bold>
                             {pav.nome}
@@ -358,7 +458,7 @@ export default function SaidaEmergenciaPage() {
                           </TD>
                           <TD center muted>
                             {pav.ambientes.length}
-                            {semAcessoCount > 0 && <div className="text-[9px] text-ink-faint mt-0.5">{semAcessoCount} com acesso direto</div>}
+                            
                           </TD>
                           <TD center red bold>{pop}</TD>
                           <TD center red bold>{nSaidas}</TD>

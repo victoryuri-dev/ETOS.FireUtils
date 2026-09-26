@@ -927,6 +927,7 @@ export default function ExtintoresPage() {
           return (
             <EstruturaSection key={est.id} titulo={est.nome} status={status} conclusao={{ estruturaId: est.id, medida: 'extintores', auto: !!est.origemRevit?.extintores && semPendencias }} defaultOpen={false} extra={
               <div className="flex items-center gap-2">
+                <EstruturaHeaderInfo estrutura={est} mostrar={['risco']}/>
                 <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
                   onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}
                   disabled={buscandoEstruturaId === est.id}
@@ -934,7 +935,6 @@ export default function ExtintoresPage() {
                   <Icon name="upload" size={10}/>
                   {buscandoEstruturaId === est.id ? 'Buscando…' : 'Atualizar'}
                 </button>
-                <EstruturaHeaderInfo estrutura={est}/>
               </div>
             }>
               {pavimentos.length === 0 ? (

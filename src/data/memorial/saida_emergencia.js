@@ -18,7 +18,7 @@
 import { getSE } from '../normas/index'
 import {
   contarSaidasPavimento, getDistancia, calcPopPav,
-  calcDimsAcesso, dimsDoAcesso, calcNoAmbientePT,
+  calcDimsAcesso, dimsDoAcesso, calcNoAmbientePT, tipoEscadaEstrutura,
 } from '../se_calc'
 
 const fmt  = n => Number(n).toFixed(2).replace('.', ',')
@@ -286,6 +286,16 @@ function blocosDaEstrutura(est, pavs, seNorma, temChuveiros, temDeteccao) {
           fmtDistOuConsultar(getDistancia(divisao, false, 2, temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)),
         ],
       ]),
+    })
+  }
+
+  const escada = tipoEscadaEstrutura(est, pavs.map(p => p.divisao), seNorma.TIPOS_ESCADA)
+  if (escada?.status === 'ok') {
+    const t = seNorma.TIPOS_ESCADA.tipos[escada.exigido]
+    const tipoTexto = escada.exigido === '+' || escada.exigido === '-' ? t.nome : `${escada.exigido} — ${t.nome}`
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: `Tipo de escada de emergência (Anexo C, Tabela 3): ${tipoTexto}, para altura piso a piso de ${fmt(parseFloat(est.alturaPisoPiso) || 0)} m (${escada.faixa.label}) e ocupação ${escada.porDivisao.map(p => p.divisao).join(', ')}.`,
     })
   }
 

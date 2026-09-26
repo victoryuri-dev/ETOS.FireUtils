@@ -56,7 +56,11 @@ function maxCarga(pavimentos, cargaEst, cnaesDiv) {
 // que a pagina especifica ja calculou) pra que o mesmo resumo apareca, com
 // os mesmos dados, em toda tela que lista estruturas — e va aparecendo aos
 // poucos, conforme cada etapa anterior e preenchida.
-export default function EstruturaHeaderInfo({ estrutura, apenasOcupacao = false }) {
+// `mostrar` escolhe quais badges aparecem: 'area', 'pavimentos', 'risco',
+// 'ocupacao'. Padrão = todos; as telas de medidas escolhem só os que fazem
+// sentido pra elas; `semArea` tira só a área construída (que só a
+// Compartimentação mostra).
+export default function EstruturaHeaderInfo({ estrutura, apenasOcupacao = false, semArea = false, mostrar = ['area', 'pavimentos', 'risco', 'ocupacao'] }) {
   const { state } = useProjeto()
   const { cnaesDiv } = useNorma()
 
@@ -70,17 +74,20 @@ export default function EstruturaHeaderInfo({ estrutura, apenasOcupacao = false 
   const q = maxCarga(pavimentos, cargaEst, cnaesDiv)
   const cls = q > 0 ? getCls(q) : null
 
-  if (!divsOcupacao.length && (apenasOcupacao || (!q && !areaEstrutura))) return null
+  const ver = k => !apenasOcupacao && mostrar.includes(k) && !(k === 'area' && semArea)
+  const temAlgo = (ver('area') && areaEstrutura > 0) || ver('pavimentos') || (ver('risco') && q > 0)
+    || (mostrar.includes('ocupacao') && divsOcupacao.length > 0)
+  if (!temAlgo && !(apenasOcupacao && divsOcupacao.length > 0)) return null
 
   const totalPavimentos = (parseInt(estrutura.nPavimentos) || 1) + (parseInt(estrutura.nSubsolos) || 0)
   const pavimentosLabel = totalPavimentos === 1 ? 'Térrea' : `${totalPavimentos} pavimentos`
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap justify-end">
-      {!apenasOcupacao && areaEstrutura > 0 && <Chip icon="area">{areaEstrutura} m²</Chip>}
-      {!apenasOcupacao && <Chip icon="stair">{pavimentosLabel}</Chip>}
-      {!apenasOcupacao && q > 0 && <Chip tone={cls} icon="flame">{RISCO_LBL[cls]}</Chip>}
-      {divsOcupacao.length > 0 && (
+      {ver('area') && areaEstrutura > 0 && <Chip icon="area">{areaEstrutura} m²</Chip>}
+      {ver('pavimentos') && <Chip icon="stair">{pavimentosLabel}</Chip>}
+      {ver('risco') && q > 0 && <Chip tone={cls} icon="flame">{RISCO_LBL[cls]}</Chip>}
+      {(apenasOcupacao || mostrar.includes('ocupacao')) && divsOcupacao.length > 0 && (
         <Chip tone={edificacaoMista ? 'amber' : 'red'} icon="newbld">{divsOcupacao.join(' • ')}</Chip>
       )}
     </div>
