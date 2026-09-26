@@ -9,7 +9,6 @@ import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
 
 const f2 = (n) => Number(n).toFixed(2)
 const LABEL_ACIONAMENTO = { eletrico: 'motor elétrico', combustao: 'motor de combustão interna' }
-const LABEL_CONFIG_REDE = { ramal: 'ramal único', malha: 'malha (anel) fechado' }
 const LABEL_RECALQUE = {
   coluna_fachada: 'tipo coluna, instalado na fachada',
   embutido_muro: 'embutido em abrigo no muro',
@@ -133,7 +132,7 @@ export function textoMemorialHidrantes(state) {
   blocos.push({ tipo: 'titulo2', texto: 'Rede de Tubulação' })
   blocos.push({
     tipo: 'paragrafo',
-    texto: `A rede será executada em ${material?.label.toLowerCase() || '(material não definido)'}${material ? ` (fator C = ${material.fatorC}, Hazen-Williams)` : ''}, configurada em ${LABEL_CONFIG_REDE[h.redeConfiguracao]}, diâmetro nominal mínimo DN65.`,
+    texto: `A rede será executada em ${material?.label.toLowerCase() || '(material não definido)'}${material ? ` (fator C = ${material.fatorC}, Hazen-Williams)` : ''}, diâmetro nominal mínimo DN65.`,
   })
 
   blocos.push({ tipo: 'titulo2', texto: 'Dispositivo de Recalque' })

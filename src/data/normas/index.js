@@ -28,6 +28,7 @@ import * as MA_BRIG from './MA/brigada_incendio'
 import * as PB_SE   from './PB/saida_emergencia'
 
 import { getNormaRemota } from '../../lib/normasRemote'
+import * as CATALOGOS_HIDRANTES from '../hidrantesCatalogos'
 
 const NORMAS      = { MA, PE, PB }
 const NORMAS_SE   = { MA: MA_SE, PB: PB_SE }
@@ -103,8 +104,7 @@ const CHAVES_BRIG = ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'O
 const CHAVES_HID  = [
   'NORMA', 'REFERENCIA_PRESSAO_VAZAO', 'TIPOS_SISTEMA', 'COMPONENTES_POR_TIPO',
   'LABEL_MANGUEIRA_INCENDIO', 'FAIXAS_AREA', 'TABELA3', 'DIVISOES_COLUNA',
-  'DIVISOES_POR_CARGA', 'MATERIAIS_TUBULACAO', 'MATERIAIS_RESERVATORIO',
-  'TIPOS_RECALQUE', 'CONFIGURACOES_REDE', 'ACIONAMENTOS_BOMBA',
+  'DIVISOES_POR_CARGA',
   'BOMBA_RESERVA_POR_RISCO', 'VAZAO_LIMITE_RECALQUE_DUPLO', 'ALTITUDES_SUCCAO',
   'TEMPERATURAS_SUCCAO', 'ALTITUDE_SUCCAO_PADRAO', 'TEMPERATURA_SUCCAO_PADRAO',
   'HIDRANTES_SIMULTANEOS', 'HIDRANTES_SIMULTANEOS_REF', 'V_MAX_TUBULACAO',
@@ -210,7 +210,9 @@ export function getNts(uf) {
 // dos demais getters acima.
 export function getHidrantes(uf) {
   const remoto = getNormaRemota(uf, 'hidrantes')
-  return remoto ? renomearDaBaseCentral(remoto, CHAVES_HID) : (NORMAS_HID[uf] ?? NORMAS_HID['MA'])
+  const base = remoto ? renomearDaBaseCentral(remoto, CHAVES_HID) : (NORMAS_HID[uf] ?? NORMAS_HID['MA'])
+  // Catálogos globais (materiais, recalque, acionamento) vêm do código, não do banco.
+  return { ...base, ...CATALOGOS_HIDRANTES }
 }
 // getBrigada: migrado pra base normativa central (normas_dados — ver
 // supabase/migrations/*seed_normas_brigada*). O arquivo estático

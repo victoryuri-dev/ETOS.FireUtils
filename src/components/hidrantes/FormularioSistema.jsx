@@ -18,11 +18,21 @@ import { POSICOES_RESERVATORIO } from '../../data/hidrantes_calc'
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 const RISCO_COLOR = { baixo: 'text-ink-faint', medio: 'text-amber', alto: 'text-red' }
 
-function EstruturaPill({ active, onClick, nome, area, divisao, carga, risco }) {
+// Mesma lógica de cores da Etapa 6 (medidas de segurança): estrutura em que a
+// norma EXIGE hidrantes é vermelha — cheia quando selecionada e só com a
+// borda vermelha se o RT a desmarcou (sinaliza que a norma exige mesmo assim);
+// as não exigidas ficam verdes quando selecionadas (opcional) e neutras quando não.
+function EstruturaPill({ active, obrigatorio, onClick, nome, area, divisao, carga, risco }) {
+  const tom = obrigatorio
+    ? (active ? 'border-red bg-red-dim' : 'border-red bg-bg hover:bg-red-dim')
+    : (active ? 'border-green bg-green-dim' : 'border-border bg-bg hover:border-ink-faint')
   return (
-    <button type="button" onClick={onClick}
-      className={`text-left p-3 rounded-md border border-solid transition-colors ${active ? 'border-red bg-red-dim' : 'border-border bg-bg hover:border-ink-faint'}`}>
-      <div className="text-xs font-semibold text-ink mb-1.5">{nome}</div>
+    <button type="button" onClick={onClick} aria-pressed={active}
+      className={`text-left p-3 rounded-md border border-solid transition-colors ${tom}`}>
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div className="text-xs font-semibold text-ink">{nome}</div>
+        {obrigatorio && <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[.06em] text-red">Obrigatório</span>}
+      </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-ink-faint">
         <span>Área</span><span className="text-ink font-medium text-right">{area ? `${area.toLocaleString('pt-BR')} m²` : '—'}</span>
         <span>Ocupação</span><span className="text-ink font-medium text-right">{divisao || '—'}</span>
@@ -49,7 +59,7 @@ export default function FormularioSistema() {
       <FormSection title="Áreas para Classificação do Sistema" description="Selecione as estruturas que exigem sistema de hidrantes — só elas entram na área total e na ocupação usadas na Tabela 3.">
         <div className="grid grid-cols-2 gap-3">
           {infoPorEstrutura.map(e => (
-            <EstruturaPill key={e.id} active={estruturasSelecionadas.includes(e.id)} onClick={() => toggleEstrutura(e.id)}
+            <EstruturaPill key={e.id} active={estruturasSelecionadas.includes(e.id)} obrigatorio={e.hidrantesObrigatorio} onClick={() => toggleEstrutura(e.id)}
               nome={e.nome} area={e.area} divisao={e.divisaoLabel} carga={e.carga} risco={e.risco}/>
           ))}
         </div>
@@ -150,11 +160,6 @@ export default function FormularioSistema() {
               {norma.MATERIAIS_TUBULACAO.map(m => (
                 <option key={m.key} value={m.key}>{m.label} (C={m.fatorC})</option>
               ))}
-            </select>
-          </Field>
-          <Field label="Configuração da rede">
-            <select className={inputClass} value={h.redeConfiguracao} onChange={e => set({ redeConfiguracao: e.target.value })}>
-              {norma.CONFIGURACOES_REDE.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
             </select>
           </Field>
         </div>

@@ -461,7 +461,7 @@ const INITIAL_STATE = {
     // geométrica no modelo Revit, por isso perguntadas aqui. Defaults =
     // ALTITUDE_SUCCAO_PADRAO/TEMPERATURA_SUCCAO_PADRAO de normas/MA/hidrantes.js.
     succaoAltitude: 0, succaoTemperatura: 30,
-    redeMaterial: '', redeConfiguracao: 'ramal',
+    redeMaterial: '',
     recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
     valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',
     observacoes: '',

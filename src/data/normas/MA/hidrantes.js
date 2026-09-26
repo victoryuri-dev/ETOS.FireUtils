@@ -131,43 +131,13 @@ export const DIVISOES_POR_CARGA = {
 }
 
 // ── Materiais de tubulação — Tabela 1 (fator C de Hazen-Williams) ───────
-export const MATERIAIS_TUBULACAO = [
-  { key: 'ferro_fundido_sem_revest', label: 'Ferro fundido ou dúctil sem revestimento interno', fatorC: 100 },
-  { key: 'aco_preto_seco',           label: 'Aço preto (sistema de tubo seco)',                  fatorC: 100 },
-  { key: 'aco_preto_molhado',        label: 'Aço preto (sistema de tubo molhado)',                fatorC: 120 },
-  { key: 'galvanizado',              label: 'Galvanizado',                                        fatorC: 120 },
-  { key: 'plastico',                 label: 'Plástico (PVC/PEAD)',                                fatorC: 150 },
-  { key: 'ferro_fundido_com_cimento',label: 'Ferro fundido ou dúctil com revestimento interno de cimento', fatorC: 140 },
-  { key: 'cobre',                    label: 'Cobre',                                              fatorC: 150 },
-]
 
 // Posição do reservatório (elevado/nível do solo/etc.) não é perguntada
 // aqui — vem do modelo Revit (plugin). O site só pergunta o material, que é
 // uma decisão de projeto sem correspondência geométrica no modelo.
-export const MATERIAIS_RESERVATORIO = [
-  { key: 'concreto_armado', label: 'Concreto armado' },
-  { key: 'alvenaria',       label: 'Alvenaria' },
-  { key: 'fibra_vidro',     label: 'Fibra de vidro' },
-  { key: 'aco',             label: 'Aço (metálico)' },
-  { key: 'polietileno',     label: 'Polietileno' },
-  { key: 'outro',           label: 'Outro' },
-]
 
-export const TIPOS_RECALQUE = [
-  { key: 'coluna_fachada', label: 'Coluna na fachada' },
-  { key: 'embutido_muro',  label: 'Embutido em abrigo no muro' },
-  { key: 'passeio',        label: 'Passeio público (exige justificativa técnica de impossibilidade)' },
-]
 
-export const CONFIGURACOES_REDE = [
-  { key: 'ramal',  label: 'Ramal único' },
-  { key: 'malha',  label: 'Malha (anel) fechado' },
-]
 
-export const ACIONAMENTOS_BOMBA = [
-  { key: 'eletrico',   label: 'Motor elétrico' },
-  { key: 'combustao',  label: 'Motor de combustão interna' },
-]
 
 // Bomba reserva obrigatória por risco (item C.3.12 do Anexo C)
 export const BOMBA_RESERVA_POR_RISCO = {

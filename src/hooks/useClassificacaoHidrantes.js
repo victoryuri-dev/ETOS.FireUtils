@@ -52,6 +52,7 @@ export function useClassificacaoHidrantes() {
         id: est.id, nome: est.nome, area: parseFloat(est.areaTotal) || 0,
         divisaoLabel, edificacaoMista, carga, risco,
         hidrantesAtivo: !!pe?.sistemas?.hidrantes?.ativo,
+        hidrantesObrigatorio: !!pe?.sistemas?.hidrantes?.obrigatorio,
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
