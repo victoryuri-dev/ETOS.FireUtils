@@ -7,6 +7,12 @@ import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import { useToast } from '../../hooks/useToast'
+import { statusEstrutura } from '../../utils/statusEstrutura'
+
+const statusSinalizacao = qtd => qtd > 0
+  ? statusEstrutura('concluido', `${qtd} tipo${qtd === 1 ? '' : 's'} de placa`)
+  : statusEstrutura('pendente', 'Aguardando dados')
 
 // ── Importação do firedata.json / Supabase (plugin Revit) ────────────
 // Formato esperado (ver comentário completo no final do arquivo):
@@ -250,8 +256,16 @@ export default function SinalizacaoPage() {
   const { state, dispatch } = useProjeto()
   const { sinalizacao: sinNorma } = useNorma()
   const { TIPOS_PLACA, CATEGORIAS } = sinNorma
-  const [importInfo, setImportInfo] = useState(null)
-  const [importErros, setImportErros] = useState([])
+  const toast = useToast()
+
+  // Resultado de uma importação do Revit: pendências viram um aviso de erro e
+  // o que foi importado, um de sucesso.
+  const notificarImportacao = (info, erros) => {
+    if (erros.length > 0) {
+      toast.error(`${erros.length === 1 ? 'Um item não pôde ser importado' : `${erros.length} itens não puderam ser importados`}: ${erros.join(' ')}`)
+    }
+    if (info) toast.success(`${info.total} placa${info.total !== 1 ? 's' : ''} importada${info.total !== 1 ? 's' : ''} do Revit${info.timestamp ? ` — exportação: ${info.timestamp}` : ''}. Esta importação substituiu o cadastro anterior da(s) estrutura(s) recebida(s).`)
+  }
   const [buscando, setBuscando] = useState(false)
   // Id da estrutura sendo atualizada individualmente (botão "Atualizar" no
   // card dela, ver handleBuscarRevitEstrutura) — null quando nenhuma está
@@ -283,11 +297,9 @@ export default function SinalizacaoPage() {
       try {
         const json = JSON.parse(ev.target.result)
         const { total, erros, timestamp } = aplicarSinalizacao(json.sinalizacao)
-        setImportInfo({ timestamp, total })
-        setImportErros(erros)
+        notificarImportacao({ timestamp, total }, erros)
       } catch (err) {
-        setImportInfo(null)
-        setImportErros([err.message || 'Arquivo inválido.'])
+        notificarImportacao(null, [err.message || 'Arquivo inválido.'])
       }
     }
     reader.readAsText(file, 'utf-8')
@@ -302,13 +314,11 @@ export default function SinalizacaoPage() {
       .from('revit_syncs_latest').select('estrutura_id, payload').eq('projeto_id', state.id).eq('medida', 'sinalizacao')
     setBuscando(false)
     if (error) {
-      setImportInfo(null)
-      setImportErros([`Falha ao consultar o Supabase: ${error.message}`])
+      notificarImportacao(null, [`Falha ao consultar o Supabase: ${error.message}`])
       return
     }
     if (!data || data.length === 0) {
-      setImportInfo(null)
-      setImportErros(['Nenhum dado de sinalização sincronizado do Revit ainda para este projeto.'])
+      notificarImportacao(null, ['Nenhum dado de sinalização sincronizado do Revit ainda para este projeto.'])
       return
     }
     let totalGeral = 0
@@ -320,8 +330,7 @@ export default function SinalizacaoPage() {
       errosGeral.push(...erros)
       if (timestamp && (!timestampMaisRecente || timestamp > timestampMaisRecente)) timestampMaisRecente = timestamp
     }
-    setImportInfo({ timestamp: timestampMaisRecente, total: totalGeral })
-    setImportErros(errosGeral)
+    notificarImportacao({ timestamp: timestampMaisRecente, total: totalGeral }, errosGeral)
   }
 
   // Mesma busca de handleBuscarRevit, mas escopada a uma única estrutura
@@ -334,18 +343,15 @@ export default function SinalizacaoPage() {
       .eq('medida', 'sinalizacao').eq('estrutura_id', estruturaId).maybeSingle()
     setBuscandoEstruturaId(null)
     if (error) {
-      setImportInfo(null)
-      setImportErros([`Falha ao consultar o Supabase: ${error.message}`])
+      notificarImportacao(null, [`Falha ao consultar o Supabase: ${error.message}`])
       return
     }
     if (!data) {
-      setImportInfo(null)
-      setImportErros(['Nenhum dado de sinalização sincronizado do Revit ainda para esta estrutura.'])
+      notificarImportacao(null, ['Nenhum dado de sinalização sincronizado do Revit ainda para esta estrutura.'])
       return
     }
     const { total, erros, timestamp } = aplicarSinalizacao(data.payload, estruturaId)
-    setImportInfo({ timestamp, total })
-    setImportErros(erros)
+    notificarImportacao({ timestamp, total }, erros)
   }
 
   return (
@@ -375,28 +381,10 @@ export default function SinalizacaoPage() {
           </div>
         </div>
 
-        {importErros.length > 0 && (
-          <div className="ibox red mb-6">
-            <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
-            <span className="text-xs">
-              {importErros.length === 1 ? 'Um item não pôde ser importado' : `${importErros.length} itens não puderam ser importados`}: {importErros.join(' ')}
-            </span>
-          </div>
-        )}
-
-        {importInfo && (
-          <div className="ibox green mb-6">
-            <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-            <span className="text-xs">
-              {importInfo.total} placa{importInfo.total !== 1 ? 's' : ''} importada{importInfo.total !== 1 ? 's' : ''} do Revit{importInfo.timestamp ? ` — exportação: ${importInfo.timestamp}` : ''}. Esta importação substituiu o cadastro anterior da(s) estrutura(s) recebida(s).
-            </span>
-          </div>
-        )}
-
         <ReferenciaNormativa sinNorma={sinNorma}/>
 
         {state.estruturas.map(est => (
-          <EstruturaSection key={est.id} titulo={est.nome} extra={
+          <EstruturaSection key={est.id} titulo={est.nome} status={statusSinalizacao(state.sinalizacao.filter(i => i.estruturaId === est.id).length)} defaultOpen={false} extra={
             <div className="flex items-center gap-2">
               <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
                 onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}

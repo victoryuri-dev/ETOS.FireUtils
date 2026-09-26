@@ -5,6 +5,7 @@ import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { supabase } from '../../lib/supabase'
 import { getSE } from '../../data/normas/index'
 import Icon from '../../components/ui/Icon'
+import { useToast } from '../../hooks/useToast'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import AcessosDescargasView from './AcessosDescargasView'
 import { calcPopPav, contarSaidasPavimento, getDistanciaPavimento } from '../../data/se_calc'
@@ -164,8 +165,13 @@ export default function SaidaEmergenciaPage() {
   // dentro; esta página só lista os pavimentos.
   const [viewPavId,    setViewPavId]    = useState(null)
   // Colapso dos cards é só desta aba/sessão.
-  const [importInfo,   setImportInfo]   = useState(null)
-  const [importErro,   setImportErro]   = useState(null)
+  const toast = useToast()
+
+  // Resultado de uma importação do Revit: erro e/ou sucesso viram notificações.
+  const notificarImportacao = (timestamp, erro) => {
+    if (erro) toast.error(`Erro ao importar: ${erro}`)
+    if (timestamp) toast.success(`Dados importados do Revit — última exportação: ${timestamp}. Confira os ambientes e ajuste se necessário.`)
+  }
   const [colapsadas,   setColapsadas]   = useState({})
   const [buscando,     setBuscando]     = useState(false)
   // Id da estrutura sendo atualizada individualmente (botão "Atualizar" no
@@ -204,10 +210,9 @@ export default function SaidaEmergenciaPage() {
       try {
         const json = JSON.parse(ev.target.result)
         const { erros, timestamp } = aplicarSaidas(json?.saidas_emergencia ?? json?.se_import, null)
-        setImportErro(erros.length ? erros.join(' ') : null)
-        setImportInfo(timestamp)
+        notificarImportacao(timestamp, erros.length ? erros.join(' ') : null)
       } catch (err) {
-        setImportErro(err.message || 'Arquivo inválido.')
+        notificarImportacao(null, err.message || 'Arquivo inválido.')
       }
     }
     reader.readAsText(file, 'utf-8')
@@ -221,11 +226,11 @@ export default function SaidaEmergenciaPage() {
       .from('revit_syncs_latest').select('estrutura_id, payload').eq('projeto_id', state.id).eq('medida', 'saidas_emergencia')
     setBuscando(false)
     if (error) {
-      setImportErro(`Falha ao consultar o Supabase: ${error.message}`)
+      notificarImportacao(null, `Falha ao consultar o Supabase: ${error.message}`)
       return
     }
     if (!data || data.length === 0) {
-      setImportErro('Nenhum dado de saídas de emergência sincronizado do Revit ainda para este projeto.')
+      notificarImportacao(null, 'Nenhum dado de saídas de emergência sincronizado do Revit ainda para este projeto.')
       return
     }
     const errosGeral = []
@@ -235,8 +240,7 @@ export default function SaidaEmergenciaPage() {
       errosGeral.push(...erros)
       if (timestamp && (!timestampMaisRecente || timestamp > timestampMaisRecente)) timestampMaisRecente = timestamp
     }
-    setImportErro(errosGeral.length ? errosGeral.join(' ') : null)
-    setImportInfo(timestampMaisRecente)
+    notificarImportacao(timestampMaisRecente, errosGeral.length ? errosGeral.join(' ') : null)
   }
 
   // Mesma busca de handleBuscarRevit, mas escopada a uma única estrutura
@@ -250,16 +254,15 @@ export default function SaidaEmergenciaPage() {
       .eq('medida', 'saidas_emergencia').eq('estrutura_id', estruturaId).maybeSingle()
     setBuscandoEstruturaId(null)
     if (error) {
-      setImportErro(`Falha ao consultar o Supabase: ${error.message}`)
+      notificarImportacao(null, `Falha ao consultar o Supabase: ${error.message}`)
       return
     }
     if (!data) {
-      setImportErro('Nenhum dado de saídas de emergência sincronizado do Revit ainda para esta estrutura.')
+      notificarImportacao(null, 'Nenhum dado de saídas de emergência sincronizado do Revit ainda para esta estrutura.')
       return
     }
     const { erros, timestamp } = aplicarSaidas(data.payload, estruturaId)
-    setImportErro(erros.length ? erros.join(' ') : null)
-    setImportInfo(timestamp)
+    notificarImportacao(timestamp, erros.length ? erros.join(' ') : null)
   }
 
   const viewPav = viewPavId ? state.pavimentos.find(p => p.id === viewPavId) : null
@@ -310,18 +313,6 @@ export default function SaidaEmergenciaPage() {
             </div>
           </div>
 
-          {importInfo && (
-            <div className="ibox green mb-0">
-              <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-              <span className="text-xs">Dados importados do Revit — última exportação: <strong>{importInfo}</strong>. Confira os ambientes e ajuste se necessário.</span>
-            </div>
-          )}
-          {importErro && (
-            <div className="ibox red mb-0">
-              <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
-              <span className="text-xs">Erro ao importar: {importErro}</span>
-            </div>
-          )}
         </div>
 
         {/* Pavimentos */}

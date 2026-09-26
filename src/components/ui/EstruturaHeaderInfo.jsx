@@ -72,9 +72,13 @@ export default function EstruturaHeaderInfo({ estrutura, apenasOcupacao = false 
 
   if (!divsOcupacao.length && (apenasOcupacao || (!q && !areaEstrutura))) return null
 
+  const totalPavimentos = (parseInt(estrutura.nPavimentos) || 1) + (parseInt(estrutura.nSubsolos) || 0)
+  const pavimentosLabel = totalPavimentos === 1 ? 'Térrea' : `${totalPavimentos} pavimentos`
+
   return (
     <div className="flex items-center gap-1.5 flex-wrap justify-end">
       {!apenasOcupacao && areaEstrutura > 0 && <Chip icon="area">{areaEstrutura} m²</Chip>}
+      {!apenasOcupacao && <Chip icon="stair">{pavimentosLabel}</Chip>}
       {!apenasOcupacao && q > 0 && <Chip tone={cls} icon="flame">{RISCO_LBL[cls]}</Chip>}
       {divsOcupacao.length > 0 && (
         <Chip tone={edificacaoMista ? 'amber' : 'red'} icon="newbld">{divsOcupacao.join(' • ')}</Chip>

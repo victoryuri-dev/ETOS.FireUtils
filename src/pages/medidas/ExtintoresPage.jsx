@@ -10,6 +10,8 @@ import InlineEditableNome from '../../components/ui/InlineEditableNome'
 import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import { useToast } from '../../hooks/useToast'
+import { statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 // ── Importação do firedata.json (plugin Revit) ───────────────────────
@@ -771,8 +773,16 @@ function ReferenciaNormativa({ extNorma }) {
 export default function ExtintoresPage() {
   const { state, dispatch } = useProjeto()
   const { extintores: extNorma } = useNorma()
-  const [importInfo, setImportInfo] = useState(null)
-  const [importErros, setImportErros] = useState([])
+  const toast = useToast()
+
+  // Resultado de uma importação do Revit: pendências viram um aviso de erro e
+  // o que foi importado, um de sucesso.
+  const notificarImportacao = (info, erros) => {
+    if (erros.length > 0) {
+      toast.error(`${erros.length === 1 ? 'Um item não pôde ser importado' : `${erros.length} itens não puderam ser importados`}: ${erros.join(' ')}`)
+    }
+    if (info) toast.success(`${info.total} extintor${info.total !== 1 ? 'es' : ''} importado${info.total !== 1 ? 's' : ''} do Revit${info.timestamp ? ` — exportação: ${info.timestamp}` : ''}. Esta importação substituiu o cadastro anterior.`)
+  }
   const [buscando, setBuscando] = useState(false)
   // Id da estrutura sendo atualizada individualmente (botão "Atualizar" no
   // card dela, ver handleBuscarRevitEstrutura) — null quando nenhuma está
@@ -807,11 +817,9 @@ export default function ExtintoresPage() {
       try {
         const json = JSON.parse(ev.target.result)
         const { total, erros, timestamp } = aplicarExtintores(json.extintores)
-        setImportInfo({ timestamp, total })
-        setImportErros(erros)
+        notificarImportacao({ timestamp, total }, erros)
       } catch (err) {
-        setImportInfo(null)
-        setImportErros([err.message || 'Arquivo inválido.'])
+        notificarImportacao(null, [err.message || 'Arquivo inválido.'])
       }
     }
     reader.readAsText(file, 'utf-8')
@@ -826,13 +834,11 @@ export default function ExtintoresPage() {
       .from('revit_syncs_latest').select('estrutura_id, payload').eq('projeto_id', state.id).eq('medida', 'extintores')
     setBuscando(false)
     if (error) {
-      setImportInfo(null)
-      setImportErros([`Falha ao consultar o Supabase: ${error.message}`])
+      notificarImportacao(null, [`Falha ao consultar o Supabase: ${error.message}`])
       return
     }
     if (!data || data.length === 0) {
-      setImportInfo(null)
-      setImportErros(['Nenhum dado de extintores sincronizado do Revit ainda para este projeto.'])
+      notificarImportacao(null, ['Nenhum dado de extintores sincronizado do Revit ainda para este projeto.'])
       return
     }
     let totalGeral = 0
@@ -844,8 +850,7 @@ export default function ExtintoresPage() {
       errosGeral.push(...erros)
       if (timestamp && (!timestampMaisRecente || timestamp > timestampMaisRecente)) timestampMaisRecente = timestamp
     }
-    setImportInfo({ timestamp: timestampMaisRecente, total: totalGeral })
-    setImportErros(errosGeral)
+    notificarImportacao({ timestamp: timestampMaisRecente, total: totalGeral }, errosGeral)
   }
 
   // Mesma busca de handleBuscarRevit, mas escopada a uma única estrutura
@@ -858,18 +863,15 @@ export default function ExtintoresPage() {
       .eq('medida', 'extintores').eq('estrutura_id', estruturaId).maybeSingle()
     setBuscandoEstruturaId(null)
     if (error) {
-      setImportInfo(null)
-      setImportErros([`Falha ao consultar o Supabase: ${error.message}`])
+      notificarImportacao(null, [`Falha ao consultar o Supabase: ${error.message}`])
       return
     }
     if (!data) {
-      setImportInfo(null)
-      setImportErros(['Nenhum dado de extintores sincronizado do Revit ainda para esta estrutura.'])
+      notificarImportacao(null, ['Nenhum dado de extintores sincronizado do Revit ainda para esta estrutura.'])
       return
     }
     const { total, erros, timestamp } = aplicarExtintores(data.payload, estruturaId)
-    setImportInfo({ timestamp, total })
-    setImportErros(erros)
+    notificarImportacao({ timestamp, total }, erros)
   }
 
   return (
@@ -899,30 +901,16 @@ export default function ExtintoresPage() {
           </div>
         </div>
 
-        {importErros.length > 0 && (
-          <div className="ibox red mb-6">
-            <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
-            <span className="text-xs">
-              {importErros.length === 1 ? 'Um item não pôde ser importado' : `${importErros.length} itens não puderam ser importados`}: {importErros.join(' ')}
-            </span>
-          </div>
-        )}
-
-        {importInfo && (
-          <div className="ibox green mb-6">
-            <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-            <span className="text-xs">
-              {importInfo.total} extintor{importInfo.total !== 1 ? 'es' : ''} importado{importInfo.total !== 1 ? 's' : ''} do Revit{importInfo.timestamp ? ` — exportação: ${importInfo.timestamp}` : ''}. Esta importação substituiu o cadastro anterior.
-            </span>
-          </div>
-        )}
-
         <ReferenciaNormativa extNorma={extNorma}/>
 
         {state.estruturas.map(est => {
           const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
+          const comExtintor = pavimentos.filter(pav => state.extintores.some(e => e.pavimentoId === pav.id)).length
+          const status = statusPorProgresso(comExtintor, Math.max(pavimentos.length, 1), {
+            pendente: 'Aguardando dados', andamento: `${comExtintor} de ${pavimentos.length} pavimentos`, concluido: 'Dados carregados',
+          })
           return (
-            <EstruturaSection key={est.id} titulo={est.nome} extra={
+            <EstruturaSection key={est.id} titulo={est.nome} status={status} defaultOpen={false} extra={
               <div className="flex items-center gap-2">
                 <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
                   onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}

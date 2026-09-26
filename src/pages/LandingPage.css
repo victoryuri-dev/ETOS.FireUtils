@@ -156,9 +156,6 @@
 /* Coordinate the first reveal with the hero media and preview mount. */
 .fire-landing.is-loading>.fl-header,.fire-landing.is-loading>main,.fire-landing.is-loading>.fl-footer{visibility:hidden}
 .fl-entry-loader{position:fixed;z-index:200;inset:0;display:grid;place-items:center;background:var(--fl-bg)}
-.fl-entry-loader .fl-mark{width:34px;height:44px;filter:drop-shadow(0 0 22px #ea133050);animation:fl-entry-pulse 1.15s ease-in-out infinite}
-@keyframes fl-entry-pulse{0%,100%{opacity:.38;transform:translateY(4px) scale(.94)}50%{opacity:1;transform:translateY(-3px) scale(1)}}
-
 /* Fade the animated hero lighting into the page instead of ending on a hard edge. */
 .fl-beams{background:radial-gradient(ellipse at 50% 75%,#ea133020,transparent 62%);-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 68%,rgba(0,0,0,.76) 82%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0%,#000 68%,rgba(0,0,0,.76) 82%,transparent 100%)}
 

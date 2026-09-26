@@ -6,6 +6,7 @@ import Icon from '../../components/ui/Icon'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import { RISCOS_ESPECIAIS } from '../../utils/anexoB'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import { statusPorProgresso } from '../../utils/statusEstrutura'
 
 // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) com os poucos
 // dados que ainda não existem em outro lugar do projeto — endereço, área,
@@ -137,8 +138,11 @@ export default function GerenciamentoRiscoPage() {
             const marcados = state.riscosEspeciaisPorEstrutura[est.id] || {}
             const riscosDaEst = RISCOS_ESPECIAIS.filter(r => marcados[r.key])
             const localizacoes = pe.riscosLocalizacaoPorEstrutura[est.id] || {}
+            const status = statusPorProgresso(riscosDaEst.filter(r => localizacoes[r.key]).length, riscosDaEst.length, {
+              pendente: 'Opcional', concluido: 'Localizados',
+            })
             return (
-              <EstruturaSection key={est.id} titulo={est.nome}>
+              <EstruturaSection key={est.id} titulo={est.nome} status={status} defaultOpen={false}>
                 <div className="border border-solid border-border rounded-lg overflow-hidden">
                   {riscosDaEst.map((r, i) => (
                     <div key={r.key} className={`py-3 px-4 ${i < riscosDaEst.length - 1 ? 'border-b border-solid border-border-2' : ''}`}>

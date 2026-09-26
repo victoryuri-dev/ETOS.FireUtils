@@ -8,6 +8,7 @@ import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import { statusPorProgresso } from '../../utils/statusEstrutura'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import luminaria30ledsImg from '../../assets/luminaria 30 leds.png'
 import blocoIluminacaoImg from '../../assets/bloco de iluminacao.png'
@@ -484,8 +485,12 @@ export default function IluminacaoPage() {
             ) : (
               state.estruturas.map(est => {
                 const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
+                const comItens = pavimentos.filter(pav => state.iluminacao.some(i => i.pavimentoId === pav.id)).length
+                const status = statusPorProgresso(comItens, Math.max(pavimentos.length, 1), {
+                  pendente: 'Aguardando dados', andamento: `${comItens} de ${pavimentos.length} pavimentos`, concluido: 'Dados carregados',
+                })
                 return (
-                  <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
+                  <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={status} defaultOpen={false}>
                     {pavimentos.length === 0 ? (
                       <div className="ibox amber">
                         <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>

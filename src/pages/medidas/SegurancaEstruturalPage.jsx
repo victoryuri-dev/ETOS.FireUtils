@@ -5,6 +5,7 @@ import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import { statusEstrutura } from '../../utils/statusEstrutura'
 
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
@@ -40,8 +41,16 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
 
   const setObs = (v) => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'obsSegEstrutural', value: v })
 
+  const faltando = [!resultado.classeAltura, sub > 0 && !est.profundidadeSubsolo, metodologias.length === 0].filter(Boolean).length
+  const status =
+    faltando === 3 || (faltando > 0 && !resultado.classeAltura) ? statusEstrutura('pendente', 'Dados pendentes')
+    : faltando > 0 ? statusEstrutura('andamento', 'Em andamento')
+    : resultado.pendenciasNaoRegressao.length > 0 ? statusEstrutura('atencao', 'Revisar TRRF')
+    : resultado.avisos.length > 0 ? statusEstrutura('andamento', 'Consultar SSCI')
+    : statusEstrutura('concluido', 'TRRF definido')
+
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={status} defaultOpen={false}>
       <Card className="mb-3">
         <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
           <div>

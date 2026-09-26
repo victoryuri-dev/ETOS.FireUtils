@@ -5,6 +5,7 @@ import { useCnaeCnpjLookup } from '../../hooks/useCnaeCnpjLookup'
 import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
+import { useToast } from '../../hooks/useToast'
 
 const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border flex items-center justify-between'
 
@@ -158,7 +159,8 @@ function SectionHead({ titulo, descricao, aviso }) {
 // a base normativa pra sugerir grupo/divisão automaticamente.
 function BuscaCnaePorCnpj({ pav, dispatch }) {
   const { state } = useProjeto()
-  const { buscar, limpar, loading, error, resultado } = useCnaeCnpjLookup()
+  const { buscar, limpar, error, resultado } = useCnaeCnpjLookup()
+  const toast = useToast()
   const cnpjDigits = (state.respCNPJ || '').replace(/\D/g, '')
 
   useEffect(() => {
@@ -175,43 +177,24 @@ function BuscaCnaePorCnpj({ pav, dispatch }) {
     limpar()
   }
 
-  if (cnpjDigits.length !== 14 || loading) return null
+  // Retornos da busca viram notificações. A sugestão de CNAE fica mais tempo
+  // na tela porque pede uma decisão; sem correspondencia na base normativa nao
+  // ha nada pra sugerir, entao nao notifica.
+  useEffect(() => {
+    if (error) toast.error(`Nao foi possivel sugerir a classificacao pelo CNPJ da Etapa 1: ${error}`)
+  }, [error, toast])
 
-  if (error) {
-    return (
-      <div className="ibox amber mb-5">
-        <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-        <span>Nao foi possivel sugerir a classificacao pelo CNPJ da Etapa 1: {error}</span>
-      </div>
+  useEffect(() => {
+    if (!resultado?.match) return
+    const id = toast.info(
+      `${resultado.cnae} — ${resultado.descricao}. Corresponde a ${resultado.match.divisao} — ${resultado.match.descricao} na norma. Pode ser diferente da ocupacao real do Terreo — confirme antes de usar.`,
+      { title: 'CNAE encontrado pelo CNPJ da Etapa 1', duration: 20000, action: { label: 'Usar esta classificacao no Terreo', onClick: aplicarClassificacao } },
     )
-  }
+    return () => toast.dismiss(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultado, toast])
 
-  // Sem correspondencia na base normativa — nada pra sugerir, entao nem
-  // mostra a caixa (ver conversa: nao ha CNAE pra classificar manualmente
-  // por essa via mesmo).
-  if (!resultado?.match) return null
-
-  return (
-    <div className="ibox blue mb-5">
-      <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
-      <div className="flex flex-col gap-2 flex-1 min-w-0">
-        <div>
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">CNAE encontrado pelo CNPJ da Etapa 1</div>
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="font-mono text-red font-semibold text-[12px] shrink-0">{resultado.cnae}</span>
-            <span className="text-[12px] text-ink-muted leading-[1.4]">{resultado.descricao}</span>
-          </div>
-        </div>
-
-        <p className="text-[11px] text-ink-faint leading-[1.5] m-0">
-          Corresponde a <strong className="text-ink-muted font-semibold">{resultado.match.divisao}</strong> — {resultado.match.descricao} na norma. Pode ser diferente da ocupacao real do Terreo — confirme antes de usar.
-        </p>
-        <button type="button" className="btn-ghost self-start" onClick={aplicarClassificacao}>
-          <Icon name="check" size={11}/> Usar esta classificacao no Terreo
-        </button>
-      </div>
-    </div>
-  )
+  return null
 }
 
 // ── Linha de ocupação subsidiária ─────────────────────────────────────

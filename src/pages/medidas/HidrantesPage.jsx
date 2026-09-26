@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { supabase } from '../../lib/supabase'
 import Icon from '../../components/ui/Icon'
+import { useToast } from '../../hooks/useToast'
 import StepsNav from '../../components/layout/StepsNav'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import FormularioSistema from '../../components/hidrantes/FormularioSistema'
@@ -492,14 +493,14 @@ export default function HidrantesPage() {
   // memorial) — mesmo payload sincronizado pelo plugin, sem transformação.
   const dados = state.hidrantes.dimensionamento
   const norma = getHidrantes(state.uf)
-  const [importErro, setImportErro] = useState(null)
+  const toast = useToast()
   const [buscando,   setBuscando]   = useState(false)
   const [etapa, setEtapa] = useState(1)
   const fileInputRef = useRef(null)
 
   const aplicarHidrantes = payload => {
     dispatch({ type: 'SET_HIDRANTES', changes: { dimensionamento: payload } })
-    setImportErro(null)
+    if (payload?._timestamp) toast.success(`Dados importados do Revit — exportação: ${payload._timestamp}${payload.metodo ? ` · Método: ${payload.metodo}` : ''}`)
   }
 
   const eta = state.hidrantes.bombaEficiencia
@@ -517,7 +518,7 @@ export default function HidrantesPage() {
         if (!json.hidrantes) throw new Error('Chave "hidrantes" não encontrada no arquivo.')
         aplicarHidrantes(json.hidrantes)
       } catch (err) {
-        setImportErro(err.message || 'Arquivo inválido.')
+        toast.error(`Erro ao importar: ${err.message || 'Arquivo inválido.'}`)
         dispatch({ type: 'SET_HIDRANTES', changes: { dimensionamento: null } })
       }
     }
@@ -536,7 +537,7 @@ export default function HidrantesPage() {
       .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id).eq('medida', 'hidrantes').maybeSingle()
     setBuscando(false)
     if (error || !data) {
-      setImportErro('Nenhum dado de hidrantes sincronizado do Revit ainda para este projeto.')
+      toast.error('Erro ao importar: Nenhum dado de hidrantes sincronizado do Revit ainda para este projeto.')
       dispatch({ type: 'SET_HIDRANTES', changes: { dimensionamento: null } })
       return
     }
@@ -605,14 +606,7 @@ export default function HidrantesPage() {
               </div>
             </div>
 
-            {importErro && (
-              <div className="ibox red mb-6">
-                <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
-                <span className="text-xs">Erro ao importar: {importErro}</span>
-              </div>
-            )}
-
-            {!dados && !importErro && (
+            {!dados && (
               <div className="py-[60px] px-10 text-center border border-dashed border-border rounded-lg text-ink-faint">
                 <Icon name="upload" size={32} color="var(--color-border)"/>
                 <div className="mt-3 text-[13px]">Importe o <strong>firedata.json</strong> gerado pelo plugin Revit para visualizar o dimensionamento.</div>
@@ -621,13 +615,6 @@ export default function HidrantesPage() {
 
             {dados && (
               <>
-                {dados._timestamp && (
-                  <div className="ibox green mb-6">
-                    <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                    <span className="text-xs">Dados importados do Revit — exportação: <strong>{dados._timestamp}</strong> · Método: <strong>{dados.metodo}</strong></span>
-                  </div>
-                )}
-
                 <DadosDoSistema d={dados}/>
 
                 <VerificacaoHidranteDesfavoravel ranking={dados.ranking_hidrantes}/>

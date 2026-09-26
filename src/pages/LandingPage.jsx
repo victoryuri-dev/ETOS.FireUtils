@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import logo from '../assets/fireutils-landing.svg'
 import revitVideo from '../assets/revit-fireutils.mp4'
 import Icon from '../components/ui/Icon'
+import Loader from '../components/ui/Loader'
 import './LandingPage.css'
 import { useBuildingMotion, useLandingMotion } from '../hooks/useLandingMotion'
 
@@ -150,7 +151,7 @@ export default function LandingPage() {
     return () => { document.title = previous }
   }, [])
   return <div ref={landingRef} className={`fire-landing ${heroReady ? 'is-ready' : 'is-loading'}`}>
-    {!heroReady && <div className="fl-entry-loader" role="status" aria-label="Carregando experiência FireUtils"><Mark/></div>}
+    {!heroReady && <div className="fl-entry-loader" role="status" aria-label="Carregando experiência FireUtils"><Loader size={44}/></div>}
     <a className="fl-skip" href="#conteudo">Ir para o conteúdo</a>
     <header className="fl-header"><a href="#inicio" aria-label="FireUtils início"><img src={logo} alt="FireUtils"/></a><nav aria-label="Navegação principal" className={menu ? 'is-open' : ''}><a href="#demonstracao" onClick={() => setMenu(false)}>Demonstração</a><a href="#recursos" onClick={() => setMenu(false)}>Recursos</a></nav><Link className="fl-login" to="/login">Acessar plataforma <span>↗</span></Link><button className="fl-menu" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="Abrir menu">{menu ? '✕' : '☰'}</button></header>
     <main id="conteudo">

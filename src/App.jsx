@@ -28,6 +28,8 @@ import ControleAcabamentoPage from './pages/medidas/ControleAcabamentoPage'
 import GerenciamentoRiscoPage from './pages/medidas/GerenciamentoRiscoPage'
 import Icon           from './components/ui/Icon'
 import Loader         from './components/ui/Loader'
+import ToastProvider   from './components/ui/ToastProvider'
+import { useToast }    from './hooks/useToast'
 import logo           from './assets/fireutils-logo.png'
 
 // ── SaveStatusIndicator ───────────────────────────────────────────────
@@ -220,6 +222,7 @@ function PerfilRoute() {
 function ProjectLayout() {
   const { id } = useParams()
   const { state, dispatch, conflito, definirVersaoConhecida } = useProjeto()
+  const toast = useToast()
   const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -274,6 +277,17 @@ function ProjectLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user])
 
+  // Só fecha no X ou em "Recarregar": perder as edições desta aba é o tipo de
+  // aviso que não pode sumir sozinho.
+  useEffect(() => {
+    if (!conflito) return
+    const tid = toast.error(
+      'Este projeto foi alterado em outra sessão enquanto você editava aqui. Para não perder o que foi salvo lá, recarregue antes de continuar — suas últimas mudanças nesta aba não foram salvas.',
+      { title: 'Projeto alterado em outra sessão', duration: 0, action: { label: 'Recarregar', onClick: () => window.location.reload() } },
+    )
+    return () => toast.dismiss(tid)
+  }, [conflito, toast])
+
   const rest = location.pathname.split(`/projeto/${id}/`)[1]?.split('/') || []
   const activePage = rest[0] === 'medida' ? `medida-${rest[1]}` : (rest[0] || 'dashboard')
 
@@ -294,13 +308,6 @@ function ProjectLayout() {
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage/>
-        {conflito && (
-          <div className="ibox red m-3" role="alert">
-            <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
-            <span>Este projeto foi alterado em outra sessão enquanto você editava aqui. Para não perder o que foi salvo lá, recarregue antes de continuar — suas últimas mudanças nesta aba não foram salvas.</span>
-            <button className="btn-primary shrink-0" onClick={() => window.location.reload()}>Recarregar</button>
-          </div>
-        )}
         <Outlet/>
       </div>
     </>
@@ -379,9 +386,11 @@ function AppInner() {
 export default function App() {
   return (
     <AuthProvider>
-      <ProjetoProvider>
-        <AppInner/>
-      </ProjetoProvider>
+      <ToastProvider>
+        <ProjetoProvider>
+          <AppInner/>
+        </ProjetoProvider>
+      </ToastProvider>
     </AuthProvider>
   )
 }

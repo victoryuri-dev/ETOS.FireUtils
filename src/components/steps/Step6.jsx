@@ -53,38 +53,14 @@ const RISCOS_DEFAULT = {
 }
 
 const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border'
-const divTag = (mista) => `py-[3px] px-2.5 rounded font-bold text-[12px] font-mono border border-solid ${mista ? 'bg-amber-dim border-amber-border text-amber' : 'bg-red-dim border-red-border text-red'}`
 
 // ── Card com dados de uma estrutura usados na dosagem das medidas ───────
 function EstruturaResumo({ pe }) {
-  const { areaEstrutura, alturaEstrutura, classificacao, gruposFaltantes } = pe
-  const { principaisDivs, subsidiarias, edificacaoMista, mistaDivs, temOcupacoes } = classificacao
+  const { classificacao, gruposFaltantes } = pe
+  const { subsidiarias } = classificacao
 
   return (
     <div className="border border-solid border-border rounded-lg p-4 mb-3">
-      <div className="grid grid-cols-3 gap-3 mb-3">
-        <div>
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Area construida</div>
-          <div className="text-[13px] font-medium text-ink">{areaEstrutura ? `${areaEstrutura} m2` : '—'}</div>
-        </div>
-        <div>
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura piso a piso</div>
-          <div className="text-[13px] font-medium text-ink">{alturaEstrutura ? `${alturaEstrutura} m` : '—'}</div>
-        </div>
-        <div>
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">
-            {edificacaoMista ? 'Ocupacao mista' : 'Ocupacao principal'}
-          </div>
-          {temOcupacoes ? (
-            <div className="flex gap-1 flex-wrap">
-              {(edificacaoMista ? mistaDivs : principaisDivs).map(d => (
-                <span key={d} className={divTag(edificacaoMista)}>{d}</span>
-              ))}
-            </div>
-          ) : <div className="text-[13px] text-ink-hint">—</div>}
-        </div>
-      </div>
-
       {subsidiarias.length > 0 && (
         <div className="mb-1">
           <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">
@@ -118,7 +94,10 @@ function EstruturaResumo({ pe }) {
 // que a norma exige), nunca vira verde/neutro como um opcional.
 function MedidasGrid({ pe, dispatch, sistConfig, ntsPorSistema }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div
+      className="grid gap-2"
+      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(max(130px, calc((100% - 24px) / 4)), 1fr))' }}
+    >
       {sistConfig.map(s => {
         const sist = pe.sistemas[s.key] || { obrigatorio: false, ativo: false }
         const on    = sist.ativo
@@ -241,10 +220,12 @@ export default function Step6({ step, totalSteps }) {
 
         return (
           <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
-            <div className="mb-4">
-              <div className={blockTitle}>Dados usados na dosagem</div>
-              <EstruturaResumo pe={pe}/>
-            </div>
+            {(pe.classificacao.subsidiarias.length > 0 || pe.gruposFaltantes.length > 0) && (
+              <div className="mb-4">
+                <div className={blockTitle}>Dados usados na dosagem</div>
+                <EstruturaResumo pe={pe}/>
+              </div>
+            )}
 
             <div className="mb-6">
               <div className={blockTitle}>Medidas de seguranca</div>

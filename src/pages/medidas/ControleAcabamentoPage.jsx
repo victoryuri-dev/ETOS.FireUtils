@@ -7,6 +7,7 @@ import { MATERIAIS_INCOMBUSTIVEIS, buscarMaterialIncombustivel, CLASSE_INCOMBUST
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import { statusEstrutura } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 function Card({ children, className = '' }) {
@@ -163,6 +164,13 @@ const RESUMO_INFO = {
   DADOS_INSUFICIENTES:   { cls: 'ibox amber', titulo: 'DADOS INSUFICIENTES', texto: 'Uma ou mais linhas (cobertura, isolamento térmico acústico, ou divisão sem dado normativo cadastrado para este estado) ainda não têm classe exigida definida — não é possível concluir a análise até isso ser preenchido.' },
 }
 
+const STATUS_RESUMO = {
+  ATENDE:                statusEstrutura('concluido', 'Atende'),
+  ATENDE_COM_PENDENCIAS: statusEstrutura('andamento', 'Pendências documentais'),
+  NAO_ATENDE:            statusEstrutura('atencao', 'Não atende'),
+  DADOS_INSUFICIENTES:   statusEstrutura('pendente', 'Dados insuficientes'),
+}
+
 function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispatch }) {
   const divisoes = divisoesDaEstrutura(pavimentos)
   const linhas = montarLinhas(divisoes, tabela, itens)
@@ -170,7 +178,7 @@ function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispat
   const info = RESUMO_INFO[resumo]
 
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={STATUS_RESUMO[resumo]} defaultOpen={false}>
       {Object.keys(tabela).length === 0 ? (
         <div className="ibox amber">
           <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>

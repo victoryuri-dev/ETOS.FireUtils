@@ -5,6 +5,7 @@ import { usePerfil } from '../hooks/usePerfil'
 import FormSection from '../components/ui/FormSection'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
+import { useToast } from '../hooks/useToast'
 
 const ESPECIALIDADES = [
   'Engenharia Civil', 'Engenharia Eletrica', 'Arquitetura', 'Engenharia de Seguranca',
@@ -14,31 +15,31 @@ export default function PerfilPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { perfil, erro, salvar } = usePerfil()
+  const toast = useToast()
 
   // Copia local pro formulario: o usuario edita a vontade e so o botao grava.
   // `null` ate o perfil chegar — e o que segura o Loader abaixo.
   const [form, setForm] = useState(null)
   const [salvando, setSalvando] = useState(false)
-  const [aviso, setAviso] = useState(null)
 
   useEffect(() => { if (perfil) setForm(perfil) }, [perfil])
+  useEffect(() => { if (erro) toast.error(erro) }, [erro, toast])
 
   const setConta = campo => e => {
     const { value } = e.target
     setForm(f => ({ ...f, [campo]: value }))
-    setAviso(null)
   }
   const setRT = campo => e => {
     const { value } = e.target
     setForm(f => ({ ...f, responsavelTecnico: { ...f.responsavelTecnico, [campo]: value } }))
-    setAviso(null)
   }
 
   const handleSalvar = async () => {
     setSalvando(true)
     const r = await salvar(form)
     setSalvando(false)
-    setAviso(r.ok ? { tipo: 'green', texto: 'Perfil salvo.' } : { tipo: 'red', texto: r.erro })
+    if (r.ok) toast.success('Perfil salvo.')
+    else toast.error(r.erro)
   }
 
   if (!form) {
@@ -67,13 +68,6 @@ export default function PerfilPage() {
               é reaproveitado na Etapa 3 de cada projeto novo, em vez de ser redigitado.
             </p>
           </div>
-
-          {erro && (
-            <div className="ibox red" role="alert">
-              <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
-              <span>{erro}</span>
-            </div>
-          )}
 
           <FormSection title="Conta" description="Como identificamos você no sistema.">
             {/* Texto, e nao um input desabilitado: o e-mail vem do Supabase
@@ -138,11 +132,6 @@ export default function PerfilPage() {
                 ? <><Icon name="spinner" size={13} className="animate-spin"/> Salvando...</>
                 : <><Icon name="save" size={13}/> Salvar perfil</>}
             </button>
-            {aviso && (
-              <span className={`flex items-center gap-1.5 text-[12px] ${aviso.tipo === 'green' ? 'text-green' : 'text-red'}`}>
-                <Icon name={aviso.tipo === 'green' ? 'checkCircle' : 'warn'} size={13}/> {aviso.texto}
-              </span>
-            )}
           </div>
 
         </div>

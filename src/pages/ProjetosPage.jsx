@@ -184,7 +184,7 @@ function CardActions({ onDelete, onDuplicate, className = '' }) {
     >
       <div
         className={`absolute right-0 top-0 flex items-center gap-1 py-0.5 pl-9 rounded-md transition-opacity duration-150 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        style={{ background: 'linear-gradient(to left, var(--color-surface-2) 55%, transparent 100%)' }}
+        style={{ background: 'linear-gradient(to left, var(--color-surface) 55%, transparent 100%)' }}
       >
         <button
           onClick={onDuplicate}

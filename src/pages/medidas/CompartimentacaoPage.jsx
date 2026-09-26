@@ -7,6 +7,7 @@ import Checkbox from '../../components/ui/Checkbox'
 import InfoTip from '../../components/ui/InfoTip'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 function Card({ children, className = '' }) {
@@ -240,6 +241,17 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   const precisaElementosH = !isencaoH && !resultadoArea.dentroDoLimite
   const precisaElementosV = !isencaoV
 
+  // Só conta o que a norma exige: horizontal (isenção, ou elementos quando há
+  // subdivisão a construir) e vertical (isenção ou elementos adotados).
+  const resolvidoH = !obrigH || !!isencaoH || resultadoArea.dentroDoLimite || elementosH.length > 0
+  const resolvidoV = !obrigV || !!isencaoV || elementosV.length > 0
+  const exigidos = (obrigH ? 1 : 0) + (obrigV ? 1 : 0)
+  const status = exigidos === 0
+    ? statusEstrutura('concluido', 'Não exigida')
+    : statusPorProgresso((obrigH && resolvidoH ? 1 : 0) + (obrigV && resolvidoV ? 1 : 0), exigidos, {
+        pendente: 'Configuração pendente', andamento: 'Em andamento', concluido: 'Configurada',
+      })
+
   const toggleArr = (field, atual, key) => {
     const next = atual.includes(key) ? atual.filter(x => x !== key) : [...atual, key]
     dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field, value: next })
@@ -260,7 +272,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   const limparSubstituicao = (campo) => dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field: campo, value: null })
 
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>}>
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={status} defaultOpen={false}>
 
       {/* Compartimentação Horizontal */}
       <Card className="mb-3">
