@@ -478,7 +478,10 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
 
             <div>
               <div className="flex items-center justify-between mb-2.5">
-                <div className="text-[13px] font-semibold text-ink">Ambientes sem acesso atribuído</div>
+                <div>
+                  <div className="text-[13px] font-semibold text-ink">Ambientes com acesso direto à área de relativa segurança</div>
+                  <div className="text-[11px] text-ink-faint mt-0.5">Ambientes não ligados a nenhum acesso/saída — não geram pendência.</div>
+                </div>
                 <button className="btn-ghost" onClick={() => criarAmbiente()}><Icon name="plus" size={12}/> Adicionar Ambiente</button>
               </div>
               <SemAcessoDropZone ambientes={semAcesso} taxaPopulacional={TAXA_POPULACIONAL} larguras={LARGURAS_MINIMAS} onEdit={setEditAmb} onRemove={removerAmbiente}

@@ -142,7 +142,7 @@ export default function GerenciamentoRiscoPage() {
               pendente: 'Opcional', concluido: 'Localizados',
             })
             return (
-              <EstruturaSection key={est.id} titulo={est.nome} status={status} defaultOpen={false}>
+              <EstruturaSection key={est.id} titulo={est.nome} status={status} conclusao={{ estruturaId: est.id, medida: 'gerenciamento_risco' }} defaultOpen={false}>
                 <div className="border border-solid border-border rounded-lg overflow-hidden">
                   {riscosDaEst.map((r, i) => (
                     <div key={r.key} className={`py-3 px-4 ${i < riscosDaEst.length - 1 ? 'border-b border-solid border-border-2' : ''}`}>

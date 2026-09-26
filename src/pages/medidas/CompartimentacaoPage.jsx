@@ -272,7 +272,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   const limparSubstituicao = (campo) => dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field: campo, value: null })
 
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={status} defaultOpen={false}>
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={status} conclusao={exigidos === 0 ? null : { estruturaId: est.id, medida: 'compartimentacao' }} defaultOpen={false}>
 
       {/* Compartimentação Horizontal */}
       <Card className="mb-3">

@@ -26,6 +26,7 @@ import IluminacaoPage         from './pages/medidas/IluminacaoPage'
 import SinalizacaoPage        from './pages/medidas/SinalizacaoPage'
 import ControleAcabamentoPage from './pages/medidas/ControleAcabamentoPage'
 import GerenciamentoRiscoPage from './pages/medidas/GerenciamentoRiscoPage'
+import BrigadaIncendioPage    from './pages/medidas/BrigadaIncendioPage'
 import Icon           from './components/ui/Icon'
 import Loader         from './components/ui/Loader'
 import ToastProvider   from './components/ui/ToastProvider'
@@ -145,6 +146,7 @@ function MedidaRoute() {
   if (sistKey === 'sinalizacao')       return <SinalizacaoPage/>
   if (sistKey === 'controle_acabamento') return <ControleAcabamentoPage/>
   if (sistKey === 'gerenciamento_risco') return <GerenciamentoRiscoPage/>
+  if (sistKey === 'brigada')             return <BrigadaIncendioPage/>
   return <MedidaPage sistKey={sistKey}/>
 }
 

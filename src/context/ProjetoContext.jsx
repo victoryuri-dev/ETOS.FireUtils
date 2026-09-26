@@ -310,8 +310,11 @@ function novaEstrutura(nome, id) {
 // valores mudam). `acessos`/`pisoDescarga`: ver árvore de Acessos e
 // Descargas (tela dedicada, dentro de Saída de Emergência) — piso de
 // descarga nasce true aqui (é o térreo), mas fica editável lá.
+// `populacaoFixa`: ocupantes fixos DESTE pavimento, usada pelo dimensionamento
+// da Brigada de Incêndio (Tabela A.1, NT 17) — não confundir com
+// state.planoEmergencia.populacaoFixa, que é o total da edificação inteira.
 function pavimentoTerreo(estruturaId) {
-  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(true), pisoDescarga: true }
+  return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [], ambientes: [], acessos: acessosPadrao(true), pisoDescarga: true }
 }
 
 const INITIAL_STATE = {
@@ -522,6 +525,13 @@ const INITIAL_STATE = {
   },
 }
 
+// Registra que os dados da medida nas estruturas recebidas vieram do Revit
+// (estrutura.origemRevit[medida]). A tela decide se isso já vale como
+// "concluída" (só quando não há pendências); o usuário pode reabrir/concluir.
+function marcarOrigemRevit(estruturas, ids, medida) {
+  return estruturas.map(e => ids.has(e.id) ? { ...e, origemRevit: { ...(e.origemRevit || {}), [medida]: true } } : e)
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case 'SET_FIELD':
@@ -564,14 +574,14 @@ function reducer(state, action) {
       const list = []
       for (let s = nSub; s >= 1; s--) {
         const id = `${estruturaId}-sub-${s}`
-        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
+        list.push(find(id) || { id, estruturaId, tipo:'subsolo', label: `Subsolo ${s}`, grupo: 'G', divisao: 'G-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
       }
       const terId = `${estruturaId}-P1`
       const ter = find(terId)
       list.push(ter || pavimentoTerreo(estruturaId))
       for (let p = 2; p <= nPav; p++) {
         const id = `${estruturaId}-P${p}`
-        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
+        list.push(find(id) || { id, estruturaId, tipo:'pav', label: `Pavimento ${p}`, grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [], ambientes: [], acessos: acessosPadrao(false), pisoDescarga: false })
       }
       const idsValidos = new Set(list.map(p => p.id))
       return {
@@ -667,7 +677,7 @@ function reducer(state, action) {
     case 'IMPORT_EXTINTORES': {
       const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
       const preservados = state.extintores.filter(e => !estruturasDoLote.has(e.estruturaId))
-      return { ...state, extintores: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idExtintor() }))] }
+      return { ...state, estruturas: marcarOrigemRevit(state.estruturas, estruturasDoLote, 'extintores'), extintores: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idExtintor() }))] }
     }
     case 'ADD_ILUMINACAO':
       return { ...state, iluminacao: [...state.iluminacao, novoItemIluminacao(action.estruturaId, action.pavimentoId, action.categoria, action.overrides, action.id)] }
@@ -746,7 +756,7 @@ function reducer(state, action) {
     case 'IMPORT_SINALIZACAO': {
       const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
       const preservados = state.sinalizacao.filter(s => !estruturasDoLote.has(s.estruturaId))
-      return { ...state, sinalizacao: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() }))] }
+      return { ...state, estruturas: marcarOrigemRevit(state.estruturas, estruturasDoLote, 'sinalizacao'), sinalizacao: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idSinalizacao() }))] }
     }
     // Upsert de uma linha do CMAR — identificada por estrutura+chave (não
     // por id), já que a tela deriva as linhas a partir das divisões da
@@ -777,7 +787,8 @@ function reducer(state, action) {
     // resolvidos no lote, preservando os demais.
     case 'IMPORT_AMBIENTES_SE': {
       const porPavimento = new Map(action.atualizacoes.map(a => [a.pavimentoId, a.ambientes]))
-      return { ...state, pavimentos: state.pavimentos.map(p => porPavimento.has(p.id) ? { ...p, ambientes: porPavimento.get(p.id) } : p) }
+      const estruturasDoLote = new Set(state.pavimentos.filter(p => porPavimento.has(p.id)).map(p => p.estruturaId))
+      return { ...state, estruturas: marcarOrigemRevit(state.estruturas, estruturasDoLote, 'saida_emergencia'), pavimentos: state.pavimentos.map(p => porPavimento.has(p.id) ? { ...p, ambientes: porPavimento.get(p.id) } : p) }
     }
     // ── Árvore de Acessos e Descargas (Ambiente -> Acesso -> Acesso/Saída) ──
     // Ver se_calc.js (calcNoAcesso/ambientesDoAcesso) pro motor de cálculo.

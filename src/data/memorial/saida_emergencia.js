@@ -150,6 +150,20 @@ function tabelaAmbientes(listaAmbientes, taxaPopulacional, larguras) {
   }
 }
 
+// Ambiente que não foi ligado a nenhum acesso/saída da árvore não é
+// pendência: é tratado como ambiente com acesso direto à área de relativa
+// segurança (não passa por corredor/escada a dimensionar), e a largura da
+// sua própria porta continua calculada na tabela de ambientes.
+function notaAcessoDireto(pav) {
+  const diretos = (pav.ambientes || []).filter(a => !a.acessoId)
+  if (diretos.length === 0) return null
+  const nomes = diretos.map(a => a.nome).join(', ')
+  return {
+    tipo: 'paragrafo',
+    texto: `${diretos.length === 1 ? 'O ambiente' : 'Os ambientes'} ${nomes} ${diretos.length === 1 ? 'não foi vinculado' : 'não foram vinculados'} a nenhum acesso, saída ou escada/rampa e ${diretos.length === 1 ? 'é considerado' : 'são considerados'} com acesso direto à área de relativa segurança. Por isso, não ${diretos.length === 1 ? 'compõe' : 'compõem'} a árvore de acessos e descargas nem ${diretos.length === 1 ? 'constitui' : 'constituem'} pendência de dimensionamento; a largura das portas ${diretos.length === 1 ? 'dele' : 'deles'} segue dimensionada na tabela de população e portas dos ambientes.`,
+  }
+}
+
 // ── Tabela individual de um nó (Saída/Escada-Rampa raiz, ou Circulação) —
 // uma linha por dimensionamento LIGADO no nó (AD/ER/PT, ver acesso.dims em
 // AcessosDescargasView.jsx) — um nó pode ter mais de um ao mesmo tempo
@@ -187,13 +201,18 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
     return blocos
   }
   if (raizes.length === 0) {
-    blocos.push({ tipo: 'paragrafo', texto: `Nenhuma ${rotuloRaiz} cadastrada em ${pav.label} até o momento — árvore de acessos e descargas pendente.` })
+    const soAcessoDireto = ambientes.length > 0 && ambientes.every(a => !a.acessoId)
+    blocos.push({ tipo: 'paragrafo', texto: soAcessoDireto
+      ? `Nenhuma ${rotuloRaiz} cadastrada em ${pav.label}: todos os ambientes possuem acesso direto à área de relativa segurança.`
+      : `Nenhuma ${rotuloRaiz} cadastrada em ${pav.label} até o momento — árvore de acessos e descargas pendente.` })
     // Sem saída/escada não há árvore pra organograma nem larguras mínimas
     // a calcular, mas os ambientes já cadastrados no pavimento (com sua
     // população e largura de porta) não dependem disso — seguem exibidos.
     const { listaAmbientes } = montarArvorePavimento(pav)
     if (listaAmbientes.length > 0) {
       blocos.push(tabelaAmbientes(listaAmbientes, TAXA_POPULACIONAL, LARGURAS_MINIMAS))
+      const nota = notaAcessoDireto(pav)
+      if (nota) blocos.push(nota)
     }
     return blocos
   }
@@ -226,6 +245,8 @@ function blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao) {
   })
   if (listaAmbientes.length > 0) {
     blocos.push(tabelaAmbientes(listaAmbientes, TAXA_POPULACIONAL, LARGURAS_MINIMAS))
+    const nota = notaAcessoDireto(pav)
+    if (nota) blocos.push(nota)
   }
 
   return blocos
