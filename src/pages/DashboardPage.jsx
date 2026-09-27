@@ -140,7 +140,7 @@ const SYSTEMS = [
   { key: 'sinalizacao', icon: 'sign', label: 'Sinalização de Emergência' },
   { key: 'extintores', icon: 'ext', label: 'Extintores' },
   { key: 'hidrantes', icon: 'hidranteMedida', label: 'Hidrantes / Mangotinhos' },
-  { key: 'alarme', icon: 'bellElectric', label: 'Alarme de Incêndio' },
+  { key: 'alarme', icon: 'alarmeMedida', label: 'Alarme de Incêndio' },
   { key: 'deteccao', icon: 'detectorMedida', label: 'Detecção de Incêndio' },
   { key: 'sprinklers', icon: 'spray', label: 'Chuveiros Automáticos' },
   { key: 'controle_fumaca', icon: 'flame', label: 'Controle de Fumaça' },
@@ -215,6 +215,15 @@ function getSystemProgress(key, state, structureId = null) {
   if (key === 'extintores' && extintores.length) return { tone: 'progress', label: `${extintores.length} lançamento${extintores.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
   if (key === 'iluminacao' && iluminacao.length) return { tone: 'progress', label: `${iluminacao.length} lançamento${iluminacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
   if (key === 'sinalizacao' && sinalizacao.length) return { tone: 'progress', label: `${sinalizacao.length} lançamento${sinalizacao.length === 1 ? '' : 's'}`, detail: 'Dados iniciados' }
+  if (key === 'alarme' || key === 'deteccao') {
+    const ests = (state.estruturas || []).filter(e => !structureId || e.id === structureId)
+    const iniciada = e => key === 'alarme'
+      ? !!(e.alarme?.central || e.alarme?.centralLocal || e.alarme?.fonteAuxiliar)
+      : (state.pavimentos || []).some(p => p.estruturaId === e.id && (p.deteccao?.peDireito || p.deteccao?.qtd))
+    const concluidas = ests.filter(e => e.concluidas?.[key]).length
+    if (ests.length && concluidas === ests.length) return { tone: 'done', label: 'Concluído', detail: `${concluidas} edificaç${concluidas === 1 ? 'ão' : 'ões'}` }
+    if (ests.some(iniciada)) return { tone: 'progress', label: 'Em preenchimento', detail: `${concluidas} de ${ests.length} concluída${concluidas === 1 ? '' : 's'}` }
+  }
   if (key === 'acesso_viatura' && state.acessoViatura?.larguraAdotada) {
     return { tone: 'progress', label: 'Em preenchimento', detail: 'Parâmetros informados' }
   }

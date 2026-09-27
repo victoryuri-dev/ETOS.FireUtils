@@ -11,6 +11,7 @@ import extintorIconSvg from '../../assets/icons/extintor-icon.svg?raw'
 import saidaEmergenciaIconSvg from '../../assets/icons/saidaemergencia-icon.svg?raw'
 import detectorIconSvg from '../../assets/icons/detector-icon.svg?raw'
 import segEstruturalIconSvg from '../../assets/icons/seg-estrutural-icon.svg?raw'
+import alarmeIconSvg from '../../assets/icons/alarme-icon.svg?raw'
 
 const ICONS = {
   left: ArrowLeft, right: ArrowRight, chevD: ChevronDown, chevL: ChevronLeft, chevR: ChevronRight,
@@ -36,6 +37,7 @@ const CUSTOM_ICONS = {
   saidaEmergenciaMedida: saidaEmergenciaIconSvg,
   detectorMedida: detectorIconSvg,
   segEstruturalMedida: segEstruturalIconSvg,
+  alarmeMedida: alarmeIconSvg,
 }
 
 export default function Icon({ name, size=16, color, strokeWidth, className='' }) {

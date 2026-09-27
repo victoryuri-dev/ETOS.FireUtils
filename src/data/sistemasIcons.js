@@ -14,7 +14,7 @@ export const SISTEMA_ICON = {
   sinalizacao:         'sign',
   extintores:          'extintorMedida',
   hidrantes:           'hidranteMedida',
-  alarme:              'bellElectric',
+  alarme:              'alarmeMedida',
   deteccao:            'detectorMedida',
   sprinklers:          'spray',
   controle_fumaca:     'flame',

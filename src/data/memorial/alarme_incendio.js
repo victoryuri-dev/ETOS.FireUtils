@@ -1,0 +1,143 @@
+// memorial/alarme_incendio.js — texto do memorial descritivo do Sistema de
+// Alarme de Incêndio. Norma e valores vêm de getDeteccaoAlarme(uf) (base
+// central, com fallback estático) e o dimensionamento por pavimento do calc
+// puro (deteccao_alarme_calc.js) — o mesmo da tela.
+
+import { getDeteccaoAlarme } from '../normas/index'
+import {
+  alarmeDaEstrutura, resumoAlarmePavimento, notasAplicaveis, comAreaEfetiva,
+} from '../deteccao_alarme_calc'
+import {
+  fmt, cita, listaDivisoes, estruturasDaMedida, blocosObjetivoEReferencias, blocosExigibilidade,
+  blocosComissionamento, blocosManutencao,
+} from './deteccao_alarme_comum'
+
+function blocosConcepcao(norma) {
+  const a = norma.ALIMENTACAO, c = norma.CENTRAL, ac = norma.ACIONADOR, f = norma.FIACAO
+  const paragrafos = []
+
+  paragrafos.push({
+    tipo: 'paragrafo',
+    texto: `O projeto contém os elementos necessários ao funcionamento do sistema e ao seu completo entendimento, com os procedimentos de elaboração do Projeto Técnico da NT 01 (${cita(norma, 'projeto')}) e a representação gráfica conforme a NT 04 — Símbolos gráficos para projeto de segurança contra incêndio (${cita(norma, 'simbolos')}).`,
+  })
+  paragrafos.push({
+    tipo: 'paragrafo',
+    texto: `O sistema é dotado de duas fontes de alimentação: a principal, constituída pela ${a.principal}, e a auxiliar, constituída por bateria de acumuladores, nobreak ou gerador. Quando a fonte auxiliar for bateria de acumuladores ou nobreak, sua autonomia é de no mínimo ${a.autonomia_supervisao_h} horas em regime de supervisão e, em regime de alarme, de no mínimo ${a.autonomia_alarme_min} minutos para suprimento das indicações sonoras e/ou visuais ${a.autonomia_alarme_alternativa}; quando for gerador, os mesmos parâmetros de autonomia são atendidos (${cita(norma, 'alimentacao')}).`,
+  })
+  paragrafos.push({
+    tipo: 'paragrafo',
+    texto: `A central de detecção e alarme possui dispositivo de teste dos indicadores luminosos e dos sinalizadores acústicos (${cita(norma, 'teste_indicadores')}) e, juntamente com o painel repetidor, quando existente, é instalada em local com constante vigilância humana e de fácil visualização (${cita(norma, 'vigilancia')}). Aciona o alarme geral da edificação, que é audível em toda a edificação${c.alarme_sem_interferir_comunicacao_verbal ? ', sem interferir na comunicação verbal' : ''} (${cita(norma, 'alarme_geral')}), e contém painel ou esquema ilustrativo indicando a localização dos acionadores manuais e detectores, que pode ser substituído por display da central que indique a localização do acionamento (${cita(norma, 'painel_esquema')}).`,
+  })
+  paragrafos.push({
+    tipo: 'paragrafo',
+    texto: `Os acionadores manuais são instalados a uma altura de ${fmt(ac.altura_min_m)} m a ${fmt(ac.altura_max_m)} m do piso acabado até a base inferior do componente${ac.cor ? `, na cor ${ac.cor}` : ''} (${cita(norma, 'acionador_altura')}), de modo que a distância máxima a ser percorrida por uma pessoa, em qualquer ponto da área protegida, até o acionador mais próximo não seja superior a ${ac.distancia_max_m} m (${cita(norma, 'acionador_distancia')}), preferencialmente junto aos hidrantes. Nas edificações com mais de um pavimento é previsto ao menos um acionador manual em cada pavimento (${cita(norma, 'acionador_pavimento')}), e onde houver sistema de detecção instalado os acionadores manuais são obrigatórios (${cita(norma, 'acionador_com_deteccao')}).`,
+  })
+  if (ac.excecoes?.length) {
+    paragrafos.push({ tipo: 'paragrafo', texto: `Exceção prevista: ${ac.excecoes.map(e => `${e.divisoes.join(', ')} — ${e.texto}`).join('; ')}.` })
+  }
+  paragrafos.push({
+    tipo: 'paragrafo',
+    texto: `Os acionadores manuais contêm a indicação de funcionamento (cor verde) e de alarme (cor vermelha) quando a central for do tipo convencional; sendo a central do tipo inteligente (endereçável), a indicação pode ser dispensada desde que a central supervisione de forma constante e periódica os equipamentos periféricos, e, havendo pré-alarme, o LED de alarme nos acionadores é obrigatório (${cita(norma, 'leds_acionadores')}).`,
+  })
+  paragrafos.push({
+    tipo: 'paragrafo',
+    texto: `Os eletrodutos e a fiação atendem à ${f.norma} (${cita(norma, 'fiacao')})${f.protecao_calor ? ` e os elementos de proteção contra calor que contêm a fiação atendem a ${f.protecao_calor} (${cita(norma, 'protecao_calor')})` : ''}.`,
+  })
+  return [{ tipo: 'titulo2', texto: 'Concepção do sistema' }, ...paragrafos]
+}
+
+function blocosEstrutura(norma, { est, pavs: pavsBrutos }) {
+  const pavs = comAreaEfetiva(pavsBrutos, est)
+  const cfg = alarmeDaEstrutura(est)
+  const c = norma.CENTRAL, a = norma.ALIMENTACAO, ac = norma.ACIONADOR, av = norma.AVISADOR
+  const nrm = norma.NORMA
+  const blocos = [{ tipo: 'titulo2', texto: est.nome || 'Edificação' }]
+
+  const tipo = c.tipos.find(t => t.key === cfg.central)?.label
+  const local = cfg.centralLocal
+  const partes = []
+  partes.push(tipo && local
+    ? `A central de detecção e alarme é do tipo ${tipo.toLowerCase()} e fica instalada em ${local} — área de fácil acesso, com vigilância humana constante e fácil visualização`
+    : 'A central de detecção e alarme ainda não teve tipo e local definidos, e ficará, em conformidade com a norma, em área de fácil acesso, com vigilância humana constante e fácil visualização')
+  if (cfg.centralLocal && !cfg.monitoramentoRemoto) partes.push(`fora do período de vigilância, recomenda-se o monitoramento local ou remoto da central (${cita(norma, 'central_local')})`)
+  let txt = partes.join(', ') + '.'
+  if (cfg.central === 'enderecavel' && cfg.circuito) {
+    txt += ` O sistema utiliza circuito Classe ${cfg.circuito} conforme a NBR 17240.`
+  }
+  const extras = []
+  if (cfg.painelRepetidor) extras.push('painel repetidor')
+  if (cfg.painelSinoptico) extras.push('painel sinóptico com o esquema ilustrativo de localização dos acionadores')
+  if (extras.length) txt += ` Dispõe de ${extras.join(' e ')}.`
+  if (cfg.preAlarme) {
+    txt += ` Por tratar-se de local de grande concentração de pessoas, o alarme geral é precedido de pré-alarme na sala de segurança, junto à central, com temporizador de no máximo ${c.pre_alarme_retardo_max_min} minuto(s) para o acionamento posterior do alarme geral, na existência de brigada de incêndio na edificação; o alarme geral permanece obrigatório para toda a edificação (${cita(norma, 'pre_alarme')}).`
+  }
+  if (cfg.subcentral && c.subcentral_retardo_max_min != null) {
+    const qtd = cfg.subcentralQtd || '1'
+    txt += ` Há ${qtd} subcentral${Number(qtd) === 1 ? '' : 'is'} interligada${Number(qtd) === 1 ? '' : 's'} à central supervisionadora, com emissão simultânea de sinal de alarme; o alarme geral para toda a edificação soa caso, em ${c.subcentral_retardo_max_min} minutos, não sejam tomadas medidas junto à central supervisionadora (${cita(norma, 'subcentral')}).`
+  }
+  blocos.push({ tipo: 'paragrafo', texto: txt })
+
+  // Alimentação: autonomia sempre narrada pelo mínimo normativo (não é campo do formulário)
+  const fonte = cfg.fonteAuxiliar
+  blocos.push({
+    tipo: 'paragrafo',
+    texto: `A alimentação é feita pela ${a.principal} (fonte principal) e por ${fonte ? fonte : 'fonte auxiliar (a definir)'} (fonte auxiliar), com autonomia mínima de ${a.autonomia_supervisao_h} horas em regime de supervisão e de ${a.autonomia_alarme_min} minutos em regime de alarme, conforme a ${nrm.sigla} (${cita(norma, 'alimentacao')}).`,
+  })
+
+  // Tabela por pavimento
+  const linhas = pavs.map(pav => ({ pav, r: resumoAlarmePavimento(pav, ac, av, cfg) }))
+  const tot = linhas.reduce((t, { r }) => ({ a: t.a + r.acionadores, s: t.s + r.sonoros, v: t.v + r.visuais }), { a: 0, s: 0, v: 0 })
+  blocos.push({
+    tipo: 'tabela',
+    centralizado: true,
+    linhasCabecalho: [
+      [{ texto: 'ACIONADORES MANUAIS E AVISADORES', colSpan: 6 }],
+      [{ texto: 'PAVIMENTO' }, { texto: 'OCUPAÇÃO' }, { texto: 'ÁREA' }, { texto: 'ACIONADORES MANUAIS' }, { texto: 'AVISADORES SONOROS' }, { texto: 'AVISADORES VISUAIS' }],
+    ],
+    linhas: [
+      ...linhas.map(({ pav, r }) => [
+        pav.label, pav.divisao || '—', pav.area ? `${fmt(pav.area)} m²` : '—',
+        String(r.acionadores), String(r.sonoros), String(r.visuais),
+      ]),
+      ['TOTAL', '', '', String(tot.a), String(tot.s), String(tot.v)],
+    ],
+  })
+
+  const obs = []
+  obs.push(`Os acionadores manuais foram distribuídos de modo a não exceder ${ac.distancia_max_m} m de percurso até o mais próximo, com no mínimo um por pavimento, instalados de ${fmt(ac.altura_min_m)} m a ${fmt(ac.altura_max_m)} m do piso acabado.`)
+  // Tipo de avisador adotado — só a instalação e as especificações do equipamento
+  // (altura, audibilidade, visibilidade), não a justificativa de projeto que levou à escolha.
+  const LABEL_AVISADOR = { sonoro: 'sonoro', visual: 'visual', audiovisual: 'audiovisual (sonoro e visual)' }
+  if (cfg.tipoAvisador) {
+    const alturaTxt = av.altura_min_m != null ? ` instalado a ${fmt(av.altura_min_m, 1)} m a ${fmt(av.altura_max_m, 1)} m do piso acabado,` : ''
+    obs.push(`O avisador adotado é do tipo ${LABEL_AVISADOR[cfg.tipoAvisador]},${alturaTxt} com atuação em até ${av.tempo_atuacao_max_s} s e visibilidade verificada a partir de ${av.visibilidade_m} m de distância frontal (${cita(norma, 'avisador_visual')}).`)
+  }
+  if (cfg.semFio) {
+    const anexos = norma.SEM_FIO?.anexos || []
+    obs.push(anexos.length
+      ? `O sistema utiliza tecnologia sem fio (wireless), atendendo aos objetivos e ao desempenho da norma e apresentando os atestados dos Anexos ${anexos.join(' e ')} da ${nrm.sigla} (${cita(norma, 'sem_fio')}).`
+      : `O sistema utiliza tecnologia sem fio (wireless), com certificação em laboratório reconhecido e laudo de ensaio (${cita(norma, 'sem_fio')}).`)
+  }
+  obs.forEach(texto => blocos.push({ tipo: 'paragrafo', texto }))
+
+  const { especificas } = notasAplicaveis(norma, pavs.map(p => p.divisao))
+  especificas.forEach(n => blocos.push({ tipo: 'paragrafo', texto: `Ocupação ${listaDivisoes(pavs)} — item ${n.item} da ${nrm.sigla}: ${n.texto}` }))
+  return blocos
+}
+
+export function textoMemorialAlarmeIncendio(state, sistemas, porEstrutura) {
+  const norma = getDeteccaoAlarme(state.uf)
+  const lista = estruturasDaMedida(state, porEstrutura, 'alarme')
+
+  const blocos = [
+    ...blocosObjetivoEReferencias(norma, 'alarme'),
+    ...blocosExigibilidade(norma, 'alarme', 'sistema de alarme de incêndio', lista),
+    ...blocosConcepcao(norma),
+    ...(lista.length > 0
+      ? [{ tipo: 'titulo2', texto: 'Dimensionamento por edificação' }, ...lista.flatMap(item => blocosEstrutura(norma, item))]
+      : [{ tipo: 'paragrafo', texto: 'Nenhuma edificação com o sistema de alarme exigido ou adotado até o momento.' }]),
+    ...blocosComissionamento(norma, 'alarme'),
+    ...blocosManutencao(norma),
+  ]
+  return { titulo: 'Alarme de Incêndio', blocos }
+}

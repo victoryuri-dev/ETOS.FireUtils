@@ -60,7 +60,7 @@ const platformNav = [
   ['Detecção de Incêndio', 'deteccao'], ['Chuveiros Automáticos', 'chuveiros'], ['DOCUMENTOS', 'section'], ['Documentos', 'documentos'],
 ]
 
-const platformNavIcons = { dashboard: 'dash', config: 'settings', acesso: 'van', estrutural: 'segEstruturalMedida', horizontal: 'stair', vertical: 'stair', acabamento: 'spray', saidas: 'saidaEmergenciaMedida', brigada: 'shieldAlert', iluminacao: 'sun', sinalizacao: 'sign', extintores: 'extintorMedida', hidrantes: 'hidranteMedida', alarme: 'bellElectric', deteccao: 'detectorMedida', chuveiros: 'spray', documentos: 'file' }
+const platformNavIcons = { dashboard: 'dash', config: 'settings', acesso: 'van', estrutural: 'segEstruturalMedida', horizontal: 'stair', vertical: 'stair', acabamento: 'spray', saidas: 'saidaEmergenciaMedida', brigada: 'shieldAlert', iluminacao: 'sun', sinalizacao: 'sign', extintores: 'extintorMedida', hidrantes: 'hidranteMedida', alarme: 'alarmeMedida', deteccao: 'detectorMedida', chuveiros: 'spray', documentos: 'file' }
 
 function ProductSidebar({ active, compact = false }) {
   return <aside className={`fl-preview-sidebar ${compact ? 'is-compact' : ''}`}><div className="fl-sidebar-brand">{compact ? <Mark/> : <img src={logo} alt="FireUtils"/>}<span>◫</span></div><div className="fl-sidebar-back">← <b>Projetos</b></div>{platformNav.map(([name, key]) => key === 'section' ? <span className="fl-sidebar-section" key={name}>{name}</span> : <div className={active === key ? 'selected' : ''} key={key}>{compact ? <Icon name={platformNavIcons[key]} size={12}/> : <span className="fl-sidebar-square"/>}<span className="fl-sidebar-label">{name}</span></div>)}</aside>

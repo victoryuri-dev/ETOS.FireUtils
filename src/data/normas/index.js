@@ -24,6 +24,7 @@ import * as MA_COMP from './MA/compartimentacao'
 import * as MA_NTS  from './MA/nts'
 import * as MA_HID  from './MA/hidrantes'
 import * as MA_BRIG from './MA/brigada_incendio'
+import * as MA_DA   from './MA/deteccao_alarme'
 
 import * as PB_SE   from './PB/saida_emergencia'
 
@@ -100,6 +101,7 @@ const CHAVES_ILU  = ['AUTONOMIA_MINIMA_HORAS', 'CAMPOS_EQUIPAMENTO', 'EQUIPAMENT
 const CHAVES_SIN  = ['CATEGORIAS', 'NOTAS', 'TIPOS_PLACA']
 const CHAVES_MED  = ['LIMIARES', 'MEDIDAS', 'NOTAS_ESPECIFICAS', 'TABELA_SIMPLIFICADA']
 const CHAVES_NTS  = ['NTS_PADRAO_MA', 'NTS_POR_SISTEMA', 'NT_CARGA_INCENDIO']
+const CHAVES_DA   = ['NORMA', 'REFERENCIAS', 'ALIMENTACAO', 'CENTRAL', 'ACIONADOR', 'AVISADOR', 'FIACAO', 'ENTREFORROS', 'SEM_FIO', 'COMPLEMENTARES', 'DETECTORES', 'COMISSIONAMENTO', 'MANUTENCAO', 'ITENS', 'NOTAS_POR_DIVISAO', 'NOTAS_GERAIS']
 const CHAVES_BRIG = ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'OBSERVACOES_TRANSCRICAO']
 const CHAVES_HID  = [
   'NORMA', 'REFERENCIA_PRESSAO_VAZAO', 'TIPOS_SISTEMA', 'COMPONENTES_POR_TIPO',
@@ -218,6 +220,14 @@ export function getHidrantes(uf) {
 // supabase/migrations/*seed_normas_brigada*). O arquivo estático
 // (normas/MA/brigada_incendio.js) vira só o fallback offline/dev, mesmo
 // padrão dos demais getters acima.
+// getDeteccaoAlarme: norma compartilhada pelas medidas 'alarme' e 'deteccao'
+// (NT 19). Base central (normas_dados, sistema 'deteccao_alarme' — ver
+// supabase/migrations/*seed_normas_deteccao_alarme*); o arquivo estático do MA
+// é só o fallback offline/dev. UF sem norma cadastrada cai no MA.
+export function getDeteccaoAlarme(uf) {
+  const remoto = getNormaRemota(uf, 'deteccao_alarme')
+  return remoto ? renomearDaBaseCentral(remoto, CHAVES_DA) : { ...MA_DA }
+}
 export function getBrigada(uf) {
   const remoto = getNormaRemota(uf, 'brigada')
   return remoto ? renomearDaBaseCentral(remoto, CHAVES_BRIG) : (NORMAS_BRIG[uf] ?? NORMAS_BRIG['MA'])

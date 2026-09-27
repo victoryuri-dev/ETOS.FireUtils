@@ -1,5 +1,5 @@
 import { useProjeto } from '../context/ProjetoContext'
-import { getOcupacoes, getGrupos, getCargaMap, getNormaInfo, buscarCNAE, getCNAEsDivisao, temCNAECadastrado, getAV, getTRRF, getExtintores, getIluminacao, getSinalizacao, getControleAcabamento, getCompartimentacao, getHidrantes, getBrigada } from '../data/normas/index'
+import { getOcupacoes, getGrupos, getCargaMap, getNormaInfo, buscarCNAE, getCNAEsDivisao, temCNAECadastrado, getAV, getTRRF, getExtintores, getIluminacao, getSinalizacao, getControleAcabamento, getCompartimentacao, getHidrantes, getBrigada, getDeteccaoAlarme } from '../data/normas/index'
 export function useNorma() {
   const { state } = useProjeto()
   const uf = state.uf || 'MA'
@@ -21,5 +21,6 @@ export function useNorma() {
     compart:     getCompartimentacao(uf),
     hidrantes:   getHidrantes(uf),
     brigada:     getBrigada(uf),
+    deteccaoAlarme: getDeteccaoAlarme(uf),
   }
 }

@@ -18,7 +18,7 @@ const SISTEMAS = [
   { key:'sinalizacao',         icon:'sign',                  label:'Sinalização' },
   { key:'extintores',          icon:'extintorMedida',        label:'Extintores' },
   { key:'hidrantes',           icon:'hidranteMedida',        label:'Hidrantes / Mangotinho' },
-  { key:'alarme',              icon:'bellElectric',          label:'Alarme de Incêndio' },
+  { key:'alarme',              icon:'alarmeMedida',          label:'Alarme de Incêndio' },
   { key:'deteccao',            icon:'detectorMedida',        label:'Detecção de Incêndio' },
   { key:'sprinklers',          icon:'spray',                 label:'Chuveiros Automáticos' },
   { key:'controle_fumaca',     icon:'flame',                 label:'Controle de Fumaça' },

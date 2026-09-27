@@ -18,7 +18,7 @@ const SIST_CONFIG = [
   { key:'sinalizacao',         icon:'sign',        label:'Sinalizacao de Emergencia'          },
   { key:'extintores',          icon:'ext',         label:'Protecao por Extintores'            },
   { key:'hidrantes',           icon:'drop',        label:'Hidrantes / Mangotinho'             },
-  { key:'alarme',              icon:'bellElectric',label:'Alarme de Incendio'                 },
+  { key:'alarme',              icon:'alarmeMedida',label:'Alarme de Incendio'                 },
   { key:'deteccao',            icon:'alarmSmoke',  label:'Deteccao de Incendio'               },
   { key:'sprinklers',          icon:'spray',       label:'Chuveiros Automaticos'              },
   { key:'controle_fumaca',     icon:'flame',       label:'Controle de Fumaca'                 },

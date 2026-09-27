@@ -15,6 +15,8 @@ import { textoMemorialSaidaEmergencia } from './saida_emergencia'
 import { textoMemorialHidrantes } from './hidrantes'
 import { textoMemorialCalculoHidrantes } from './hidrantesCalculo'
 import { textoMemorialBrigadaIncendio } from './brigada_incendio'
+import { textoMemorialAlarmeIncendio } from './alarme_incendio'
+import { textoMemorialDeteccaoIncendio } from './deteccao_incendio'
 
 export const MEMORIAL_BUILDERS = {
   acesso_viatura:      textoMemorialAcessoViatura,
@@ -29,6 +31,8 @@ export const MEMORIAL_BUILDERS = {
   saida_emergencia:    textoMemorialSaidaEmergencia,
   hidrantes:           textoMemorialHidrantes,
   brigada:             textoMemorialBrigadaIncendio,
+  alarme:              textoMemorialAlarmeIncendio,
+  deteccao:            textoMemorialDeteccaoIncendio,
   // ... entram aqui conforme forem implementadas
 }
 
