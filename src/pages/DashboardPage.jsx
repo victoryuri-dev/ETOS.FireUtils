@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
+import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
 import useEntradaEmLote from '../hooks/useEntradaEmLote'
 import { useProjeto } from '../context/ProjetoContext'
 import { useNorma } from '../hooks/useNorma'
@@ -170,18 +171,30 @@ const CORES_NOTA = [
   { key: 'red',    label: 'Vermelho'},
 ]
 
-// Não é um <button> só (com a lixeira dentro) porque <button> dentro de
-// <button> é HTML inválido — a lixeira é um botão próprio com
+// Não é um <button> só (com a lixeira/alça dentro) porque <button> dentro
+// de <button> é HTML inválido — cada uma é um botão próprio com
 // stopPropagation, o resto do card abre a nota via role="button" no div.
+// Arrastável E soltável no mesmo id (mesmo padrão de Extintores/Saídas de
+// Emergência — @dnd-kit/core puro, sem o pacote @sortable): só reordena
+// no drop (onDragEnd em NotasCard), não tem preview ao vivo dos vizinhos.
 function NotaPreview({ nota, onOpen, onDelete }) {
+  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({ id: nota.id })
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: nota.id })
+  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
+
   return (
     <div
-      className={`dashboard-notas__block${nota.cor ? ` dashboard-notas__block--${nota.cor}` : ''}`}
+      ref={node => { setDragRef(node); setDropRef(node) }}
+      style={style}
+      className={`dashboard-notas__block${nota.cor ? ` dashboard-notas__block--${nota.cor}` : ''}${isDragging ? ' dashboard-notas__block--dragging' : ''}${isOver ? ' dashboard-notas__block--over' : ''}`}
       role="button"
       tabIndex={0}
       onClick={() => onOpen(nota.id)}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(nota.id) } }}
     >
+      <button {...attributes} {...listeners} type="button" className="dashboard-notas__block-grip" onClick={e => e.stopPropagation()} title="Arrastar pra reordenar">
+        <Icon name="grip" size={13}/>
+      </button>
       <button type="button" className="dashboard-notas__block-delete" onClick={e => { e.stopPropagation(); onDelete(nota.id) }} title="Excluir nota">
         <Icon name="trash" size={12}/>
       </button>
@@ -314,6 +327,18 @@ function NotasCard({ notas, dispatch, height }) {
   }
   const handleVoltar = () => { setCorMenuAberto(false); irPara(null) }
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const handleDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return
+    const ids = notas.map(n => n.id)
+    const fromIndex = ids.indexOf(active.id)
+    const toIndex = ids.indexOf(over.id)
+    if (fromIndex === -1 || toIndex === -1) return
+    ids.splice(fromIndex, 1)
+    ids.splice(toIndex, 0, active.id)
+    dispatch({ type: 'REORDER_NOTAS', ids })
+  }
+
   // Fecha o menu de cor ao clicar fora dele (não precisa de outro jeito de
   // fechar — trocar/escolher cor já fecha explicitamente).
   useEffect(() => {
@@ -376,9 +401,11 @@ function NotasCard({ notas, dispatch, height }) {
             <p>Nenhuma nota ainda.</p>
           </div>
         ) : (
-          <div className="dashboard-notas__scroller">
-            {notas.map(n => <NotaPreview key={n.id} nota={n} onOpen={irPara} onDelete={handleDelete}/>)}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <div className="dashboard-notas__scroller">
+              {notas.map(n => <NotaPreview key={n.id} nota={n} onOpen={irPara} onDelete={handleDelete}/>)}
+            </div>
+          </DndContext>
         )}
       </div>
     </article>

@@ -781,6 +781,12 @@ function reducer(state, action) {
       return { ...state, notas: state.notas.map(n => n.id === action.id ? { ...n, cor: action.cor, atualizadoEm: action.atualizadoEm } : n) }
     case 'REMOVE_NOTA':
       return { ...state, notas: state.notas.filter(n => n.id !== action.id) }
+    // `action.ids` já vem com a ordem final (calculada no arrastar-e-soltar
+    // do card de Notas) — reconstrói o array nessa ordem. `.filter(Boolean)`
+    // protege contra um id que não existe mais (nota removida em outra aba
+    // entre o início do arrasto e o drop).
+    case 'REORDER_NOTAS':
+      return { ...state, notas: action.ids.map(id => state.notas.find(n => n.id === id)).filter(Boolean) }
     // Substitui só o cadastro de sinalização das estruturas presentes no
     // lote importado (ver resolverImportacaoSinalizacao em
     // SinalizacaoPage.jsx) — os itens já chegam com estruturaId resolvido

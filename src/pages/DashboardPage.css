@@ -78,14 +78,20 @@
 .dashboard-notas__scroller::-webkit-scrollbar{width:5px}
 .dashboard-notas__scroller::-webkit-scrollbar-thumb{background:var(--color-border);border-radius:3px}
 
-.dashboard-notas__block{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px 30px 10px 12px;border:1px solid var(--color-border-2);border-radius:10px;background:var(--color-surface);cursor:pointer;transition:border-color .15s,background-color .15s}
+.dashboard-notas__block{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px 30px;border:1px solid var(--color-border-2);border-radius:10px;background:var(--color-surface);cursor:pointer;transition:border-color .15s,background-color .15s,opacity .15s}
 .dashboard-notas__block:hover{border-color:var(--color-border);background:var(--color-surface-2)}
 .dashboard-notas__block:focus-visible{outline:2px solid var(--color-red);outline-offset:2px}
+.dashboard-notas__block--dragging{opacity:.5;cursor:grabbing;z-index:5}
+.dashboard-notas__block--over{border-color:var(--color-red)}
 .dashboard-notas__block-title{color:var(--nota-text,var(--color-ink));font-size:12px;font-weight:600;line-height:1.35}
 .dashboard-notas__block-html{overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;color:var(--nota-text-muted,var(--color-ink-muted));font-size:11.5px;line-height:1.5}
 .dashboard-notas__block-html ul{margin:0;padding-left:16px}
 .dashboard-notas__block-empty{color:var(--nota-text-hint,var(--color-ink-hint));font-size:11.5px;font-style:italic}
 .dashboard-notas__block-meta{color:var(--nota-text-hint,var(--color-ink-hint));font-size:10px}
+.dashboard-notas__block-grip{position:absolute;top:8px;left:8px;display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:6px;background:transparent;color:var(--nota-text-hint,var(--color-ink-faint));opacity:0;cursor:grab;touch-action:none;transition:opacity .15s,background-color .15s,color .15s}
+.dashboard-notas__block-grip:active{cursor:grabbing}
+.dashboard-notas__block:hover .dashboard-notas__block-grip,.dashboard-notas__block-grip:focus-visible{opacity:1}
+.dashboard-notas__block-grip:hover{color:var(--nota-text,var(--color-ink));background:var(--nota-hover-bg,var(--color-surface))}
 .dashboard-notas__block-delete{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:6px;background:transparent;color:var(--nota-text-hint,var(--color-ink-faint));opacity:0;transition:opacity .15s,background-color .15s,color .15s}
 .dashboard-notas__block:hover .dashboard-notas__block-delete,.dashboard-notas__block-delete:focus-visible{opacity:1}
 .dashboard-notas__block-delete:hover{color:var(--color-red);background:var(--color-red-dim)}
