@@ -278,18 +278,41 @@ function NotasCard({ notas, dispatch, height }) {
   const [expandedId, setExpandedId] = useState(null)
   const [corMenuAberto, setCorMenuAberto] = useState(false)
   const corMenuRef = useRef(null)
+  const bodyRef = useRef(null)
   const expandida = notas.find(n => n.id === expandedId)
+
+  // Mesma linguagem de movimento do TechnicalCardStack (saída rápida
+  // power2.in, entrada mais longa power3.out): some o conteúdo atual
+  // (lista ou editor), só então troca o React state (o que de fato monta
+  // o outro lado) e revela o novo conteúdo já animando de volta.
+  const irPara = novoId => {
+    const node = bodyRef.current
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!node || reduceMotion) { setExpandedId(novoId); return }
+    gsap.killTweensOf(node)
+    gsap.to(node, {
+      opacity: 0, y: 8, scale: .98, duration: .16, ease: 'power2.in',
+      onComplete: () => {
+        setExpandedId(novoId)
+        requestAnimationFrame(() => {
+          gsap.fromTo(node,
+            { opacity: 0, y: -8, scale: .98 },
+            { opacity: 1, y: 0, scale: 1, duration: .32, ease: 'power3.out', clearProps: 'transform,opacity' })
+        })
+      },
+    })
+  }
 
   const handleAdd = () => {
     const id = novoNotaId()
     dispatch({ type: 'ADD_NOTA', id })
-    setExpandedId(id)
+    irPara(id)
   }
   const handleDelete = id => {
     dispatch({ type: 'REMOVE_NOTA', id })
     setExpandedId(prev => prev === id ? null : prev)
   }
-  const handleVoltar = () => { setCorMenuAberto(false); setExpandedId(null) }
+  const handleVoltar = () => { setCorMenuAberto(false); irPara(null) }
 
   // Fecha o menu de cor ao clicar fora dele (não precisa de outro jeito de
   // fechar — trocar/escolher cor já fecha explicitamente).
@@ -342,7 +365,7 @@ function NotasCard({ notas, dispatch, height }) {
           </>
         )}
       </div>
-      <div className="dashboard-notas__body">
+      <div className="dashboard-notas__body" ref={bodyRef}>
         {expandida ? (
           <NotaEditor
             nota={expandida}
@@ -354,7 +377,7 @@ function NotasCard({ notas, dispatch, height }) {
           </div>
         ) : (
           <div className="dashboard-notas__scroller">
-            {notas.map(n => <NotaPreview key={n.id} nota={n} onOpen={setExpandedId} onDelete={handleDelete}/>)}
+            {notas.map(n => <NotaPreview key={n.id} nota={n} onOpen={irPara} onDelete={handleDelete}/>)}
           </div>
         )}
       </div>
