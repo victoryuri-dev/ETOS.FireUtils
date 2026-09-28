@@ -8,8 +8,7 @@ import {
   alarmeDaEstrutura, resumoAlarmePavimento, notasAplicaveis, comAreaEfetiva,
 } from '../deteccao_alarme_calc'
 import {
-  fmt, cita, listaDivisoes, estruturasDaMedida, blocosObjetivoEReferencias, blocosExigibilidade,
-  blocosComissionamento, blocosManutencao,
+  fmt, cita, listaDivisoes, estruturasDaMedida,
 } from './deteccao_alarme_comum'
 
 function blocosConcepcao(norma) {
@@ -26,7 +25,7 @@ function blocosConcepcao(norma) {
   })
   paragrafos.push({
     tipo: 'paragrafo',
-    texto: `Os acionadores manuais são instalados a uma altura de ${fmt(ac.altura_min_m)} m a ${fmt(ac.altura_max_m)} m do piso acabado até a base inferior do componente${ac.cor ? `, na cor ${ac.cor}` : ''} (${cita(norma, 'acionador_altura')}), de modo que a distância máxima a ser percorrida por uma pessoa, em qualquer ponto da área protegida, até o acionador mais próximo não seja superior a ${ac.distancia_max_m} m (${cita(norma, 'acionador_distancia')}), preferencialmente junto aos hidrantes. Nas edificações com mais de um pavimento é previsto ao menos um acionador manual em cada pavimento (${cita(norma, 'acionador_pavimento')}), e onde houver sistema de detecção instalado os acionadores manuais são obrigatórios (${cita(norma, 'acionador_com_deteccao')}).`,
+    texto: `Os acionadores manuais são instalados a uma altura de ${fmt(ac.altura_min_m)} m a ${fmt(ac.altura_max_m)} m do piso acabado até a base inferior do componente${ac.cor ? `, na cor ${ac.cor}` : ''} (${cita(norma, 'acionador_altura')}), de modo que a distância máxima a ser percorrida por uma pessoa, em qualquer ponto da área protegida, até o acionador mais próximo não seja superior a ${ac.distancia_max_m} m (${cita(norma, 'acionador_distancia')}), preferencialmente junto aos hidrantes.`,
   })
   if (ac.excecoes?.length) {
     paragrafos.push({ tipo: 'paragrafo', texto: `Exceção prevista: ${ac.excecoes.map(e => `${e.divisoes.join(', ')} — ${e.texto}`).join('; ')}.` })
@@ -136,14 +135,10 @@ export function textoMemorialAlarmeIncendio(state, sistemas, porEstrutura) {
   const lista = estruturasDaMedida(state, porEstrutura, 'alarme')
 
   const blocos = [
-    ...blocosObjetivoEReferencias(norma, 'alarme'),
-    ...blocosExigibilidade(norma, 'alarme', 'sistema de alarme de incêndio', lista),
     ...blocosConcepcao(norma),
     ...(lista.length > 0
       ? [{ tipo: 'titulo2', texto: 'Dimensionamento por edificação' }, ...lista.flatMap(item => blocosEstrutura(norma, item))]
       : [{ tipo: 'paragrafo', texto: 'Nenhuma edificação com o sistema de alarme exigido ou adotado até o momento.' }]),
-    ...blocosComissionamento(norma, 'alarme'),
-    ...blocosManutencao(norma),
   ]
   return { titulo: 'Alarme de Incêndio', blocos }
 }

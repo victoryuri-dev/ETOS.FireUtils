@@ -195,34 +195,19 @@ function Capa({ state }) {
   // preenchidos, sem placeholder entre colchetes no documento final.
   const edificacao = state.respFantasia || state.respRazaoSocial || state.nome || ''
   const enderecoCompleto = enderecoCompletoDe(state, '')
-  const proprietario = state.propNome || ''
-  const temContato = state.respCNPJ || state.respTelefone
 
   return (
     <div className={FOLHA}>
-      <div className="flex flex-col items-start gap-2">
-        <div className="w-[150px] h-[60px] border border-dashed border-[#c9c9cb] bg-[#eeeeef] flex items-center justify-center text-center px-2">
-          <span className="text-[10px] font-bold text-[#8a8a8c] uppercase tracking-[.04em]">Logo da empresa</span>
-        </div>
-        {temContato && (
-          <div className="text-[10.5px] text-black leading-relaxed">
-            {state.respCNPJ && <div>CNPJ: {state.respCNPJ}</div>}
-            {state.respTelefone && <div>Telefone: {state.respTelefone}</div>}
-          </div>
-        )}
-      </div>
-
       <div className="text-center my-auto py-16">
         <h1 className="font-heading text-[26px] font-bold text-black uppercase tracking-[.02em]">Memorial Descritivo</h1>
-        <p className="text-[13px] font-bold text-[#4D4D4F] uppercase tracking-[.04em] mt-2">
+        <p className="capa-subtitulo font-bold uppercase tracking-[.04em] mt-2">
           Projeto de Prevenção e Combate a Incêndio
         </p>
       </div>
 
       <div className="text-center text-[12px] text-black flex flex-col gap-1.5 pb-8">
-        {edificacao && <div><strong>Edificação:</strong> {edificacao}</div>}
-        {enderecoCompleto && <div><strong>Endereço:</strong> {enderecoCompleto}</div>}
-        {proprietario && <div><strong>Proprietário:</strong> {proprietario}</div>}
+        {edificacao && <div>{edificacao}</div>}
+        {enderecoCompleto && <div>{enderecoCompleto}</div>}
       </div>
     </div>
   )
@@ -298,6 +283,7 @@ function SobreEdificacao({ state }) {
   const blocos = [
     { titulo: 'Responsável Técnico', campos: [
       ['Responsável Técnico', state.rtNome],
+      ['Especialidade', state.rtEspecialidade],
       ['Registro Profissional', state.rtConselho],
       ['Número da ART / RRT', state.usaArt ? state.artNumero : ''],
     ] },
@@ -365,10 +351,10 @@ function Caracterizacao({ state, porEstrutura }) {
             <Titulo nivel={2} numero={`${SECAO_CARACTERIZACAO}.${estIdx + 1}`} className="mb-2">{tituloCase(est.nome)}</Titulo>
 
             <div className="mb-4">
-              <div className="border border-solid border-[#e5e7eb] rounded bg-[#f9fafb] flex text-[11.5px] text-black">
-                <div className="flex-1 px-3 py-2.5 border-r border-solid border-[#e5e7eb]"><strong>Área construída:</strong> {est.areaTotal ? `${est.areaTotal} m²` : '—'}</div>
-                <div className="flex-1 px-3 py-2.5 border-r border-solid border-[#e5e7eb]"><strong>Altura piso a piso:</strong> {alturaPisoPisoTxt || '—'}</div>
-                <div className="flex-1 px-3 py-2.5"><strong>Altura total:</strong> {est.altura ? `${est.altura} m` : '—'}</div>
+              <div className="text-black leading-[1.9]">
+                <div><strong>Área construída:</strong> {est.areaTotal ? `${est.areaTotal} m²` : '—'}</div>
+                <div><strong>Altura piso a piso:</strong> {alturaPisoPisoTxt || '—'}</div>
+                <div><strong>Altura total:</strong> {est.altura ? `${est.altura} m` : '—'}</div>
               </div>
 
               <p className="titulo-tabela mt-4 mb-2.5">Ocupações por pavimento</p>
@@ -723,7 +709,24 @@ function BlocoMedida({ bloco }) {
   }
 }
 
-function SecaoMedida({ secao, numeroSecao }) {
+// Bloco de assinatura ao final do documento — sem título numerado (não
+// entra no Sumário) e sem a classe `memorial-secao`, pra não forçar página
+// própria: continua no fluxo, ficando na última folha do memorial.
+function Assinatura({ state }) {
+  return (
+    <div className="flex flex-col items-center mt-16 pt-6">
+      <div className="w-[340px] text-center">
+        <div className="border-t border-solid border-black pt-2">
+          <div className="text-[12.5px] text-black font-semibold">{state.rtNome || ' '}</div>
+        </div>
+        <div className="text-[11px] text-black mt-1">{state.rtEspecialidade || ' '}</div>
+        <div className="text-[11px] text-black">{state.rtConselho ? `Registro Profissional: ${state.rtConselho}` : ' '}</div>
+      </div>
+    </div>
+  )
+}
+
+function SecaoMedida({ secao, numeroSecao, state, ultima }) {
   return (
     <div className={FOLHA}>
       <Titulo nivel={1} numero={String(numeroSecao)} className="mb-8">{secao.titulo}</Titulo>
@@ -733,6 +736,13 @@ function SecaoMedida({ secao, numeroSecao }) {
         : secao.paragrafos.map((p, i) => (
             <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8 pl-2">{p}</p>
           ))}
+
+      {/* Assinatura dentro da última seção (não depois dela) — assim o
+          `.memorial-secao:last-child` continua sendo literalmente esta div,
+          e a regra que dispensa a quebra de página no fim do documento
+          (ver CSS_PAGINA) ainda se aplica: a assinatura fica no fim do
+          fluxo, na mesma última folha, em vez de abrir página nova. */}
+      {ultima && <Assinatura state={state}/>}
     </div>
   )
 }
@@ -775,7 +785,7 @@ export default function MemorialDescritivoPage({ onBack }) {
             <Caracterizacao state={state} porEstrutura={porEstrutura}/>
             <MedidasAplicadas state={state} sistemas={sistemas} porEstrutura={porEstrutura}/>
             {secoes.map((secao, i) => (
-              <SecaoMedida key={i} secao={secao} numeroSecao={PRIMEIRA_SECAO_MEDIDA + i}/>
+              <SecaoMedida key={i} secao={secao} numeroSecao={PRIMEIRA_SECAO_MEDIDA + i} state={state} ultima={i === secoes.length - 1}/>
             ))}
           </PreviewPaginado>
         )}

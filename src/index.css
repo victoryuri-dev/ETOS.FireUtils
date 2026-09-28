@@ -134,11 +134,19 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 .print-area-memorial *:not(sup):not(sub) {
-  font-size: 12pt;
+  font-size: 16pt;
 }
 .print-area-memorial table,
 .print-area-memorial table *:not(sup):not(sub) {
-  font-size: 10pt;
+  font-size: 13pt;
+}
+/* Subtítulo da capa ("Projeto de Prevenção..."): tamanho e cor fixos,
+   diferentes do texto do resto do documento — precisa de uma classe
+   própria (maior especificidade que o `*` acima) pra escapar do tamanho
+   único do memorial. */
+.print-area-memorial .capa-subtitulo {
+  font-size: 12pt;
+  color: #000;
 }
 .print-area-memorial h1,
 .print-area-memorial h2,
