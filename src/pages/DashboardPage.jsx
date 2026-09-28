@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import { getCompartimentacao } from '../data/normas/index'
 import { classificarTipoEdificacao } from '../data/compart_calc'
 import Icon from '../components/ui/Icon'
+import InlineEditableNome from '../components/ui/InlineEditableNome'
 import { fmtNum } from '../utils/numero'
 import './DashboardPage.css'
 
@@ -141,14 +142,27 @@ function novoNotaId() {
   return `nota-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-function NotaPreview({ nota, onOpen }) {
+// Não é um <button> só (com a lixeira dentro) porque <button> dentro de
+// <button> é HTML inválido — a lixeira é um botão próprio com
+// stopPropagation, o resto do card abre a nota via role="button" no div.
+function NotaPreview({ nota, onOpen, onDelete }) {
   return (
-    <button type="button" className="dashboard-notas__block" onClick={() => onOpen(nota.id)}>
+    <div
+      className="dashboard-notas__block"
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(nota.id)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(nota.id) } }}
+    >
+      <button type="button" className="dashboard-notas__block-delete" onClick={e => { e.stopPropagation(); onDelete(nota.id) }} title="Excluir nota">
+        <Icon name="trash" size={12}/>
+      </button>
+      <div className="dashboard-notas__block-title">{nota.titulo || 'Nota sem título'}</div>
       {nota.html
         ? <div className="dashboard-notas__block-html" dangerouslySetInnerHTML={{ __html: nota.html }}/>
         : <span className="dashboard-notas__block-empty">Nota vazia</span>}
       <span className="dashboard-notas__block-meta">{timeAgo(nota.atualizadoEm)}</span>
-    </button>
+    </div>
   )
 }
 
@@ -157,7 +171,7 @@ function NotaPreview({ nota, onOpen }) {
 // sem isso, o execCommand seguinte não sabe mais o que estava selecionado.
 // Botões de formatação usam onMouseDown com preventDefault pra nem chegar
 // a tirar o foco/seleção em primeiro lugar.
-function NotaEditor({ nota, onChange, onClose, onDelete }) {
+function NotaEditor({ nota, onChange }) {
   const editorRef = useRef(null)
   const savedRangeRef = useRef(null)
   const debounceRef = useRef(null)
@@ -211,8 +225,6 @@ function NotaEditor({ nota, onChange, onClose, onDelete }) {
   return (
     <div className="dashboard-notas__editor">
       <div className="dashboard-notas__toolbar">
-        <button type="button" onClick={onClose} title="Voltar às notas"><Icon name="left" size={14}/></button>
-        <span className="dashboard-notas__toolbar-sep"/>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('bold')} title="Negrito"><Icon name="bold" size={13}/></button>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('italic')} title="Itálico"><Icon name="italic" size={13}/></button>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('underline')} title="Sublinhado"><Icon name="underline" size={13}/></button>
@@ -222,8 +234,6 @@ function NotaEditor({ nota, onChange, onClose, onDelete }) {
           <Icon name="palette" size={13}/>
           <input type="color" onChange={e => exec('foreColor', e.target.value)}/>
         </label>
-        <span className="dashboard-notas__toolbar-spacer"/>
-        <button type="button" className="dashboard-notas__delete" onClick={onDelete} title="Excluir nota"><Icon name="trash" size={13}/></button>
       </div>
       <div
         ref={editorRef}
@@ -249,33 +259,43 @@ function NotasCard({ notas, dispatch }) {
     dispatch({ type: 'ADD_NOTA', id })
     setExpandedId(id)
   }
-  const handleDelete = () => {
-    dispatch({ type: 'REMOVE_NOTA', id: expandedId })
-    setExpandedId(null)
+  const handleDelete = id => {
+    dispatch({ type: 'REMOVE_NOTA', id })
+    setExpandedId(prev => prev === id ? null : prev)
   }
 
   return (
     <article className="dashboard-panel dashboard-notas anim-entra">
       <div className="dashboard-section-heading">
-        <div><h2>Notas</h2><p>{notas.length ? `${notas.length} nota${notas.length === 1 ? '' : 's'}` : 'Anotações livres do projeto'}</p></div>
-        {!expandida && <button type="button" className="dashboard-notas__new" onClick={handleAdd} title="Nova nota"><Icon name="plus" size={15}/></button>}
+        {expandida ? (
+          <div className="dashboard-notas__heading-editing">
+            <button type="button" className="dashboard-notas__back" onClick={() => setExpandedId(null)} title="Voltar às notas"><Icon name="left" size={15}/></button>
+            <InlineEditableNome
+              value={expandida.titulo || 'Nota sem título'}
+              onCommit={titulo => dispatch({ type: 'SET_NOTA_TITULO', id: expandida.id, titulo })}
+              textClassName="font-heading text-[15px] tracking-[-.015em] text-ink truncate"
+            />
+          </div>
+        ) : (
+          <>
+            <div><h2>Notas</h2><p>{notas.length ? `${notas.length} nota${notas.length === 1 ? '' : 's'}` : 'Anotações livres do projeto'}</p></div>
+            <button type="button" className="dashboard-notas__new" onClick={handleAdd} title="Nova nota"><Icon name="plus" size={15}/></button>
+          </>
+        )}
       </div>
       <div className="dashboard-notas__body">
         {expandida ? (
           <NotaEditor
             nota={expandida}
             onChange={html => dispatch({ type: 'SET_NOTA_HTML', id: expandida.id, html })}
-            onClose={() => setExpandedId(null)}
-            onDelete={handleDelete}
           />
         ) : notas.length === 0 ? (
           <div className="dashboard-notas__empty">
             <p>Nenhuma nota ainda.</p>
-            <button type="button" className="dashboard-text-button" onClick={handleAdd}>Criar nota <Icon name="plus" size={13}/></button>
           </div>
         ) : (
           <div className="dashboard-notas__scroller">
-            {notas.map(n => <NotaPreview key={n.id} nota={n} onOpen={setExpandedId}/>)}
+            {notas.map(n => <NotaPreview key={n.id} nota={n} onOpen={setExpandedId} onDelete={handleDelete}/>)}
           </div>
         )}
       </div>

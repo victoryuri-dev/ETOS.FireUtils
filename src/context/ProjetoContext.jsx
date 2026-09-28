@@ -170,7 +170,7 @@ function idNota() {
 // a action via broadcast, o timestamp divergiria entre as abas conforme a
 // latência da rede.
 function novaNota(id, atualizadoEm) {
-  return { id: id || idNota(), html: '', atualizadoEm }
+  return { id: id || idNota(), titulo: '', html: '', atualizadoEm }
 }
 
 // Normaliza um estado salvo (localStorage ou payload de LOAD) contra
@@ -775,6 +775,8 @@ function reducer(state, action) {
       return { ...state, notas: [...state.notas, novaNota(action.id, action.atualizadoEm)] }
     case 'SET_NOTA_HTML':
       return { ...state, notas: state.notas.map(n => n.id === action.id ? { ...n, html: action.html, atualizadoEm: action.atualizadoEm } : n) }
+    case 'SET_NOTA_TITULO':
+      return { ...state, notas: state.notas.map(n => n.id === action.id ? { ...n, titulo: action.titulo, atualizadoEm: action.atualizadoEm } : n) }
     case 'REMOVE_NOTA':
       return { ...state, notas: state.notas.filter(n => n.id !== action.id) }
     // Substitui só o cadastro de sinalização das estruturas presentes no
@@ -1045,6 +1047,7 @@ function resolverAcaoLocal(action, state) {
     case 'ADD_NOTA':
       return { ...action, id: action.id || idNota(), atualizadoEm: action.atualizadoEm || new Date().toISOString() }
     case 'SET_NOTA_HTML':
+    case 'SET_NOTA_TITULO':
       return action.atualizadoEm ? action : { ...action, atualizadoEm: new Date().toISOString() }
     case 'IMPORT_EXTINTORES':
       return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idExtintor() }) }
