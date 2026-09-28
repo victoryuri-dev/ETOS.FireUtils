@@ -333,7 +333,7 @@ function NotasCard({ notas, dispatch, height }) {
               <InlineEditableNome
                 value={tituloDaNota(expandida)}
                 onCommit={titulo => dispatch({ type: 'SET_NOTA_TITULO', id: expandida.id, titulo })}
-                textClassName="font-heading text-[15px] tracking-[-.015em] text-ink truncate"
+                textClassName="font-heading text-[15px] tracking-[-.015em] text-[var(--nota-text,var(--color-ink))] truncate"
               />
             </div>
             <div className="dashboard-notas__color-picker" ref={corMenuRef}>
