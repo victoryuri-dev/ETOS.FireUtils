@@ -7,6 +7,7 @@
 // papel/procedimento padrão condizente com o modelo do Anexo B, sempre
 // editável na tela de complementação.
 import { buildAnexoBData, RISCOS_ESPECIAIS } from './anexoB'
+import { fmtNum, fmtUn } from './numero'
 
 // Texto padrão dos 10 procedimentos básicos (item B.2 do Anexo B) — adaptado
 // de um exemplo prático genérico de plano de emergência, servindo de ponto de
@@ -41,8 +42,8 @@ function estruturasDetalheDe(state) {
   return (state.estruturas || []).map(est => ({
     nome: est.nome,
     tipo: (Array.isArray(est.estrutura) ? est.estrutura.join(', ') : est.estrutura) || '',
-    areaConstruida: est.areaTotal ? `${est.areaTotal} m²` : '',
-    altura: est.altura ? `${est.altura} m` : '',
+    areaConstruida: est.areaTotal ? fmtUn(est.areaTotal, 'm²', 2, `${est.areaTotal} m²`) : '',
+    altura: est.altura ? fmtUn(est.altura, 'm', 2, `${est.altura} m`) : '',
     nPavimentos: est.nPavimentos ?? '',
     nSubsolos: est.nSubsolos ?? '',
   }))
@@ -81,15 +82,15 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     localizacaoTipo: pe.localizacaoTipo || 'Urbana',
     endereco: enderecoCompletoDe(state),
     caracteristicaVizinhanca: pe.caracteristicaVizinhanca || '',
-    distanciaCBM: pe.distanciaCBM ? `${pe.distanciaCBM} km` : '',
+    distanciaCBM: pe.distanciaCBM ? fmtUn(pe.distanciaCBM, 'km', 2, `${pe.distanciaCBM} km`) : '',
     meiosAjudaExterna: pe.meiosAjudaExterna || 'Posto de Bombeiros',
 
     areaTerreno: b.areaTerreno,
     estruturas: estruturasDetalheDe(state),
     ocupacao: b.classificacaoOcupacao,
 
-    populacaoFixa: pe.populacaoFixa || '',
-    populacaoFlutuante: pe.populacaoFlutuante || '',
+    populacaoFixa: pe.populacaoFixa ? fmtNum(pe.populacaoFixa, 0, pe.populacaoFixa) : '',
+    populacaoFlutuante: pe.populacaoFlutuante ? fmtNum(pe.populacaoFlutuante, 0, pe.populacaoFlutuante) : '',
     horarioFuncionamento: pe.horarioFuncionamento || '',
     pneTemPessoas: !!pe.pneTemPessoas,
     pneDescricao: pe.pneTemPessoas ? (pe.pneDescricao || '') : '',

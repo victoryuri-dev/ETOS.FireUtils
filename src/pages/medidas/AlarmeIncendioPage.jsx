@@ -8,9 +8,9 @@ import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { statusEstrutura } from '../../utils/statusEstrutura'
 import {
-  alarmeDaEstrutura, alarmePav, resumoAlarmePavimento, notasAplicaveis, fmtNum,
+  alarmeDaEstrutura, alarmePav, resumoAlarmePavimento, notasAplicaveis, fmtNum, TIPOS_AVISADOR, avisadoresAtivos,
 } from '../../data/deteccao_alarme_calc'
-import { Card, CampoNum, CampoComSugestoes, BotaoOpcao, LinhaChave, Erro, NotasDaNorma, QuadroParametros, TH, TD } from '../../components/deteccao/DaUi'
+import { Card, CampoNum, CampoComSugestoes, BotaoOpcao, LinhaChave, Erro, NotasDaNorma, QuadroParametros, TH, TD, inputBase } from '../../components/deteccao/DaUi'
 
 // Conceitos de circuito da central endereçável (NBR 17240) — não variam por UF,
 // por isso ficam fixos aqui em vez de na base normativa.
@@ -36,20 +36,18 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
   const aviso = (chave, texto) => setAvisos(a => ({ ...a, [chave]: texto }))
 
   // ── Pavimentos ──
+  const tiposAvisadorAtivos = avisadoresAtivos(cfg)
+  const alternarAvisador = key => {
+    const atuais = tiposAvisadorAtivos.map(t => t.key)
+    setCfg({ avisadores: atuais.includes(key) ? atuais.filter(k => k !== key) : [...atuais, key], tipoAvisador: '' })
+  }
   const linhas = pavimentos.map(pav => ({ pav, r: resumoAlarmePavimento(pav, acion, avis, cfg) }))
   const totalAcion = linhas.reduce((s, l) => s + l.r.acionadores, 0)
-  const totalSonoros = linhas.reduce((s, l) => s + l.r.sonoros, 0)
-  const totalVisuais = linhas.reduce((s, l) => s + l.r.visuais, 0)
+  const totalAvisador = key => linhas.reduce((s, l) => s + (l.r.avisadores.find(a => a.key === key)?.qtd || 0), 0)
   const validarAcionadores = (pav, r) => () => {
     if (alarmePav(pav).acionadores !== '' && r.abaixoDoMinimo) {
       setPav(pav, { acionadores: String(r.minAcionadores) })
       aviso(`acion-${pav.id}`, `Em ${pav.label}, o mínimo é ${r.minAcionadores} acionador(es) para respeitar a distância máxima de ${acion.distancia_max_m} m (item ${itens.acionador_distancia}). O valor foi ajustado automaticamente.`)
-    }
-  }
-  const validarVisuais = (pav, r) => () => {
-    if (r.visualFaltando) {
-      setPav(pav, { avisadoresVisuais: '1' })
-      aviso(`vis-${pav.id}`, `Em ${pav.label}, o avisador visual está zerado com o tipo de avisador escolhido acima. Ajustado para 1.`)
     }
   }
 
@@ -149,15 +147,22 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
               </BotaoOpcao>
             ))}
           </div>
+          <div className="mt-3.5">
+            <div className="text-[13px] text-ink font-medium mb-2">Localização da fonte auxiliar</div>
+            <input className={inputBase} value={cfg.fonteAuxiliarLocal || ''}
+              placeholder="Ex.: junto à central, sala técnica, casa de máquinas..."
+              onChange={e => setCfg({ fonteAuxiliarLocal: e.target.value })}/>
+          </div>
         </Card>
 
         {/* Acionadores e avisadores */}
         <Card titulo="Acionadores manuais e avisadores" icone="alarmeMedida">
-          <div className="text-[13px] text-ink font-medium mb-2.5">Tipo de Avisador</div>
+          <div className="text-[13px] text-ink font-medium mb-1">Tipos de avisador utilizados</div>
+          <div className="text-[11px] text-ink-faint mb-2.5">Selecione um ou mais — cada tipo ativo libera a sua coluna de quantidade por pavimento.</div>
           <div className="flex gap-2 mb-3.5">
-            <BotaoOpcao ativo={cfg.tipoAvisador === 'sonoro'} onClick={() => setCfg({ tipoAvisador: 'sonoro' })}>Avisador sonoro</BotaoOpcao>
-            <BotaoOpcao ativo={cfg.tipoAvisador === 'visual'} onClick={() => setCfg({ tipoAvisador: 'visual' })}>Avisadores visuais</BotaoOpcao>
-            <BotaoOpcao ativo={cfg.tipoAvisador === 'audiovisual'} onClick={() => setCfg({ tipoAvisador: 'audiovisual' })}>Avisadores audiovisuais</BotaoOpcao>
+            {TIPOS_AVISADOR.map(t => (
+              <BotaoOpcao key={t.key} ativo={tiposAvisadorAtivos.some(a => a.key === t.key)} onClick={() => alternarAvisador(t.key)}>{t.label}</BotaoOpcao>
+            ))}
           </div>
           <LinhaChave titulo="Tecnologia sem fio (wireless)" pontoDeAtencao
             descricao={semFio.anexos?.length ? `Exige os atestados dos Anexos ${semFio.anexos.join(' e ')} da norma.` : (semFio.certificacao_laboratorio ? 'Exige certificação em laboratório reconhecido, com laudo de ensaio.' : null)}
@@ -170,8 +175,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
                 <tr className="border-b border-solid border-border">
                   <th className={TH}>Pavimento</th>
                   <th className={TH}>Acionadores</th>
-                  <th className={TH}>Avisadores sonoros</th>
-                  <th className={TH}>Avisadores visuais</th>
+                  {tiposAvisadorAtivos.map(t => <th key={t.key} className={TH}>{t.label}</th>)}
                 </tr>
               </thead>
               <tbody className="divide-y divide-solid divide-border">
@@ -184,14 +188,12 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
                         <div className="w-28"><CampoNum valor={p.acionadores} placeholder={String(r.minAcionadores)}
                           onChange={v => { aviso(`acion-${pav.id}`, ''); setPav(pav, { acionadores: v }) }} onBlur={validarAcionadores(pav, r)}/></div>
                       </td>
-                      <td className={TD}>
-                        <div className="w-28"><CampoNum valor={p.avisadoresSonoros} placeholder={String(avis.minimo_por_pavimento)}
-                          onChange={v => setPav(pav, { avisadoresSonoros: v })}/></div>
-                      </td>
-                      <td className={TD}>
-                        <div className="w-28"><CampoNum valor={p.avisadoresVisuais} placeholder={r.visualObrigatorio ? String(avis.minimo_por_pavimento) : '0'}
-                          onChange={v => { aviso(`vis-${pav.id}`, ''); setPav(pav, { avisadoresVisuais: v }) }} onBlur={validarVisuais(pav, r)}/></div>
-                      </td>
+                      {r.avisadores.map(a => (
+                        <td key={a.key} className={TD}>
+                          <div className="w-28"><CampoNum valor={p[a.campo]} placeholder={String(a.minimo)}
+                            onChange={v => setPav(pav, { [a.campo]: v })}/></div>
+                        </td>
+                      ))}
                     </tr>
                   )
                 })}
@@ -199,16 +201,18 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
               <tfoot>
                 <tr className="border-t border-solid border-border">
                   <td className={`${TD} font-semibold text-ink`}>Total da estrutura</td>
-                  <td className={`${TD} font-bold text-ink`}>{totalAcion}</td>
-                  <td className={`${TD} font-bold text-ink`}>{totalSonoros}</td>
-                  <td className={`${TD} font-bold text-ink`}>{totalVisuais}</td>
+                  <td className={`${TD} font-bold text-ink`}>{fmtNum(totalAcion, 0)}</td>
+                  {tiposAvisadorAtivos.map(t => <td key={t.key} className={`${TD} font-bold text-ink`}>{fmtNum(totalAvisador(t.key), 0)}</td>)}
                 </tr>
               </tfoot>
             </table>
           </div>
-          {Object.entries(avisos).filter(([k, v]) => v && (k.startsWith('acion-') || k.startsWith('vis-'))).map(([k, v]) => <Erro key={k}>{v}</Erro>)}
+          {tiposAvisadorAtivos.length === 0 && (
+            <div className="text-[11px] text-amber mt-2">Selecione acima os tipos de avisador utilizados para informar as quantidades.</div>
+          )}
+          {Object.entries(avisos).filter(([k, v]) => v && k.startsWith('acion-')).map(([k, v]) => <Erro key={k}>{v}</Erro>)}
           <div className="text-[11px] text-ink-faint leading-[1.6] mt-3">
-            Em branco vale o mínimo: ao menos um acionador por pavimento (item {itens.acionador_pavimento}) e o suficiente para que nenhum ponto passe de {acion.distancia_max_m} m do acionador mais próximo (item {itens.acionador_distancia});
+            Em branco vale o mínimo: ao menos um avisador de cada tipo e um acionador por pavimento (item {itens.acionador_pavimento}), e acionadores suficientes para que nenhum ponto passe de {acion.distancia_max_m} m do acionador mais próximo (item {itens.acionador_distancia});
             instalados de {fmtNum(acion.altura_min_m)} m a {fmtNum(acion.altura_max_m)} m do piso acabado (item {itens.acionador_altura}).
           </div>
         </Card>

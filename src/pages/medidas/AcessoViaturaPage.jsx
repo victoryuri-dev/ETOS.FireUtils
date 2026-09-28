@@ -3,8 +3,9 @@ import { useNorma } from '../../hooks/useNorma'
 import { calcGatilho, calcAcessoViatura } from '../../data/av_calc'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import { fmtNum } from '../../utils/numero'
 
-const fmt = n => Number(n || 0).toFixed(2).replace('.', ',')
+const fmt = n => fmtNum(n || 0)
 
 // ── Shared UI ─────────────────────────────────────────────────────────
 const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'

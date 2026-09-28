@@ -6,9 +6,10 @@
 
 import { getHidrantes } from '../normas/index'
 import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
+import { fmtNum } from '../../utils/numero'
 
-const f2 = (n) => Number(n).toFixed(2)
-const fmtM = n => f2(n).replace(/,?0+$/, '').replace(/\.$/, '').replace('.', ',')
+const f2 = (n) => fmtNum(n, 2)
+const fmtM = f2
 const LABEL_ACIONAMENTO = { eletrico: 'motor elétrico', combustao: 'motor de combustão interna' }
 const LABEL_RECALQUE = {
   coluna_fachada: 'tipo coluna, instalado na fachada',
@@ -41,7 +42,7 @@ export function textoMemorialHidrantes(state) {
   if (h.rti) {
     blocos.push({
       tipo: 'campo', label: 'Reserva Técnica de Incêndio (RTI)',
-      valor: `${h.rti} m³ — mínimo normativo conforme Tabela 3, NT 22`,
+      valor: `${fmtNum(h.rti, 2, h.rti)} m³ — mínimo normativo conforme Tabela 3, NT 22`,
     })
   }
   const materialReservatorio = norma.MATERIAIS_RESERVATORIO.find(m => m.key === h.reservatorioMaterial)
@@ -56,7 +57,7 @@ export function textoMemorialHidrantes(state) {
     tipo: 'paragrafo',
     texto: h.reservatorioExclusivo
       ? 'O reservatório é de uso exclusivo para combate a incêndio.'
-      : `O reservatório é compartilhado com o consumo normal da edificação${h.reservatorioVolumeTotal ? `, com volume total de ${h.reservatorioVolumeTotal} m³` : ''}, garantida a reserva efetiva de incêndio permanentemente (item 5.9.1, NT 22).`,
+      : `O reservatório é compartilhado com o consumo normal da edificação${h.reservatorioVolumeTotal ? `, com volume total de ${fmtNum(h.reservatorioVolumeTotal, 2, h.reservatorioVolumeTotal)} m³` : ''}, garantida a reserva efetiva de incêndio permanentemente (item 5.9.1, NT 22).`,
   })
 
   blocos.push({ tipo: 'titulo2', texto: 'Bomba de Incêndio' })
@@ -95,7 +96,7 @@ export function textoMemorialHidrantes(state) {
     if (state.hidrantes?.dimensionamento?.succao === 'negativa') {
       blocos.push({
         tipo: 'paragrafo',
-        texto: `A condição de sucção resultou negativa — para a verificação e o cálculo do NPSH disponível (Anexo C, NT 22), adotou-se altitude local de ${h.succaoAltitude ?? 0} m e temperatura da água de ${h.succaoTemperatura ?? 30} °C.`,
+        texto: `A condição de sucção resultou negativa — para a verificação e o cálculo do NPSH disponível (Anexo C, NT 22), adotou-se altitude local de ${fmtNum(h.succaoAltitude ?? 0)} m e temperatura da água de ${fmtNum(h.succaoTemperatura ?? 30)} °C.`,
       })
     }
 
@@ -111,15 +112,15 @@ export function textoMemorialHidrantes(state) {
           'Bomba principal',
           `${f2(resDimensionamento.P_RTI)} mca`,
           `${f2(resDimensionamento.Qt)} L/min`,
-          h.bombaPotenciaAdotada ? `${h.bombaPotenciaAdotada} cv` : '—',
+          h.bombaPotenciaAdotada ? `${fmtNum(h.bombaPotenciaAdotada, 2, h.bombaPotenciaAdotada)} cv` : '—',
         ])
       }
       if (h.bombaJockey) {
         linhasBomba.push([
           'Bomba jockey',
           '—',
-          h.bombaJockeyVazao ? `${h.bombaJockeyVazao} L/min` : '—',
-          h.bombaJockeyPotencia ? `${h.bombaJockeyPotencia} cv` : '—',
+          h.bombaJockeyVazao ? `${fmtNum(h.bombaJockeyVazao, 2, h.bombaJockeyVazao)} L/min` : '—',
+          h.bombaJockeyPotencia ? `${fmtNum(h.bombaJockeyPotencia, 2, h.bombaJockeyPotencia)} cv` : '—',
         ])
       }
       blocos.push({

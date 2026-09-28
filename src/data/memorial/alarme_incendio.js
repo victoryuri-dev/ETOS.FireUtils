@@ -5,7 +5,7 @@
 
 import { getDeteccaoAlarme } from '../normas/index'
 import {
-  alarmeDaEstrutura, resumoAlarmePavimento, notasAplicaveis, comAreaEfetiva,
+  alarmeDaEstrutura, resumoAlarmePavimento, notasAplicaveis, comAreaEfetiva, avisadoresAtivos,
 } from '../deteccao_alarme_calc'
 import {
   fmt, cita, listaDivisoes, estruturasDaMedida,
@@ -86,25 +86,29 @@ function blocosEstrutura(norma, { est, pavs: pavsBrutos }) {
   const fonte = cfg.fonteAuxiliar
   blocos.push({
     tipo: 'paragrafo',
-    texto: `A alimentação é feita pela ${a.principal} (fonte principal) e por ${fonte ? fonte : 'fonte auxiliar (a definir)'} (fonte auxiliar), com autonomia mínima de ${a.autonomia_supervisao_h} horas em regime de supervisão e de ${a.autonomia_alarme_min} minutos em regime de alarme, conforme a ${nrm.sigla} (${cita(norma, 'alimentacao')}).`,
+    texto: `A alimentação é feita pela ${a.principal} (fonte principal) e por ${fonte ? fonte : 'fonte auxiliar (a definir)'} (fonte auxiliar)${cfg.fonteAuxiliarLocal?.trim() ? `, localizada em ${cfg.fonteAuxiliarLocal.trim()}` : ''}, com autonomia mínima de ${a.autonomia_supervisao_h} horas em regime de supervisão e de ${a.autonomia_alarme_min} minutos em regime de alarme, conforme a ${nrm.sigla} (${cita(norma, 'alimentacao')}).`,
   })
 
   // Tabela por pavimento
+  // Colunas de avisador só para os tipos usados na estrutura.
+  const tiposAvis = avisadoresAtivos(cfg)
   const linhas = pavs.map(pav => ({ pav, r: resumoAlarmePavimento(pav, ac, av, cfg) }))
-  const tot = linhas.reduce((t, { r }) => ({ a: t.a + r.acionadores, s: t.s + r.sonoros, v: t.v + r.visuais }), { a: 0, s: 0, v: 0 })
+  const totAcion = linhas.reduce((s, { r }) => s + r.acionadores, 0)
+  const totAvis = key => linhas.reduce((s, { r }) => s + (r.avisadores.find(x => x.key === key)?.qtd || 0), 0)
+  const nCol = 2 + tiposAvis.length
   blocos.push({
     tipo: 'tabela',
     centralizado: true,
     linhasCabecalho: [
-      [{ texto: 'ACIONADORES MANUAIS E AVISADORES', colSpan: 6 }],
-      [{ texto: 'PAVIMENTO' }, { texto: 'OCUPAÇÃO' }, { texto: 'ÁREA' }, { texto: 'ACIONADORES MANUAIS' }, { texto: 'AVISADORES SONOROS' }, { texto: 'AVISADORES VISUAIS' }],
+      [{ texto: 'ACIONADORES MANUAIS E AVISADORES', colSpan: nCol }],
+      [{ texto: 'PAVIMENTO' }, { texto: 'ACIONADORES MANUAIS' },
+        ...tiposAvis.map(t => ({ texto: t.label.toUpperCase() }))],
     ],
     linhas: [
       ...linhas.map(({ pav, r }) => [
-        pav.label, pav.divisao || '—', pav.area ? `${fmt(pav.area)} m²` : '—',
-        String(r.acionadores), String(r.sonoros), String(r.visuais),
+        pav.label, fmt(r.acionadores, 0), ...r.avisadores.map(a => fmt(a.qtd, 0)),
       ]),
-      ['TOTAL', '', '', String(tot.a), String(tot.s), String(tot.v)],
+      ['TOTAL', fmt(totAcion, 0), ...tiposAvis.map(t => fmt(totAvis(t.key), 0))],
     ],
   })
 
@@ -112,10 +116,12 @@ function blocosEstrutura(norma, { est, pavs: pavsBrutos }) {
   obs.push(`Os acionadores manuais foram distribuídos de modo a não exceder ${ac.distancia_max_m} m de percurso até o mais próximo, com no mínimo um por pavimento, instalados de ${fmt(ac.altura_min_m)} m a ${fmt(ac.altura_max_m)} m do piso acabado.`)
   // Tipo de avisador adotado — só a instalação e as especificações do equipamento
   // (altura, audibilidade, visibilidade), não a justificativa de projeto que levou à escolha.
-  const LABEL_AVISADOR = { sonoro: 'sonoro', visual: 'visual', audiovisual: 'audiovisual (sonoro e visual)' }
-  if (cfg.tipoAvisador) {
-    const alturaTxt = av.altura_min_m != null ? ` instalado a ${fmt(av.altura_min_m, 1)} m a ${fmt(av.altura_max_m, 1)} m do piso acabado,` : ''
-    obs.push(`O avisador adotado é do tipo ${LABEL_AVISADOR[cfg.tipoAvisador]},${alturaTxt} com atuação em até ${av.tempo_atuacao_max_s} s e visibilidade verificada a partir de ${av.visibilidade_m} m de distância frontal (${cita(norma, 'avisador_visual')}).`)
+  const LABEL_AVISADOR = { sonoro: 'sonoros', visual: 'visuais', audiovisual: 'audiovisuais (sonoros e visuais)' }
+  if (tiposAvis.length > 0) {
+    const nomes = tiposAvis.map(t => LABEL_AVISADOR[t.key])
+    const lista = nomes.length === 1 ? nomes[0] : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`
+    const alturaTxt = av.altura_min_m != null ? ` instalados a ${fmt(av.altura_min_m, 1)} m a ${fmt(av.altura_max_m, 1)} m do piso acabado,` : ''
+    obs.push(`São adotados avisadores ${lista},${alturaTxt} com atuação em até ${av.tempo_atuacao_max_s} s e visibilidade verificada a partir de ${av.visibilidade_m} m de distância frontal (${cita(norma, 'avisador_visual')}).`)
   }
   if (cfg.semFio) {
     const anexos = norma.SEM_FIO?.anexos || []

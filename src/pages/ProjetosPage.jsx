@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import { newIds } from '../context/ProjetoContext'
 import { criarProjetoExemploFixo, EXEMPLO_FIXO_ID } from '../data/projetoExemplo'
 import { temCNAECadastrado } from '../data/normas/index'
+import { fmtUn } from '../utils/numero'
 
 // Garante que o projeto de exemplo fixo sempre exista pra este usuário — se
 // foi excluido em uma sessao anterior, recria-lo ao carregar a pagina. O id
@@ -78,7 +79,7 @@ function timeAgo(iso) {
 
 function fmtArea(v) {
   if (!v) return '—'
-  return Number(v).toLocaleString('pt-BR') + ' m²'
+  return fmtUn(v, 'm²', 2, '—')
 }
 
 function fmtDate(iso) {

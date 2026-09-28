@@ -10,6 +10,7 @@ import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { statusEstrutura } from '../../utils/statusEstrutura'
 import { useToast } from '../../hooks/useToast'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import { fmtUn } from '../../utils/numero'
 import AcessosDescargasView from './AcessosDescargasView'
 import { calcPopPav, contarSaidasPavimento, getDistanciaPavimento, tipoEscadaEstrutura } from '../../data/se_calc'
 
@@ -188,7 +189,7 @@ function TipoEscadaEstrutura({ estrutura, divisoes, tiposEscada }) {
             <dl className="m-0 flex flex-wrap items-start gap-x-10 gap-y-3">
               <div>
                 <dt className="text-[10px] text-ink-faint uppercase tracking-[.08em] leading-none mb-1.5">Altura piso a piso</dt>
-                <dd className="m-0 h-6 flex items-center font-heading text-[14px] font-bold text-ink leading-none whitespace-nowrap">{altura ? `${altura.toString().replace('.', ',')} m` : '—'}</dd>
+                <dd className="m-0 h-6 flex items-center font-heading text-[14px] font-bold text-ink leading-none whitespace-nowrap">{altura ? fmtUn(altura, 'm', 2, '—') : '—'}</dd>
               </div>
               <div>
                 <dt className="text-[10px] text-ink-faint uppercase tracking-[.08em] leading-none mb-1.5">Faixa de altura</dt>
@@ -463,7 +464,7 @@ export default function SaidaEmergenciaPage() {
                           <TD center red bold>{pop}</TD>
                           <TD center red bold>{nSaidas}</TD>
                           <td className="py-2.5 px-3.5 text-right text-[13px] border-b border-solid border-border-2 align-middle">
-                            {dist!==null ? <Chip val={`${dist} m`} green/> : <span className="text-xs text-ink-faint">Consultar NT</span>}
+                            {dist!==null ? <Chip val={fmtUn(dist, 'm')} green/> : <span className="text-xs text-ink-faint">Consultar NT</span>}
                           </td>
                           <td className="py-2.5 px-3.5 text-right border-b border-solid border-border-2 align-middle"><Icon name="right" size={13} color="var(--color-ink-faint)"/></td>
                         </tr>

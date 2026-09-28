@@ -14,6 +14,7 @@ import { useClassificacaoHidrantes } from '../../hooks/useClassificacaoHidrantes
 import FormSection from '../ui/FormSection'
 import { inputClass, Field, Resultado, Pill, Nota, ToggleRow } from './formUi'
 import { POSICOES_RESERVATORIO } from '../../data/hidrantes_calc'
+import { fmtNum } from '../../utils/numero'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 const RISCO_COLOR = { baixo: 'text-ink-faint', medio: 'text-amber', alto: 'text-red' }
@@ -34,7 +35,7 @@ function EstruturaPill({ active, obrigatorio, onClick, nome, area, divisao, carg
         {obrigatorio && <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[.06em] text-red">Obrigatório</span>}
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-ink-faint">
-        <span>Área</span><span className="text-ink font-medium text-right">{area ? `${area.toLocaleString('pt-BR')} m²` : '—'}</span>
+        <span>Área</span><span className="text-ink font-medium text-right">{area ? `${fmtNum(area)} m²` : '—'}</span>
         <span>Ocupação</span><span className="text-ink font-medium text-right">{divisao || '—'}</span>
         <span>Carga de incêndio</span><span className="text-ink font-medium text-right">{carga != null ? `${carga} MJ/m²` : '—'}</span>
         <span>Risco</span><span className={`font-medium text-right ${risco ? RISCO_COLOR[risco] : ''}`}>{risco ? RISCO_LABEL[risco] : '—'}</span>
@@ -69,7 +70,7 @@ export default function FormularioSistema() {
       <FormSection title="Classificação do Sistema" description="Cruzamento área construída × ocupação, conforme Tabela 3 da NT 22 CBMMA.">
         <div className="grid grid-cols-2 gap-4 bg-surface-2 border border-solid border-border rounded-lg p-4 mb-4">
           <Resultado label="Área total construída (estruturas selecionadas acima)"
-            value={areaTotal ? `${areaTotal.toLocaleString('pt-BR')} m²` : '—'}/>
+            value={areaTotal ? `${fmtNum(areaTotal)} m²` : '—'}/>
           <Resultado label="Ocupação usada na classificação" hint={sugestao.divisao ? `coluna ${sugestao.coluna} da Tabela 3` : undefined}
             value={sugestao.divisao || 'Nenhuma divisão classificada ainda (Etapa 4/5)'}/>
         </div>
@@ -80,7 +81,7 @@ export default function FormularioSistema() {
             <div className="grid grid-cols-2 gap-2 mt-1">
               {sugestao.opcoes.map(op => (
                 <Pill key={op.tipo} active={h.tipo === op.tipo} onClick={() => escolherOpcao(op)}>
-                  Tipo {op.tipo} — RTI {op.rti} m³
+                  Tipo {op.tipo} — RTI {fmtNum(op.rti)} m³
                 </Pill>
               ))}
             </div>
@@ -147,7 +148,7 @@ export default function FormularioSistema() {
           </div>
         )}
         <div className="grid grid-cols-2 gap-4 mt-3 bg-surface-2 border border-solid border-border rounded-lg p-4">
-          <Resultado label="RTI (Reserva Técnica de Incêndio)" hint="Tabela 3, NT 22" value={h.rti ? `${h.rti} m³` : '—'}/>
+          <Resultado label="RTI (Reserva Técnica de Incêndio)" hint="Tabela 3, NT 22" value={h.rti ? `${fmtNum(h.rti, 2, h.rti)} m³` : '—'}/>
         </div>
       </FormSection>
 
@@ -190,7 +191,7 @@ export default function FormularioSistema() {
         {dadosTipo && (
           <div className={`flex items-center justify-between gap-3 mt-3 py-2.5 px-3.5 rounded-md border border-solid ${recalqueDuplo ? 'bg-amber-dim border-amber-border' : 'bg-surface-2 border-border'}`}>
             <span className="text-xs text-ink">
-              Vazão do sistema ({dadosTipo.vazaoMin} L/min × {norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = {vazaoSistema} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min (item 5.3.3, NT 22)
+              Vazão do sistema ({fmtNum(dadosTipo.vazaoMin)} L/min × {norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = {fmtNum(vazaoSistema)} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min (item 5.3.3, NT 22)
             </span>
             <span className={`shrink-0 inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${recalqueDuplo ? 'bg-amber-dim border-amber-border text-amber' : 'bg-green-dim border-green-border text-green'}`}>
               Recalque {recalqueDuplo ? 'duplo — 2 entradas' : 'simples — 1 entrada'}

@@ -4,7 +4,6 @@ import { useCnpjLookup } from '../../hooks/useCnpjLookup'
 import { ESTADOS_DISPONIVEIS } from '../../data/normas/index'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
-import { useToast } from '../../hooks/useToast'
 
 const S = {
   section: 'max-w-[980px] mx-auto pt-8 px-10 pb-20',
@@ -26,16 +25,13 @@ function maskCNPJ(raw) {
 export default function Step1({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
   const { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco } = useCnpjLookup()
-  const toast = useToast()
   const [mesmoResponsavel, setMesmoResponsavel] = useState(false)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
   const setCNPJ = e => dispatch({ type:'SET_FIELD', field:'respCNPJ', value: maskCNPJ(e.target.value) })
 
-  // Erros e avisos da busca por CNPJ viram notificações.
-  useEffect(() => { if (error) toast.error(error) }, [error, toast])
-  useEffect(() => { if (warning) toast.warning(warning) }, [warning, toast])
-  // O endereço fiscal encontrado NÃO vira notificação: fica no corpo da página,
-  // na seção "Localizacao da obra", e continua visível depois de usar o endereço.
+  // Erros e avisos da busca por CNPJ aparecem logo abaixo do campo (toasts
+  // ficam reservados ao retorno das importações do Revit). O endereço fiscal
+  // encontrado fica na seção "Localizacao da obra".
   const mostrarEnderecoFiscal = !!enderecoFiscal
 
   // Mantem "Proprietario do imovel" espelhando "Responsavel pelo uso" enquanto marcado —
@@ -71,6 +67,18 @@ export default function Step1({ step, totalSteps }) {
               <Icon name="search" size={12}/> {loading ? 'Buscando...' : 'Preencher pelo CNPJ'}
             </button>
           </div>
+          {error && (
+            <div className="ibox red mt-2 mb-0" role="alert">
+              <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
+              <span className="text-xs">{error}</span>
+            </div>
+          )}
+          {!error && warning && (
+            <div className="ibox amber mt-2 mb-0" role="status">
+              <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+              <span className="text-xs">{warning}</span>
+            </div>
+          )}
         </div>
 
         <div className="g2 mb-3">

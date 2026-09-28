@@ -20,6 +20,7 @@
 
 import { getHidrantes } from '../normas/index'
 import { calcPotenciaBomba } from '../hidrantes_calc'
+import { fmtNum } from '../../utils/numero'
 
 // Constantes só de narração (nunca recalculadas aqui) — mesmos valores de
 // Fire Utils.tab/lib/hidrantes/calc.py.
@@ -34,9 +35,12 @@ const SIM_OK = '✓'
 const SIM_X = '✗'
 const SIM_GE = '≥'
 
-const f = (n, casas = 4) => Number(n).toFixed(casas)
+// Formato numérico oficial (utils/numero.js). A marcha hidráulica mantém até
+// 4 casas nos passos de cálculo (vazões em m³/s, perdas unitárias...), onde 2
+// casas zerariam o valor — mesmo formato, só com mais precisão.
+const f = (n, casas = 4) => fmtNum(n, casas, '0')
 const fDh = (dh) => (dh >= 0 ? `+ ${f(Math.abs(dh))}` : `− ${f(Math.abs(dh))}`)
-const mca2 = (v) => `${f(v, 2).replace('.', ',')} mca`
+const mca2 = (v) => `${f(v, 2)} mca`
 
 function contadorLetras() {
   const letras = 'abcdefghijklmnopqrstuvwxyz'
@@ -118,9 +122,9 @@ export function textoMemorialCalculoHidrantes(state) {
     ['Classificação do sistema', valor_sistema],
     ['Método de cálculo', metodo],
     ['Ponto de aplicação de Q e Pmin', pontoRef],
-    ['Vazão por hidrante (Q)', `${Qs} L/min`],
+    ['Vazão por hidrante (Q)', `${f(Qs, 2)} L/min`],
     ['Hidrantes simultâneos (n)', `${hidrSimult}`],
-    ['Pressão residual mínima (Pmin)', `${Pmin} mca = ${f(Pmin / MCA_POR_BAR)} bar`],
+    ['Pressão residual mínima (Pmin)', `${f(Pmin, 2)} mca = ${f(Pmin / MCA_POR_BAR)} bar`],
     ['Coef. Hazen-Williams (C)', `${C_HW}`],
     ['Esguicho — DN', `${ds.esguicho_dn} mm`],
     ['Mangueira — DN / comprimento', `${ds.mang_dn} mm / ${f(ds.mang_comp, 1)} m`],
@@ -134,7 +138,7 @@ export function textoMemorialCalculoHidrantes(state) {
 
   const ranking = d.ranking_hidrantes
   if (ranking?.length) {
-    paragrafo(`Para identificar quais são de fato os hidrantes mais desfavoráveis, todas as válvulas de hidrante encontradas na rede de recalque são ranqueadas por uma pontuação preliminar — calculada com a vazão simples (vazão nominal de um único hidrante, Q = ${Qs} L/min, sem o equilíbrio hidráulico entre ramais que só se aplica aos dois hidrantes finalmente escolhidos, adiante neste memorial):`)
+    paragrafo(`Para identificar quais são de fato os hidrantes mais desfavoráveis, todas as válvulas de hidrante encontradas na rede de recalque são ranqueadas por uma pontuação preliminar — calculada com a vazão simples (vazão nominal de um único hidrante, Q = ${f(Qs, 2)} L/min, sem o equilíbrio hidráulico entre ramais que só se aplica aos dois hidrantes finalmente escolhidos, adiante neste memorial):`)
     formula('Perda de Carga Total = J + ∆Z', [
       ['J', 'Perda de carga do trecho Bomba → válvula do hidrante, por Hazen-Williams, com a vazão simples de um hidrante'],
       ['∆Z', 'Desnível geométrico entre a válvula do hidrante e a descarga da bomba'],
@@ -199,8 +203,8 @@ export function textoMemorialCalculoHidrantes(state) {
     } else if (verif_npshd) {
       const n = verif_npshd
       paragrafo(`|Hs| = cota de sucção da bomba − cota da RTI = ${f(verif_succao.cota_succao_bomba)} − ${f(verif_succao.cota_rti)} = ${f(n.Hs_abs)} m`)
-      paragrafo(`Perda de carga na sucção (Hf_s) — mesmo Hazen-Williams do resto do memorial, mas com a vazão majorada em ${fator}×, majoração exclusiva desta verificação:`)
-      formula(`Q_npsh = ${fator} · Qt = ${fator} · ${f(verif_succao.vazao_npsh_lmin / fator, 2)} = ${f(verif_succao.vazao_npsh_lmin, 2)} L/min`)
+      paragrafo(`Perda de carga na sucção (Hf_s) — mesmo Hazen-Williams do resto do memorial, mas com a vazão majorada em ${f(fator, 2)}×, majoração exclusiva desta verificação:`)
+      formula(`Q_npsh = ${f(fator, 2)} · Qt = ${f(fator, 2)} · ${f(verif_succao.vazao_npsh_lmin / fator, 2)} = ${f(verif_succao.vazao_npsh_lmin, 2)} L/min`)
       if (j_succao_npsh) {
         tabela(['DN (mm)', 'Ltotal (m)', 'Jun (m/m)', 'J (mca)'],
           j_succao_npsh.segmentos.map((s) => [f(s.d_mm, 1), f(s.Ltotal), f(s.Jun, 6), f(s.J)]))
@@ -208,8 +212,8 @@ export function textoMemorialCalculoHidrantes(state) {
       }
       paragrafo('Resultado:')
       tabela(['Termo', 'Valor'], [
-        [`Ha — altitude ${n.altitude_m} m`, `${f(n.Ha, 3)} mca`],
-        [`Hvp — água a ${n.temperatura_c} °C`, `${f(n.Hvp, 3)} mca`],
+        [`Ha — altitude ${f(n.altitude_m, 2)} m`, `${f(n.Ha, 3)} mca`],
+        [`Hvp — água a ${f(n.temperatura_c, 2)} °C`, `${f(n.Hvp, 3)} mca`],
         ['|Hs| — sucção da bomba acima da RTI', `${f(n.Hs_abs, 3)} mca`],
         ['Hf_s — perda na sucção com a vazão majorada', `${f(n.Hf_s, 3)} mca`],
         ['NPSHd', `${f(n.NPSHd, 3)} mca`],
@@ -235,9 +239,9 @@ export function textoMemorialCalculoHidrantes(state) {
     titulo3(`${prox()}) Perda de carga na mangueira`)
     formula(`Jm = ${COEF_JM}·f·Lm / (g·π²·Dm⁵) · Q²   [mca]`, [
       ['Jm', 'Perda de carga na mangueira (Darcy-Weisbach)'],
-      ['f', `Fator de atrito = ${F_DARCY}`],
+      ['f', `Fator de atrito = ${f(F_DARCY)}`],
       ['Lm', 'Comprimento da mangueira, em m'],
-      ['g', `Aceleração da gravidade = ${G} m/s²`],
+      ['g', `Aceleração da gravidade = ${f(G)} m/s²`],
       ['Dm', 'Diâmetro da mangueira, em m'],
       ['Q', 'Vazão INDIVIDUAL do hidrante — nunca Qt nem Qt/2, já que cada mangueira tem sua própria vazão'],
     ])
@@ -246,7 +250,7 @@ export function textoMemorialCalculoHidrantes(state) {
     titulo3(`${prox()}) Perda de carga na válvula angular do hidrante`)
     formula('Jvalv = K · V² / 2g   [mca]', [
       ['Jvalv', 'Perda de carga na válvula angular do hidrante'],
-      ['K', `Fator K da válvula, adotado = ${K_VALVULA}`],
+      ['K', `Fator K da válvula, adotado = ${f(K_VALVULA, 2)}`],
     ])
     titulo3(`${prox()}) Pressão na válvula do hidrante`)
     formula('P_valv = Pmin + Jm + Jvalv', [
@@ -278,7 +282,7 @@ export function textoMemorialCalculoHidrantes(state) {
   formula('K = Q / √P', [
     ['K', 'Fator de vazão (coeficiente de escoamento) do hidrante'],
     ['Q', 'Vazão normativa do hidrante mais desfavorável, em L/min'],
-    ['P', `${pRefDesc}, em bar (1 bar = ${MCA_POR_BAR} mca)`],
+    ['P', `${pRefDesc}, em bar (1 bar = ${f(MCA_POR_BAR)} mca)`],
   ])
   paragrafo('Esse K, uma vez calculado, é reaproveitado para achar a vazão dos demais hidrantes: Q = K·√P.')
 
@@ -296,7 +300,7 @@ export function textoMemorialCalculoHidrantes(state) {
   formula('P_ref = P_PA,alvo − J − ∆H', [['P_ref', 'Pressão de referência recalculada do ramal mais favorável']])
   formula('Q = K · √P_ref', [['Q', 'Vazão recalculada — muda a cada passo, então a perda de carga TEM que ser recalculada com ela; nunca reaproveitar a perda de uma vazão diferente']])
   formula('Erro = |P_A − P_PA,alvo|', [['P_A', 'Pressão no Ponto A recalculada com a nova vazão (P_ref + J + ∆H)']])
-  paragrafo(`Repete até Erro ≤ variação máxima admitida pela norma (${toleranciaEquilibrio} mca). Só então soma-se a vazão dos dois ramais:`)
+  paragrafo(`Repete até Erro ≤ variação máxima admitida pela norma (${f(toleranciaEquilibrio, 2)} mca). Só então soma-se a vazão dos dois ramais:`)
   formula('Qt = Q_hd01 + Q_hd02')
 
   titulo3(`${prox()}) Marcha de pressões até a bomba e a RTI, agora com a vazão total Qt`)
@@ -348,20 +352,20 @@ export function textoMemorialCalculoHidrantes(state) {
     tabela(['DN (mm)', 'Q (L/min)', 'V (m/s)', 'Limite (m/s)', 'Verificação'], linhas,
       { alinhas: ['right', 'right', 'right', 'right', 'left'] })
     if (temCurto) {
-      paragrafo(`Sub-trecho(s) com menos de ${(comprimentoMin * 100).toFixed(0)} cm de tubo (ex.: redução na entrada/saída da bomba) não entram na verificação de velocidade — comprimento curto demais para representar escoamento sustentado.`)
+      paragrafo(`Sub-trecho(s) com menos de ${f(comprimentoMin * 100, 0)} cm de tubo (ex.: redução na entrada/saída da bomba) não entram na verificação de velocidade — comprimento curto demais para representar escoamento sustentado.`)
     }
   }
 
   // --- 8.1 Trecho HD01 ---------------------------------------------------
   titulo3(`${n7}.1 Trecho HD01 ao Ponto A`)
-  paragrafo(`Ramal do 1º hidrante mais desfavorável, calculado com a vazão normativa Q = ${Qs} L/min. A marcha segue o sentido do escoamento: esguicho → mangueira → válvula → canalização → Ponto A.`)
+  paragrafo(`Ramal do 1º hidrante mais desfavorável, calculado com a vazão normativa Q = ${f(Qs, 2)} L/min. A marcha segue o sentido do escoamento: esguicho → mangueira → válvula → canalização → Ponto A.`)
   prox = contadorLetras()
   const P_ref = res.P_valv_ref
   const P_ref_lbl = esguicho ? 'P_valv' : 'Pmin'
 
   if (esguicho) {
     const ref = esg.ref
-    paragrafo(`A perda de carga no esguicho é a própria pressão mínima exigida em projeto (Pmin = ${Pmin} mca), aplicada na ponta do esguicho. Da ponta até a válvula somam-se a perda na mangueira e a perda na válvula angular.`)
+    paragrafo(`A perda de carga no esguicho é a própria pressão mínima exigida em projeto (Pmin = ${f(Pmin, 2)} mca), aplicada na ponta do esguicho. Da ponta até a válvula somam-se a perda na mangueira e a perda na válvula angular.`)
     titulo3(`${prox()}) Perda de carga na mangueira`)
     formula(`Jm = ${COEF_JM}·f·Lm / (g·π²·Dm⁵) · Q²   [mca]`)
     tabela(['Lm (m)', 'Dm (mm)', 'Q (L/min)', 'Jm (mca)'], [[f(esg.mang_comp_m, 0), f(esg.mang_dn_mm, 0), f(Qs, 2), f(ref.Jm)]])
@@ -373,7 +377,7 @@ export function textoMemorialCalculoHidrantes(state) {
     tabela(['K', 'V (m/s)', 'Jvalv (mca)'], [[f(K_VALVULA, 0), f(ref.V), f(ref.Jvalv)]])
     titulo3(`${prox()}) Pressão na válvula do hidrante`)
     formula('P_valv = Pmin + Jm + Jvalv')
-    paragrafo(`P_valv = ${Pmin} + ${f(ref.Jm)} + ${f(ref.Jvalv)} = ${f(P_ref)} mca`)
+    paragrafo(`P_valv = ${f(Pmin, 2)} + ${f(ref.Jm)} + ${f(ref.Jvalv)} = ${f(P_ref)} mca`)
   }
 
   passoLtotal(jInicial.t3, prox())
@@ -382,7 +386,7 @@ export function textoMemorialCalculoHidrantes(state) {
 
   titulo3(`${prox()}) Fator K — calculado aqui, no 1º hidrante mais desfavorável, e reaproveitado nos demais trechos`)
   formula('K = Q / √P')
-  paragrafo(`K = ${f(Qs, 0)} / √(${f(P_ref)} / ${MCA_POR_BAR}) = ${f(Qs, 0)} / √${f(P_ref / MCA_POR_BAR)} = ${f(K)} L/min/bar^0,5`)
+  paragrafo(`K = ${f(Qs, 0)} / √(${f(P_ref)} / ${f(MCA_POR_BAR)}) = ${f(Qs, 0)} / √${f(P_ref / MCA_POR_BAR)} = ${f(K)} L/min/bar^0,5`)
 
   titulo3(`${prox()}) Pressão necessária no Ponto A pelo ramal do HD01, ainda com a vazão normativa Qs`)
   formula(`P_PA = ${P_ref_lbl} + J ± ∆H`)
@@ -391,7 +395,7 @@ export function textoMemorialCalculoHidrantes(state) {
 
   // --- 8.2 Trecho HD02 -----------------------------------------------------
   titulo3(`${n7}.2 Trecho HD02 ao Ponto A`)
-  paragrafo(`Ramal do 2º hidrante mais desfavorável — primeiro cálculo, ainda com a mesma vazão normativa Qs = ${Qs} L/min dos dois ramais, antes de qualquer equilíbrio.`)
+  paragrafo(`Ramal do 2º hidrante mais desfavorável — primeiro cálculo, ainda com a mesma vazão normativa Qs = ${f(Qs, 2)} L/min dos dois ramais, antes de qualquer equilíbrio.`)
   prox = contadorLetras()
   passoLtotal(jInicial.t4, prox())
   passoPerda(jInicial.t4, C_HW, prox())
@@ -422,7 +426,7 @@ export function textoMemorialCalculoHidrantes(state) {
   const dHIt = dH[trechoIt]
   const pPaItInicial = ramalIt === 'HD01' ? res.P_PA1 : res.P_PA2
 
-  paragrafo(`O ramal governante (${ramalGov}) não muda — permanece com a vazão normativa Qs = ${Qs} L/min e a pressão de referência P_ref = ${f(res.P_valv_ref)} mca, por construção.`)
+  paragrafo(`O ramal governante (${ramalGov}) não muda — permanece com a vazão normativa Qs = ${f(Qs, 2)} L/min e a pressão de referência P_ref = ${f(res.P_valv_ref)} mca, por construção.`)
   paragrafo(`Diferença de pressão entre os ramais, ambos calculados com a mesma vazão normativa Qs — é essa diferença que o ramal mais favorável (${ramalIt}) precisa absorver, subindo sua vazão até sua P_A bater com a pressão-alvo:`)
   formula(`∆P = |P_PA,alvo − P_PA,${ramalIt.toLowerCase()}|`)
   paragrafo(`∆P = |${f(res.P_PA)} − ${f(pPaItInicial)}| = ${f(Math.abs(res.P_PA - pPaItInicial))} mca`)
@@ -434,8 +438,8 @@ export function textoMemorialCalculoHidrantes(state) {
     formula('P_ref = P_PA,alvo − J − ∆H')
     paragrafo(`P_ref = ${f(res.P_PA)} − ${f(jAtual)} ${fDh(dHIt)} = ${f(h.P_ref)} mca`)
     paragrafo('Vazão recalculada pelo Fator K, com essa nova pressão de referência — nunca a vazão de uma iteração anterior:')
-    formula(`Q = K · √(P_ref / ${MCA_POR_BAR})`)
-    paragrafo(`Q = ${f(K)} · √(${f(h.P_ref)} / ${MCA_POR_BAR}) = ${f(h.Q, 2)} L/min`)
+    formula(`Q = K · √(P_ref / ${f(MCA_POR_BAR)})`)
+    paragrafo(`Q = ${f(K)} · √(${f(h.P_ref)} / ${f(MCA_POR_BAR)}) = ${f(h.Q, 2)} L/min`)
     paragrafo('Perda de carga recalculada por Hazen-Williams — Jun muda porque a vazão mudou; nunca reaproveita a perda de uma vazão diferente:')
     formula('Jun = 605·10⁴ · Q^1,85 · C^−1,85 · D^−4,87   [m/m]')
     formula('J = Ltotal · Jun   [mca]')
@@ -450,9 +454,9 @@ export function textoMemorialCalculoHidrantes(state) {
   })
 
   if (equilibrio.convergiu) {
-    paragrafo(`${SIM_OK} Convergiu em ${equilibrio.historico.length} iteração(ões) — erro final de ${f(equilibrio.erro, 6)} mca, dentro da variação máxima admitida pela norma (${norma.TOLERANCIA_EQUILIBRIO_MCA_REF}) de ${toleranciaEquilibrio} mca. Resultado esperado: a diferença de pressão entre os ramais no Ponto A fica, na prática, eliminada.`)
+    paragrafo(`${SIM_OK} Convergiu em ${equilibrio.historico.length} iteração(ões) — erro final de ${f(equilibrio.erro, 6)} mca, dentro da variação máxima admitida pela norma (${norma.TOLERANCIA_EQUILIBRIO_MCA_REF}) de ${f(toleranciaEquilibrio, 2)} mca. Resultado esperado: a diferença de pressão entre os ramais no Ponto A fica, na prática, eliminada.`)
   } else {
-    paragrafo(`${SIM_X} Não convergiu em ${equilibrio.historico.length} iterações — erro final de ${f(equilibrio.erro, 6)} mca, acima da variação máxima admitida pela norma (${norma.TOLERANCIA_EQUILIBRIO_MCA_REF}) de ${toleranciaEquilibrio} mca. Resultado fora da norma; revisar a geometria da rede.`)
+    paragrafo(`${SIM_X} Não convergiu em ${equilibrio.historico.length} iterações — erro final de ${f(equilibrio.erro, 6)} mca, acima da variação máxima admitida pela norma (${norma.TOLERANCIA_EQUILIBRIO_MCA_REF}) de ${f(toleranciaEquilibrio, 2)} mca. Resultado fora da norma; revisar a geometria da rede.`)
   }
 
   paragrafo('Pressão na válvula de cada hidrante, ao final do equilíbrio:')
@@ -466,7 +470,7 @@ export function textoMemorialCalculoHidrantes(state) {
 
   const qFavoravel = ramalIt === 'HD02' ? res.Q_hd02 : res.Q_hd01
   const rQ = Qs ? qFavoravel / Qs : 0
-  paragrafo(`Indicador de desequilíbrio entre os ramais — o quanto o equilíbrio elevou a vazão do ramal mais favorável acima da vazão mínima: R_Q = Q_final/Q_mín = ${f(qFavoravel, 2)}/${Qs} = ${f(rQ, 3)}. Não há um percentual fixo como critério normativo; um R_Q alto indica que o ramal governante está sofrendo perda de carga desproporcional em relação ao mais favorável, e vale avaliar o diâmetro dele — mas só depois de conferir a velocidade de escoamento (próximo passo) e verificar se a diferença não é predominantemente por desnível geométrico, que o diâmetro não corrige.`)
+  paragrafo(`Indicador de desequilíbrio entre os ramais — o quanto o equilíbrio elevou a vazão do ramal mais favorável acima da vazão mínima: R_Q = Q_final/Q_mín = ${f(qFavoravel, 2)}/${f(Qs, 2)} = ${f(rQ, 3)}. Não há um percentual fixo como critério normativo; um R_Q alto indica que o ramal governante está sofrendo perda de carga desproporcional em relação ao mais favorável, e vale avaliar o diâmetro dele — mas só depois de conferir a velocidade de escoamento (próximo passo) e verificar se a diferença não é predominantemente por desnível geométrico, que o diâmetro não corrige.`)
 
   if (esguicho) {
     paragrafo('Com a vazão final de cada hidrante, recalculam-se a velocidade na mangueira e a perda na válvula angular — valores que aumentam conforme o traçado hidráulico caminha em direção aos pontos mais favoráveis. A pressão no esguicho sai de:')
@@ -480,7 +484,7 @@ export function textoMemorialCalculoHidrantes(state) {
   const linhasHid = esguicho
     ? [['HD01', esg.hd01.P_esg, res.Q_hd01], ['HD02', esg.hd02.P_esg, res.Q_hd02]]
     : [['HD01', res.P_hd01, res.Q_hd01], ['HD02', res.P_hd02, res.Q_hd02]]
-  tabela(['Hidrante', colP, 'Q (L/min)', `Verificação (P ${SIM_GE} ${Pmin} mca e Q ${SIM_GE} ${Qs} L/min)`],
+  tabela(['Hidrante', colP, 'Q (L/min)', `Verificação (P ${SIM_GE} ${f(Pmin, 2)} mca e Q ${SIM_GE} ${f(Qs, 2)} L/min)`],
     linhasHid.map(([lbl, p, q]) => {
       const ok = p >= Pmin - 0.01 && q >= Qs - 0.01
       return [lbl, f(p), f(q, 2), ok ? `${SIM_OK} atende` : `${SIM_X} NÃO atende`]
@@ -536,7 +540,7 @@ export function textoMemorialCalculoHidrantes(state) {
   ], { alinhas: ['left', 'left'] })
 
   if (potCv != null) {
-    paragrafo(`Pcv = 1000 · ${f(res.Qt / 60000, 4)} · ${f(res.P_RTI)} / (75 · ${(eta / 100).toFixed(2)}) = ${f(potCv, 2)} cv`)
+    paragrafo(`Pcv = 1000 · ${f(res.Qt / 60000, 4)} · ${f(res.P_RTI)} / (75 · ${f(eta / 100, 2)}) = ${f(potCv, 2)} cv`)
     tabela(['Potência mínima (cv)', 'Potência mínima (kW)'], [[f(potCv, 2), f(potKw, 2)]], { alinhas: ['right', 'right'] })
   } else {
     paragrafo('Eficiência da bomba ainda não informada — pendente de preenchimento na seção "Bomba de Incêndio" do formulário de classificação, acima.')

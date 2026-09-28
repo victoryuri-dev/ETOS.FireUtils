@@ -14,6 +14,7 @@ import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { useToast } from '../../hooks/useToast'
 import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import { fmtUn } from '../../utils/numero'
 
 // ── Importação do firedata.json (plugin Revit) ───────────────────────
 // Formato esperado — um item por extintor físico (cada família do Revit
@@ -248,7 +249,7 @@ function UnidadeCard({ ext, tiposPortatil, tiposSobreRodas, onEdit, onRemove, se
         {ext.carga !== '' && ext.carga != null && (
           <>
             <span className="opacity-30">|</span>
-            <span>{ext.carga} kg</span>
+            <span>{fmtUn(ext.carga, 'kg', 2, `${ext.carga} kg`)}</span>
           </>
         )}
         <span className="opacity-30">|</span>
@@ -530,7 +531,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
         <RiscoBadge risco={risco}/>
         <span className="text-[11px] text-ink-faint ml-auto flex items-center gap-3">
           {!aberto && <span>{resultado.totalUnidades} unidade{resultado.totalUnidades !== 1 ? 's' : ''} extintora{resultado.totalUnidades !== 1 ? 's' : ''}</span>}
-          {pavimento.area && <span>{pavimento.area} m²</span>}
+          {pavimento.area && <span>{fmtUn(pavimento.area, 'm²', 2, `${pavimento.area} m²`)}</span>}
         </span>
       </CardHeader>
 
@@ -561,7 +562,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
         {(!resultado.minimoAtendido || resultado.viaUnidadeUnica) && (
           <div className="text-[11px] text-ink-faint leading-[1.6] mt-3 pt-3 border-t border-solid border-border-2">
             {!resultado.minimoAtendido && NOTAS.minimoPorPavimento}
-            {resultado.viaUnidadeUnica && `Atendido pela exceção de unidade única — ${NOTAS.unidadeUnica} (área do pavimento ≤ ${limiteArea} m² para o risco ${risco}).`}
+            {resultado.viaUnidadeUnica && `Atendido pela exceção de unidade única — ${NOTAS.unidadeUnica} (área do pavimento ≤ ${fmtUn(limiteArea, 'm²')} para o risco ${risco}).`}
           </div>
         )}
       </div>

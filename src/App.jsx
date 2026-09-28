@@ -32,7 +32,6 @@ import DeteccaoIncendioPage   from './pages/medidas/DeteccaoIncendioPage'
 import Icon           from './components/ui/Icon'
 import Loader         from './components/ui/Loader'
 import ToastProvider   from './components/ui/ToastProvider'
-import { useToast }    from './hooks/useToast'
 import logo           from './assets/fireutils-logo.png'
 
 // ── SaveStatusIndicator ───────────────────────────────────────────────
@@ -228,7 +227,6 @@ function PerfilRoute() {
 function ProjectLayout() {
   const { id } = useParams()
   const { state, dispatch, conflito, definirVersaoConhecida } = useProjeto()
-  const toast = useToast()
   const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -283,17 +281,6 @@ function ProjectLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user])
 
-  // Só fecha no X ou em "Recarregar": perder as edições desta aba é o tipo de
-  // aviso que não pode sumir sozinho.
-  useEffect(() => {
-    if (!conflito) return
-    const tid = toast.error(
-      'Este projeto foi alterado em outra sessão enquanto você editava aqui. Para não perder o que foi salvo lá, recarregue antes de continuar — suas últimas mudanças nesta aba não foram salvas.',
-      { title: 'Projeto alterado em outra sessão', duration: 0, action: { label: 'Recarregar', onClick: () => window.location.reload() } },
-    )
-    return () => toast.dismiss(tid)
-  }, [conflito, toast])
-
   const rest = location.pathname.split(`/projeto/${id}/`)[1]?.split('/') || []
   const activePage = rest[0] === 'medida' ? `medida-${rest[1]}` : (rest[0] || 'dashboard')
 
@@ -314,6 +301,17 @@ function ProjectLayout() {
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage/>
+        {/* Conflito de edição: banner fixo (não some sozinho) — perder as
+            edições desta aba é o tipo de aviso que precisa ficar visível. */}
+        {conflito && (
+          <div className="ibox red m-0 rounded-none border-x-0 border-t-0 shrink-0" role="alert">
+            <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
+            <span className="text-xs flex-1">
+              <strong>Projeto alterado em outra sessão.</strong> Para não perder o que foi salvo lá, recarregue antes de continuar — suas últimas mudanças nesta aba não foram salvas.
+            </span>
+            <button type="button" className="btn-ghost text-[11px] py-1 px-2.5 shrink-0" onClick={() => window.location.reload()}>Recarregar</button>
+          </div>
+        )}
         <Outlet/>
       </div>
     </>

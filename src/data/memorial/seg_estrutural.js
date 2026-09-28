@@ -9,6 +9,7 @@
 
 import { getTRRF } from '../normas/index'
 import { calcularTRRF, metodologiaDosMateriais, alturaEdificacaoBase, edificacaoEhTerrea } from '../trrf_calc'
+import { fmtNum } from '../../utils/numero'
 
 function fmtTRRF(linha) {
   if (typeof linha.valor === 'number') return `${linha.valor} min`
@@ -38,13 +39,13 @@ function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, di
   }
 
   const alturaBase = alturaEdificacaoBase(est)
-  const alturaTxt = `${alturaBase} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`
+  const alturaTxt = `${fmtNum(alturaBase, 2, alturaBase)} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`
   const valorAltura = r.subsoloSomado
-    ? `${r.classeAltura} — altura de ${alturaTxt} + ${est.profundidadeSubsolo} m de subsolo ocupado = ${r.alturaEfetiva} m (item 4.31, NT 03 CBMMA — subsolo com ocupação diferente de estacionamento)`
+    ? `${r.classeAltura} — altura de ${alturaTxt} + ${fmtNum(est.profundidadeSubsolo, 2, est.profundidadeSubsolo)} m de subsolo ocupado = ${fmtNum(r.alturaEfetiva, 2, r.alturaEfetiva)} m (item 4.31, NT 03 CBMMA — subsolo com ocupação diferente de estacionamento)`
     : `${r.classeAltura} — altura de ${alturaTxt}, do piso de descarga ao último pavimento habitado (item 4.31, NT 03 CBMMA)`
   blocos.push({ tipo: 'campo', label: 'Classe de altura (Anexo B, NT 01 CBMMA)', valor: valorAltura })
   if (r.classeSubsolo) {
-    blocos.push({ tipo: 'campo', label: 'Classe de subsolo (Anexo B, NT 01 CBMMA)', valor: `${r.classeSubsolo} — profundidade de ${est.profundidadeSubsolo} m` })
+    blocos.push({ tipo: 'campo', label: 'Classe de subsolo (Anexo B, NT 01 CBMMA)', valor: `${r.classeSubsolo} — profundidade de ${fmtNum(est.profundidadeSubsolo, 2, est.profundidadeSubsolo)} m` })
   } else if ((parseInt(est.nSubsolos) || 0) > 0) {
     blocos.push({ tipo: 'campo', label: 'Classe de subsolo', valor: 'profundidade ainda não informada — pendente' })
   }

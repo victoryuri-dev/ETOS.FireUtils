@@ -9,9 +9,10 @@
 
 import { getExtintores } from '../normas/index'
 import { riscoDoPavimento, calcularPavimento } from '../extintores_calc'
+import { fmtNum } from '../../utils/numero'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
-const fmt = n => Number(n).toFixed(2).replace(/,?0+$/, '').replace(/\.$/, '').replace('.', ',')
+const fmt = n => fmtNum(n)
 
 function linhaTabela(ext, catalogoPortatil, catalogoSobreRodas) {
   const catalogo = ext.sobreRodas ? catalogoSobreRodas : catalogoPortatil
@@ -21,7 +22,7 @@ function linhaTabela(ext, catalogoPortatil, catalogoSobreRodas) {
     tipo?.label || ext.tipo,
     ext.sobreRodas ? 'Sobre rodas' : 'Portátil',
     ext.capacidade || '—',
-    ext.carga ? `${ext.carga} kg` : '—',
+    ext.carga ? `${fmt(ext.carga)} kg` : '—',
     String(ext.quantidade || 0),
   ]
 }

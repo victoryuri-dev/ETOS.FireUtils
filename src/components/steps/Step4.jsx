@@ -6,7 +6,7 @@ import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 import InfoTip from '../ui/InfoTip'
-import { useToast } from '../../hooks/useToast'
+import { fmtUn } from '../../utils/numero'
 
 const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border flex items-center justify-between'
 
@@ -160,7 +160,6 @@ function SecaoTitulo({ titulo, tip }) {
 function BuscaCnaePorCnpj({ pav, dispatch }) {
   const { state } = useProjeto()
   const { buscar, limpar, error, resultado } = useCnaeCnpjLookup()
-  const toast = useToast()
   const cnpjDigits = (state.respCNPJ || '').replace(/\D/g, '')
 
   useEffect(() => {
@@ -177,24 +176,35 @@ function BuscaCnaePorCnpj({ pav, dispatch }) {
     limpar()
   }
 
-  // Retornos da busca viram notificações. A sugestão de CNAE fica mais tempo
-  // na tela porque pede uma decisão; sem correspondencia na base normativa nao
-  // ha nada pra sugerir, entao nao notifica.
-  useEffect(() => {
-    if (error) toast.error(`Nao foi possivel sugerir a classificacao pelo CNPJ da Etapa 1: ${error}`)
-  }, [error, toast])
-
-  useEffect(() => {
-    if (!resultado?.match) return
-    const id = toast.info(
-      `${resultado.cnae} — ${resultado.descricao}. Corresponde a ${resultado.match.divisao} — ${resultado.match.descricao} na norma. Pode ser diferente da ocupacao real do Terreo — confirme antes de usar.`,
-      { title: 'CNAE encontrado pelo CNPJ da Etapa 1', duration: 20000, action: { label: 'Usar esta classificacao no Terreo', onClick: aplicarClassificacao } },
+  // Retornos da busca ficam no topo do modal do Térreo (toasts ficam
+  // reservados ao retorno das importações do Revit). Sem correspondencia na
+  // base normativa nao ha nada pra sugerir, entao nao mostra nada.
+  if (error) {
+    return (
+      <div className="ibox red mb-5" role="alert">
+        <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
+        <span className="text-xs">Nao foi possivel sugerir a classificacao pelo CNPJ da Etapa 1: {error}</span>
+      </div>
     )
-    return () => toast.dismiss(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resultado, toast])
+  }
+  if (!resultado?.match) return null
 
-  return null
+  return (
+    <div className="ibox blue mb-5 flex-col items-stretch gap-3">
+      <div className="flex items-start gap-2.5">
+        <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
+        <div className="text-xs leading-[1.6]">
+          <div className="font-semibold text-ink mb-0.5">CNAE encontrado pelo CNPJ da Etapa 1</div>
+          {resultado.cnae} — {resultado.descricao}. Corresponde a {resultado.match.divisao} — {resultado.match.descricao} na norma.
+          {' '}Pode ser diferente da ocupacao real do Terreo — confirme antes de usar.
+        </div>
+      </div>
+      <div className="flex gap-2 pl-6">
+        <button type="button" className="btn-ghost" onClick={aplicarClassificacao}>Usar esta classificacao no Terreo</button>
+        <button type="button" className="btn-ghost" onClick={limpar}>Descartar</button>
+      </div>
+    </div>
+  )
 }
 
 // ── Linha de ocupação subsidiária ─────────────────────────────────────
@@ -422,7 +432,7 @@ function PavCard({ pav, onOpen }) {
               <div className="flex flex-wrap items-center gap-x-2 text-[12px] text-ink-faint mt-1.5">
                 {pav.cnae && <span>CNAE <span className="font-mono text-ink-muted">{pav.cnae}</span></span>}
                 {pav.cnae && pav.area && <span aria-hidden="true">·</span>}
-                {pav.area && <span>{pav.area} m²</span>}
+                {pav.area && <span>{fmtUn(pav.area, 'm²', 2, `${pav.area} m²`)}</span>}
               </div>
             </>
           ) : (
@@ -445,7 +455,7 @@ function PavCard({ pav, onOpen }) {
                       <div className="text-[11px] text-ink-faint mt-0.5">
                         {a.cnae && <>CNAE <span className="font-mono">{a.cnae}</span></>}
                         {a.cnae && a.area && ' · '}
-                        {a.area && `${a.area} m²`}
+                        {a.area && fmtUn(a.area, 'm²', 2, `${a.area} m²`)}
                       </div>
                     </div>
                     <span className="font-mono text-[11px] font-semibold text-ink-muted py-0.5 px-2 rounded bg-white/[.05] border border-solid border-border shrink-0">{a.divisao}</span>

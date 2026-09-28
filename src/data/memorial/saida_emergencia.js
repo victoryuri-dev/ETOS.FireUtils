@@ -20,10 +20,11 @@ import {
   contarSaidasPavimento, getDistancia, calcPopPav,
   calcDimsAcesso, dimsDoAcesso, calcNoAmbientePT, tipoEscadaEstrutura,
 } from '../se_calc'
+import { fmtNum } from '../../utils/numero'
 
-const fmt  = n => Number(n).toFixed(2).replace('.', ',')
+const fmt  = n => fmtNum(n, 2, '0')
 const fmtM = n => `${fmt(n)} m`
-const fmtEnxuto = n => Number(n).toFixed(2).replace(/,?0+$/, '').replace(/\.$/, '').replace('.', ',') || '0'
+const fmtEnxuto = fmt
 const num2 = n => String(n).padStart(2, '0')
 
 function acessosFilhos(acessos, parentId) {

@@ -9,6 +9,7 @@ import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import { fmtUn } from '../../utils/numero'
 
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
@@ -170,7 +171,7 @@ function TabelaAreaMaxima({ resultado, onChangeArea, isenta }) {
                   <AreaConsideradaInput linha={l} onChangeArea={onChangeArea}/> m²
                 </td>
                 <td className="py-2 px-3 text-xs text-ink-faint">
-                  {!l.encontrado ? '—' : typeof l.valor === 'number' ? `${l.valor} m²` : 'sem limite'}
+                  {!l.encontrado ? '—' : typeof l.valor === 'number' ? fmtUn(l.valor, 'm²') : 'sem limite'}
                 </td>
                 <td className="py-2 px-3 text-xs font-semibold"><SituacaoCelula linha={l}/></td>
               </tr>

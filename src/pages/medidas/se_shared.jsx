@@ -8,8 +8,9 @@
 import { useState } from 'react'
 import Icon from '../../components/ui/Icon'
 import { taxaOpcoes, popTipoPadrao, calcPT } from '../../data/se_calc'
+import { fmtNum } from '../../utils/numero'
 
-export const fmt  = n => Number(n).toFixed(2).replace('.', ',')
+export const fmt  = n => fmtNum(n, 2, '0')
 export const fmtM = n => `${fmt(n)} m`
 
 const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'

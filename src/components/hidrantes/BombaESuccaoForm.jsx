@@ -11,6 +11,7 @@ import { useClassificacaoHidrantes } from '../../hooks/useClassificacaoHidrantes
 import FormSection from '../ui/FormSection'
 import Icon from '../ui/Icon'
 import { inputClass, Field, Pill, Nota } from './formUi'
+import { fmtNum } from '../../utils/numero'
 
 // Cartão de escolha de uma bomba — mesmo padrão dos cartões de medidas de
 // segurança (Etapa 6): clicar no cartão liga/desliga. `bloqueado` (bomba
@@ -86,10 +87,10 @@ function CampoNumero({ rotulo, valor, onChange, onBlur, unidade, step = '0.1', m
   )
 }
 
-const f2 = n => Number(n).toFixed(2)
+const f2 = n => fmtNum(n, 2, '0')
 // Conversões exibidas ao lado dos valores principais: m³/h -> L/min e mca -> kPa.
-const lpm = m3h => `${(Number(m3h) * 1000 / 60).toFixed(1)} L/min`
-const kpa = mca => `${(Number(mca) * 9.80665).toFixed(1)} kPa`
+const lpm = m3h => `${fmtNum(Number(m3h) * 1000 / 60, 1, '0')} L/min`
+const kpa = mca => `${fmtNum(Number(mca) * 9.80665, 1, '0')} kPa`
 
 export function SelecaoBombas({ vazaoM3h, pressaoMca, eta, onChangeEta, potenciaAdotada, onChangePotenciaAdotada, potCv }) {
   const { h, set, norma, risco, reservaSugerida, temSprinklers } = useClassificacaoHidrantes()
@@ -190,14 +191,14 @@ export function SucaoBomba() {
             <Field label="Altitude do local">
               <select className={inputClass} value={h.succaoAltitude} onChange={e => set({ succaoAltitude: Number(e.target.value) })}>
                 {norma.ALTITUDES_SUCCAO.map(a => (
-                  <option key={a.altitude} value={a.altitude}>{a.altitude.toLocaleString('pt-BR')} m — Ha = {a.ha} mca</option>
+                  <option key={a.altitude} value={a.altitude}>{fmtNum(a.altitude)} m — Ha = {fmtNum(a.ha)} mca</option>
                 ))}
               </select>
             </Field>
             <Field label="Temperatura da água">
               <select className={inputClass} value={h.succaoTemperatura} onChange={e => set({ succaoTemperatura: Number(e.target.value) })}>
                 {norma.TEMPERATURAS_SUCCAO.map(t => (
-                  <option key={t.temperatura} value={t.temperatura}>{t.temperatura} °C — Hvp = {t.hvp} mca</option>
+                  <option key={t.temperatura} value={t.temperatura}>{fmtNum(t.temperatura)} °C — Hvp = {fmtNum(t.hvp, 3)} mca</option>
                 ))}
               </select>
             </Field>

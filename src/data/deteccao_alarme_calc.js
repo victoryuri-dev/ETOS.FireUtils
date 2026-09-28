@@ -6,10 +6,12 @@
 // (`getDeteccaoAlarme(uf)`) — nunca importam um estado diretamente. O texto do
 // memorial e as telas usam SEMPRE estas funções, sem repetir a regra.
 //
-// Tudo que sai daqui é uma ESTIMATIVA MÍNIMA por área: o projetista pode
-// substituir a área por detector e a quantidade adotada, e deve conferir a
-// distribuição em planta (retângulos contidos no círculo de cobertura).
+// Detecção: tipos e quantidades de detectores vêm do projeto (distribuição em
+// planta); o app só registra e totaliza. Alarme: os mínimos de acionadores e
+// avisadores saem daqui e podem ser substituídos.
 // ─────────────────────────────────────────────────────────────────────────────
+
+import { fmtNum } from '../utils/numero'
 
 const num = v => {
   const n = parseFloat(String(v ?? '').replace(',', '.'))
@@ -20,8 +22,8 @@ const vazio = v => v === '' || v === null || v === undefined
 export const TIPOS_DETECTOR = [
   { key: 'fumaca_pontual',      label: 'Fumaça pontual' },
   { key: 'temperatura_pontual', label: 'Temperatura pontual' },
-  { key: 'fumaca_linear',       label: 'Fumaça linear (feixe)' },
-  { key: 'temperatura_linear',  label: 'Temperatura linear (cabo)' },
+  { key: 'fumaca_linear',       label: 'Fumaça linear' },
+  { key: 'temperatura_linear',  label: 'Temperatura linear' },
   { key: 'chama',               label: 'Chama' },
 ]
 
@@ -32,18 +34,26 @@ export function alarmeDaEstrutura(est) {
     preAlarme: false, subcentral: false, subcentralQtd: '',
     painelRepetidor: false, painelSinoptico: false,
     fonteAuxiliar: '',
-    tipoAvisador: '', semFio: false,
+    fonteAuxiliarLocal: '',
+    tipoAvisador: '', avisadores: undefined, semFio: false,
     ...(est?.alarme || {}),
   }
 }
 export function deteccaoDaEstrutura(est) {
-  return { entreforros: false, entreforrosDescricao: '', arCondicionado: false, ...(est?.deteccao || {}) }
+  return { entreforros: false, entreforrosDescricao: '', arCondicionado: false, tiposDetector: undefined, ...(est?.deteccao || {}) }
 }
 export function alarmePav(pav) {
-  return { acionadores: '', avisadoresSonoros: '', avisadoresVisuais: '', ...(pav?.alarme || {}) }
+  return { acionadores: '', avisadoresSonoros: '', avisadoresVisuais: '', avisadoresAudiovisuais: '', ...(pav?.alarme || {}) }
 }
+/** Detecção de um pavimento: `tipos` = { [tipo de detector ativo]: quantidade }.
+ *  Um pavimento pode ter vários tipos ao mesmo tempo; tipo ausente = inativo.
+ *  Migra o formato antigo (um único `tipo` + `qtd`, com pé-direito/viga/área
+ *  por detector) — só vira tipo ativo se a quantidade tinha sido informada. */
 export function deteccaoPav(pav) {
-  return { tipo: 'fumaca_pontual', peDireito: '', viga: '', areaDetector: '', qtd: '', obs: '', ...(pav?.deteccao || {}) }
+  const d = pav?.deteccao || {}
+  if (d.tipos) return { tipos: d.tipos, obs: d.obs || '' }
+  const tipos = d.tipo && !vazio(d.qtd) ? { [d.tipo]: String(d.qtd) } : {}
+  return { tipos, obs: d.obs || '' }
 }
 
 /** Pavimentos com a área efetiva: a área informada na classificação (Etapa 4) ou,
@@ -60,86 +70,31 @@ export function comAreaEfetiva(pavimentos, est) {
 
 // ── Detectores ─────────────────────────────────────────────────────────────
 
-/** Espaçamento (m) do detector de temperatura para uma altura de teto — Tabela 2,
- *  com interpolação linear entre alturas tabeladas. Até 5 m: espaçamento cheio. */
-export function espacamentoTemperatura(altura, tabela) {
-  const h = num(altura)
-  if (!tabela?.length) return null
-  if (h <= tabela[0].altura_m) return tabela[0].espacamento_m
-  const ultimo = tabela[tabela.length - 1]
-  if (h >= ultimo.altura_m) return ultimo.espacamento_m
-  for (let i = 1; i < tabela.length; i++) {
-    const a = tabela[i - 1], b = tabela[i]
-    if (h <= b.altura_m) {
-      const t = (h - a.altura_m) / (b.altura_m - a.altura_m)
-      return Math.round((a.espacamento_m + t * (b.espacamento_m - a.espacamento_m)) * 100) / 100
-    }
-  }
-  return ultimo.espacamento_m
-}
-
-/** Fator de redução da área de cobertura pela altura da viga sob a laje
- *  (dois terços entre 0,21 e 0,60 m; metade acima disso). */
-export function fatorViga(vigaM, reducoes) {
-  const v = num(vigaM)
-  if (!reducoes?.length || v <= 0.20) return { fator: 1, texto: null }
-  const r = reducoes.find(r => v >= r.min_m && (r.max_m == null || v <= r.max_m)) || reducoes[reducoes.length - 1]
-  return { fator: r.fator, texto: r.texto }
+/** Tipos de detector usados na estrutura (escolhidos uma vez, valem pra todos
+ *  os pavimentos — mesmo padrão dos avisadores do Alarme). Sem escolha salva,
+ *  deduz dos tipos já preenchidos nos pavimentos (formato anterior). */
+export function detectoresAtivos(est, pavimentos = []) {
+  const salvos = est?.deteccao?.tiposDetector
+  const keys = Array.isArray(salvos)
+    ? salvos
+    : [...new Set(pavimentos.flatMap(p => Object.keys(deteccaoPav(p).tipos)))]
+  return TIPOS_DETECTOR.filter(t => keys.includes(t.key))
 }
 
 /**
- * Cobertura de um detector para um tipo, pé-direito (altura do teto) e viga.
- * @returns {{ porArea:boolean, areaMax:number|null, espacamento:number|null, fatorViga:number,
- *   fatorTexto:string|null, alertas:string[] }}
+ * Resumo da detecção de um pavimento: uma linha por tipo ativo na estrutura
+ * (`ativos`, de detectoresAtivos) com a quantidade informada — em branco = o
+ * pavimento não tem esse tipo (0). A quantidade vem do projeto (distribuição
+ * em planta); o app não estima quantidade por área.
  */
-export function coberturaDetector(tipo, { peDireito, viga } = {}, detectores) {
-  const cfg = detectores?.tipos?.[tipo]
-  const alertas = []
-  if (!cfg) return { porArea: false, areaMax: null, espacamento: null, fatorViga: 1, fatorTexto: null, alertas }
-  if (!cfg.por_area) return { porArea: false, areaMax: null, espacamento: null, fatorViga: 1, fatorTexto: null, alertas }
-
-  const h = num(peDireito)
-  let areaMax = cfg.area_max_m2
-  let espacamento = cfg.lado_m
-
-  if (tipo === 'temperatura_pontual' && h > cfg.altura_max_m) {
-    espacamento = espacamentoTemperatura(h, detectores.espacamento_altura_temperatura)
-    areaMax = Math.round(espacamento * espacamento * 100) / 100
-    alertas.push(`Pé-direito de ${h} m acima de ${cfg.altura_max_m} m: espaçamento reduzido para ${espacamento} m (interpolado da tabela de redução por altura).`)
-  }
-  if (tipo === 'fumaca_pontual' && h > cfg.altura_max_m) {
-    alertas.push(`Pé-direito de ${h} m acima de ${cfg.altura_max_m} m: instalar detectores em níveis de no máximo ${cfg.altura_max_m} m (recomenda-se coletores de fumaça de 900 cm² nos níveis intermediários) ou avaliar detector linear.`)
-  }
-
-  const v = fatorViga(viga, detectores.reducao_viga)
-  if (v.fator < 1) {
-    areaMax = Math.round(areaMax * v.fator * 100) / 100
-    alertas.push(`Viga de ${num(viga)} m: área de cobertura reduzida para ${v.texto} (a redução não se aplica se houver ao menos um detector em cada caixa formada pelas vigas, respeitada a área máxima).`)
-    espacamento = Math.round(Math.sqrt(areaMax) * 100) / 100
-  }
-  return { porArea: true, areaMax, espacamento, fatorViga: v.fator, fatorTexto: v.texto, alertas }
-}
-
-/**
- * Resumo do dimensionamento de detecção de um pavimento (já com as substituições
- * do usuário). `qtdMin` é só por área; `qtdAdotada` é o que vale.
- */
-export function resumoDeteccaoPavimento(pav, detectores) {
+export function resumoDeteccaoPavimento(pav, ativos = TIPOS_DETECTOR) {
   const d = deteccaoPav(pav)
-  const area = num(pav?.area)
-  const cob = coberturaDetector(d.tipo, { peDireito: d.peDireito, viga: d.viga }, detectores)
-  const areaDetector = !vazio(d.areaDetector) ? num(d.areaDetector) : cob.areaMax
-  const qtdMin = cob.porArea && area > 0 && areaDetector > 0 ? Math.max(1, Math.ceil(area / areaDetector)) : null
-  const qtdAdotada = !vazio(d.qtd) ? Math.round(num(d.qtd)) : qtdMin
-  const areaSubstituida = !vazio(d.areaDetector) && cob.porArea
-  const abaixoDoMinimo = qtdMin != null && qtdAdotada != null && qtdAdotada < qtdMin
-  const porArea = cob.porArea
-  const completo = porArea ? (area > 0 && qtdAdotada != null) : qtdAdotada != null
-  return {
-    tipo: d.tipo, area, peDireito: num(d.peDireito), viga: num(d.viga),
-    cobertura: cob, areaDetector, areaSubstituida, qtdMin, qtdAdotada, abaixoDoMinimo,
-    porArea, completo, obs: d.obs, alertas: cob.alertas,
-  }
+  const itens = ativos.map(t => ({
+    tipo: t.key, label: t.label,
+    qtd: vazio(d.tipos[t.key]) ? 0 : Math.round(num(d.tipos[t.key])),
+  }))
+  const total = itens.reduce((s, i) => s + i.qtd, 0)
+  return { itens, itensComQtd: itens.filter(i => i.qtd > 0), total, completo: total > 0, obs: d.obs }
 }
 
 // ── Alarme ─────────────────────────────────────────────────────────────────
@@ -153,19 +108,34 @@ export function acionadoresMinimos(area, acionador) {
   return Math.max(1, Math.ceil(a / cob))
 }
 
+/** Tipos de avisador; `campo` é onde a quantidade fica no pavimento (alarmePav). */
+export const TIPOS_AVISADOR = [
+  { key: 'sonoro',      label: 'Avisadores sonoros',      campo: 'avisadoresSonoros' },
+  { key: 'visual',      label: 'Avisadores visuais',      campo: 'avisadoresVisuais' },
+  { key: 'audiovisual', label: 'Avisadores audiovisuais', campo: 'avisadoresAudiovisuais' },
+]
+
+/** Tipos de avisador usados na estrutura (vários ao mesmo tempo). Migra o
+ *  formato antigo, que guardava um único `tipoAvisador`. */
+export function avisadoresAtivos(cfgEst) {
+  if (Array.isArray(cfgEst?.avisadores)) return TIPOS_AVISADOR.filter(t => cfgEst.avisadores.includes(t.key))
+  return TIPOS_AVISADOR.filter(t => t.key === cfgEst?.tipoAvisador)
+}
+
 export function resumoAlarmePavimento(pav, acionador, avisador, cfgEst) {
   const p = alarmePav(pav)
   const minAcion = acionadoresMinimos(pav?.area, acionador)
   const acionadores = !vazio(p.acionadores) ? Math.round(num(p.acionadores)) : minAcion
-  const sonoros = !vazio(p.avisadoresSonoros) ? Math.round(num(p.avisadoresSonoros)) : (avisador?.minimo_por_pavimento ?? 1)
-  const tipo = cfgEst?.tipoAvisador
-  const visualObrig = tipo === 'visual' || tipo === 'audiovisual'
-  const sonoroObrig = tipo === 'sonoro' || tipo === 'audiovisual'
-  const visuais = !vazio(p.avisadoresVisuais) ? Math.round(num(p.avisadoresVisuais)) : (visualObrig ? (avisador?.minimo_por_pavimento ?? 1) : 0)
+  // Cada tipo de avisador ativo na estrutura tem sua quantidade no pavimento;
+  // em branco vale o mínimo por pavimento da norma.
+  const minAvis = avisador?.minimo_por_pavimento ?? 1
+  const avisadores = avisadoresAtivos(cfgEst).map(t => ({
+    ...t, minimo: minAvis,
+    qtd: !vazio(p[t.campo]) ? Math.round(num(p[t.campo])) : minAvis,
+  }))
   return {
     minAcionadores: minAcion, acionadores, abaixoDoMinimo: acionadores < minAcion,
-    sonoros: sonoroObrig ? sonoros : 0, visuais, visualObrigatorio: visualObrig,
-    visualFaltando: visualObrig && visuais < 1,
+    avisadores,
   }
 }
 
@@ -194,4 +164,5 @@ export function notasAplicaveis(norma, divisoes) {
   return { especificas, gerais }
 }
 
-export const fmtNum = (n, casas = 2) => Number(n).toFixed(casas).replace('.', ',')
+// Formato numérico oficial do projeto — ver utils/numero.js.
+export { fmtNum }

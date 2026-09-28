@@ -5,6 +5,7 @@ import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 import FormSection from '../ui/FormSection'
+import { fmtNum } from '../../utils/numero'
 
 const getCls = q => q <= 300 ? 'low' : q <= 1200 ? 'med' : 'high'
 const getLbl = q => q <= 300 ? 'Baixo — Classe I' : q <= 1200 ? 'Medio — Classe II' : 'Alto — Classe III/IV'
@@ -131,7 +132,7 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
                         <input type="number" value={st.valorManual} onChange={e => setValor(code, e.target.value)}
                           className="w-[96px] text-right" placeholder="0" aria-label={`Carga de incêndio de ${code}`}/>
                       ) : (
-                        <span className={`text-[22px] font-bold leading-none tabular-nums ${!cls ? 'text-ink-faint' : cls === 'low' ? 'text-green' : cls === 'med' ? 'text-amber' : 'text-red'} ${semCNAE ? 'opacity-50' : ''}`}>{q ?? '—'}</span>
+                        <span className={`text-[22px] font-bold leading-none tabular-nums ${!cls ? 'text-ink-faint' : cls === 'low' ? 'text-green' : cls === 'med' ? 'text-amber' : 'text-red'} ${semCNAE ? 'opacity-50' : ''}`}>{q != null ? fmtNum(q, 2, q) : '—'}</span>
                       )}
                       <span className="text-[11px] text-ink-faint whitespace-nowrap">MJ/m²</span>
                     </div>
@@ -146,7 +147,7 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
           {keys.length > 1 && maxQ > 0 && (
             <div className="py-3 px-5 bg-surface-2 border-t border-solid border-border-2 flex items-center justify-between gap-4 text-[12px]">
               <span className="text-ink-muted">Maior carga da estrutura</span>
-              <span className={`font-semibold ${maxCls === 'low' ? 'text-green' : maxCls === 'med' ? 'text-amber' : 'text-red'}`}>{maxQ} MJ/m² — {getLbl(maxQ)}</span>
+              <span className={`font-semibold ${maxCls === 'low' ? 'text-green' : maxCls === 'med' ? 'text-amber' : 'text-red'}`}>{fmtNum(maxQ)} MJ/m² — {getLbl(maxQ)}</span>
             </div>
           )}
         </div>

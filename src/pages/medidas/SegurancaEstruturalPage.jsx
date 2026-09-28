@@ -7,6 +7,7 @@ import EstruturaSection from '../../components/ui/EstruturaSection'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { statusEstrutura } from '../../utils/statusEstrutura'
+import { fmtNum } from '../../utils/numero'
 
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
@@ -67,18 +68,18 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
             <div className="text-xs text-ink font-semibold">
               {resultado.alturaEfetiva === '' || resultado.alturaEfetiva == null
                 ? '—'
-                : `${alturaEdificacaoBase(est)} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`} {resultado.classeAltura ? `— Classe ${resultado.classeAltura}` : ''}
+                : `${fmtNum(alturaEdificacaoBase(est))} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`} {resultado.classeAltura ? `— Classe ${resultado.classeAltura}` : ''}
             </div>
             {resultado.subsoloSomado && (
               <div className="text-[10px] text-amber mt-1">
-                + {est.profundidadeSubsolo} m de subsolo ocupado = {resultado.alturaEfetiva} m para a classificação (item 4.31, NT 03 CBMMA)
+                + {fmtNum(est.profundidadeSubsolo, 2, est.profundidadeSubsolo)} m de subsolo ocupado = {fmtNum(resultado.alturaEfetiva, 2, resultado.alturaEfetiva)} m para a classificação (item 4.31, NT 03 CBMMA)
               </div>
             )}
           </div>
           <div>
             <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Profundidade do subsolo</div>
             <div className="text-xs text-ink font-semibold">
-              {sub === 0 ? 'Sem subsolo' : est.profundidadeSubsolo ? `${est.profundidadeSubsolo} m — Classe ${resultado.classeSubsolo || '—'}` : (
+              {sub === 0 ? 'Sem subsolo' : est.profundidadeSubsolo ? `${fmtNum(est.profundidadeSubsolo, 2, est.profundidadeSubsolo)} m — Classe ${resultado.classeSubsolo || '—'}` : (
                 <span className="text-amber">Informe a profundidade na Etapa 2 (Edificação)</span>
               )}
             </div>

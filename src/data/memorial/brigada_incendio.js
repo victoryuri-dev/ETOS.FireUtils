@@ -35,7 +35,7 @@ function linhaTabela(pav, risco, linha, resultado, nivelTreinamento, nivelInstal
 
 function linhaReferencia(divisao, linha) {
   const b = linhaTabelaA1Bruta(divisao, linha)
-  return [b.grupo, b.divisao, b.descricao, b.risco, ...b.celulas, b.acima10, b.nivelTreinamento, b.nivelInstalacao]
+  return [b.divisao, b.risco, ...b.celulas, b.acima10, b.nivelTreinamento, b.nivelInstalacao]
 }
 
 // Uma linha do Anexo A por divisão distinta usada na estrutura (não por
@@ -66,7 +66,7 @@ function blocosDaEstrutura(est, pavs, altura, cargaEst, cnaesDiv, limiaresRisco,
   if (usadas.length > 0) {
     blocos.push({
       tipo: 'tabela',
-      colunas: ['Grupo', 'Divisão', 'Descrição', 'Grau de risco', 'Até 2', 'Até 4', 'Até 6', 'Até 8', 'Até 10', 'Acima de 10', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'],
+      colunas: ['Divisão', 'Grau de risco', 'Até 2', 'Até 4', 'Até 6', 'Até 8', 'Até 10', 'Acima de 10', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'],
       linhas: usadas.map(({ divisao, linha }) => linhaReferencia(divisao, linha)),
     })
 

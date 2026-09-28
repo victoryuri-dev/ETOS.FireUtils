@@ -7,6 +7,8 @@
 // duas fontes de verdade.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { fmtNum } from '../utils/numero'
+
 /** Nome de exibição de uma especificação de equipamento — usa a
  *  identificação informada pelo projetista quando houver; caso contrário
  *  cai no padrão "{label do tipo base} — {fluxo} lm" (ou só o label, se o
@@ -14,7 +16,7 @@
  *  memorial — nunca dois textos diferentes para a mesma especificação. */
 export function nomeEspecificacao(spec, baseLabel) {
   if (spec.identificacao) return spec.identificacao
-  return spec.fluxoLuminosoLm ? `${baseLabel} — ${spec.fluxoLuminosoLm} lm` : baseLabel
+  return spec.fluxoLuminosoLm ? `${baseLabel} — ${fmtNum(spec.fluxoLuminosoLm, 2, spec.fluxoLuminosoLm)} lm` : baseLabel
 }
 
 /** Resultado do checklist de balizamento de um pavimento: soma as

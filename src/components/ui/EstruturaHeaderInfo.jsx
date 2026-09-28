@@ -2,6 +2,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { classificarPavimentos } from '../../utils/classificacao'
 import Icon from './Icon'
+import { fmtUn } from '../../utils/numero'
 
 const getCls = q => q <= 300 ? 'green' : q <= 1200 ? 'amber' : 'red'
 const RISCO_LBL = { green: 'Risco baixo', amber: 'Risco médio', red: 'Risco alto' }
@@ -84,7 +85,7 @@ export default function EstruturaHeaderInfo({ estrutura, apenasOcupacao = false,
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap justify-end">
-      {ver('area') && areaEstrutura > 0 && <Chip icon="area">{areaEstrutura} m²</Chip>}
+      {ver('area') && areaEstrutura > 0 && <Chip icon="area">{fmtUn(areaEstrutura, 'm²')}</Chip>}
       {ver('pavimentos') && <Chip icon="stair">{pavimentosLabel}</Chip>}
       {ver('risco') && q > 0 && <Chip tone={cls} icon="flame">{RISCO_LBL[cls]}</Chip>}
       {(apenasOcupacao || mostrar.includes('ocupacao')) && divsOcupacao.length > 0 && (

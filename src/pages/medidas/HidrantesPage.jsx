@@ -10,11 +10,14 @@ import { SelecaoBombas, SucaoBomba } from '../../components/hidrantes/BombaESucc
 import FormSection from '../../components/ui/FormSection'
 import { calcPotenciaBomba } from '../../data/hidrantes_calc'
 import { getHidrantes } from '../../data/normas/index'
+import { fmtNum } from '../../utils/numero'
 
 // ── Formatação ────────────────────────────────────────────────────────
-const f4  = n => Number(n).toFixed(4)
-const f2  = n => Number(n).toFixed(2)
-const f3  = n => Number(n).toFixed(3)
+// Formato oficial (utils/numero.js); resultados hidráulicos mantêm até 3–4
+// casas onde 2 casas perderiam informação.
+const f4  = n => fmtNum(n, 4, '0')
+const f2  = n => fmtNum(n, 2, '0')
+const f3  = n => fmtNum(n, 3, '0')
 const fmca = n => `${f4(n)} mca`
 const lmin = n => `${f2(n)} L/min`
 const ms   = n => `${f3(n)} m/s`
@@ -123,12 +126,12 @@ function DadosDoSistema({ d }) {
   const stats = [
     { label: 'Classificação', val: valor_sistema },
     { label: 'Método', val: metodo },
-    { label: 'Vazão mínima', val: `${dados_sistema.q_min} L/min` },
+    { label: 'Vazão mínima', val: `${f2(dados_sistema.q_min)} L/min` },
     { label: 'Pressão mín.–máx.', val: `${dados_sistema.p_min}–100 mca` },
     { label: 'Coef. C', val: String(C_HW) },
   ]
   if (res.esguicho) {
-    stats.push({ label: 'Mangueira', val: `DN${dados_sistema.mang_dn} · ${dados_sistema.mang_comp} m` })
+    stats.push({ label: 'Mangueira', val: `DN${dados_sistema.mang_dn} · ${f2(dados_sistema.mang_comp)} m` })
   }
   return (
     <div className="grid grid-cols-3 gap-3 mb-8">
@@ -418,7 +421,7 @@ function Bomba({ d }) {
     <FormSection title="Ponto de Operação do Sistema" description="Vazão e altura manométrica que a bomba deve atender.">
       <div className="grid grid-cols-2 border border-solid border-border rounded-md divide-x divide-solid divide-border">
         <ValorOperacao rotulo="Vazão (Q)" valor={f2(Qt_m3h)} unidade="m³/h" conversao={`${f2(res.Qt)} L/min`} tom="text-red"/>
-        <ValorOperacao rotulo="Altura manométrica (Hm)" valor={f2(res.P_RTI)} unidade="mca" conversao={`${(res.P_RTI * 9.80665).toFixed(1)} kPa`} tom="text-red"/>
+        <ValorOperacao rotulo="Altura manométrica (Hm)" valor={f2(res.P_RTI)} unidade="mca" conversao={`${fmtNum(res.P_RTI * 9.80665, 1)} kPa`} tom="text-red"/>
       </div>
     </FormSection>
   )

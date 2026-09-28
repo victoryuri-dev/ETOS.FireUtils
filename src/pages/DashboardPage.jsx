@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import { getCompartimentacao } from '../data/normas/index'
 import { classificarTipoEdificacao } from '../data/compart_calc'
 import Icon from '../components/ui/Icon'
+import { fmtNum } from '../utils/numero'
 import './DashboardPage.css'
 
 const DIAS_SEMANA_ABREV = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
@@ -188,7 +189,7 @@ const DIMENSIONING_CONFIG_STEPS = [
   COMPLETE_CONFIG_STEPS[5],
 ]
 
-const fmtNumber = value => value ? Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—'
+const fmtNumber = value => value ? fmtNum(value, 2, '—') : '—'
 
 function getFireLoad(cargaState) {
   return Object.values(cargaState || {})
@@ -219,7 +220,7 @@ function getSystemProgress(key, state, structureId = null) {
     const ests = (state.estruturas || []).filter(e => !structureId || e.id === structureId)
     const iniciada = e => key === 'alarme'
       ? !!(e.alarme?.central || e.alarme?.centralLocal || e.alarme?.fonteAuxiliar)
-      : (state.pavimentos || []).some(p => p.estruturaId === e.id && (p.deteccao?.peDireito || p.deteccao?.qtd))
+      : (state.pavimentos || []).some(p => p.estruturaId === e.id && (Object.keys(p.deteccao?.tipos || {}).length > 0 || p.deteccao?.qtd))
     const concluidas = ests.filter(e => e.concluidas?.[key]).length
     if (ests.length && concluidas === ests.length) return { tone: 'done', label: 'Concluído', detail: `${concluidas} edificaç${concluidas === 1 ? 'ão' : 'ões'}` }
     if (ests.some(iniciada)) return { tone: 'progress', label: 'Em preenchimento', detail: `${concluidas} de ${ests.length} concluída${concluidas === 1 ? '' : 's'}` }

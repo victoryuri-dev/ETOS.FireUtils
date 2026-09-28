@@ -2,6 +2,8 @@
 // para exibicao na pagina de documentos do site. Campos sem fonte de dados
 // no app ficam em branco — nunca inventamos valor.
 
+import { fmtNum, fmtUn } from './numero'
+
 // Mesma lista/ordem do formulario oficial. `key` aponta para state.sistemas —
 // quando null, a medida ainda nao e rastreada pelo app.
 export const MEDIDAS_ANEXO_B_COL1 = [
@@ -86,13 +88,13 @@ export function buildAnexoBData(state, sistemas) {
     nomeFantasia: state.respFantasia || '',
     cnaePrincipal: [state.cnaePrincipal, state.cnaePrincipalDesc].filter(Boolean).join(' — '),
     classificacaoOcupacao,
-    areaTotalConstruida: areaConstruida ? `${areaConstruida} m²` : '',
+    areaTotalConstruida: areaConstruida ? fmtUn(areaConstruida, 'm²') : '',
     pavimentosSubsolo: subsolosSum ? String(subsolosSum) : '',
-    areaTerreno: state.areaTerreno ? `${state.areaTerreno} m²` : '',
-    quantidadePublico: state.quantidadePublico ? String(state.quantidadePublico) : '',
-    areaComplementar: state.areaComplementar ? `${state.areaComplementar} m²` : '',
-    altura: alturaNum ? `${alturaNum} m` : '',
-    cargaIncendio: maxQ ? `${maxQ} MJ/m²` : '',
+    areaTerreno: state.areaTerreno ? fmtUn(state.areaTerreno, 'm²', 2, `${state.areaTerreno} m²`) : '',
+    quantidadePublico: state.quantidadePublico ? fmtNum(state.quantidadePublico, 0, String(state.quantidadePublico)) : '',
+    areaComplementar: state.areaComplementar ? fmtUn(state.areaComplementar, 'm²', 2, `${state.areaComplementar} m²`) : '',
+    altura: alturaNum ? fmtUn(alturaNum, 'm') : '',
+    cargaIncendio: maxQ ? fmtUn(maxQ, 'MJ/m²') : '',
     // "Forma de apresentacao" — o app so trata processo tecnico novo hoje.
     processoTecnico: true,
     responsavelTecnico: state.rtNome || '',

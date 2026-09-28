@@ -2,38 +2,41 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import logo from '../assets/fireutils-logo.png'
 import Loader from '../components/ui/Loader'
-import { useToast } from '../hooks/useToast'
+import Icon from '../components/ui/Icon'
 import './LoginPage.css'
 
 // O redirecionamento após o login é controlado pelo LoginRoute em App.jsx,
 // preservando a página de origem sem criar uma segunda navegação concorrente.
+// Erros e avisos aparecem dentro do próprio card — os toasts ficam reservados
+// ao retorno das importações do Revit.
 export default function LoginPage() {
   const { signIn, signUp } = useAuth()
-  const toast = useToast()
 
   const [mode, setMode] = useState('entrar')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
+  const [mensagem, setMensagem] = useState(null) // { tipo: 'erro' | 'sucesso', texto }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setBusy(true)
+    setMensagem(null)
 
     try {
       if (mode === 'entrar') {
         const { ok, error: authError } = await signIn(email, password)
-        if (!ok) toast.error(authError)
+        if (!ok) setMensagem({ tipo: 'erro', texto: authError })
       } else {
         const { ok, needsConfirmation, error: authError } = await signUp(email, password)
         if (!ok) {
-          toast.error(authError)
+          setMensagem({ tipo: 'erro', texto: authError })
           return
         }
-        if (needsConfirmation) toast.success('Conta criada! Verifique seu e-mail para confirmar antes de entrar.')
+        if (needsConfirmation) setMensagem({ tipo: 'sucesso', texto: 'Conta criada! Verifique seu e-mail para confirmar antes de entrar.' })
       }
     } catch {
-      toast.error('Não foi possível conectar. Tente novamente em instantes.')
+      setMensagem({ tipo: 'erro', texto: 'Não foi possível conectar. Tente novamente em instantes.' })
     } finally {
       setBusy(false)
     }
@@ -41,9 +44,11 @@ export default function LoginPage() {
 
   const toggleMode = () => {
     setMode(current => current === 'entrar' ? 'cadastro' : 'entrar')
+    setMensagem(null)
   }
 
   const isLogin = mode === 'entrar'
+  const erro = mensagem?.tipo === 'erro'
 
   return (
     <main className="login-original w-screen h-screen flex items-center justify-center bg-bg">
@@ -90,6 +95,13 @@ export default function LoginPage() {
               onChange={event => setPassword(event.target.value)}
             />
           </div>
+
+          {mensagem && (
+            <div className={`ibox ${erro ? 'red' : 'green'} m-0`} role={erro ? 'alert' : 'status'}>
+              <Icon name={erro ? 'warn' : 'check'} size={13} color={`var(--color-${erro ? 'red' : 'green'})`} className="shrink-0"/>
+              <span className="text-xs">{mensagem.texto}</span>
+            </div>
+          )}
 
           <button type="submit" className="btn-primary justify-center mt-1" disabled={busy}>
             {busy ? 'Aguarde…' : (isLogin ? 'Entrar' : 'Criar conta')}

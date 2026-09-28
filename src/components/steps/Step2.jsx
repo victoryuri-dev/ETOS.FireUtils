@@ -7,6 +7,7 @@ import FormSection from '../ui/FormSection'
 import SwitchToggle from '../ui/SwitchToggle'
 import InfoTip from '../ui/InfoTip'
 import { Chip } from '../ui/EstruturaHeaderInfo'
+import { fmtUn } from '../../utils/numero'
 
 const S = {
   section: 'max-w-[980px] mx-auto pt-8 px-10 pb-20',
@@ -209,7 +210,7 @@ function EstruturaCard({ est, index, canRemove, dispatch, onOpen }) {
           {/* Resumo em badges (mesmo estilo do cabecalho das estruturas) */}
           {configured ? (
             <div className="flex items-center gap-1.5 flex-wrap pl-[26px] sm:pl-0 sm:justify-end">
-              <Chip icon="area">{a} m²</Chip>
+              <Chip icon="area">{fmtUn(a, 'm²', 2, `${a} m²`)}</Chip>
               <Chip icon="stair">{pavimentos}</Chip>
             </div>
           ) : (

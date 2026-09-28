@@ -5,7 +5,6 @@ import { usePerfil } from '../hooks/usePerfil'
 import FormSection from '../components/ui/FormSection'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
-import { useToast } from '../hooks/useToast'
 
 const ESPECIALIDADES = [
   'Engenharia Civil', 'Engenharia Eletrica', 'Arquitetura', 'Engenharia de Seguranca',
@@ -15,15 +14,15 @@ export default function PerfilPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { perfil, erro, salvar } = usePerfil()
-  const toast = useToast()
-
   // Copia local pro formulario: o usuario edita a vontade e so o botao grava.
   // `null` ate o perfil chegar — e o que segura o Loader abaixo.
   const [form, setForm] = useState(null)
   const [salvando, setSalvando] = useState(false)
+  // Retorno do salvamento, ao lado do botão (toasts ficam reservados ao
+  // retorno das importações do Revit).
+  const [retorno, setRetorno] = useState(null) // { ok, texto }
 
   useEffect(() => { if (perfil) setForm(perfil) }, [perfil])
-  useEffect(() => { if (erro) toast.error(erro) }, [erro, toast])
 
   const setConta = campo => e => {
     const { value } = e.target
@@ -36,10 +35,10 @@ export default function PerfilPage() {
 
   const handleSalvar = async () => {
     setSalvando(true)
+    setRetorno(null)
     const r = await salvar(form)
     setSalvando(false)
-    if (r.ok) toast.success('Perfil salvo.')
-    else toast.error(r.erro)
+    setRetorno(r.ok ? { ok: true, texto: 'Perfil salvo.' } : { ok: false, texto: r.erro })
   }
 
   if (!form) {
@@ -60,6 +59,13 @@ export default function PerfilPage() {
           <button className="btn-ghost mb-5" onClick={() => navigate('/projetos')}>
             <Icon name="left" size={13}/> Projetos
           </button>
+
+          {erro && (
+            <div className="ibox red mb-5" role="alert">
+              <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
+              <span className="text-xs">{erro}</span>
+            </div>
+          )}
 
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-ink mb-1.5">Perfil</h1>
@@ -132,6 +138,12 @@ export default function PerfilPage() {
                 ? <><Icon name="spinner" size={13} className="animate-spin"/> Salvando...</>
                 : <><Icon name="save" size={13}/> Salvar perfil</>}
             </button>
+            {retorno && (
+              <span className={`flex items-center gap-1.5 text-xs ${retorno.ok ? 'text-green' : 'text-red'}`} role={retorno.ok ? 'status' : 'alert'}>
+                <Icon name={retorno.ok ? 'check' : 'warn'} size={13}/>
+                {retorno.texto}
+              </span>
+            )}
           </div>
 
         </div>

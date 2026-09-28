@@ -5,6 +5,7 @@ import { buildMemorial } from '../../data/memorial/registry'
 import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS } from '../../utils/anexoB'
 import { getCNAEsDivisao, getNts } from '../../data/normas/index'
 import { edificacaoEhTerrea } from '../../data/trrf_calc'
+import { fmtNum, fmtUn } from '../../utils/numero'
 import Icon from '../../components/ui/Icon'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import MenuSecoes from '../../components/documentos/MenuSecoes'
@@ -199,10 +200,9 @@ function Capa({ state }) {
   return (
     <div className={FOLHA}>
       <div className="text-center my-auto py-16">
-        <h1 className="font-heading text-[26px] font-bold text-black uppercase tracking-[.02em]">Memorial Descritivo</h1>
-        <p className="capa-subtitulo font-bold uppercase tracking-[.04em] mt-2">
-          Projeto de Prevenção e Combate a Incêndio
-        </p>
+        <h1 className="capa-titulo font-heading font-bold text-black uppercase">
+          Memorial Descritivo de Projeto de Prevenção e Combate a Incêndio
+        </h1>
       </div>
 
       <div className="text-center text-[12px] text-black flex flex-col gap-1.5 pb-8">
@@ -271,11 +271,25 @@ function Introducao({ sistemas, uf }) {
 // preenchem (ver ProjetoContext.jsx tipoProjeto).
 function CampoDiscriminado({ label, value }) {
   if (!value) return null
-  return <div><strong>{label}:</strong> {value}</div>
+  return <div><strong>{label}:&nbsp;</strong>{value}</div>
 }
 
 function SobreEdificacao({ state }) {
   const endereco = enderecoCompletoDe(state, '')
+
+  // Situação da edificação (Etapa 2): nova ou existente. Os dados legais só
+  // entram quando o usuário optou por informá-los (mesma regra da Etapa 2 —
+  // projeto com algum desses dados preenchido conta como "sim"); ano de
+  // construção, AVCB e condições atuais só fazem sentido pra existente.
+  const existente = state.situacao === 'existente'
+  const situacaoTxt = existente ? 'Edificação existente (regularização / adequação)'
+    : state.situacao === 'nova' ? 'Edificação nova (em projeto ou construção)' : ''
+  const jaTemDadosLegais = !!(state.numeroAlvara || state.anoConstrucao || state.numeroAVCB || state.validadeAVCB)
+  const legais = (state.informarDadosLegais || (jaTemDadosLegais ? 'sim' : '')) === 'sim'
+  const fmtData = iso => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '')
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || '')
+  }
 
   // Subitem só entra na numeração se tiver ao menos um campo preenchido —
   // assim "3.1, 3.2, 3.3" nunca pula um número quando um bloco some (ver
@@ -301,9 +315,16 @@ function SobreEdificacao({ state }) {
       ['E-mail', state.propEmail],
     ] },
     { titulo: 'Dados do Imóvel', campos: [
+      ['Situação', situacaoTxt],
       ['Endereço', endereco],
-      ['Área construída total', state.areaConstruidaTotal ? `${state.areaConstruidaTotal} m²` : ''],
-      ['Área do terreno', state.areaTerreno ? `${state.areaTerreno} m²` : ''],
+      ['Área construída total', state.areaConstruidaTotal ? fmtUn(state.areaConstruidaTotal, 'm²', 2, `${state.areaConstruidaTotal} m²`) : ''],
+      ['Área do terreno', state.areaTerreno ? fmtUn(state.areaTerreno, 'm²', 2, `${state.areaTerreno} m²`) : ''],
+      ['Número do alvará', legais ? state.numeroAlvara : ''],
+      ['Ano de construção', legais && existente ? state.anoConstrucao : ''],
+      ['Situação perante o CBMMA', legais && existente ? state.situacaoCBM : ''],
+      ['Nº do AVCB anterior', legais && existente ? state.numeroAVCB : ''],
+      ['Validade do AVCB', legais && existente ? fmtData(state.validadeAVCB) : ''],
+      ['Condições atuais', existente ? state.condicoesAtuais?.trim() : ''],
     ] },
   ].filter(b => b.campos.some(([, v]) => v))
 
@@ -344,7 +365,7 @@ function Caracterizacao({ state, porEstrutura }) {
           })
         })
 
-        const alturaPisoPisoTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' : `${est.alturaPisoPiso} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`
+        const alturaPisoPisoTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' : `${fmtNum(est.alturaPisoPiso, 2, est.alturaPisoPiso)} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`
 
         return (
           <div key={est.id} className="mb-7">
@@ -352,9 +373,9 @@ function Caracterizacao({ state, porEstrutura }) {
 
             <div className="mb-4">
               <div className="text-black leading-[1.9]">
-                <div><strong>Área construída:</strong> {est.areaTotal ? `${est.areaTotal} m²` : '—'}</div>
-                <div><strong>Altura piso a piso:</strong> {alturaPisoPisoTxt || '—'}</div>
-                <div><strong>Altura total:</strong> {est.altura ? `${est.altura} m` : '—'}</div>
+                <div><strong>Área construída:&nbsp;</strong>{est.areaTotal ? fmtUn(est.areaTotal, 'm²', 2, `${est.areaTotal} m²`) : '—'}</div>
+                <div><strong>Altura piso a piso:&nbsp;</strong>{alturaPisoPisoTxt || '—'}</div>
+                <div><strong>Altura total:&nbsp;</strong>{est.altura ? fmtUn(est.altura, 'm', 2, `${est.altura} m`) : '—'}</div>
               </div>
 
               <p className="titulo-tabela mt-4 mb-2.5">Ocupações por pavimento</p>
@@ -383,7 +404,7 @@ function Caracterizacao({ state, porEstrutura }) {
                         <td className={TABELA_TD}>{l.pavimento}</td>
                         <td className={TABELA_TD}>{l.divisao}</td>
                         <td className={TABELA_TD}>{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
-                        <td className={`${TABELA_TD} text-center`}>{cargaQ ? <>{cargaQ} MJ/m²<br/>{classificarCarga(cargaQ)}</> : '—'}</td>
+                        <td className={`${TABELA_TD} text-center`}>{cargaQ ? <>{fmtUn(cargaQ, 'MJ/m²')}<br/>{classificarCarga(cargaQ)}</> : '—'}</td>
                       </tr>
                     )
                   })}
@@ -506,7 +527,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
           )}
           {outrosDescsMultiplas.length > 0 && (
             <p className="text-[10.5px] text-black leading-[1.6] mt-1.5 mb-0">
-              <strong>Outros (por estrutura):</strong> {outrosDescsMultiplas.join(' · ')}
+              <strong>Outros (por estrutura):&nbsp;</strong>{outrosDescsMultiplas.join(' · ')}
             </p>
           )}
         </>
@@ -522,7 +543,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
 function ListaItemTexto({ item }) {
   if (!item || typeof item !== 'object') return item
   if (!item.label) return item.texto ?? null
-  return <><strong>{item.label}:</strong> <span className="whitespace-pre-line">{item.valor}</span></>
+  return <><strong>{item.label}:&nbsp;</strong><span className="whitespace-pre-line">{item.valor}</span></>
 }
 
 // Um nó do bloco 'organograma' (ver memorial/saida_emergencia.js) — raiz e
@@ -618,7 +639,7 @@ function BlocoMedida({ bloco }) {
         />
       )
     case 'campo':
-      return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:</strong> <span className="whitespace-pre-line">{bloco.valor}</span></div>
+      return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:&nbsp;</strong><span className="whitespace-pre-line">{bloco.valor}</span></div>
     case 'tabela': {
       // th/td alinhados ao centro quando a tabela é majoritariamente
       // numérica (ex.: dimensionamento de Acesso/Saída) — colunas de

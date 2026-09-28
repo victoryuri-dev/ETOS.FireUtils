@@ -4,8 +4,9 @@
 
 import { getAV } from '../normas/index'
 import { calcGatilho, calcAcessoViatura } from '../av_calc'
+import { fmtNum } from '../../utils/numero'
 
-const fmt = n => Number(n || 0).toFixed(2).replace('.', ',')
+const fmt = n => fmtNum(n || 0)
 const ok  = (b, simNao = ['atendendo', 'não atendendo']) => b ? simNao[0] : simNao[1]
 
 export function textoMemorialAcessoViatura(state, sistemas) {

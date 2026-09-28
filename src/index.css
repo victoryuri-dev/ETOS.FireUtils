@@ -124,7 +124,7 @@
 
 /* Tipografia fixa do memorial, IDENTICA na tela e na impressao/exportacao
    (sem variante print:): Arial em tudo, titulos e subtitulos em negrito,
-   texto de 12pt e texto dentro de tabelas de 10pt. Regras fora de qualquer
+   texto, titulos e subtitulos de 11pt e texto dentro de tabelas de 10pt. Regras fora de qualquer
    @layer pra sempre vencerem as classes utilitarias do Tailwind (arbitrary
    values tipo text-[12.5px]) que cada bloco do memorial ja usa. sub/sup
    (formatarFormula) ficam de fora do tamanho fixo de proposito — precisam
@@ -134,18 +134,17 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 .print-area-memorial *:not(sup):not(sub) {
-  font-size: 16pt;
+  font-size: 11pt;
 }
 .print-area-memorial table,
 .print-area-memorial table *:not(sup):not(sub) {
-  font-size: 13pt;
+  font-size: 10pt;
 }
-/* Subtítulo da capa ("Projeto de Prevenção..."): tamanho e cor fixos,
-   diferentes do texto do resto do documento — precisa de uma classe
-   própria (maior especificidade que o `*` acima) pra escapar do tamanho
-   único do memorial. */
-.print-area-memorial .capa-subtitulo {
-  font-size: 12pt;
+/* Título da capa: único texto fora do tamanho padrão — classe própria
+   (maior especificidade que o `*` acima) pra escapar do tamanho único. */
+.print-area-memorial .capa-titulo {
+  font-size: 20pt;
+  line-height: 1.25;
   color: #000;
 }
 .print-area-memorial h1,

@@ -14,6 +14,7 @@
 
 import { calcularAreaMaximaCompartimentacao } from '../compart_calc'
 import { getCompartimentacao } from '../normas/index'
+import { fmtUn } from '../../utils/numero'
 
 function labelsMarcados(catalogo, chaves) {
   return catalogo.filter(o => (chaves || []).includes(o.key)).map(o => o.label || o.texto)
@@ -31,8 +32,9 @@ function dispensadaBloco(medida) {
 }
 
 function fmtArea(valor) {
-  return typeof valor === 'number' ? `${valor} m²` : 'sem limite definido'
+  return typeof valor === 'number' ? fmtUn(valor, 'm²') : 'sem limite definido'
 }
+const m2 = v => fmtUn(v, 'm²', 2, `${v} m²`)
 
 // Único parágrafo mostrado quando a edificação se enquadra inteira num
 // único compartimento (nenhum pavimento excede a área máxima do Anexo B, e
@@ -41,9 +43,9 @@ function fmtArea(valor) {
 function textoDentroDoLimite(r) {
   if (r.linhas.length === 1) {
     const l = r.linhas[0]
-    return `Compartimentação horizontal dispensada: a área de compartimentação considerada (${l.area} m²) está dentro da área máxima de compartimentação permitida (${fmtArea(l.valor)}) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — ${r.tipoNome} (Anexo B, NT 09 CBMMA), de modo que a edificação se enquadra em um único compartimento.`
+    return `Compartimentação horizontal dispensada: a área de compartimentação considerada (${m2(l.area)}) está dentro da área máxima de compartimentação permitida (${fmtArea(l.valor)}) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — ${r.tipoNome} (Anexo B, NT 09 CBMMA), de modo que a edificação se enquadra em um único compartimento.`
   }
-  const porPavimento = r.linhas.map(l => `${l.pavimento.label}: ${l.area} m² (máximo ${fmtArea(l.valor)})`).join('; ')
+  const porPavimento = r.linhas.map(l => `${l.pavimento.label}: ${m2(l.area)} (máximo ${fmtArea(l.valor)})`).join('; ')
   return `Compartimentação horizontal dispensada: a área de compartimentação considerada de todos os pavimentos está dentro da área máxima de compartimentação permitida no Tipo ${r.tipo} — ${r.tipoNome} (Anexo B, NT 09 CBMMA), de modo que a edificação se enquadra em um único compartimento — ${porPavimento}.`
 }
 
@@ -99,8 +101,8 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
         linhas: r.linhas.map(l => [
           l.pavimento.label,
           l.pavimento.divisao || '—',
-          l.areaPavimento ? `${l.areaPavimento} m²` : '—',
-          l.area ? `${l.area} m²${l.overrideAtivo ? ' (com interligação declarada)' : ''}` : '—',
+          l.areaPavimento ? m2(l.areaPavimento) : '—',
+          l.area ? `${m2(l.area)}${l.overrideAtivo ? ' (com interligação declarada)' : ''}` : '—',
           !l.encontrado ? '—' : fmtArea(l.valor),
           !l.area ? 'Pendente' : l.excede ? 'Excede — subdividir compartimento' : 'Conforme',
         ]),
@@ -110,7 +112,7 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
     if (r.pavimentosExcedentes.length > 0) {
       blocos.push({
         tipo: 'lista', estilo: 'alerta',
-        itens: r.pavimentosExcedentes.map(l => `ATENÇÃO: ${l.pavimento.label} (${l.area} m²) excede a área máxima de compartimentação (${l.valor} m²) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — subdividir em mais de um compartimento ou substituir por sistema alternativo (chuveiros automáticos e/ou detecção de incêndio, conforme nota de rodapé da Tabela 6 da NT 01 CBMMA aplicável).`),
+        itens: r.pavimentosExcedentes.map(l => `ATENÇÃO: ${l.pavimento.label} (${m2(l.area)}) excede a área máxima de compartimentação (${fmtArea(l.valor)}) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — subdividir em mais de um compartimento ou substituir por sistema alternativo (chuveiros automáticos e/ou detecção de incêndio, conforme nota de rodapé da Tabela 6 da NT 01 CBMMA aplicável).`),
       })
     }
 

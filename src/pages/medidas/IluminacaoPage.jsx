@@ -10,6 +10,7 @@ import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { statusPorProgresso, statusEstrutura } from '../../utils/statusEstrutura'
+import { fmtUn } from '../../utils/numero'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import luminaria30ledsImg from '../../assets/luminaria 30 leds.png'
 import blocoIluminacaoImg from '../../assets/bloco de iluminacao.png'
@@ -115,7 +116,7 @@ function EspecificacaoRow({ spec, eqLabel, campos, dispatch, defaultAberto }) {
   const [aberto, setAberto] = useState(!!defaultAberto)
   const setField = (key, value) => dispatch({ type: 'UPDATE_ESPECIFICACAO_EQUIPAMENTO', id: spec.id, changes: { [key]: value } })
   const nome = nomeEspecificacao(spec, eqLabel)
-  const resumo = [spec.tipoLampada, spec.fluxoLuminosoLm && `${spec.fluxoLuminosoLm} lm`].filter(Boolean).join(' · ')
+  const resumo = [spec.tipoLampada, spec.fluxoLuminosoLm && fmtUn(spec.fluxoLuminosoLm, 'lm', 2, `${spec.fluxoLuminosoLm} lm`)].filter(Boolean).join(' · ')
 
   return (
     <div className="border-t border-solid border-border">
@@ -372,7 +373,7 @@ function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclarament
     <Card className="mb-4">
       <CardHeader>
         <span className="text-[13px] font-semibold text-ink">{pavimento.label}</span>
-        {pavimento.area && <span className="text-[11px] text-ink-faint">{pavimento.area} m²</span>}
+        {pavimento.area && <span className="text-[11px] text-ink-faint">{fmtUn(pavimento.area, 'm²', 2, `${pavimento.area} m²`)}</span>}
         {alturaPisoPiso > 0 && <span className="text-[11px] text-ink-faint">· pé-direito {alturaPisoPiso} m</span>}
       </CardHeader>
       <div className="py-3.5 px-[18px] grid grid-cols-2 gap-6">
