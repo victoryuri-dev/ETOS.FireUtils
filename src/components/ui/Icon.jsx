@@ -12,6 +12,16 @@ import saidaEmergenciaIconSvg from '../../assets/icons/saidaemergencia-icon.svg?
 import detectorIconSvg from '../../assets/icons/detector-icon.svg?raw'
 import segEstruturalIconSvg from '../../assets/icons/seg-estrutural-icon.svg?raw'
 import alarmeIconSvg from '../../assets/icons/alarme-icon.svg?raw'
+import viaturaIconSvg from '../../assets/icons/viatura-icon.svg?raw'
+import compartHorizontalIconSvg from '../../assets/icons/compart-horizontal-icon.svg?raw'
+import compartVerticalIconSvg from '../../assets/icons/compart-vertical-icon.svg?raw'
+import sinalizacaoIconSvg from '../../assets/icons/sinalizacao-icon.svg?raw'
+import brigadaIconSvg from '../../assets/icons/brigada-icon.svg?raw'
+import controleAcabamentoIconSvg from '../../assets/icons/controle-acabamento-icon.svg?raw'
+import documentosIconSvg from '../../assets/icons/documentos-icon.svg?raw'
+import iluminacaoIconSvg from '../../assets/icons/iluminacao-icon.svg?raw'
+import gerenciamentoRiscoIconSvg from '../../assets/icons/gerenciamento-risco-icon.svg?raw'
+import sprinklerIconSvg from '../../assets/icons/sprinkler-icon.svg?raw'
 
 const ICONS = {
   left: ArrowLeft, right: ArrowRight, chevD: ChevronDown, chevL: ChevronLeft, chevR: ChevronRight,
@@ -38,6 +48,16 @@ const CUSTOM_ICONS = {
   detectorMedida: detectorIconSvg,
   segEstruturalMedida: segEstruturalIconSvg,
   alarmeMedida: alarmeIconSvg,
+  viaturaMedida: viaturaIconSvg,
+  compartHorizontalMedida: compartHorizontalIconSvg,
+  compartVerticalMedida: compartVerticalIconSvg,
+  sinalizacaoMedida: sinalizacaoIconSvg,
+  brigadaMedida: brigadaIconSvg,
+  controleAcabamentoMedida: controleAcabamentoIconSvg,
+  documentosMedida: documentosIconSvg,
+  iluminacaoMedida: iluminacaoIconSvg,
+  gerenciamentoRiscoMedida: gerenciamentoRiscoIconSvg,
+  sprinklerMedida: sprinklerIconSvg,
 }
 
 export default function Icon({ name, size=16, color, strokeWidth, className='' }) {

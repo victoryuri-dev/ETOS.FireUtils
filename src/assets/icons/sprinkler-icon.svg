@@ -1,0 +1,6 @@
+<svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M281 315H352V371H160V315H230V176H281V315ZM492 119H425.895V203H425.832L425.895 203.062L353.062 275.895L317 239.832L371.895 184.938V119H139V184.938L193.895 239.832L157.832 275.895L85 203.062L85.0625 203H85V119H20V32H492V119Z" fill="currentColor"/>
+<rect x="236" y="415" width="40" height="64" fill="currentColor"/>
+<rect width="40" height="64" transform="matrix(-0.840152 -0.542351 -0.542351 0.840152 191.621 414.694)" fill="currentColor"/>
+<rect x="320" y="414.694" width="40" height="64" transform="rotate(-32.8438 320 414.694)" fill="currentColor"/>
+</svg>

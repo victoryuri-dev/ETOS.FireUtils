@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { supabase } from '../../lib/supabase'
 import { calcularSinalizacaoEstrutura } from '../../data/sinalizacao_calc'
 import Icon from '../../components/ui/Icon'
@@ -255,6 +256,7 @@ function ReferenciaNormativa({ sinNorma }) {
 export default function SinalizacaoPage() {
   const { state, dispatch } = useProjeto()
   const { sinalizacao: sinNorma } = useNorma()
+  const { porEstrutura } = useMedidasObrigatorias()
   const { TIPOS_PLACA, CATEGORIAS } = sinNorma
   const toast = useToast()
 
@@ -383,28 +385,44 @@ export default function SinalizacaoPage() {
 
         <ReferenciaNormativa sinNorma={sinNorma}/>
 
-        {state.estruturas.map(est => (
-          <EstruturaSection key={est.id} titulo={est.nome} status={statusSinalizacao(state.sinalizacao.filter(i => i.estruturaId === est.id).length)} conclusao={{ estruturaId: est.id, medida: 'sinalizacao', auto: !!est.origemRevit?.sinalizacao && state.sinalizacao.some(i => i.estruturaId === est.id) }} defaultOpen={false} extra={
-            <div className="flex items-center gap-2">
-              <EstruturaHeaderInfo estrutura={est} semArea/>
-              <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
-                onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}
-                disabled={buscandoEstruturaId === est.id}
-                title="Buscar do Revit só os dados desta estrutura">
-                <Icon name="upload" size={10}/>
-                {buscandoEstruturaId === est.id ? 'Buscando…' : 'Atualizar'}
-              </button>
-            </div>
-          }>
-            <SinalizacaoEstrutura
-              estruturaId={est.id}
-              itens={state.sinalizacao.filter(i => i.estruturaId === est.id)}
-              tiposPlaca={TIPOS_PLACA}
-              categorias={CATEGORIAS}
-              dispatch={dispatch}
-            />
-          </EstruturaSection>
-        ))}
+        {state.estruturas.map(est => {
+          const pe = porEstrutura.find(p => p.estrutura.id === est.id)
+          const exigido = !!pe?.sistemas?.sinalizacao?.ativo
+          const status = exigido
+            ? statusSinalizacao(state.sinalizacao.filter(i => i.estruturaId === est.id).length)
+            : statusEstrutura('concluido', 'Não exigida')
+          return (
+            <EstruturaSection key={est.id} titulo={est.nome} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'sinalizacao', auto: !!est.origemRevit?.sinalizacao && state.sinalizacao.some(i => i.estruturaId === est.id) } : null} defaultOpen={false} extra={
+              <div className="flex items-center gap-2">
+                <EstruturaHeaderInfo estrutura={est} semArea/>
+                {exigido && (
+                  <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
+                    onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}
+                    disabled={buscandoEstruturaId === est.id}
+                    title="Buscar do Revit só os dados desta estrutura">
+                    <Icon name="upload" size={10}/>
+                    {buscandoEstruturaId === est.id ? 'Buscando…' : 'Atualizar'}
+                  </button>
+                )}
+              </div>
+            }>
+              {!exigido ? (
+                <div className="ibox green">
+                  <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                  <span className="text-xs">Sinalização de emergência não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+                </div>
+              ) : (
+                <SinalizacaoEstrutura
+                  estruturaId={est.id}
+                  itens={state.sinalizacao.filter(i => i.estruturaId === est.id)}
+                  tiposPlaca={TIPOS_PLACA}
+                  categorias={CATEGORIAS}
+                  dispatch={dispatch}
+                />
+              )}
+            </EstruturaSection>
+          )
+        })}
 
         {state.estruturas.length === 0 && (
           <EmptyState texto="Nenhuma estrutura cadastrada ainda — configure as estruturas do projeto na Etapa 2."/>

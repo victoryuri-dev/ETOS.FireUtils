@@ -13,20 +13,16 @@ import {
 } from './deteccao_alarme_comum'
 
 function blocosConcepcao(norma) {
-  const a = norma.ALIMENTACAO, c = norma.CENTRAL, ac = norma.ACIONADOR, f = norma.FIACAO
+  const c = norma.CENTRAL, ac = norma.ACIONADOR, f = norma.FIACAO
   const paragrafos = []
 
   paragrafos.push({
     tipo: 'paragrafo',
-    texto: `O projeto contém os elementos necessários ao funcionamento do sistema e ao seu completo entendimento, com os procedimentos de elaboração do Projeto Técnico da NT 01 (${cita(norma, 'projeto')}) e a representação gráfica conforme a NT 04 — Símbolos gráficos para projeto de segurança contra incêndio (${cita(norma, 'simbolos')}).`,
+    texto: `O projeto contém os elementos necessários ao funcionamento do sistema e ao seu completo entendimento, com os procedimentos de elaboração do Projeto Técnico da NT 01 (${cita(norma, 'projeto')}).`,
   })
   paragrafos.push({
     tipo: 'paragrafo',
-    texto: `O sistema é dotado de duas fontes de alimentação: a principal, constituída pela ${a.principal}, e a auxiliar, constituída por bateria de acumuladores, nobreak ou gerador. Quando a fonte auxiliar for bateria de acumuladores ou nobreak, sua autonomia é de no mínimo ${a.autonomia_supervisao_h} horas em regime de supervisão e, em regime de alarme, de no mínimo ${a.autonomia_alarme_min} minutos para suprimento das indicações sonoras e/ou visuais ${a.autonomia_alarme_alternativa}; quando for gerador, os mesmos parâmetros de autonomia são atendidos (${cita(norma, 'alimentacao')}).`,
-  })
-  paragrafos.push({
-    tipo: 'paragrafo',
-    texto: `A central de detecção e alarme possui dispositivo de teste dos indicadores luminosos e dos sinalizadores acústicos (${cita(norma, 'teste_indicadores')}) e, juntamente com o painel repetidor, quando existente, é instalada em local com constante vigilância humana e de fácil visualização (${cita(norma, 'vigilancia')}). Aciona o alarme geral da edificação, que é audível em toda a edificação${c.alarme_sem_interferir_comunicacao_verbal ? ', sem interferir na comunicação verbal' : ''} (${cita(norma, 'alarme_geral')}), e contém painel ou esquema ilustrativo indicando a localização dos acionadores manuais e detectores, que pode ser substituído por display da central que indique a localização do acionamento (${cita(norma, 'painel_esquema')}).`,
+    texto: `A central de detecção e alarme possui dispositivo de teste dos indicadores luminosos e dos sinalizadores acústicos (${cita(norma, 'teste_indicadores')}) e é instalada em local com constante vigilância humana e de fácil visualização (${cita(norma, 'vigilancia')}). Aciona o alarme geral da edificação, que é audível em toda a edificação${c.alarme_sem_interferir_comunicacao_verbal ? ', sem interferir na comunicação verbal' : ''} (${cita(norma, 'alarme_geral')}), e contém painel ou esquema ilustrativo indicando a localização dos acionadores manuais e detectores (${cita(norma, 'painel_esquema')}).`,
   })
   paragrafos.push({
     tipo: 'paragrafo',
@@ -35,10 +31,6 @@ function blocosConcepcao(norma) {
   if (ac.excecoes?.length) {
     paragrafos.push({ tipo: 'paragrafo', texto: `Exceção prevista: ${ac.excecoes.map(e => `${e.divisoes.join(', ')} — ${e.texto}`).join('; ')}.` })
   }
-  paragrafos.push({
-    tipo: 'paragrafo',
-    texto: `Os acionadores manuais contêm a indicação de funcionamento (cor verde) e de alarme (cor vermelha) quando a central for do tipo convencional; sendo a central do tipo inteligente (endereçável), a indicação pode ser dispensada desde que a central supervisione de forma constante e periódica os equipamentos periféricos, e, havendo pré-alarme, o LED de alarme nos acionadores é obrigatório (${cita(norma, 'leds_acionadores')}).`,
-  })
   paragrafos.push({
     tipo: 'paragrafo',
     texto: `Os eletrodutos e a fiação atendem à ${f.norma} (${cita(norma, 'fiacao')})${f.protecao_calor ? ` e os elementos de proteção contra calor que contêm a fiação atendem a ${f.protecao_calor} (${cita(norma, 'protecao_calor')})` : ''}.`,
@@ -76,6 +68,20 @@ function blocosEstrutura(norma, { est, pavs: pavsBrutos }) {
     txt += ` Há ${qtd} subcentral${Number(qtd) === 1 ? '' : 'is'} interligada${Number(qtd) === 1 ? '' : 's'} à central supervisionadora, com emissão simultânea de sinal de alarme; o alarme geral para toda a edificação soa caso, em ${c.subcentral_retardo_max_min} minutos, não sejam tomadas medidas junto à central supervisionadora (${cita(norma, 'subcentral')}).`
   }
   blocos.push({ tipo: 'paragrafo', texto: txt })
+
+  // Indicação de funcionamento/alarme nos acionadores — só o que se aplica ao
+  // tipo de central efetivamente adotado nesta estrutura, não os dois modos.
+  if (cfg.central === 'enderecavel') {
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: `Por a central ser do tipo endereçável, a indicação de funcionamento e de alarme nos acionadores manuais é dispensada, uma vez que a central supervisiona de forma constante e periódica os equipamentos periféricos${cfg.preAlarme ? '; havendo pré-alarme, o LED de alarme nos acionadores é obrigatório' : ''} (${cita(norma, 'leds_acionadores')}).`,
+    })
+  } else if (cfg.central === 'convencional') {
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: `Os acionadores manuais contêm a indicação de funcionamento (cor verde) e de alarme (cor vermelha)${cfg.preAlarme ? ', e, havendo pré-alarme, o LED de alarme é obrigatório' : ''} (${cita(norma, 'leds_acionadores')}).`,
+    })
+  }
 
   // Alimentação: autonomia sempre narrada pelo mínimo normativo (não é campo do formulário)
   const fonte = cfg.fonteAuxiliar

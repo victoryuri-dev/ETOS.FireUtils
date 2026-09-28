@@ -81,7 +81,13 @@ const ORDEM_SECOES = [
  */
 export function buildMemorial(state, sistemas, porEstrutura) {
   const src = sistemas || state.sistemas || {}
-  const ativa = key => !!(src[key]?.ativo || src[key]?.obrigatorio)
+  // Só `ativo` — já cai para `obrigatorio` quando não há override manual
+  // (ver useMedidasObrigatorias.js). Usar o OR aqui reabria o mesmo bug
+  // corrigido nas páginas de forms: desativar manualmente uma medida
+  // obrigatória em TODAS as estruturas não bastava pra tirar o capítulo
+  // do memorial, porque `obrigatorio` (a norma, sem o override) continuava
+  // true e vencia no OR.
+  const ativa = key => !!src[key]?.ativo
 
   // Uma medida com builder que ninguem lembrou de colocar em ORDEM_SECOES
   // entra no fim, em vez de sumir do documento sem aviso — omitir uma secao
@@ -93,7 +99,7 @@ export function buildMemorial(state, sistemas, porEstrutura) {
     .map(key => MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura))
     .filter(Boolean)
 
-  if (src.hidrantes?.ativo || src.hidrantes?.obrigatorio) {
+  if (src.hidrantes?.ativo) {
     secoes.push(textoMemorialCalculoHidrantes(state))
   }
 

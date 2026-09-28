@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento } from '../../data/brigada_calc'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
@@ -78,7 +79,7 @@ const ORDEM_NIVEL = { basico: 1, intermediario: 2, avancado: 3 }
 // ── Estrutura (card colapsável) com o dimensionamento da brigada ─────────
 // Mesma estrutura visual da Compartimentação: EstruturaSection com status +
 // um Card da medida (título + resumo) contendo a tabela por pavimento.
-function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, dispatch }) {
+function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, dispatch, exigido }) {
   const linhasCalculadas = pavimentos.map(pav => {
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
     return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela) }
@@ -88,7 +89,9 @@ function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresR
   const resolvidos = linhasCalculadas.filter(l => l.linha && (l.linha.isento || l.resultado?.brigadistas != null)).length
   // Status base: nunca "concluído" — o verde vem só do botão de concluir
   // (EstruturaSection, prop `conclusao`).
-  const status = pavimentos.length === 0
+  const status = !exigido
+    ? statusEstrutura('concluido', 'Não exigida')
+    : pavimentos.length === 0
     ? statusEstrutura('pendente', 'Sem pavimentos')
     : resolvidos === 0
       ? statusEstrutura('pendente', 'População pendente')
@@ -120,7 +123,13 @@ function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresR
   const instalacaoMax = nivelMaisAlto('nivelInstalacao')
 
   return (
-    <EstruturaSection titulo={estrutura.nome} extra={<EstruturaHeaderInfo estrutura={estrutura} semArea/>} status={status} conclusao={pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'brigada' } : null} defaultOpen={false}>
+    <EstruturaSection titulo={estrutura.nome} extra={<EstruturaHeaderInfo estrutura={estrutura} semArea/>} status={status} conclusao={exigido && pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'brigada' } : null} defaultOpen={false}>
+      {!exigido ? (
+        <div className="ibox green">
+          <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+          <span className="text-xs">Brigada de incêndio não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+        </div>
+      ) : (
       <Card>
         <div className="py-3.5 px-[18px] flex items-center justify-between border-b border-solid border-border">
           <div className="flex items-center gap-2">
@@ -190,6 +199,7 @@ function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresR
 
         </div>
       </Card>
+      )}
     </EstruturaSection>
   )
 }
@@ -245,6 +255,7 @@ function ReferenciaNormativa({ brigNorma }) {
 export default function BrigadaIncendioPage() {
   const { state, dispatch } = useProjeto()
   const { extintores: extNorma, brigada: brigNorma, cnaesDiv } = useNorma()
+  const { porEstrutura } = useMedidasObrigatorias()
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -263,19 +274,23 @@ export default function BrigadaIncendioPage() {
 
         <ReferenciaNormativa brigNorma={brigNorma}/>
 
-        {state.estruturas.map(est => (
-          <EstruturaBrigada
-            key={est.id}
-            estrutura={est}
-            pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
-            cargaEst={state.cargaState[est.id] || {}}
-            cnaesDiv={cnaesDiv}
-            limiaresRisco={extNorma.LIMIARES_RISCO}
-            tabela={brigNorma.TABELA_A1}
-            notasTabela={brigNorma.NOTAS_TABELA_A1}
-            dispatch={dispatch}
-          />
-        ))}
+        {state.estruturas.map(est => {
+          const pe = porEstrutura.find(p => p.estrutura.id === est.id)
+          return (
+            <EstruturaBrigada
+              key={est.id}
+              estrutura={est}
+              pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
+              cargaEst={state.cargaState[est.id] || {}}
+              cnaesDiv={cnaesDiv}
+              limiaresRisco={extNorma.LIMIARES_RISCO}
+              tabela={brigNorma.TABELA_A1}
+              notasTabela={brigNorma.NOTAS_TABELA_A1}
+              dispatch={dispatch}
+              exigido={!!pe?.sistemas?.brigada?.ativo}
+            />
+          )
+        })}
       </div>
     </div>
   )

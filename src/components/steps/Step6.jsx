@@ -6,21 +6,21 @@ import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 const SIST_CONFIG = [
-  { key:'acesso_viatura',      icon:'van',         label:'Acesso de Viatura em Edificacoes'   },
+  { key:'acesso_viatura',      icon:'viaturaMedida', label:'Acesso de Viatura em Edificacoes'   },
   { key:'seg_estrutural',      icon:'wallFire',    label:'Seg. Estrutural Contra Incendio'    },
-  { key:'compart_horizontal',  icon:'wallCompart', label:'Compartimentacao Horizontal'        },
-  { key:'compart_vertical',    icon:'stair',       label:'Compartimentacao Vertical'          },
-  { key:'controle_acabamento', icon:'sign',        label:'Controle de Materiais de Acabamento'},
+  { key:'compart_horizontal',  icon:'compartHorizontalMedida', label:'Compartimentacao Horizontal'        },
+  { key:'compart_vertical',    icon:'compartVerticalMedida',   label:'Compartimentacao Vertical'          },
+  { key:'controle_acabamento', icon:'controleAcabamentoMedida', label:'Controle de Materiais de Acabamento'},
   { key:'saida_emergencia',    icon:'exit',        label:'Saida de Emergencia'                },
-  { key:'gerenciamento_risco', icon:'warn',        label:'Gerenciamento de Risco de Incendio' },
-  { key:'brigada',             icon:'shieldAlert', label:'Brigada de Incendio'                },
-  { key:'iluminacao',          icon:'sun',         label:'Iluminacao de Emergencia'           },
-  { key:'sinalizacao',         icon:'sign',        label:'Sinalizacao de Emergencia'          },
+  { key:'gerenciamento_risco', icon:'gerenciamentoRiscoMedida', label:'Gerenciamento de Risco de Incendio' },
+  { key:'brigada',             icon:'brigadaMedida', label:'Brigada de Incendio'                },
+  { key:'iluminacao',          icon:'iluminacaoMedida', label:'Iluminacao de Emergencia'           },
+  { key:'sinalizacao',         icon:'sinalizacaoMedida', label:'Sinalizacao de Emergencia'          },
   { key:'extintores',          icon:'ext',         label:'Protecao por Extintores'            },
   { key:'hidrantes',           icon:'drop',        label:'Hidrantes / Mangotinho'             },
   { key:'alarme',              icon:'alarmeMedida',label:'Alarme de Incendio'                 },
   { key:'deteccao',            icon:'alarmSmoke',  label:'Deteccao de Incendio'               },
-  { key:'sprinklers',          icon:'spray',       label:'Chuveiros Automaticos'              },
+  { key:'sprinklers',          icon:'sprinklerMedida', label:'Chuveiros Automaticos'              },
   { key:'controle_fumaca',     icon:'flame',       label:'Controle de Fumaca'                 },
   { key:'central_gas',         icon:'info',        label:'Central de Gas'                     },
   { key:'spda',                icon:'warn',        label:'SPDA'                                },
@@ -35,7 +35,7 @@ const SIST_CONFIG = [
 const SIST_CONFIG_DIMENSIONAMENTO = [
   { key:'saida_emergencia', icon:'exit', label:'Saida de Emergencia'      },
   { key:'hidrantes',        icon:'drop', label:'Hidrantes / Mangotinho'   },
-  { key:'sprinklers',       icon:'spray',label:'Chuveiros Automaticos'    },
+  { key:'sprinklers',       icon:'sprinklerMedida',label:'Chuveiros Automaticos'    },
 ]
 
 const RISCOS_CONFIG = [

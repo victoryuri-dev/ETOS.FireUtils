@@ -6,21 +6,21 @@ import logoSymbol from '../../assets/ETOS-SYMBOLL.png'
 
 // Lista completa de sistemas — mesma ordem do Step7
 const SISTEMAS = [
-  { key:'acesso_viatura',      icon:'van',                   label:'Acesso de Viatura' },
+  { key:'acesso_viatura',      icon:'viaturaMedida',         label:'Acesso de Viatura' },
   { key:'seg_estrutural',      icon:'segEstruturalMedida',   label:'Seg. Estrutural' },
-  { key:'compart_horizontal',  icon:'wallCompart',           label:'Compartimentação Horizontal' },
-  { key:'compart_vertical',    icon:'stair',                 label:'Compartimentação Vertical' },
-  { key:'controle_acabamento', icon:'sign',                  label:'Controle de Acabamento' },
+  { key:'compart_horizontal',  icon:'compartHorizontalMedida', label:'Compartimentação Horizontal' },
+  { key:'compart_vertical',    icon:'compartVerticalMedida',   label:'Compartimentação Vertical' },
+  { key:'controle_acabamento', icon:'controleAcabamentoMedida', label:'Controle de Acabamento' },
   { key:'saida_emergencia',    icon:'saidaEmergenciaMedida', label:'Saídas de Emergência' },
-  { key:'gerenciamento_risco', icon:'warn',                  label:'Gerenciamento de Risco' },
-  { key:'brigada',             icon:'shieldAlert',           label:'Brigada de Incêndio' },
-  { key:'iluminacao',          icon:'sun',                   label:'Iluminação de Emergência' },
-  { key:'sinalizacao',         icon:'sign',                  label:'Sinalização' },
+  { key:'gerenciamento_risco', icon:'gerenciamentoRiscoMedida', label:'Gerenciamento de Risco' },
+  { key:'brigada',             icon:'brigadaMedida',         label:'Brigada de Incêndio' },
+  { key:'iluminacao',          icon:'iluminacaoMedida',      label:'Iluminação de Emergência' },
+  { key:'sinalizacao',         icon:'sinalizacaoMedida',     label:'Sinalização' },
   { key:'extintores',          icon:'extintorMedida',        label:'Extintores' },
   { key:'hidrantes',           icon:'hidranteMedida',        label:'Hidrantes / Mangotinho' },
   { key:'alarme',              icon:'alarmeMedida',          label:'Alarme de Incêndio' },
   { key:'deteccao',            icon:'detectorMedida',        label:'Detecção de Incêndio' },
-  { key:'sprinklers',          icon:'spray',                 label:'Chuveiros Automáticos' },
+  { key:'sprinklers',          icon:'sprinklerMedida',       label:'Chuveiros Automáticos' },
   { key:'controle_fumaca',     icon:'flame',                 label:'Controle de Fumaça' },
   { key:'central_gas',         icon:'info',                  label:'Central de Gás' },
   { key:'spda',                icon:'warn',                  label:'SPDA' },
@@ -133,7 +133,7 @@ export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }
 
         <div className="border-t border-solid border-border mt-1.5"/>
         <SectionLabel text="Documentos" collapsed={col}/>
-        <NavItem pageKey="documentos" icon="file" label="Documentos" {...itemProps}/>
+        <NavItem pageKey="documentos" icon="documentosMedida" label="Documentos" {...itemProps}/>
       </div>
 
     </aside>

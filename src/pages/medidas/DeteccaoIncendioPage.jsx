@@ -43,7 +43,9 @@ function EstruturaDeteccao({ estrutura, pavimentos: pavsBrutos, norma, exigido }
 
   const { especificas, gerais } = notasAplicaveis(norma, pavimentos.map(p => p.divisao))
 
-  const status = pavimentos.length === 0
+  const status = !exigido
+    ? statusEstrutura('concluido', 'Não exigida')
+    : pavimentos.length === 0
     ? statusEstrutura('pendente', 'Sem pavimentos')
     : resolvidos === 0
       ? statusEstrutura('pendente', 'Dados pendentes')
@@ -54,16 +56,16 @@ function EstruturaDeteccao({ estrutura, pavimentos: pavsBrutos, norma, exigido }
       titulo={estrutura.nome}
       extra={<EstruturaHeaderInfo estrutura={estrutura} semArea/>}
       status={status}
-      conclusao={pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'deteccao' } : null}
+      conclusao={exigido && pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'deteccao' } : null}
       defaultOpen={false}
     >
-      {!exigido && (
-        <div className="ibox amber mb-3.5">
-          <Icon name="info" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">O sistema de detecção não consta como exigido para a ocupação e a altura desta estrutura. Preencha apenas se for adotado.</span>
+      {!exigido ? (
+        <div className="ibox green">
+          <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+          <span className="text-xs">Sistema de detecção não exigido para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
         </div>
-      )}
-
+      ) : (
+      <>
       <div className="flex flex-col gap-3">
         <Card titulo="Detectores por pavimento" icone={SISTEMA_ICON.deteccao}>
           <div className="text-[11px] text-ink-faint leading-[1.6] mb-3">
@@ -164,6 +166,8 @@ function EstruturaDeteccao({ estrutura, pavimentos: pavsBrutos, norma, exigido }
       </div>
 
       <NotasDaNorma especificas={especificas} gerais={gerais} sigla={nrm.sigla}/>
+      </>
+      )}
     </EstruturaSection>
   )
 }
@@ -210,7 +214,7 @@ export default function DeteccaoIncendioPage() {
           const pe = porEstrutura.find(p => p.estrutura.id === est.id)
           return (
             <EstruturaDeteccao key={est.id} estrutura={est} pavimentos={pavimentos} norma={norma}
-              exigido={!!(pe?.sistemas?.deteccao?.obrigatorio || pe?.sistemas?.deteccao?.ativo)}/>
+              exigido={!!pe?.sistemas?.deteccao?.ativo}/>
           )
         })}
       </div>

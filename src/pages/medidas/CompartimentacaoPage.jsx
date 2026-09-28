@@ -453,8 +453,8 @@ export default function CompartimentacaoPage() {
               pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
               areaCompartimentacaoHorizontal={state.areaCompartimentacaoHorizontal}
               compart={compart}
-              obrigH={!!pe?.medidas?.compart_horizontal}
-              obrigV={!!pe?.medidas?.compart_vertical}
+              obrigH={!!pe?.sistemas?.compart_horizontal?.ativo}
+              obrigV={!!pe?.sistemas?.compart_vertical?.ativo}
               dispatch={dispatch}
             />
           )

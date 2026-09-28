@@ -14,6 +14,22 @@ import { calcularSinalizacaoEstrutura } from '../sinalizacao_calc'
 // tamanho de uma tabela para outra (ver BlocoMedida em MemorialDescritivoPage.jsx).
 const LARGURAS_TABELA = ['52px', '56px', 'auto', '48px']
 
+// Condição de instalação (altura/posição) de cada placa efetivamente usada
+// no projeto — agrupada por texto igual, pra não repetir a mesma condição
+// uma vez por código (ex.: todas as placas de equipamento compartilham "a
+// 1,80 m de altura..."). É a mesma condição em qualquer estrutura (não
+// depende de dado por-estrutura), por isso entra uma única vez na
+// introdução da seção, não repetida a cada estrutura.
+function condicoesInstalacao(tiposUsados) {
+  const porTexto = new Map()
+  tiposUsados.forEach(t => {
+    if (!t.localInstalacao) return
+    if (!porTexto.has(t.localInstalacao)) porTexto.set(t.localInstalacao, [])
+    porTexto.get(t.localInstalacao).push(t.codigo)
+  })
+  return [...porTexto.entries()].map(([texto, codigos]) => `${codigos.join(', ')}: ${texto}.`)
+}
+
 // Granularidade só até estrutura (sem pavimento) — ver comentário no topo de
 // SinalizacaoPage.jsx.
 function blocosDaEstrutura(est, itensEst, tiposPlaca) {
@@ -42,10 +58,17 @@ export function textoMemorialSinalizacao(state) {
   const { TIPOS_PLACA, NOTAS } = norma
   const itensSinalizacao = state.sinalizacao || []
 
-  const blocos = [{
-    tipo: 'paragrafo',
-    texto: `A sinalização de emergência da edificação segue os pictogramas, cores e formas padronizados pela NBR 13434 (partes 1 a 3), abrangendo placas de proibição, alerta, orientação/saída de emergência e indicação de equipamentos de combate a incêndio, conforme NT 20 CBMMA. ${NOTAS.quantidade}`,
-  }]
+  const { porTipo: porTipoProjeto } = calcularSinalizacaoEstrutura(itensSinalizacao, TIPOS_PLACA)
+  const tiposUsadosProjeto = TIPOS_PLACA.filter(t => porTipoProjeto[t.key] > 0)
+  const instalacao = condicoesInstalacao(tiposUsadosProjeto)
+
+  const blocos = [
+    {
+      tipo: 'paragrafo',
+      texto: `A sinalização de emergência da edificação segue os pictogramas, cores e formas padronizados pela NBR 13434 (partes 1 a 3), abrangendo placas de proibição, alerta, orientação/saída de emergência e indicação de equipamentos de combate a incêndio, conforme NT 20 CBMMA. ${NOTAS.quantidade}`,
+    },
+    ...(instalacao.length > 0 ? [{ tipo: 'campo', label: 'Condições de instalação', valor: instalacao.join(' ') }] : []),
+  ]
 
   const blocosEstruturas = (state.estruturas || []).flatMap(est =>
     blocosDaEstrutura(est, itensSinalizacao.filter(i => i.estruturaId === est.id), TIPOS_PLACA)

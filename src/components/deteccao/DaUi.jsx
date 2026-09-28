@@ -36,16 +36,22 @@ export function Rotulo({ children, dica }) {
   )
 }
 
-/** Linha-pergunta com liga/desliga (clique em qualquer lugar da linha). Sem
- * tip nem citação de item — só o título; ativado, a implicação normativa
- * (`descricao`) aparece como ponto de atenção logo abaixo do título, na
- * mesma coluna (entre o título e o switch, nunca por baixo da linha inteira). */
-export function LinhaChave({ titulo, descricao, checked, onChange, aviso }) {
+/** Linha-pergunta com liga/desliga (clique em qualquer lugar da linha). Por
+ * padrão, a explicação (`descricao`) fica num tip "(?)" ao lado do título,
+ * pra quem já conhece a norma não precisar ler o parágrafo.
+ * `pontoDeAtencao` (casos raros, como a tecnologia sem fio) troca isso: sem
+ * item nem tip no título, e a descrição vira uma mensagem de atenção (âmbar)
+ * logo abaixo, só quando ativado — porque ali a implicação é séria o
+ * suficiente pra não depender de o usuário passar o mouse. */
+export function LinhaChave({ titulo, descricao, checked, onChange, aviso, pontoDeAtencao = false }) {
   return (
     <div className="flex items-center justify-between gap-4 py-2.5 border-b border-solid border-border last:border-b-0">
       <div className="min-w-0">
-        <div className="text-[13px] text-ink font-medium">{titulo}</div>
-        {checked && descricao && (
+        <div className="text-[13px] text-ink font-medium flex items-center gap-1.5">
+          {titulo}
+          {!pontoDeAtencao && descricao && <InfoTip text={descricao}/>}
+        </div>
+        {pontoDeAtencao && checked && descricao && (
           <div className="flex items-start gap-1.5 mt-1">
             <Icon name="warn" size={12} color="var(--color-amber)" className="shrink-0 mt-0.5"/>
             <div className="text-[11px] text-amber leading-[1.5]">{descricao}</div>

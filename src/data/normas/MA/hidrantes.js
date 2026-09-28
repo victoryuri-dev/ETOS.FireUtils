@@ -148,6 +148,35 @@ export const BOMBA_RESERVA_POR_RISCO = {
 // Vazão acima da qual o dispositivo de recalque precisa de 2 entradas (5.3.3)
 export const VAZAO_LIMITE_RECALQUE_DUPLO = 1000
 
+// ── Condições de instalação — válvulas, posicionamento dos pontos de
+// tomada de água e abrigos (itens 5.5.1, 5.7.1 a 5.7.3 e Anexo D) ──────────
+export const INSTALACAO = {
+  valvula: {
+    tipo: 'globo angular',
+    dn: 'DN65 (2 ½")',
+    dnReduzido: 'DN50 (2")', // tipos 1 e 2, quando adotada tubulação nesse diâmetro (item 5.5.1.1)
+    angulo_graus: 45,
+    altura_min_m: 0.60,
+    altura_max_m: 1.50,
+    ref: 'item 5.5.1, NT 22 CBMMA',
+  },
+  posicionamento: {
+    distancia_porta_max_m: 5,
+    altura_min_m: 1.0,
+    altura_max_m: 1.5,
+    ref: 'itens 5.7.1.1 a 5.7.1.4, NT 22 CBMMA',
+  },
+  hidranteExterno: {
+    afastamento_fator_altura: 1.5, // vezes a altura da edificação protegida
+    mangueira_max_m: 60,
+    ref: 'item 5.7.2, NT 22 CBMMA',
+  },
+  abrigo: {
+    distancia_porta_max_m: 5,
+    ref: 'itens D.2.2, D.2.3, D.2.7 e D.2.8, Anexo D, NT 22 CBMMA',
+  },
+}
+
 // ── NPSH disponível — entradas de sucção (Anexo C) ──────────────────────
 // Ha (pressão atmosférica local, por altitude) e Hvp (pressão de vapor da
 // água, por temperatura) são propriedades físicas — não normativas — mas

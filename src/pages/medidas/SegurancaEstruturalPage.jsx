@@ -1,5 +1,6 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { calcularTRRF, metodologiaDosMateriais, alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
@@ -34,7 +35,7 @@ function LinhaPavimento({ linha }) {
   )
 }
 
-function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao, materiaisMapa, dispatch }) {
+function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao, materiaisMapa, dispatch, exigido }) {
   const sub = parseInt(est.nSubsolos) || 0
   const resultado = calcularTRRF(pavimentos, est, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao)
   const metodologias = metodologiaDosMateriais(est.estrutura, materiaisMapa)
@@ -42,15 +43,23 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
   const setObs = (v) => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'obsSegEstrutural', value: v })
 
   const faltando = [!resultado.classeAltura, sub > 0 && !est.profundidadeSubsolo, metodologias.length === 0].filter(Boolean).length
-  const status =
-    faltando === 3 || (faltando > 0 && !resultado.classeAltura) ? statusEstrutura('pendente', 'Dados pendentes')
+  const status = !exigido
+    ? statusEstrutura('concluido', 'Não exigida')
+    : faltando === 3 || (faltando > 0 && !resultado.classeAltura) ? statusEstrutura('pendente', 'Dados pendentes')
     : faltando > 0 ? statusEstrutura('andamento', 'Em andamento')
     : resultado.pendenciasNaoRegressao.length > 0 ? statusEstrutura('atencao', 'Revisar TRRF')
     : resultado.avisos.length > 0 ? statusEstrutura('andamento', 'Consultar SSCI')
     : statusEstrutura('concluido', 'TRRF definido')
 
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={{ estruturaId: est.id, medida: 'seguranca_estrutural' }} defaultOpen={false}>
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'seguranca_estrutural' } : null} defaultOpen={false}>
+      {!exigido ? (
+        <div className="ibox green">
+          <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+          <span className="text-xs">Segurança estrutural contra incêndio não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+        </div>
+      ) : (
+      <>
       <Card className="mb-3">
         <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
           <div>
@@ -147,6 +156,8 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
           />
         </div>
       </Card>
+      </>
+      )}
     </EstruturaSection>
   )
 }
@@ -154,6 +165,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
 export default function SegurancaEstruturalPage() {
   const { state, dispatch } = useProjeto()
   const { trrf } = useNorma()
+  const { porEstrutura } = useMedidasObrigatorias()
   const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO, METODOLOGIA_POR_MATERIAL } = trrf
 
   return (
@@ -171,19 +183,23 @@ export default function SegurancaEstruturalPage() {
           </p>
         </div>
 
-        {state.estruturas.map(est => (
-          <EstruturaTRRF
-            key={est.id}
-            est={est}
-            pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
-            tabela={TABELA_TRRF}
-            classesAltura={CLASSES_ALTURA}
-            classesSubsolo={CLASSES_SUBSOLO}
-            divisoesSemOcupacao={DIVISOES_SEM_OCUPACAO_SUBSOLO}
-            materiaisMapa={METODOLOGIA_POR_MATERIAL}
-            dispatch={dispatch}
-          />
-        ))}
+        {state.estruturas.map(est => {
+          const pe = porEstrutura.find(p => p.estrutura.id === est.id)
+          return (
+            <EstruturaTRRF
+              key={est.id}
+              est={est}
+              pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
+              tabela={TABELA_TRRF}
+              classesAltura={CLASSES_ALTURA}
+              classesSubsolo={CLASSES_SUBSOLO}
+              divisoesSemOcupacao={DIVISOES_SEM_OCUPACAO_SUBSOLO}
+              materiaisMapa={METODOLOGIA_POR_MATERIAL}
+              dispatch={dispatch}
+              exigido={!!pe?.sistemas?.seg_estrutural?.ativo}
+            />
+          )
+        })}
       </div>
     </div>
   )

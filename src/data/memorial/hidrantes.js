@@ -8,6 +8,7 @@ import { getHidrantes } from '../normas/index'
 import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
 
 const f2 = (n) => Number(n).toFixed(2)
+const fmtM = n => f2(n).replace(/,?0+$/, '').replace(/\.$/, '').replace('.', ',')
 const LABEL_ACIONAMENTO = { eletrico: 'motor elétrico', combustao: 'motor de combustão interna' }
 const LABEL_RECALQUE = {
   coluna_fachada: 'tipo coluna, instalado na fachada',
@@ -160,6 +161,25 @@ export function textoMemorialHidrantes(state) {
       ['Válvulas de bloqueio', LABEL_VALVULA_BLOQUEIO[h.valvulaBloqueioTipo] || '—'],
     ],
   })
+
+  if (norma.INSTALACAO) {
+    const inst = norma.INSTALACAO
+    blocos.push({ tipo: 'titulo2', texto: 'Instalação' })
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: `As válvulas dos hidrantes são do tipo ${inst.valvula.tipo}, de diâmetro ${inst.valvula.dn}, com saída voltada para baixo em ângulo de ${inst.valvula.angulo_graus}° e instaladas a uma altura entre ${fmtM(inst.valvula.altura_min_m)} m e ${fmtM(inst.valvula.altura_max_m)} m em relação ao piso (${inst.valvula.ref}).`,
+    })
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: `Os pontos de tomada de água ficam posicionados nas proximidades das portas externas, escadas e/ou acesso principal a ser protegido, a não mais de ${inst.posicionamento.distancia_porta_max_m} m, em posições centrais das áreas protegidas, fora de escadas ou antecâmaras de fumaça, a uma altura entre ${fmtM(inst.posicionamento.altura_min_m)} m e ${fmtM(inst.posicionamento.altura_max_m)} m do piso (${inst.posicionamento.ref}).`,
+    })
+    if (dadosTipo.componentes.abrigo === 'obrigatorio') {
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: `O abrigo de mangueiras não fica instalado a mais de ${inst.abrigo.distancia_porta_max_m} m da porta de acesso da área protegida, com a porta situada na face mais larga, disposto de modo a não ficar bloqueado em caso de incêndio, e não instalado em frente a acessos de entrada e saída de pedestres, garagens, estacionamentos, rampas, escadas e seus patamares (${inst.abrigo.ref}).`,
+      })
+    }
+  }
 
   if (h.observacoes) {
     blocos.push({ tipo: 'titulo2', texto: 'Observações Complementares' })

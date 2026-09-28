@@ -58,7 +58,9 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
 
   const local = cfg.centralLocal ? { label: cfg.centralLocal } : null
 
-  const status = !cfg.central || !cfg.centralLocal || !cfg.fonteAuxiliar
+  const status = !exigido
+    ? statusEstrutura('concluido', 'Não exigida')
+    : !cfg.central || !cfg.centralLocal || !cfg.fonteAuxiliar
     ? (cfg.central || cfg.centralLocal || cfg.fonteAuxiliar ? statusEstrutura('andamento', 'Em andamento') : statusEstrutura('pendente', 'Configuração pendente'))
     : statusEstrutura('andamento', 'Revisar e concluir')
 
@@ -67,16 +69,16 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
       titulo={estrutura.nome}
       extra={<EstruturaHeaderInfo estrutura={estrutura} semArea/>}
       status={status}
-      conclusao={pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'alarme' } : null}
+      conclusao={exigido && pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'alarme' } : null}
       defaultOpen={false}
     >
-      {!exigido && (
-        <div className="ibox amber mb-3.5">
-          <Icon name="info" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">O sistema de alarme não consta como exigido para a ocupação e a altura desta estrutura. Preencha apenas se for adotado.</span>
+      {!exigido ? (
+        <div className="ibox green">
+          <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+          <span className="text-xs">Sistema de alarme não exigido para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
         </div>
-      )}
-
+      ) : (
+      <>
       <div className="flex flex-col gap-3">
         {/* Central */}
         <Card titulo="Central de detecção e alarme" icone={SISTEMA_ICON.alarme}>
@@ -157,7 +159,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
             <BotaoOpcao ativo={cfg.tipoAvisador === 'visual'} onClick={() => setCfg({ tipoAvisador: 'visual' })}>Avisadores visuais</BotaoOpcao>
             <BotaoOpcao ativo={cfg.tipoAvisador === 'audiovisual'} onClick={() => setCfg({ tipoAvisador: 'audiovisual' })}>Avisadores audiovisuais</BotaoOpcao>
           </div>
-          <LinhaChave titulo="Tecnologia sem fio (wireless)" item={itens.sem_fio}
+          <LinhaChave titulo="Tecnologia sem fio (wireless)" pontoDeAtencao
             descricao={semFio.anexos?.length ? `Exige os atestados dos Anexos ${semFio.anexos.join(' e ')} da norma.` : (semFio.certificacao_laboratorio ? 'Exige certificação em laboratório reconhecido, com laudo de ensaio.' : null)}
             checked={cfg.semFio} onChange={v => setCfg({ semFio: v })}/>
 
@@ -213,6 +215,8 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
       </div>
 
       <NotasDaNorma especificas={especificas} gerais={gerais} sigla={nrm.sigla}/>
+      </>
+      )}
     </EstruturaSection>
   )
 }
@@ -255,7 +259,7 @@ export default function AlarmeIncendioPage() {
           const pe = porEstrutura.find(p => p.estrutura.id === est.id)
           return (
             <EstruturaAlarme key={est.id} estrutura={est} pavimentos={pavimentos} norma={norma}
-              exigido={!!(pe?.sistemas?.alarme?.obrigatorio || pe?.sistemas?.alarme?.ativo)}/>
+              exigido={!!pe?.sistemas?.alarme?.ativo}/>
           )
         })}
       </div>

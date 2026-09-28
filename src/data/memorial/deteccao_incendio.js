@@ -8,7 +8,7 @@ import {
   TIPOS_DETECTOR, deteccaoDaEstrutura, resumoDeteccaoPavimento, notasAplicaveis, comAreaEfetiva,
 } from '../deteccao_alarme_calc'
 import {
-  fmt, cita, listaDivisoes, estruturasDaMedida, blocosObjetivoEReferencias, blocosExigibilidade,
+  fmt, cita, listaDivisoes, estruturasDaMedida,
   blocosComissionamento, blocosManutencao,
 } from './deteccao_alarme_comum'
 
@@ -129,8 +129,6 @@ export function textoMemorialDeteccaoIncendio(state, sistemas, porEstrutura) {
   ]
 
   const blocos = [
-    ...blocosObjetivoEReferencias(norma, 'deteccao'),
-    ...blocosExigibilidade(norma, 'deteccao', 'sistema de detecção de incêndio', lista),
     ...concepcao,
     ...(lista.length > 0
       ? [{ tipo: 'titulo2', texto: 'Dimensionamento por edificação' }, ...lista.flatMap(item => blocosEstrutura(norma, item))]

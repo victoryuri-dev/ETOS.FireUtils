@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { divisoesDaEstrutura } from '../../utils/classificacao'
 import { montarLinhas, resumoCMAR, ORDEM_CLASSE, formatarClasses } from '../../data/cmar_calc'
 import { MATERIAIS_INCOMBUSTIVEIS, buscarMaterialIncombustivel, CLASSE_INCOMBUSTIVEL, MATERIAIS_ENSAIADOS, buscarMaterialEnsaiado } from '../../data/materiaisAcabamento'
@@ -171,14 +172,22 @@ const STATUS_RESUMO = {
   DADOS_INSUFICIENTES:   statusEstrutura('pendente', 'Dados insuficientes'),
 }
 
-function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispatch }) {
+function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispatch, exigido }) {
   const divisoes = divisoesDaEstrutura(pavimentos)
   const linhas = montarLinhas(divisoes, tabela, itens)
   const resumo = resumoCMAR(linhas)
   const info = RESUMO_INFO[resumo]
+  const status = exigido ? STATUS_RESUMO[resumo] : statusEstrutura('concluido', 'Não exigida')
 
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={STATUS_RESUMO[resumo]} conclusao={{ estruturaId: est.id, medida: 'controle_acabamento' }} defaultOpen={false}>
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'controle_acabamento' } : null} defaultOpen={false}>
+      {!exigido ? (
+        <div className="ibox green">
+          <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+          <span className="text-xs">Controle de materiais de acabamento não exigido para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+        </div>
+      ) : (
+      <>
       {Object.keys(tabela).length === 0 ? (
         <div className="ibox amber">
           <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
@@ -212,6 +221,8 @@ function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispat
         <Icon name={resumo === 'ATENDE' ? 'check' : 'warn'} size={14} color={`var(--color-${resumo === 'ATENDE' ? 'green' : resumo === 'NAO_ATENDE' ? 'red' : 'amber'})`} className="shrink-0"/>
         <span className="text-xs"><strong>{info.titulo}</strong> — {info.texto}</span>
       </div>
+      </>
+      )}
     </EstruturaSection>
   )
 }
@@ -220,6 +231,7 @@ export default function ControleAcabamentoPage() {
   const { state, dispatch } = useProjeto()
   const { cmar, ocupacoes } = useNorma()
   const { TABELA_B1 } = cmar
+  const { porEstrutura } = useMedidasObrigatorias()
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -236,17 +248,21 @@ export default function ControleAcabamentoPage() {
           </p>
         </div>
 
-        {state.estruturas.map(est => (
-          <EstruturaAcabamento
-            key={est.id}
-            est={est}
-            pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
-            tabela={TABELA_B1}
-            ocupacoes={ocupacoes}
-            itens={state.acabamentos.filter(a => a.estruturaId === est.id)}
-            dispatch={dispatch}
-          />
-        ))}
+        {state.estruturas.map(est => {
+          const pe = porEstrutura.find(p => p.estrutura.id === est.id)
+          return (
+            <EstruturaAcabamento
+              key={est.id}
+              est={est}
+              pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
+              tabela={TABELA_B1}
+              ocupacoes={ocupacoes}
+              itens={state.acabamentos.filter(a => a.estruturaId === est.id)}
+              dispatch={dispatch}
+              exigido={!!pe?.sistemas?.controle_acabamento?.ativo}
+            />
+          )
+        })}
       </div>
     </div>
   )

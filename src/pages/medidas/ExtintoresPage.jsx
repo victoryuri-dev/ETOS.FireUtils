@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { supabase } from '../../lib/supabase'
 import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica } from '../../data/extintores_calc'
 import Icon from '../../components/ui/Icon'
@@ -773,6 +774,7 @@ function ReferenciaNormativa({ extNorma }) {
 export default function ExtintoresPage() {
   const { state, dispatch } = useProjeto()
   const { extintores: extNorma } = useNorma()
+  const { porEstrutura } = useMedidasObrigatorias()
   const toast = useToast()
 
   // Resultado de uma importação do Revit: pendências viram um aviso de erro e
@@ -905,6 +907,8 @@ export default function ExtintoresPage() {
 
         {state.estruturas.map(est => {
           const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
+          const pe = porEstrutura.find(p => p.estrutura.id === est.id)
+          const exigido = !!pe?.sistemas?.extintores?.ativo
           const comExtintor = pavimentos.filter(pav => state.extintores.some(e => e.pavimentoId === pav.id)).length
           // Pavimento com extintor que não atende (classe A, B/C ou mínimo por
           // pavimento) conta como pendência — mesmo com dados importados.
@@ -920,24 +924,33 @@ export default function ExtintoresPage() {
           const base = statusPorProgresso(comExtintor, Math.max(pavimentos.length, 1), {
             pendente: 'Aguardando dados', andamento: `${comExtintor} de ${pavimentos.length} pavimentos`, concluido: 'Dados carregados',
           })
-          const status = pendencias > 0
+          const status = !exigido
+            ? statusEstrutura('concluido', 'Não exigida')
+            : pendencias > 0
             ? statusEstrutura('andamento', `${pendencias} pavimento${pendencias === 1 ? '' : 's'} com pendência`)
             : base
           const semPendencias = pendencias === 0 && comExtintor >= Math.max(pavimentos.length, 1)
           return (
-            <EstruturaSection key={est.id} titulo={est.nome} status={status} conclusao={{ estruturaId: est.id, medida: 'extintores', auto: !!est.origemRevit?.extintores && semPendencias }} defaultOpen={false} extra={
+            <EstruturaSection key={est.id} titulo={est.nome} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'extintores', auto: !!est.origemRevit?.extintores && semPendencias } : null} defaultOpen={false} extra={
               <div className="flex items-center gap-2">
                 <EstruturaHeaderInfo estrutura={est} mostrar={['risco']}/>
-                <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
-                  onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}
-                  disabled={buscandoEstruturaId === est.id}
-                  title="Buscar do Revit só os dados desta estrutura">
-                  <Icon name="upload" size={10}/>
-                  {buscandoEstruturaId === est.id ? 'Buscando…' : 'Atualizar'}
-                </button>
+                {exigido && (
+                  <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
+                    onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}
+                    disabled={buscandoEstruturaId === est.id}
+                    title="Buscar do Revit só os dados desta estrutura">
+                    <Icon name="upload" size={10}/>
+                    {buscandoEstruturaId === est.id ? 'Buscando…' : 'Atualizar'}
+                  </button>
+                )}
               </div>
             }>
-              {pavimentos.length === 0 ? (
+              {!exigido ? (
+                <div className="ibox green">
+                  <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                  <span className="text-xs">Proteção por extintores não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+                </div>
+              ) : pavimentos.length === 0 ? (
                 <div className="ibox amber">
                   <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
                   <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>

@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
+import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { calcularBalizamento, nomeEspecificacao } from '../../data/iluminacao_calc'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
-import { statusPorProgresso } from '../../utils/statusEstrutura'
+import { statusPorProgresso, statusEstrutura } from '../../utils/statusEstrutura'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import luminaria30ledsImg from '../../assets/luminaria 30 leds.png'
 import blocoIluminacaoImg from '../../assets/bloco de iluminacao.png'
@@ -440,6 +441,7 @@ function ReferenciaNormativa({ iluNorma }) {
 export default function IluminacaoPage() {
   const { state, dispatch } = useProjeto()
   const { iluminacao: iluNorma } = useNorma()
+  const { porEstrutura } = useMedidasObrigatorias()
   const { TIPOS_SISTEMA, EQUIPAMENTOS_ACLARAMENTO, CAMPOS_EQUIPAMENTO, PRESETS_EQUIPAMENTO } = iluNorma
   const sistema = state.iluminacaoSistema
 
@@ -486,12 +488,21 @@ export default function IluminacaoPage() {
               state.estruturas.map(est => {
                 const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
                 const comItens = pavimentos.filter(pav => state.iluminacao.some(i => i.pavimentoId === pav.id)).length
-                const status = statusPorProgresso(comItens, Math.max(pavimentos.length, 1), {
-                  pendente: 'Aguardando dados', andamento: `${comItens} de ${pavimentos.length} pavimentos`, concluido: 'Dados carregados',
-                })
+                const pe = porEstrutura.find(p => p.estrutura.id === est.id)
+                const exigido = !!pe?.sistemas?.iluminacao?.ativo
+                const status = !exigido
+                  ? statusEstrutura('concluido', 'Não exigida')
+                  : statusPorProgresso(comItens, Math.max(pavimentos.length, 1), {
+                      pendente: 'Aguardando dados', andamento: `${comItens} de ${pavimentos.length} pavimentos`, concluido: 'Dados carregados',
+                    })
                 return (
-                  <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={{ estruturaId: est.id, medida: 'iluminacao' }} defaultOpen={false}>
-                    {pavimentos.length === 0 ? (
+                  <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'iluminacao' } : null} defaultOpen={false}>
+                    {!exigido ? (
+                      <div className="ibox green">
+                        <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                        <span className="text-xs">Iluminação de emergência não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+                      </div>
+                    ) : pavimentos.length === 0 ? (
                       <div className="ibox amber">
                         <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
                         <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>

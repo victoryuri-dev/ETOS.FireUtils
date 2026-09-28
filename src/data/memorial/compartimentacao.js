@@ -52,10 +52,12 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS } = getCompartimentacao(state.uf)
 
   ;(state.estruturas || []).forEach(est => {
-    // Obrigatoriedade por estrutura (useMedidasObrigatorias) — cai para o
-    // agregado do projeto (`sistemas`) só se `porEstrutura` não foi repassado.
+    // Obrigatoriedade por estrutura (useMedidasObrigatorias) — `sistemas.ativo`
+    // já respeita o toggle manual de Configuração (cai para o `obrigatorio`
+    // da norma só quando não há override); cai para o agregado do projeto
+    // só se `porEstrutura` não foi repassado.
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
-    const obrigatorio = pe ? !!pe.medidas?.compart_horizontal : !!sistemas?.compart_horizontal?.obrigatorio
+    const obrigatorio = pe ? !!pe.sistemas?.compart_horizontal?.ativo : !!sistemas?.compart_horizontal?.ativo
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
     if (!obrigatorio) {
@@ -144,7 +146,7 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
 
   ;(state.estruturas || []).forEach(est => {
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
-    const obrigatorio = pe ? !!pe.medidas?.compart_vertical : !!sistemas?.compart_vertical?.obrigatorio
+    const obrigatorio = pe ? !!pe.sistemas?.compart_vertical?.ativo : !!sistemas?.compart_vertical?.ativo
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
     if (!obrigatorio) {
