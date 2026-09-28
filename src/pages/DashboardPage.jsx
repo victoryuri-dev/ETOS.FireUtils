@@ -266,7 +266,7 @@ function NotasCard({ notas, dispatch }) {
 
   return (
     <article className="dashboard-panel dashboard-notas anim-entra">
-      <div className="dashboard-section-heading">
+      <div className={`dashboard-section-heading${expandida ? ' dashboard-section-heading--editing' : ''}`}>
         {expandida ? (
           <div className="dashboard-notas__heading-editing">
             <button type="button" className="dashboard-notas__back" onClick={() => setExpandedId(null)} title="Voltar às notas"><Icon name="left" size={15}/></button>

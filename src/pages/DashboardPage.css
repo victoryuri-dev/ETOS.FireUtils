@@ -50,10 +50,15 @@
 .dashboard-identification dt{margin-bottom:4px;color:var(--color-ink-faint);font-size:10px}.dashboard-identification dd{overflow:hidden;margin:0;color:var(--color-ink);font-size:11px;font-weight:600;line-height:1.45;text-overflow:ellipsis}
 .dashboard-identification .dashboard-text-button{align-self:flex-start;margin:8px 20px 16px}
 
-.dashboard-notas{display:flex;flex-direction:column;min-width:0}
+/* Altura fixa (não cresce com a quantidade de notas) — senão o card
+   deforma a linha inteira (align-items:stretch empurraria Identificação
+   pra baixo junto) conforme o usuário cria mais notas. O scroll fica só
+   dentro do próprio card (.dashboard-notas__scroller/__content). */
+.dashboard-notas{display:flex;flex-direction:column;min-width:0;height:290px;overflow:hidden}
 .dashboard-notas__new{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--color-border);border-radius:50%;background:transparent;color:var(--color-ink-muted);flex-shrink:0;transition:color .15s,border-color .15s}
 .dashboard-notas__new:hover{color:var(--dashboard-accent);border-color:var(--dashboard-accent)}
 .dashboard-notas__heading-editing{display:flex;align-items:center;gap:10px;min-width:0}
+.dashboard-notas .dashboard-section-heading--editing{padding-top:10px;padding-bottom:10px}
 .dashboard-notas__back{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--color-border);border-radius:50%;background:transparent;color:var(--color-ink-muted);flex-shrink:0;transition:color .15s,border-color .15s}
 .dashboard-notas__back:hover{color:var(--color-ink);border-color:var(--color-border)}
 .dashboard-notas__body{flex:1;min-height:0;display:flex;flex-direction:column;padding:14px 16px 16px}
@@ -87,7 +92,7 @@
 .dashboard-notas__content ul{margin:0 0 0 4px;padding-left:16px}
 .dashboard-notas__content:empty:before{content:'Escreva sua nota...';color:var(--color-ink-hint)}
 
-@media (max-width:1050px){.dashboard-information-grid{grid-template-columns:1fr}.dashboard-notas{min-height:260px}}
+@media (max-width:1050px){.dashboard-information-grid{grid-template-columns:1fr}}
 @media (max-width:720px){.dashboard-notas__body{padding:12px 16px 16px}}
 .dashboard-technical{min-width:0;margin-bottom:18px}
 .dashboard-card-stack__stage{position:relative;min-height:218px;margin:0 0 18px}
