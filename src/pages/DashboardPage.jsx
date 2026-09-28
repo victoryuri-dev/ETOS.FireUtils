@@ -142,6 +142,19 @@ function novoNotaId() {
   return `nota-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
+// Enquanto a nota não recebe um título próprio (InlineEditableNome), usa
+// o começo do próprio conteúdo como nome — igual Keep/Apple Notes — em
+// vez de deixar tudo genérico "Nota sem título" pra sempre. Some de novo
+// assim que o usuário digita um título de verdade (nota.titulo passa a
+// vencer aqui).
+function tituloDaNota(nota) {
+  if (nota.titulo) return nota.titulo
+  const tmp = document.createElement('div')
+  tmp.innerHTML = nota.html || ''
+  const texto = (tmp.textContent || '').replace(/\s+/g, ' ').trim()
+  return texto ? texto.slice(0, 60) : 'Nota sem título'
+}
+
 // Cores do card, estilo "sticky note" (fundo sólido e saturado, texto
 // escuro por cima — ver --nota-* em DashboardPage.css) — cada tema já
 // define a combinação fixa de fundo+fonte, não dá pra escolher cor de
@@ -154,6 +167,7 @@ const CORES_NOTA = [
   { key: 'pink',   label: 'Rosa'    },
   { key: 'orange', label: 'Laranja' },
   { key: 'purple', label: 'Roxo'    },
+  { key: 'red',    label: 'Vermelho'},
 ]
 
 // Não é um <button> só (com a lixeira dentro) porque <button> dentro de
@@ -171,7 +185,7 @@ function NotaPreview({ nota, onOpen, onDelete }) {
       <button type="button" className="dashboard-notas__block-delete" onClick={e => { e.stopPropagation(); onDelete(nota.id) }} title="Excluir nota">
         <Icon name="trash" size={12}/>
       </button>
-      <div className="dashboard-notas__block-title">{nota.titulo || 'Nota sem título'}</div>
+      <div className="dashboard-notas__block-title">{tituloDaNota(nota)}</div>
       {nota.html
         ? <div className="dashboard-notas__block-html" dangerouslySetInnerHTML={{ __html: nota.html }}/>
         : <span className="dashboard-notas__block-empty">Nota vazia</span>}
@@ -294,7 +308,7 @@ function NotasCard({ notas, dispatch, height }) {
             <div className="dashboard-notas__heading-editing">
               <button type="button" className="dashboard-notas__back" onClick={handleVoltar} title="Voltar às notas"><Icon name="left" size={15}/></button>
               <InlineEditableNome
-                value={expandida.titulo || 'Nota sem título'}
+                value={tituloDaNota(expandida)}
                 onCommit={titulo => dispatch({ type: 'SET_NOTA_TITULO', id: expandida.id, titulo })}
                 textClassName="font-heading text-[15px] tracking-[-.015em] text-ink truncate"
               />
