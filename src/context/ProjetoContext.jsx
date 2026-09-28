@@ -153,6 +153,26 @@ function novoItemSinalizacao(estruturaId, tipoPlaca, quantidade, id) {
   return { id: id || idSinalizacao(), estruturaId, tipoPlaca, quantidade }
 }
 
+// Mesma lógica de idSinalizacao/idAcabamento — evita colisão entre notas
+// criadas no mesmo milissegundo (bloco de Notas do Dashboard).
+let notaSeq = 0
+function idNota() {
+  notaSeq += 1
+  return `nota-${Date.now().toString(36)}-${notaSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Bloco de nota livre do Dashboard — `html` guarda o conteúdo já formatado
+// (negrito/itálico/sublinhado/traçado/cor/lista), gerado pelo próprio
+// contentEditable (ver NotasCard em DashboardPage.jsx). Uso livre do
+// projetista, não entra em nenhum cálculo normativo nem no memorial.
+// `atualizadoEm` vem sempre já resolvido pelo resolverAcaoLocal (mesmo
+// motivo do id) — se cada aba calculasse o próprio `new Date()` ao receber
+// a action via broadcast, o timestamp divergiria entre as abas conforme a
+// latência da rede.
+function novaNota(id, atualizadoEm) {
+  return { id: id || idNota(), html: '', atualizadoEm }
+}
+
 // Normaliza um estado salvo (localStorage ou payload de LOAD) contra
 // INITIAL_STATE — protege objetos aninhados que ganharam campos novos desde
 // que o projeto foi salvo (ex.: manobraRetornoOk, iluminacaoSistema.especi-
@@ -368,6 +388,9 @@ const INITIAL_STATE = {
   iluminacao: [],
   sinalizacao: [],
   acabamentos: [],
+  // Blocos de nota livre exibidos no Dashboard ao lado de Identificação —
+  // { id, html, atualizadoEm }. Uso livre do projetista.
+  notas: [],
   // Sistema de iluminação de emergência escolhido para o projeto todo (não
   // varia por pavimento) — perguntado antes de liberar as quantidades por
   // pavimento em IluminacaoPage.jsx. `localizacaoFonte` só se aplica a
@@ -748,6 +771,12 @@ function reducer(state, action) {
       return { ...state, sinalizacao: state.sinalizacao.map(s => s.id === action.id ? { ...s, ...action.changes } : s) }
     case 'REMOVE_SINALIZACAO':
       return { ...state, sinalizacao: state.sinalizacao.filter(s => s.id !== action.id) }
+    case 'ADD_NOTA':
+      return { ...state, notas: [...state.notas, novaNota(action.id, action.atualizadoEm)] }
+    case 'SET_NOTA_HTML':
+      return { ...state, notas: state.notas.map(n => n.id === action.id ? { ...n, html: action.html, atualizadoEm: action.atualizadoEm } : n) }
+    case 'REMOVE_NOTA':
+      return { ...state, notas: state.notas.filter(n => n.id !== action.id) }
     // Substitui só o cadastro de sinalização das estruturas presentes no
     // lote importado (ver resolverImportacaoSinalizacao em
     // SinalizacaoPage.jsx) — os itens já chegam com estruturaId resolvido
@@ -1010,6 +1039,13 @@ function resolverAcaoLocal(action, state) {
     case 'CRIAR_SAIDA':
     case 'CRIAR_ACESSO':
       return action.id ? action : { ...action, id: idParaTipo(action.type)() }
+    // Além do id, precisa fixar `atualizadoEm` aqui também — senão cada
+    // aba calcularia o próprio `new Date()` ao aplicar a action (local ou
+    // vinda do broadcast), divergindo pela latência da rede.
+    case 'ADD_NOTA':
+      return { ...action, id: action.id || idNota(), atualizadoEm: action.atualizadoEm || new Date().toISOString() }
+    case 'SET_NOTA_HTML':
+      return action.atualizadoEm ? action : { ...action, atualizadoEm: new Date().toISOString() }
     case 'IMPORT_EXTINTORES':
       return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idExtintor() }) }
     case 'IMPORT_SINALIZACAO':

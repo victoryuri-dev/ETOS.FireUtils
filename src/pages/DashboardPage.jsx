@@ -131,6 +131,158 @@ function ActivityHeatmap({ registros, ultimaAlteracao }) {
   )
 }
 
+// ── Notas do Dashboard ───────────────────────────────────────────────────
+// Bloco livre ao lado de Identificação: modo "estante" mostra uma tira com
+// scroll de prévias; clicar num bloco expande ele pro tamanho do card e
+// libera edição (contentEditable simples — negrito/itálico/sublinhado/
+// traçado/cor/lista via document.execCommand, sem depender de nenhuma lib
+// de rich text). Cada nota é { id, html, atualizadoEm } em state.notas.
+function novoNotaId() {
+  return `nota-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+function NotaPreview({ nota, onOpen }) {
+  return (
+    <button type="button" className="dashboard-notas__block" onClick={() => onOpen(nota.id)}>
+      {nota.html
+        ? <div className="dashboard-notas__block-html" dangerouslySetInnerHTML={{ __html: nota.html }}/>
+        : <span className="dashboard-notas__block-empty">Nota vazia</span>}
+      <span className="dashboard-notas__block-meta">{timeAgo(nota.atualizadoEm)}</span>
+    </button>
+  )
+}
+
+// `savedRangeRef` guarda a seleção de texto antes de qualquer clique que
+// tiraria o foco do contentEditable (ex.: abrir o seletor de cor nativo) —
+// sem isso, o execCommand seguinte não sabe mais o que estava selecionado.
+// Botões de formatação usam onMouseDown com preventDefault pra nem chegar
+// a tirar o foco/seleção em primeiro lugar.
+function NotaEditor({ nota, onChange, onClose, onDelete }) {
+  const editorRef = useRef(null)
+  const savedRangeRef = useRef(null)
+  const debounceRef = useRef(null)
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+
+  useEffect(() => {
+    if (editorRef.current) editorRef.current.innerHTML = nota.html || ''
+    editorRef.current?.focus()
+    return () => {
+      if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null }
+      if (editorRef.current) onChangeRef.current(editorRef.current.innerHTML)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só re-sincroniza ao trocar de nota, não a cada dispatch/re-render
+  }, [nota.id])
+
+  const flush = () => {
+    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null }
+    if (editorRef.current) onChange(editorRef.current.innerHTML)
+  }
+  const scheduleSave = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(flush, 700)
+  }
+  const saveSelection = () => {
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange()
+    }
+  }
+  const restoreSelection = () => {
+    if (!savedRangeRef.current) return
+    const sel = window.getSelection()
+    sel.removeAllRanges()
+    sel.addRange(savedRangeRef.current)
+  }
+  const exec = (cmd, value) => {
+    editorRef.current.focus()
+    restoreSelection()
+    document.execCommand(cmd, false, value)
+    saveSelection()
+    scheduleSave()
+  }
+  // Cola só o texto puro — evita que HTML colado de fora (com estilos ou
+  // atributos arbitrários) entre na nota sem passar pelos botões daqui.
+  const handlePaste = e => {
+    e.preventDefault()
+    document.execCommand('insertText', false, e.clipboardData.getData('text/plain'))
+  }
+
+  return (
+    <div className="dashboard-notas__editor">
+      <div className="dashboard-notas__toolbar">
+        <button type="button" onClick={onClose} title="Voltar às notas"><Icon name="left" size={14}/></button>
+        <span className="dashboard-notas__toolbar-sep"/>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('bold')} title="Negrito"><Icon name="bold" size={13}/></button>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('italic')} title="Itálico"><Icon name="italic" size={13}/></button>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('underline')} title="Sublinhado"><Icon name="underline" size={13}/></button>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('strikeThrough')} title="Traçado"><Icon name="strike" size={13}/></button>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('insertUnorderedList')} title="Lista"><Icon name="list" size={13}/></button>
+        <label className="dashboard-notas__color" title="Cor do texto" onMouseDown={saveSelection}>
+          <Icon name="palette" size={13}/>
+          <input type="color" onChange={e => exec('foreColor', e.target.value)}/>
+        </label>
+        <span className="dashboard-notas__toolbar-spacer"/>
+        <button type="button" className="dashboard-notas__delete" onClick={onDelete} title="Excluir nota"><Icon name="trash" size={13}/></button>
+      </div>
+      <div
+        ref={editorRef}
+        className="dashboard-notas__content"
+        contentEditable
+        suppressContentEditableWarning
+        onInput={scheduleSave}
+        onBlur={flush}
+        onMouseUp={saveSelection}
+        onKeyUp={saveSelection}
+        onPaste={handlePaste}
+      />
+    </div>
+  )
+}
+
+function NotasCard({ notas, dispatch }) {
+  const [expandedId, setExpandedId] = useState(null)
+  const expandida = notas.find(n => n.id === expandedId)
+
+  const handleAdd = () => {
+    const id = novoNotaId()
+    dispatch({ type: 'ADD_NOTA', id })
+    setExpandedId(id)
+  }
+  const handleDelete = () => {
+    dispatch({ type: 'REMOVE_NOTA', id: expandedId })
+    setExpandedId(null)
+  }
+
+  return (
+    <article className="dashboard-panel dashboard-notas">
+      <div className="dashboard-section-heading">
+        <div><h2>Notas</h2><p>{notas.length ? `${notas.length} nota${notas.length === 1 ? '' : 's'}` : 'Anotações livres do projeto'}</p></div>
+        {!expandida && <button type="button" className="dashboard-notas__new" onClick={handleAdd} title="Nova nota"><Icon name="plus" size={15}/></button>}
+      </div>
+      <div className="dashboard-notas__body">
+        {expandida ? (
+          <NotaEditor
+            nota={expandida}
+            onChange={html => dispatch({ type: 'SET_NOTA_HTML', id: expandida.id, html })}
+            onClose={() => setExpandedId(null)}
+            onDelete={handleDelete}
+          />
+        ) : notas.length === 0 ? (
+          <div className="dashboard-notas__empty">
+            <p>Nenhuma nota ainda.</p>
+            <button type="button" className="dashboard-text-button" onClick={handleAdd}>Criar nota <Icon name="plus" size={13}/></button>
+          </div>
+        ) : (
+          <div className="dashboard-notas__scroller">
+            {notas.map(n => <NotaPreview key={n.id} nota={n} onOpen={setExpandedId}/>)}
+          </div>
+        )}
+      </div>
+    </article>
+  )
+}
+
 const SYSTEMS = [
   { key: 'acesso_viatura', icon: 'viaturaMedida', label: 'Acesso de Viatura' },
   { key: 'seg_estrutural', icon: 'wallFire', label: 'Segurança Estrutural' },
@@ -370,7 +522,7 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect, grupos 
 
 export default function DashboardPage({ onGoConfig, onNavigate }) {
   const shellRef = useRef(null)
-  const { state } = useProjeto()
+  const { state, dispatch } = useProjeto()
   const { info, grupos } = useNorma()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const [selectedStructureId, setSelectedStructureId] = useState('all')
@@ -548,6 +700,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
             <button type="button" className="dashboard-text-button" onClick={onGoConfig}>Editar identificação <Icon name="right" size={13}/></button>
           </article>
 
+          <NotasCard notas={state.notas} dispatch={dispatch}/>
         </section>
 
         <section className="dashboard-technical anim-entra" aria-label={`Resumo técnico — ${selectedStructureId === 'all' ? 'todas as edificações' : data.summary.label}`}>
