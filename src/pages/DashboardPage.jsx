@@ -250,7 +250,7 @@ function NotaEditor({ nota, onChange }) {
   )
 }
 
-function NotasCard({ notas, dispatch }) {
+function NotasCard({ notas, dispatch, height }) {
   const [expandedId, setExpandedId] = useState(null)
   const expandida = notas.find(n => n.id === expandedId)
 
@@ -265,7 +265,7 @@ function NotasCard({ notas, dispatch }) {
   }
 
   return (
-    <article className="dashboard-panel dashboard-notas anim-entra">
+    <article className="dashboard-panel dashboard-notas anim-entra" style={height ? { height } : undefined}>
       <div className={`dashboard-section-heading${expandida ? ' dashboard-section-heading--editing' : ''}`}>
         {expandida ? (
           <div className="dashboard-notas__heading-editing">
@@ -542,11 +542,29 @@ function TechnicalCardStack({ cards, selectedId, systemsCount, onSelect, grupos 
 
 export default function DashboardPage({ onGoConfig, onNavigate }) {
   const shellRef = useRef(null)
+  const identRef = useRef(null)
   const { state, dispatch } = useProjeto()
   const { info, grupos } = useNorma()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const [selectedStructureId, setSelectedStructureId] = useState('all')
   const [atividade, setAtividade] = useState([])
+  const [identHeight, setIdentHeight] = useState(null)
+
+  // Notas acompanha a altura real de Identificação (ao lado, no mesmo grid)
+  // em vez de um valor fixo no CSS — o conteúdo de Identificação varia
+  // (modo "apenas dimensionamento" tem 2 linhas a menos, endereço longo
+  // quebra linha etc.), então só medir o elemento de verdade garante que
+  // os dois cards fiquem sempre com a mesma altura.
+  useEffect(() => {
+    const el = identRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      const h = entries[0]?.contentRect?.height
+      if (h) setIdentHeight(Math.round(h))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // O heatmap mostra 2 meses corridos (ver ActivityHeatmap) — busca uma
   // janela um pouco mais folgada (75 dias) pra sempre cobrir isso mesmo
@@ -705,7 +723,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
         </div>
 
         <section className="dashboard-information-grid">
-          <article className="dashboard-panel dashboard-identification anim-entra">
+          <article ref={identRef} className="dashboard-panel dashboard-identification anim-entra">
             <div className="dashboard-section-heading"><div><h2>Identificação do projeto</h2><p>Dados administrativos e responsáveis</p></div><Icon name="info" size={15}/></div>
             <dl>
               <div><dt>Nome do projeto</dt><dd>{state.nome || 'Não informado'}</dd></div>
@@ -720,7 +738,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
             <button type="button" className="dashboard-text-button" onClick={onGoConfig}>Editar identificação <Icon name="right" size={13}/></button>
           </article>
 
-          <NotasCard notas={state.notas} dispatch={dispatch}/>
+          <NotasCard notas={state.notas} dispatch={dispatch} height={identHeight}/>
         </section>
 
         <section className="dashboard-technical anim-entra" aria-label={`Resumo técnico — ${selectedStructureId === 'all' ? 'todas as edificações' : data.summary.label}`}>
