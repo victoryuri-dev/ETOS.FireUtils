@@ -255,7 +255,7 @@ function NotasCard({ notas, dispatch }) {
   }
 
   return (
-    <article className="dashboard-panel dashboard-notas">
+    <article className="dashboard-panel dashboard-notas anim-entra">
       <div className="dashboard-section-heading">
         <div><h2>Notas</h2><p>{notas.length ? `${notas.length} nota${notas.length === 1 ? '' : 's'}` : 'Anotações livres do projeto'}</p></div>
         {!expandida && <button type="button" className="dashboard-notas__new" onClick={handleAdd} title="Nova nota"><Icon name="plus" size={15}/></button>}
