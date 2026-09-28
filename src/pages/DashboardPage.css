@@ -59,30 +59,47 @@
 .dashboard-notas__new:hover{color:var(--dashboard-accent);border-color:var(--dashboard-accent)}
 .dashboard-notas__heading-editing{display:flex;align-items:center;gap:10px;min-width:0}
 .dashboard-notas .dashboard-section-heading--editing{padding-top:10px;padding-bottom:10px}
-.dashboard-notas__back{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--color-border);border-radius:50%;background:transparent;color:var(--color-ink-muted);flex-shrink:0;transition:color .15s,border-color .15s}
-.dashboard-notas__back:hover{color:var(--color-ink);border-color:var(--color-border)}
+.dashboard-notas__back{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--nota-text-hint,var(--color-border));border-radius:50%;background:transparent;color:var(--nota-text-muted,var(--color-ink-muted));flex-shrink:0;transition:color .15s,border-color .15s}
+.dashboard-notas__back:hover{color:var(--nota-text,var(--color-ink));border-color:var(--nota-text-muted,var(--color-border))}
 
 /* Cor escolhida pro card (ver CORES_NOTA) — tinge o card inteiro enquanto
    essa nota está aberta pra edição; a mesma cor tinge só o bloco dela na
-   lista (ver .dashboard-notas__block--*). Mesmos tons dim/border já
-   usados no resto do site pros estados vermelho/âmbar/verde. */
-.dashboard-notas--red{background:var(--color-red-dim);border-color:var(--color-red-border)}
-.dashboard-notas--amber{background:var(--color-amber-dim);border-color:var(--color-amber-border)}
-.dashboard-notas--green{background:var(--color-green-dim);border-color:var(--color-green-border)}
+   lista (ver .dashboard-notas__block--*). Estilo "sticky note": fundo
+   sólido e saturado, texto sempre escuro em cima (--nota-*), nunca a
+   paleta clara-sobre-escuro do resto do app. */
+.dashboard-notas--yellow,.dashboard-notas--blue,.dashboard-notas--green,.dashboard-notas--pink,.dashboard-notas--orange,.dashboard-notas--purple,
+.dashboard-notas__block--yellow,.dashboard-notas__block--blue,.dashboard-notas__block--green,.dashboard-notas__block--pink,.dashboard-notas__block--orange,.dashboard-notas__block--purple{
+  --nota-text:#1a1408;--nota-text-muted:rgba(20,16,8,.62);--nota-text-hint:rgba(20,16,8,.42);
+  --nota-divider:rgba(0,0,0,.12);--nota-hover-bg:rgba(0,0,0,.08);
+  border-color:transparent;
+}
+.dashboard-notas--yellow,.dashboard-notas__block--yellow,.dashboard-notas__block--yellow:hover{background:#F2C744}
+.dashboard-notas--blue,.dashboard-notas__block--blue,.dashboard-notas__block--blue:hover{background:#6C9BD1}
+.dashboard-notas--green,.dashboard-notas__block--green,.dashboard-notas__block--green:hover{background:#7FB37A}
+.dashboard-notas--pink,.dashboard-notas__block--pink,.dashboard-notas__block--pink:hover{background:#E888B3}
+.dashboard-notas--orange,.dashboard-notas__block--orange,.dashboard-notas__block--orange:hover{background:#EFA35C}
+.dashboard-notas--purple,.dashboard-notas__block--purple,.dashboard-notas__block--purple:hover{background:#A98BD1}
+.dashboard-notas .dashboard-section-heading{border-color:var(--nota-divider,var(--color-border-2))}
 .dashboard-notas__color-picker{position:relative}
-.dashboard-notas__color-trigger{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--color-border);border-radius:50%;background:transparent;flex-shrink:0;cursor:pointer;transition:border-color .15s}
-.dashboard-notas__color-trigger:hover{border-color:var(--color-ink-faint)}
+.dashboard-notas__color-trigger{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--nota-text-hint,var(--color-border));border-radius:50%;background:transparent;flex-shrink:0;cursor:pointer;transition:border-color .15s}
+.dashboard-notas__color-trigger:hover{border-color:var(--nota-text-muted,var(--color-ink-faint))}
 .dashboard-notas__color-trigger:before{content:'';display:block;width:13px;height:13px;border-radius:50%;background:var(--color-ink-hint)}
-.dashboard-notas__color-trigger--red:before{background:var(--color-red)}
-.dashboard-notas__color-trigger--amber:before{background:var(--color-amber)}
-.dashboard-notas__color-trigger--green:before{background:var(--color-green)}
+.dashboard-notas__color-trigger--yellow:before{background:#F2C744}
+.dashboard-notas__color-trigger--blue:before{background:#6C9BD1}
+.dashboard-notas__color-trigger--green:before{background:#7FB37A}
+.dashboard-notas__color-trigger--pink:before{background:#E888B3}
+.dashboard-notas__color-trigger--orange:before{background:#EFA35C}
+.dashboard-notas__color-trigger--purple:before{background:#A98BD1}
 .dashboard-notas__color-menu{position:absolute;top:32px;right:0;z-index:5;display:flex;gap:7px;padding:8px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface-3,#1d1e24);box-shadow:0 10px 24px rgba(0,0,0,.4)}
 .dashboard-notas__color-swatch{width:18px;height:18px;border:1.5px solid transparent;border-radius:50%;cursor:pointer;transition:transform .15s}
 .dashboard-notas__color-swatch:hover{transform:scale(1.15)}
 .dashboard-notas__color-swatch--none{background:var(--color-surface-2);border-color:var(--color-border)}
-.dashboard-notas__color-swatch--red{background:var(--color-red)}
-.dashboard-notas__color-swatch--amber{background:var(--color-amber)}
-.dashboard-notas__color-swatch--green{background:var(--color-green)}
+.dashboard-notas__color-swatch--yellow{background:#F2C744}
+.dashboard-notas__color-swatch--blue{background:#6C9BD1}
+.dashboard-notas__color-swatch--green{background:#7FB37A}
+.dashboard-notas__color-swatch--pink{background:#E888B3}
+.dashboard-notas__color-swatch--orange{background:#EFA35C}
+.dashboard-notas__color-swatch--purple{background:#A98BD1}
 
 .dashboard-notas__body{flex:1;min-height:0;display:flex;flex-direction:column;padding:14px 16px 16px}
 .dashboard-notas__empty{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;color:var(--color-ink-faint);font-size:12px}
@@ -94,32 +111,23 @@
 .dashboard-notas__block{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px 30px 10px 12px;border:1px solid var(--color-border-2);border-radius:10px;background:var(--color-surface);cursor:pointer;transition:border-color .15s,background-color .15s}
 .dashboard-notas__block:hover{border-color:var(--color-border);background:var(--color-surface-2)}
 .dashboard-notas__block:focus-visible{outline:2px solid var(--color-red);outline-offset:2px}
-/* :hover repete o mesmo tom (não o cinza padrão) — a regra base de hover
-   tem mais especificidade (classe+pseudo) que um modificador sozinho e
-   apagaria a cor ao passar o mouse se não tivesse essa versão própria. */
-.dashboard-notas__block--red,.dashboard-notas__block--red:hover{background:var(--color-red-dim);border-color:var(--color-red-border)}
-.dashboard-notas__block--amber,.dashboard-notas__block--amber:hover{background:var(--color-amber-dim);border-color:var(--color-amber-border)}
-.dashboard-notas__block--green,.dashboard-notas__block--green:hover{background:var(--color-green-dim);border-color:var(--color-green-border)}
-.dashboard-notas__block-title{color:var(--color-ink);font-size:12px;font-weight:600;line-height:1.35}
-.dashboard-notas__block-html{overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;color:var(--color-ink-muted);font-size:11.5px;line-height:1.5}
+.dashboard-notas__block-title{color:var(--nota-text,var(--color-ink));font-size:12px;font-weight:600;line-height:1.35}
+.dashboard-notas__block-html{overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;color:var(--nota-text-muted,var(--color-ink-muted));font-size:11.5px;line-height:1.5}
 .dashboard-notas__block-html ul{margin:0;padding-left:16px}
-.dashboard-notas__block-empty{color:var(--color-ink-hint);font-size:11.5px;font-style:italic}
-.dashboard-notas__block-meta{color:var(--color-ink-hint);font-size:10px}
-.dashboard-notas__block-delete{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:6px;background:transparent;color:var(--color-ink-faint);opacity:0;transition:opacity .15s,background-color .15s,color .15s}
+.dashboard-notas__block-empty{color:var(--nota-text-hint,var(--color-ink-hint));font-size:11.5px;font-style:italic}
+.dashboard-notas__block-meta{color:var(--nota-text-hint,var(--color-ink-hint));font-size:10px}
+.dashboard-notas__block-delete{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:6px;background:transparent;color:var(--nota-text-hint,var(--color-ink-faint));opacity:0;transition:opacity .15s,background-color .15s,color .15s}
 .dashboard-notas__block:hover .dashboard-notas__block-delete,.dashboard-notas__block-delete:focus-visible{opacity:1}
 .dashboard-notas__block-delete:hover{color:var(--color-red);background:var(--color-red-dim)}
 
 .dashboard-notas__editor{flex:1;min-height:0;display:flex;flex-direction:column}
-.dashboard-notas__toolbar{display:flex;align-items:center;gap:1px;padding-bottom:6px;margin-bottom:8px;border-bottom:1px solid var(--color-border-2)}
-.dashboard-notas__toolbar button{display:grid;place-items:center;width:23px;height:23px;border:0;border-radius:5px;background:transparent;color:var(--color-ink-muted);transition:background-color .15s,color .15s}
-.dashboard-notas__toolbar button:hover{background:var(--color-surface);color:var(--color-ink)}
-.dashboard-notas__color{position:relative;display:grid;place-items:center;width:23px;height:23px;border-radius:5px;color:var(--color-ink-muted);cursor:pointer;transition:background-color .15s,color .15s}
-.dashboard-notas__color:hover{background:var(--color-surface);color:var(--color-ink)}
-.dashboard-notas__color input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.dashboard-notas__toolbar{display:flex;align-items:center;gap:1px;padding-bottom:6px;margin-bottom:8px;border-bottom:1px solid var(--nota-divider,var(--color-border-2))}
+.dashboard-notas__toolbar button{display:grid;place-items:center;width:23px;height:23px;border:0;border-radius:5px;background:transparent;color:var(--nota-text-muted,var(--color-ink-muted));transition:background-color .15s,color .15s}
+.dashboard-notas__toolbar button:hover{background:var(--nota-hover-bg,var(--color-surface));color:var(--nota-text,var(--color-ink))}
 
-.dashboard-notas__content{flex:1;min-height:0;overflow-y:auto;color:var(--color-ink);font-size:12.5px;line-height:1.65;outline:none}
+.dashboard-notas__content{flex:1;min-height:0;overflow-y:auto;color:var(--nota-text,var(--color-ink));font-size:12.5px;line-height:1.65;outline:none}
 .dashboard-notas__content ul{margin:0 0 0 4px;padding-left:16px}
-.dashboard-notas__content:empty:before{content:'Escreva sua nota...';color:var(--color-ink-hint)}
+.dashboard-notas__content:empty:before{content:'Escreva sua nota...';color:var(--nota-text-hint,var(--color-ink-hint))}
 
 @media (max-width:1050px){.dashboard-information-grid{grid-template-columns:1fr}}
 @media (max-width:720px){.dashboard-notas__body{padding:12px 16px 16px}}

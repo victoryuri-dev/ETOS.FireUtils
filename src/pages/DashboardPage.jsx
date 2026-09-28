@@ -142,14 +142,18 @@ function novoNotaId() {
   return `nota-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-// Cores do card — mesma paleta semântica já usada no resto do site
-// (DESIGN.md/index.css: vermelho = assinatura da marca, âmbar e verde já
-// usados em estados de outras telas), não cores arbitrárias novas.
+// Cores do card, estilo "sticky note" (fundo sólido e saturado, texto
+// escuro por cima — ver --nota-* em DashboardPage.css) — cada tema já
+// define a combinação fixa de fundo+fonte, não dá pra escolher cor de
+// texto avulsa (só bold/itálico/sublinhado/traçado/lista na toolbar).
 const CORES_NOTA = [
-  { key: null,    label: 'Sem cor'  },
-  { key: 'red',   label: 'Vermelho' },
-  { key: 'amber', label: 'Âmbar'    },
-  { key: 'green', label: 'Verde'    },
+  { key: null,     label: 'Sem cor' },
+  { key: 'yellow', label: 'Amarelo' },
+  { key: 'blue',   label: 'Azul'    },
+  { key: 'green',  label: 'Verde'   },
+  { key: 'pink',   label: 'Rosa'    },
+  { key: 'orange', label: 'Laranja' },
+  { key: 'purple', label: 'Roxo'    },
 ]
 
 // Não é um <button> só (com a lixeira dentro) porque <button> dentro de
@@ -240,10 +244,6 @@ function NotaEditor({ nota, onChange }) {
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('underline')} title="Sublinhado"><Icon name="underline" size={13}/></button>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('strikeThrough')} title="Traçado"><Icon name="strike" size={13}/></button>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('insertUnorderedList')} title="Lista"><Icon name="list" size={13}/></button>
-        <label className="dashboard-notas__color" title="Cor do texto" onMouseDown={saveSelection}>
-          <Icon name="palette" size={13}/>
-          <input type="color" onChange={e => exec('foreColor', e.target.value)}/>
-        </label>
       </div>
       <div
         ref={editorRef}
