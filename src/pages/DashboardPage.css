@@ -110,12 +110,18 @@
    já têm background próprio acima, com a MESMA especificidade (1 classe)
    — um modificador de cor só vence essa disputa vindo depois no arquivo,
    senão a cascata cai de volta pro cinza padrão (era o bug do card sem
-   cor na lista). Todos os temas (incl. Vermelho, mesmo vermelho da
-   marca) usam a mesma combinação: fundo saturado + texto escuro. */
-.dashboard-notas--yellow,.dashboard-notas--blue,.dashboard-notas--green,.dashboard-notas--pink,.dashboard-notas--orange,.dashboard-notas--purple,.dashboard-notas--red,
-.dashboard-notas__block--yellow,.dashboard-notas__block--blue,.dashboard-notas__block--green,.dashboard-notas__block--pink,.dashboard-notas__block--orange,.dashboard-notas__block--purple,.dashboard-notas__block--red{
+   cor na lista). Fundo saturado + texto escuro na maioria; Vermelho é o
+   único fundo escuro o bastante pra pedir texto branco (por isso vem
+   numa regra à parte, DEPOIS da compartilhada, pra vencer o empate). */
+.dashboard-notas--yellow,.dashboard-notas--blue,.dashboard-notas--green,.dashboard-notas--pink,.dashboard-notas--orange,.dashboard-notas--purple,
+.dashboard-notas__block--yellow,.dashboard-notas__block--blue,.dashboard-notas__block--green,.dashboard-notas__block--pink,.dashboard-notas__block--orange,.dashboard-notas__block--purple{
   --nota-text:#1a1408;--nota-text-muted:rgba(20,16,8,.62);--nota-text-hint:rgba(20,16,8,.42);
   --nota-divider:rgba(0,0,0,.12);--nota-hover-bg:rgba(0,0,0,.08);
+  border-color:transparent;
+}
+.dashboard-notas--red,.dashboard-notas__block--red{
+  --nota-text:#fff;--nota-text-muted:rgba(255,255,255,.74);--nota-text-hint:rgba(255,255,255,.52);
+  --nota-divider:rgba(255,255,255,.18);--nota-hover-bg:rgba(255,255,255,.12);
   border-color:transparent;
 }
 .dashboard-notas--yellow,.dashboard-notas__block--yellow,.dashboard-notas__block--yellow:hover{background:#F2C744}
