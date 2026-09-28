@@ -142,13 +142,23 @@ function novoNotaId() {
   return `nota-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
+// Cores do card — mesma paleta semântica já usada no resto do site
+// (DESIGN.md/index.css: vermelho = assinatura da marca, âmbar e verde já
+// usados em estados de outras telas), não cores arbitrárias novas.
+const CORES_NOTA = [
+  { key: null,    label: 'Sem cor'  },
+  { key: 'red',   label: 'Vermelho' },
+  { key: 'amber', label: 'Âmbar'    },
+  { key: 'green', label: 'Verde'    },
+]
+
 // Não é um <button> só (com a lixeira dentro) porque <button> dentro de
 // <button> é HTML inválido — a lixeira é um botão próprio com
 // stopPropagation, o resto do card abre a nota via role="button" no div.
 function NotaPreview({ nota, onOpen, onDelete }) {
   return (
     <div
-      className="dashboard-notas__block"
+      className={`dashboard-notas__block${nota.cor ? ` dashboard-notas__block--${nota.cor}` : ''}`}
       role="button"
       tabIndex={0}
       onClick={() => onOpen(nota.id)}
@@ -252,6 +262,8 @@ function NotaEditor({ nota, onChange }) {
 
 function NotasCard({ notas, dispatch, height }) {
   const [expandedId, setExpandedId] = useState(null)
+  const [corMenuAberto, setCorMenuAberto] = useState(false)
+  const corMenuRef = useRef(null)
   const expandida = notas.find(n => n.id === expandedId)
 
   const handleAdd = () => {
@@ -263,19 +275,52 @@ function NotasCard({ notas, dispatch, height }) {
     dispatch({ type: 'REMOVE_NOTA', id })
     setExpandedId(prev => prev === id ? null : prev)
   }
+  const handleVoltar = () => { setCorMenuAberto(false); setExpandedId(null) }
+
+  // Fecha o menu de cor ao clicar fora dele (não precisa de outro jeito de
+  // fechar — trocar/escolher cor já fecha explicitamente).
+  useEffect(() => {
+    if (!corMenuAberto) return
+    const onClickFora = e => { if (corMenuRef.current && !corMenuRef.current.contains(e.target)) setCorMenuAberto(false) }
+    document.addEventListener('mousedown', onClickFora)
+    return () => document.removeEventListener('mousedown', onClickFora)
+  }, [corMenuAberto])
 
   return (
-    <article className="dashboard-panel dashboard-notas anim-entra" style={height ? { height } : undefined}>
+    <article className={`dashboard-panel dashboard-notas anim-entra${expandida?.cor ? ` dashboard-notas--${expandida.cor}` : ''}`} style={height ? { height } : undefined}>
       <div className={`dashboard-section-heading${expandida ? ' dashboard-section-heading--editing' : ''}`}>
         {expandida ? (
-          <div className="dashboard-notas__heading-editing">
-            <button type="button" className="dashboard-notas__back" onClick={() => setExpandedId(null)} title="Voltar às notas"><Icon name="left" size={15}/></button>
-            <InlineEditableNome
-              value={expandida.titulo || 'Nota sem título'}
-              onCommit={titulo => dispatch({ type: 'SET_NOTA_TITULO', id: expandida.id, titulo })}
-              textClassName="font-heading text-[15px] tracking-[-.015em] text-ink truncate"
-            />
-          </div>
+          <>
+            <div className="dashboard-notas__heading-editing">
+              <button type="button" className="dashboard-notas__back" onClick={handleVoltar} title="Voltar às notas"><Icon name="left" size={15}/></button>
+              <InlineEditableNome
+                value={expandida.titulo || 'Nota sem título'}
+                onCommit={titulo => dispatch({ type: 'SET_NOTA_TITULO', id: expandida.id, titulo })}
+                textClassName="font-heading text-[15px] tracking-[-.015em] text-ink truncate"
+              />
+            </div>
+            <div className="dashboard-notas__color-picker" ref={corMenuRef}>
+              <button
+                type="button"
+                className={`dashboard-notas__color-trigger${expandida.cor ? ` dashboard-notas__color-trigger--${expandida.cor}` : ''}`}
+                onClick={() => setCorMenuAberto(o => !o)}
+                title="Cor do card"
+              />
+              {corMenuAberto && (
+                <div className="dashboard-notas__color-menu">
+                  {CORES_NOTA.map(c => (
+                    <button
+                      key={c.key || 'none'}
+                      type="button"
+                      className={`dashboard-notas__color-swatch dashboard-notas__color-swatch--${c.key || 'none'}`}
+                      title={c.label}
+                      onClick={() => { dispatch({ type: 'SET_NOTA_COR', id: expandida.id, cor: c.key }); setCorMenuAberto(false) }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         ) : (
           <>
             <div><h2>Notas</h2><p>{notas.length ? `${notas.length} nota${notas.length === 1 ? '' : 's'}` : 'Anotações livres do projeto'}</p></div>
