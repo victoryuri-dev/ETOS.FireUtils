@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
-import { ESTADOS_DISPONIVEIS } from '../../data/normas/index'
+import { getEstadosDisponiveis } from '../../data/normas/index'
 import { alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
@@ -244,6 +244,7 @@ export default function Step2({ step, totalSteps }) {
   const dimensionamento = state.tipoProjeto === 'dimensionamento'
   const [openId, setOpenId] = useState(null)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
+  const estadosDisponiveis = getEstadosDisponiveis()
 
   // Informar alvará/AVCB/ano de construção? Projeto que já tem algum desses
   // dados preenchido conta como "sim" (sem perder o que foi digitado).
@@ -301,7 +302,7 @@ export default function Step2({ step, totalSteps }) {
             <div className="fg">
               <label>Estado <span className="req">*</span></label>
               <select value={state.uf} onChange={set('uf')}>
-                {ESTADOS_DISPONIVEIS.map(e => {
+                {estadosDisponiveis.map(e => {
                   const habilitado = e.ativo || e.ativoDimensionamento
                   return (
                     <option key={e.uf} value={e.uf} disabled={!habilitado}>

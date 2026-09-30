@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { carregarNormasRemotas } from '../lib/normasRemote'
+import { carregarNormasRemotas, carregarCatalogoNormas } from '../lib/normasRemote'
 import { useAuth } from './AuthContext'
 import { PROCEDIMENTOS_PADRAO } from '../utils/planoEmergencia'
 import { dimsPadrao } from '../data/se_calc'
@@ -1141,6 +1141,17 @@ export function ProjetoProvider({ children }) {
     carregarNormasRemotas(state.uf).then(() => { if (!cancelado) setNormasVersion(v => v + 1) })
     return () => { cancelado = true }
   }, [state.uf])
+
+  // Catálogo de quais (uf, sistema) existem no Supabase, pra TODOS os
+  // estados — dispara 1x no boot, sem depender do UF do projeto (precisa
+  // estar pronto ANTES de o UF ser escolhido, pro seletor de estado do
+  // Step1/Step2 já habilitar/desabilitar corretamente — ver
+  // normas/index.js:getEstadosDisponiveis).
+  useEffect(() => {
+    let cancelado = false
+    carregarCatalogoNormas().then(() => { if (!cancelado) setNormasVersion(v => v + 1) })
+    return () => { cancelado = true }
+  }, [])
 
   // Estado sempre atual, pra ler dentro do `dispatch` (useCallback com deps
   // vazias, ver abaixo) sem precisar recriar a função a cada mudança —

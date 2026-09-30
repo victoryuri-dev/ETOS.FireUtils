@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useCnpjLookup } from '../../hooks/useCnpjLookup'
-import { ESTADOS_DISPONIVEIS } from '../../data/normas/index'
+import { getEstadosDisponiveis } from '../../data/normas/index'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
 
@@ -27,6 +27,7 @@ export default function Step1({ step, totalSteps }) {
   const { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco } = useCnpjLookup()
   const [mesmoResponsavel, setMesmoResponsavel] = useState(false)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
+  const estadosDisponiveis = getEstadosDisponiveis()
   const setCNPJ = e => dispatch({ type:'SET_FIELD', field:'respCNPJ', value: maskCNPJ(e.target.value) })
 
   // Erros e avisos da busca por CNPJ aparecem logo abaixo do campo (toasts
@@ -122,7 +123,7 @@ export default function Step1({ step, totalSteps }) {
           <div className="fg">
             <label>Estado <span className="req">*</span></label>
             <select value={state.uf} onChange={set('uf')}>
-              {ESTADOS_DISPONIVEIS.map(e => (
+              {estadosDisponiveis.map(e => (
                 <option key={e.uf} value={e.uf} disabled={!e.ativo}>
                   {e.nome}{!e.ativo ? ' — em breve' : ''}
                 </option>

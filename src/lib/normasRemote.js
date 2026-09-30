@@ -62,3 +62,48 @@ export function carregarNormasRemotas(uf) {
 
   return _emAndamento[uf]
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Catálogo — só "quais (uf, sistema) existem", pra TODOS os estados de uma
+// vez (não só o do projeto atual, como o cache acima). Usado por
+// normas/index.js:disponibilidadeEstado() pra decidir dinamicamente quais
+// UFs entram como opção pra projeto completo/dimensionamento no seletor de
+// estado (Step1/Step2) — sem isso, cada estado novo cadastrado no Supabase
+// exigiria também editar à mão uma lista fixa (ativo/ativoDimensionamento)
+// aqui no front. Só `uf, sistema` (sem `dados`, que pode ser grande) porque
+// aqui importa só existência, não o conteúdo.
+// ─────────────────────────────────────────────────────────────────────────
+const _catalogo = {} // uf -> Set(sistema)
+let _catalogoPromise = null
+
+/** Dispara (ou reaproveita) a busca de quais (uf, sistema) existem em
+ * normas_dados, para todos os estados — chamado 1x no boot do app (ver
+ * ProjetoContext.jsx). Nunca lança — falha de rede deixa o catálogo vazio,
+ * e disponibilidadeEstado() cai pro fallback estático (só MA, hoje). */
+export function carregarCatalogoNormas() {
+  if (_catalogoPromise) return _catalogoPromise
+  if (!supabase) return Promise.resolve()
+
+  _catalogoPromise = (async () => {
+    try {
+      const { data, error } = await supabase.from('normas_dados').select('uf, sistema')
+      if (error || !data) return
+      for (const row of data) {
+        if (!_catalogo[row.uf]) _catalogo[row.uf] = new Set()
+        _catalogo[row.uf].add(row.sistema)
+      }
+    } catch {
+      // sem rede / Supabase fora do ar — mantém o catálogo como está
+    }
+  })()
+
+  return _catalogoPromise
+}
+
+/** true se `sistema` está cadastrado no Supabase para `uf`, conforme o
+ * catálogo carregado por carregarCatalogoNormas(). false tanto se o
+ * catálogo ainda não carregou quanto se carregou e não achou nada — quem
+ * chama (disponibilidadeEstado) decide o fallback estático. */
+export function sistemaExisteNoCatalogo(uf, sistema) {
+  return !!_catalogo[uf]?.has(sistema)
+}

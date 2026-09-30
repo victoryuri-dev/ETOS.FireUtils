@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useProjeto } from '../context/ProjetoContext'
-import { ESTADOS_DISPONIVEIS } from '../data/normas/index'
+import { getEstadosDisponiveis } from '../data/normas/index'
 
 const CNPJ_API = 'https://brasilapi.com.br/api/cnpj/v1/'
 
@@ -62,7 +62,7 @@ export function useCnpjLookup() {
         dispatch({ type: 'SET_FIELD', field: 'cnaePrincipalDesc', value: d.cnae_fiscal_descricao || '' })
       }
 
-      const estadoSuportado = !!ESTADOS_DISPONIVEIS.find(e => e.uf === d.uf && e.ativo)
+      const estadoSuportado = !!getEstadosDisponiveis().find(e => e.uf === d.uf && e.ativo)
       if (!estadoSuportado && d.uf) {
         setWarning(`Endereco fiscal em ${d.uf} — norma ainda nao disponivel para esse estado nesta versao.`)
       }

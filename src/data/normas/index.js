@@ -2,10 +2,15 @@
  * normas/index.js — Loader central de normas
  *
  * COMO ADICIONAR UM NOVO ESTADO:
- *   1. Crie src/data/normas/UF/ocupacoes.js seguindo o modelo do MA
- *   2. Importe aqui: import * as UF from './UF/ocupacoes'
- *   3. Adicione em NORMAS: UF: { ...UF }
- *   4. Adicione em ESTADOS_DISPONIVEIS: { uf:'UF', nome:'...', ativo:true }
+ *   1. Cadastre as normas do estado na tabela `normas_dados` do Supabase
+ *      (sistemas 'ocupacoes' + 'medidas_seguranca', no mínimo, pra um
+ *      projeto completo; só 'saida_emergencia' já libera "apenas
+ *      dimensionamento") — OU crie um arquivo estático local seguindo o
+ *      modelo do MA (src/data/normas/UF/ocupacoes.js etc.) e registre-o
+ *      nas constantes NORMAS/NORMAS_MED/NORMAS_SE abaixo.
+ *   2. Adicione { uf:'UF', nome:'...' } em ESTADOS_BASE, logo abaixo.
+ *   3. Pronto — getEstadosDisponiveis() calcula ativo/ativoDimensionamento
+ *      sozinho a partir do que estiver cadastrado (ver disponibilidadeEstado).
  */
 
 import * as MA from './MA/ocupacoes'
@@ -28,7 +33,7 @@ import * as MA_DA   from './MA/deteccao_alarme'
 
 import * as PB_SE   from './PB/saida_emergencia'
 
-import { getNormaRemota } from '../../lib/normasRemote'
+import { getNormaRemota, sistemaExisteNoCatalogo } from '../../lib/normasRemote'
 import * as CATALOGOS_HIDRANTES from '../hidrantesCatalogos'
 
 const NORMAS      = { MA, PE, PB }
@@ -49,17 +54,52 @@ const NORMAS_BRIG = { MA: MA_BRIG }
 // novo nesta migração, só trocar de onde o dado vem.
 const NTS_PADRAO  = MA_NTS
 
-// Estados listados no seletor — ativo:false = aparece mas nao pode selecionar
-// em projetos completos. ativoDimensionamento:true libera o estado SÓ pro
-// seletor de projetos "Apenas dimensionamento" (Step2.jsx) — caso da
-// Paraíba: só tem dados de saída de emergência (NT 12/2025 CBMPB) por
-// enquanto, nenhuma das outras medidas de segurança (extintores,
-// iluminação, sinalização, TRRF, carga de incêndio por CNAE etc.).
-export const ESTADOS_DISPONIVEIS = [
-  { uf: 'MA', nome: 'Maranhao — MA',   ativo: true  },
-  { uf: 'PE', nome: 'Pernambuco — PE', ativo: false },
-  { uf: 'PB', nome: 'Paraiba — PB',    ativo: false, ativoDimensionamento: true },
+// Estados listados no seletor — nome/uf fixos (cadastro de um estado novo
+// ainda exige entrar aqui, ver "COMO ADICIONAR UM NOVO ESTADO" no topo do
+// arquivo), mas `ativo`/`ativoDimensionamento` NÃO são mais fixados à mão:
+// vêm de getEstadosDisponiveis(), calculados dinamicamente a partir de
+// quais sistemas o estado tem de fato cadastrados (Supabase — ver
+// lib/normasRemote.js:carregarCatalogoNormas — ou arquivo estático local).
+const ESTADOS_BASE = [
+  { uf: 'MA', nome: 'Maranhao — MA'   },
+  { uf: 'PE', nome: 'Pernambuco — PE' },
+  { uf: 'PB', nome: 'Paraiba — PB'    },
 ]
+
+// true se `sistema` está disponível pra `uf`, no Supabase (catálogo) OU no
+// arquivo estático local (`mapaEstatico`, uma das constantes NORMAS/
+// NORMAS_MED/NORMAS_SE acima) — mesmo critério que os getters (getNorma,
+// getMedidas, getSE) já usam pra decidir entre remoto e fallback, só que
+// aqui só interessa "existe ou não", não o conteúdo.
+function temSistemaCadastrado(uf, sistema, mapaEstatico) {
+  return sistemaExisteNoCatalogo(uf, sistema) || !!mapaEstatico[uf]
+}
+
+// Projeto completo precisa, no mínimo, de classificação de ocupação
+// ('ocupacoes') e da tabela de medidas obrigatórias ('medidas_seguranca',
+// Tabela 5/6) — sem as duas, o motor de normas (useMedidasObrigatorias)
+// não tem como classificar nem decidir nada pra esse estado. Projeto
+// "apenas dimensionamento" não passa pela classificação por ocupação
+// (Step2 pula direto pras estruturas — ver comentário lá), então só
+// precisa de pelo menos um sistema dimensionável com dado de verdade;
+// hidrantes/sprinklers já se bloqueiam individualmente sem base cadastrada
+// (ver useMedidasObrigatorias.js:disponivelPorNorma), então aqui só
+// interessa saída de emergência.
+function disponibilidadeEstado(uf) {
+  const ativo = temSistemaCadastrado(uf, 'ocupacoes', NORMAS) && temSistemaCadastrado(uf, 'medidas_seguranca', NORMAS_MED)
+  const ativoDimensionamento = ativo || temSistemaCadastrado(uf, 'saida_emergencia', NORMAS_SE)
+  return { ativo, ativoDimensionamento }
+}
+
+/** Lista de estados pro seletor (Step1/Step2/useCnpjLookup), com
+ * `ativo`/`ativoDimensionamento` recalculados a cada chamada — chamar
+ * dentro do render (não guardar em módulo), pra sempre refletir o
+ * catálogo mais recente (ver normasVersion em ProjetoContext.jsx, que
+ * força os componentes a re-renderizar quando o catálogo termina de
+ * carregar). */
+export function getEstadosDisponiveis() {
+  return ESTADOS_BASE.map(e => ({ ...e, ...disponibilidadeEstado(e.uf) }))
+}
 
 // A tabela `normas_dados` (ver supabase/migrations/*normas_dados*) guarda
 // as chaves em minúsculo, enquanto todo o resto do site sempre esperou os
