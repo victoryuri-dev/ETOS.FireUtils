@@ -24,6 +24,18 @@ export function getNormaRemota(uf, sistema) {
   return _cache[uf]?.[sistema] ?? null
 }
 
+/** true assim que o fetch de normas_dados pra `uf` termina (com sucesso ou
+ * não) pelo menos uma vez — distingue "ainda carregando" (getNormaRemota
+ * ainda vai retornar null de qualquer forma, não é sinal de ausência) de
+ * "carregou e não achou nada pra esse sistema" (aí sim, ausência
+ * confirmada). Usado por useMedidasObrigatorias pra bloquear sistemas sem
+ * base normativa cadastrada pro UF do projeto (ex.: hidrantes/sprinklers
+ * num estado sem norma no Supabase) sem piscar bloqueado durante o
+ * carregamento inicial. */
+export function normasCarregadas(uf) {
+  return !!_cache[uf]
+}
+
 /** Dispara (ou reaproveita, se já em andamento) a busca de todas as linhas
  * de normas_dados para `uf`. Nunca lança — falha de rede/Supabase deixa o
  * cache como estava (os getters caem pro fallback estático sozinhos). */
