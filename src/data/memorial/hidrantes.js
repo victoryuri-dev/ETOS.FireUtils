@@ -35,14 +35,14 @@ export function textoMemorialHidrantes(state) {
 
   blocos.push({
     tipo: 'paragrafo',
-    texto: `A edificação será protegida por Sistema de Proteção por Hidrantes e Mangotinhos ${dadosTipo.label}, dimensionado conforme a NT 22/2021 CBMMA, com vazão mínima de ${dadosTipo.vazaoMin} L/min e pressão mínima de ${dadosTipo.pressaoMin} mca na válvula do hidrante mais desfavorável (Tabela 2, NT 22).`,
+    texto: `A edificação será protegida por Sistema de Proteção por Hidrantes e Mangotinhos ${dadosTipo.label}, dimensionado conforme a ${norma.NORMA.nome}, com vazão mínima de ${dadosTipo.vazaoMin} L/min e pressão mínima de ${dadosTipo.pressaoMin} mca na válvula do hidrante mais desfavorável (Tabela 2, ${norma.NORMA.nome}).`,
   })
 
   blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
   if (h.rti) {
     blocos.push({
       tipo: 'campo', label: 'Reserva Técnica de Incêndio (RTI)',
-      valor: `${fmtNum(h.rti, 2, h.rti)} m³ — mínimo normativo conforme Tabela 3, NT 22`,
+      valor: `${fmtNum(h.rti, 2, h.rti)} m³ — mínimo normativo conforme Tabela 3, ${norma.NORMA.nome}`,
     })
   }
   const materialReservatorio = norma.MATERIAIS_RESERVATORIO.find(m => m.key === h.reservatorioMaterial)
@@ -57,7 +57,7 @@ export function textoMemorialHidrantes(state) {
     tipo: 'paragrafo',
     texto: h.reservatorioExclusivo
       ? 'O reservatório é de uso exclusivo para combate a incêndio.'
-      : `O reservatório é compartilhado com o consumo normal da edificação${h.reservatorioVolumeTotal ? `, com volume total de ${fmtNum(h.reservatorioVolumeTotal, 2, h.reservatorioVolumeTotal)} m³` : ''}, garantida a reserva efetiva de incêndio permanentemente (item 5.9.1, NT 22).`,
+      : `O reservatório é compartilhado com o consumo normal da edificação${h.reservatorioVolumeTotal ? `, com volume total de ${fmtNum(h.reservatorioVolumeTotal, 2, h.reservatorioVolumeTotal)} m³` : ''}, garantida a reserva efetiva de incêndio permanentemente (${norma.NORMA.nome}).`,
   })
 
   blocos.push({ tipo: 'titulo2', texto: 'Bomba de Incêndio' })
@@ -76,13 +76,13 @@ export function textoMemorialHidrantes(state) {
     if (h.bombaAcionamento === 'eletrico' || (h.bombaReserva && h.bombaReservaAcionamento === 'eletrico')) {
       blocos.push({
         tipo: 'paragrafo',
-        texto: 'Na falta de energia da concessionária, as bombas de incêndio acionadas por motor elétrico podem ser alimentadas por um gerador diesel, atendendo ao requisito do item C.2.9 da NT 22.',
+        texto: `Na falta de energia da concessionária, as bombas de incêndio acionadas por motor elétrico podem ser alimentadas por um gerador diesel, atendendo ao requisito do item C.2.9 da ${norma.NORMA.nome}.`,
       })
     }
     if (h.bombaAlimentaSprinklers) {
       blocos.push({
         tipo: 'paragrafo',
-        texto: 'O sistema de bombeamento de incêndio também alimenta o sistema de chuveiros automáticos (sprinklers), mediante interligação das tubulações dos reservatórios, conforme item 5.9.2 da NT 22, atendendo aos parâmetros da NT 23 — Sistema de Chuveiros Automáticos.',
+        texto: `O sistema de bombeamento de incêndio também alimenta o sistema de chuveiros automáticos (sprinklers), mediante interligação das tubulações dos reservatórios, conforme item 5.9.2 da ${norma.NORMA.nome}, atendendo aos parâmetros da norma de Sistema de Chuveiros Automáticos.`,
       })
     }
 
@@ -96,7 +96,7 @@ export function textoMemorialHidrantes(state) {
     if (state.hidrantes?.dimensionamento?.succao === 'negativa') {
       blocos.push({
         tipo: 'paragrafo',
-        texto: `A condição de sucção resultou negativa — para a verificação e o cálculo do NPSH disponível (Anexo C, NT 22), adotou-se altitude local de ${fmtNum(h.succaoAltitude ?? 0)} m e temperatura da água de ${fmtNum(h.succaoTemperatura ?? 30)} °C.`,
+        texto: `A condição de sucção resultou negativa — para a verificação e o cálculo do NPSH disponível (Anexo C, ${norma.NORMA.nome}), adotou-se altitude local de ${fmtNum(h.succaoAltitude ?? 0)} m e temperatura da água de ${fmtNum(h.succaoTemperatura ?? 30)} °C.`,
       })
     }
 
@@ -141,7 +141,7 @@ export function textoMemorialHidrantes(state) {
   if (h.recalqueTipo) {
     blocos.push({
       tipo: 'paragrafo',
-      texto: `O dispositivo de recalque para uso do Corpo de Bombeiros Militar será ${LABEL_RECALQUE[h.recalqueTipo]}, com ${h.recalqueEntradas === 2 ? '2 entradas (vazão do sistema acima de 1.000 L/min, item 5.3.3)' : '1 entrada'}.`,
+      texto: `O dispositivo de recalque para uso do Corpo de Bombeiros Militar será ${LABEL_RECALQUE[h.recalqueTipo]}, com ${h.recalqueEntradas === 2 ? `2 entradas (vazão do sistema acima de 1.000 L/min, ${norma.HIDRANTES_SIMULTANEOS_REF})` : '1 entrada'}.`,
     })
     if (h.recalqueTipo === 'passeio' && h.recalqueJustificativaPasseio) {
       blocos.push({ tipo: 'paragrafo', texto: `Justificativa técnica: ${h.recalqueJustificativaPasseio}` })

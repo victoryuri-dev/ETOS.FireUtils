@@ -530,7 +530,7 @@ export default function HidrantesPage() {
               Hidrantes / Mangotinho
             </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-              Classificação conforme NT 22 CBMMA / NBR 13714 — o dimensionamento hidráulico é calculado pelo plugin Revit a partir dela.
+              Classificação conforme {norma.NORMA.nome} / NBR 13714 — o dimensionamento hidráulico é calculado pelo plugin Revit a partir dela.
             </p>
           </div>
         </div>

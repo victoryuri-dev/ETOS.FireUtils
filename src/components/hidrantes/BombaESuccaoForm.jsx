@@ -166,7 +166,7 @@ export function SelecaoBombas({ vazaoM3h, pressaoMca, eta, onChangeEta, potencia
 
       {h.bombaExiste && reservaSugerida && !h.bombaReserva && (
         <Nota>
-          Risco {risco} classificado — a NT 22 (Anexo C, C.3.12) exige bomba reserva: {reservaSugerida.tipo}.
+          Risco {risco} classificado — a {norma.NORMA.nome} (Anexo C, C.3.12) exige bomba reserva: {reservaSugerida.tipo}.
         </Nota>
       )}
     </FormSection>

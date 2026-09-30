@@ -67,7 +67,7 @@ export default function FormularioSistema() {
       </FormSection>
 
       {/* A — Classificação do sistema */}
-      <FormSection title="Classificação do Sistema" description="Cruzamento área construída × ocupação, conforme Tabela 3 da NT 22 CBMMA.">
+      <FormSection title="Classificação do Sistema" description={`Cruzamento área construída × ocupação, conforme Tabela 3 da ${norma.NORMA.nome}.`}>
         <div className="grid grid-cols-2 gap-4 bg-surface-2 border border-solid border-border rounded-lg p-4 mb-4">
           <Resultado label="Área total construída (estruturas selecionadas acima)"
             value={areaTotal ? `${fmtNum(areaTotal)} m²` : '—'}/>
@@ -148,7 +148,7 @@ export default function FormularioSistema() {
           </div>
         )}
         <div className="grid grid-cols-2 gap-4 mt-3 bg-surface-2 border border-solid border-border rounded-lg p-4">
-          <Resultado label="RTI (Reserva Técnica de Incêndio)" hint="Tabela 3, NT 22" value={h.rti ? `${fmtNum(h.rti, 2, h.rti)} m³` : '—'}/>
+          <Resultado label="RTI (Reserva Técnica de Incêndio)" hint={`Tabela 3, ${norma.NORMA.nome}`} value={h.rti ? `${fmtNum(h.rti, 2, h.rti)} m³` : '—'}/>
         </div>
       </FormSection>
 
@@ -191,7 +191,7 @@ export default function FormularioSistema() {
         {dadosTipo && (
           <div className={`flex items-center justify-between gap-3 mt-3 py-2.5 px-3.5 rounded-md border border-solid ${recalqueDuplo ? 'bg-amber-dim border-amber-border' : 'bg-surface-2 border-border'}`}>
             <span className="text-xs text-ink">
-              Vazão do sistema ({fmtNum(dadosTipo.vazaoMin)} L/min × {norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = {fmtNum(vazaoSistema)} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min (item 5.3.3, NT 22)
+              Vazão do sistema ({fmtNum(dadosTipo.vazaoMin)} L/min × {norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = {fmtNum(vazaoSistema)} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min ({norma.HIDRANTES_SIMULTANEOS_REF})
             </span>
             <span className={`shrink-0 inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${recalqueDuplo ? 'bg-amber-dim border-amber-border text-amber' : 'bg-green-dim border-green-border text-green'}`}>
               Recalque {recalqueDuplo ? 'duplo — 2 entradas' : 'simples — 1 entrada'}
@@ -202,7 +202,7 @@ export default function FormularioSistema() {
 
       {/* E — Abrigos e mangueiras (derivado da Tabela 4, somente leitura) */}
       {dadosTipo && (
-        <FormSection title="Abrigos e Mangueiras" description="Componentes obrigatórios para o Tipo de sistema adotado (Tabela 4, NT 22).">
+        <FormSection title="Abrigos e Mangueiras" description={`Componentes obrigatórios para o Tipo de sistema adotado (Tabela 4, ${norma.NORMA.nome}).`}>
           <div className="grid grid-cols-2 gap-y-2 text-xs">
             <span className="text-ink-faint">Abrigo</span><span className="text-ink font-medium capitalize">{dadosTipo.componentes.abrigo}</span>
             <span className="text-ink-faint">Mangueira de incêndio</span><span className="text-ink font-medium">{norma.LABEL_MANGUEIRA_INCENDIO[dadosTipo.componentes.mangueiraIncendio] || (dadosTipo.componentes.mangueiraIncendio ? dadosTipo.componentes.mangueiraIncendio : 'Não se aplica')}</span>
@@ -232,7 +232,7 @@ export default function FormularioSistema() {
           </Field>
         </div>
         <div className="text-[11px] text-ink-faint mt-3">
-          Válvula do mangotinho: esfera de abertura rápida, DN25 (1") — fixo pela NT 22, item 5.5.4.
+          Válvula do mangotinho: esfera de abertura rápida, DN25 (1") — fixo pela {norma.NORMA.nome}.
         </div>
       </FormSection>
 
