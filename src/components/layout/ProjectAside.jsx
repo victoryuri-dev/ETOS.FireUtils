@@ -83,7 +83,7 @@ export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }
   const itemProps = { activePage, collapsed: col, onNavigate }
 
   return (
-    <aside className={`shrink-0 bg-bg border-r border-solid border-white flex flex-col overflow-hidden transition-[width] duration-200 ${col ? 'w-14' : 'w-60'}`}>
+    <aside className={`shrink-0 border-r border-solid border-border flex flex-col overflow-hidden transition-[width] duration-200 ${col ? 'w-14' : 'w-60'}`}>
 
       {/* Marca + toggle colapso */}
       <div className="p-2 shrink-0">
