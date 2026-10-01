@@ -49,11 +49,61 @@ function tabelaBalizamento(pavs, itensBalizPorPav, pontosBalizamento) {
   }
 }
 
-function blocosDaEstrutura(est, pavs, itensDaEstrutura, equipamentosUsados, norma) {
+// Parágrafo narrando o sistema adotado — mesmo texto usado tanto no bloco
+// global (projeto todo, quando `mesmoSistema`) quanto por estrutura (quando
+// cada edificação escolhe o seu). `sujeito` troca só a abertura da frase.
+function paragrafoSistema(sistema, TIPOS_SISTEMA, sujeito) {
+  const tipoSistemaInfo = TIPOS_SISTEMA.find(t => t.key === sistema.tipo)
+  if (!tipoSistemaInfo) {
+    return { tipo: 'paragrafo', texto: `O sistema de iluminação de emergência utilizado ${sujeito} ainda não foi definido pelo responsável técnico.` }
+  }
+  const precisaLocalizacao = sistema.tipo === 'central' || sistema.tipo === 'motogerador'
+  return {
+    tipo: 'paragrafo',
+    texto: `O sistema adotado ${sujeito} é do tipo ${tipoSistemaInfo.label.toLowerCase()}.` +
+      (precisaLocalizacao
+        ? ` A fonte do sistema (${sistema.tipo === 'motogerador' ? 'grupo motogerador' : 'central de baterias'}) está localizada em ${sistema.localizacaoFonte || 'local a definir pelo responsável técnico'}.`
+        : ''),
+  }
+}
+
+// Tabela de características técnicas dos equipamentos de aclaramento
+// cadastrados — uma linha por especificação, mesmas colunas de
+// CAMPOS_EQUIPAMENTO usadas no formulário (IluminacaoPage.jsx).
+function tabelaCaracteristicasEquipamentos(equipamentosUsados, equipamentosSpec, CAMPOS_EQUIPAMENTO) {
+  if (equipamentosUsados.length === 0) return null
+  return {
+    tipo: 'tabela',
+    colunas: ['Equipamento', ...CAMPOS_EQUIPAMENTO.map(c => c.unidade ? `${c.label} (${c.unidade})` : c.label)],
+    linhas: equipamentosUsados.map(eq => [
+      eq.label,
+      ...CAMPOS_EQUIPAMENTO.map(c => equipamentosSpec[eq.key]?.[c.key] || '—'),
+    ]),
+  }
+}
+
+// Blocos de uma estrutura — sistema (só quando não há um único sistema pro
+// projeto todo), características dos equipamentos cadastrados nela e as
+// tabelas de aclaramento/balizamento por pavimento.
+function blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, especificacoesDaEstrutura, norma, TIPOS_SISTEMA, CAMPOS_EQUIPAMENTO, mesmoSistema) {
   const itensPorPav = new Map(pavs.map(p => [p.id, itensDaEstrutura.filter(i => i.pavimentoId === p.id && i.categoria === 'aclaramento')]))
   const itensBalizPorPav = new Map(pavs.map(p => [p.id, itensDaEstrutura.filter(i => i.pavimentoId === p.id && i.categoria === 'balizamento')]))
 
+  const equipamentosUsados = especificacoesDaEstrutura.map(spec => {
+    const base = norma.EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
+    return { key: spec.id, label: nomeEspecificacao(spec, base?.label || spec.tipoBase) }
+  })
+  const equipamentosSpec = Object.fromEntries(especificacoesDaEstrutura.map(spec => [spec.id, spec]))
+
   const blocos = [{ tipo: 'titulo2', texto: est.nome }]
+
+  if (!mesmoSistema) blocos.push(paragrafoSistema(sistemaDaEstrutura, TIPOS_SISTEMA, 'nesta edificação'))
+
+  const tabCaract = tabelaCaracteristicasEquipamentos(equipamentosUsados, equipamentosSpec, CAMPOS_EQUIPAMENTO)
+  if (tabCaract) {
+    blocos.push({ tipo: 'titulo3', texto: 'Características dos equipamentos' })
+    blocos.push(tabCaract)
+  }
 
   const tabAclar = tabelaAclaramento(pavs, itensPorPav, equipamentosUsados)
   blocos.push(tabAclar || { tipo: 'paragrafo', texto: `Nenhuma luminária de aclaramento cadastrada em ${est.nome}.` })
@@ -69,55 +119,26 @@ function blocosDaEstrutura(est, pavs, itensDaEstrutura, equipamentosUsados, norm
 
 export function textoMemorialIluminacao(state) {
   const norma = getIluminacao(state.uf)
-  const { ILUMINANCIA_MINIMA, RAZAO_UNIFORMIDADE_MAX, AUTONOMIA_MINIMA_HORAS, TEMPO_RESPOSTA_MAX_S, TIPOS_SISTEMA, EQUIPAMENTOS_ACLARAMENTO, CAMPOS_EQUIPAMENTO } = norma
-  const sistema = state.iluminacaoSistema || {}
-  const especificacoes = sistema.especificacoes || []
-
-  // Uma opção por especificação cadastrada (não por tipo base) — rotulada
-  // com o fluxo luminoso para diferenciar variantes do mesmo equipamento,
-  // mesmo critério usado em IluminacaoPage.jsx.
-  const equipamentosUsados = especificacoes.map(spec => {
-    const base = EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
-    return { key: spec.id, label: nomeEspecificacao(spec, base?.label || spec.tipoBase) }
-  })
-  const equipamentosSpec = Object.fromEntries(especificacoes.map(spec => [spec.id, spec]))
+  const { ILUMINANCIA_MINIMA, RAZAO_UNIFORMIDADE_MAX, AUTONOMIA_MINIMA_HORAS, TEMPO_RESPOSTA_MAX_S, TIPOS_SISTEMA, CAMPOS_EQUIPAMENTO } = norma
+  const mesmoSistema = state.iluminacaoMesmoSistema !== false
 
   const blocos = [{
     tipo: 'paragrafo',
     texto: `A iluminação de emergência deve garantir iluminância mínima de ${ILUMINANCIA_MINIMA.aclaramento_normal} lux nos ambientes em geral (${ILUMINANCIA_MINIMA.aclaramento_risco} lux em áreas de risco elevado ou grande concentração de público) e de ${ILUMINANCIA_MINIMA.balizamento} lux no eixo dos percursos de saída, com uniformidade máxima de ${RAZAO_UNIFORMIDADE_MAX}:1, autonomia mínima de bateria de ${AUTONOMIA_MINIMA_HORAS} hora e tempo de resposta de no máximo ${TEMPO_RESPOSTA_MAX_S} segundos após a falta de energia da rede normal (NBR 10898 / NT 18 CBMMA).`,
   }]
 
-  const tipoSistemaInfo = TIPOS_SISTEMA.find(t => t.key === sistema.tipo)
-  if (tipoSistemaInfo) {
-    const precisaLocalizacao = sistema.tipo === 'central' || sistema.tipo === 'motogerador'
-    blocos.push({
-      tipo: 'paragrafo',
-      texto: `O sistema adotado no projeto é do tipo ${tipoSistemaInfo.label.toLowerCase()}.` +
-        (precisaLocalizacao
-          ? ` A fonte do sistema (${sistema.tipo === 'motogerador' ? 'grupo motogerador' : 'central de baterias'}) está localizada em ${sistema.localizacaoFonte || 'local a definir pelo responsável técnico'}.`
-          : ''),
-    })
-  } else {
-    blocos.push({ tipo: 'paragrafo', texto: 'O sistema de iluminação de emergência utilizado no projeto ainda não foi definido pelo responsável técnico.' })
-  }
-
-  if (equipamentosUsados.length > 0) {
-    blocos.push({ tipo: 'titulo2', texto: 'Características dos equipamentos' })
-    blocos.push({
-      tipo: 'tabela',
-      colunas: ['Equipamento', ...CAMPOS_EQUIPAMENTO.map(c => c.unidade ? `${c.label} (${c.unidade})` : c.label)],
-      linhas: equipamentosUsados.map(eq => [
-        eq.label,
-        ...CAMPOS_EQUIPAMENTO.map(c => equipamentosSpec[eq.key]?.[c.key] || '—'),
-      ]),
-    })
-  }
+  // Só entra um parágrafo global sobre o sistema quando o projeto usa um
+  // único sistema pra todas as edificações — caso contrário, cada estrutura
+  // narra o seu próprio sistema (ver blocosDaEstrutura).
+  if (mesmoSistema) blocos.push(paragrafoSistema(state.iluminacaoSistema || {}, TIPOS_SISTEMA, 'no projeto'))
 
   const blocosPavimentos = (state.estruturas || []).flatMap(est => {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     if (pavs.length === 0) return []
     const itensDaEstrutura = (state.iluminacao || []).filter(i => pavs.some(p => p.id === i.pavimentoId))
-    return blocosDaEstrutura(est, pavs, itensDaEstrutura, equipamentosUsados, norma)
+    const sistemaDaEstrutura = mesmoSistema ? (state.iluminacaoSistema || {}) : (state.iluminacaoSistemaPorEstrutura?.[est.id] || {})
+    const especificacoesDaEstrutura = state.iluminacaoEspecificacoesPorEstrutura?.[est.id] || []
+    return blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, especificacoesDaEstrutura, norma, TIPOS_SISTEMA, CAMPOS_EQUIPAMENTO, mesmoSistema)
   })
 
   if (blocosPavimentos.length === 0) {

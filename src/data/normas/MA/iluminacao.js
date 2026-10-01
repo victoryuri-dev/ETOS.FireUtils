@@ -35,7 +35,7 @@ export const TEMPO_RESPOSTA_MAX_S = 5
 // Apenas dois tipos de equipamento — os dados técnicos de cada um (lâmpada,
 // potência, tensão, fluxo luminoso, ângulo de dispersão, vida útil) variam
 // por fabricante/modelo e por isso são preenchidos pelo projetista por
-// projeto (state.iluminacaoSistema.equipamentos), não fixados aqui.
+// estrutura (state.iluminacaoEspecificacoesPorEstrutura), não fixados aqui.
 export const EQUIPAMENTOS_ACLARAMENTO = [
   { key: 'luminaria_30leds', label: 'Luminária de Emergência 30 LEDs' },
   { key: 'bloco_emergencia', label: 'Bloco de Iluminação de Emergência' },

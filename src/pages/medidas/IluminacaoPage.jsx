@@ -71,15 +71,35 @@ function PerguntaSimNao({ pergunta, valor, onSim, onNao }) {
   )
 }
 
-// ── Sistema utilizado no projeto (pergunta obrigatória antes das quantidades) ──
-function SistemaSelecionado({ sistema, tiposSistema, dispatch }) {
-  const setTipo         = tipo   => dispatch({ type: 'SET_ILUMINACAO_SISTEMA', changes: { tipo } })
-  const setLocalizacao  = valor  => dispatch({ type: 'SET_ILUMINACAO_SISTEMA', changes: { localizacaoFonte: valor } })
+// ── Pergunta: mesmo sistema de iluminação para todas as edificações? ────
+// Gate no topo da página — decide se o sistema é escolhido uma vez pro
+// projeto todo (SistemaSelecionado global) ou dentro de cada estrutura
+// (uma instância de SistemaSelecionado por EstruturaSection). Começa em
+// `true` (ver INITIAL_STATE.iluminacaoMesmoSistema) pra não quebrar o fluxo
+// de projetos existentes, que sempre tiveram um único sistema.
+function MesmoSistemaPergunta({ mesmoSistema, dispatch }) {
+  const setMesmoSistema = valor => dispatch({ type: 'SET_ILUMINACAO_MESMO_SISTEMA', valor })
+  return (
+    <Card className="mb-8">
+      <div className="py-3.5 px-[18px]">
+        <PerguntaSimNao
+          pergunta="Todas as edificações do projeto utilizam o mesmo sistema de iluminação de emergência (bloco autônomo, sistema centralizado ou grupo motogerador)?"
+          valor={mesmoSistema} onSim={() => setMesmoSistema(true)} onNao={() => setMesmoSistema(false)}
+        />
+      </div>
+    </Card>
+  )
+}
+
+// ── Sistema utilizado (no projeto todo, ou numa estrutura) ───────────────
+function SistemaSelecionado({ titulo, sistema, tiposSistema, onChange }) {
+  const setTipo         = tipo   => onChange({ tipo })
+  const setLocalizacao  = valor  => onChange({ localizacaoFonte: valor })
   const precisaLocalizacao = sistema.tipo === 'central' || sistema.tipo === 'motogerador'
 
   return (
     <Card className="mb-8">
-      <CardHeader><span className="text-[13px] font-semibold text-ink">Sistema utilizado no projeto</span></CardHeader>
+      <CardHeader><span className="text-[13px] font-semibold text-ink">{titulo}</span></CardHeader>
       <div className="py-3.5 px-[18px]">
         <div className="grid grid-cols-3 gap-3 mb-3">
           {tiposSistema.map(t => (
@@ -112,9 +132,9 @@ function SistemaSelecionado({ sistema, tiposSistema, dispatch }) {
 // uma especificação recém-criada (`defaultAberto`) nasce aberta, para o
 // usuário não esquecer de conferir/preencher os dados — ele fecha depois se
 // quiser.
-function EspecificacaoRow({ spec, eqLabel, campos, dispatch, defaultAberto }) {
+function EspecificacaoRow({ spec, eqLabel, campos, estruturaId, dispatch, defaultAberto }) {
   const [aberto, setAberto] = useState(!!defaultAberto)
-  const setField = (key, value) => dispatch({ type: 'UPDATE_ESPECIFICACAO_EQUIPAMENTO', id: spec.id, changes: { [key]: value } })
+  const setField = (key, value) => dispatch({ type: 'UPDATE_ESPECIFICACAO_EQUIPAMENTO', estruturaId, id: spec.id, changes: { [key]: value } })
   const nome = nomeEspecificacao(spec, eqLabel)
   const resumo = [spec.tipoLampada, spec.fluxoLuminosoLm && fmtUn(spec.fluxoLuminosoLm, 'lm', 2, `${spec.fluxoLuminosoLm} lm`)].filter(Boolean).join(' · ')
 
@@ -130,7 +150,7 @@ function EspecificacaoRow({ spec, eqLabel, campos, dispatch, defaultAberto }) {
             {resumo && <div className="text-[10px] text-ink-faint truncate">{resumo}</div>}
           </div>
         </button>
-        <button type="button" onClick={() => dispatch({ type: 'REMOVE_ESPECIFICACAO_EQUIPAMENTO', id: spec.id })} className="btn-del shrink-0">
+        <button type="button" onClick={() => dispatch({ type: 'REMOVE_ESPECIFICACAO_EQUIPAMENTO', estruturaId, id: spec.id })} className="btn-del shrink-0">
           <Icon name="trash" size={12}/>
         </button>
       </div>
@@ -226,7 +246,7 @@ function AdicionarEspecificacaoMenu({ presetsDoTipo, onAdicionar }) {
 // casos a especificação nasce com o id gerado aqui mesmo (em vez de deixar
 // o reducer gerar) para saber exatamente qual linha acabou de aparecer e
 // abri-la já expandida — ver `recemCriadoId`.
-function EquipamentoBase({ eqKey, eqLabel, eqImg, especificacoes, presets, campos, dispatch }) {
+function EquipamentoBase({ eqKey, eqLabel, eqImg, especificacoes, presets, campos, estruturaId, dispatch }) {
   const specs = especificacoes.filter(s => s.tipoBase === eqKey)
   const usado = specs.length > 0
   const presetsDoTipo = presets.filter(p => p.tipoBase === eqKey)
@@ -236,15 +256,15 @@ function EquipamentoBase({ eqKey, eqLabel, eqImg, especificacoes, presets, campo
     if (v) {
       const id = gerarIdEspecificacao()
       setRecemCriadoId(id)
-      dispatch({ type: 'SET_EQUIPAMENTO_USADO', tipoBase: eqKey, usado: v, preset: presetsDoTipo[0], id })
+      dispatch({ type: 'SET_EQUIPAMENTO_USADO', estruturaId, tipoBase: eqKey, usado: v, preset: presetsDoTipo[0], id })
     } else {
-      dispatch({ type: 'SET_EQUIPAMENTO_USADO', tipoBase: eqKey, usado: v })
+      dispatch({ type: 'SET_EQUIPAMENTO_USADO', estruturaId, tipoBase: eqKey, usado: v })
     }
   }
   const adicionar = preset => {
     const id = gerarIdEspecificacao()
     setRecemCriadoId(id)
-    dispatch({ type: 'ADD_ESPECIFICACAO_EQUIPAMENTO', tipoBase: eqKey, preset, id })
+    dispatch({ type: 'ADD_ESPECIFICACAO_EQUIPAMENTO', estruturaId, tipoBase: eqKey, preset, id })
   }
 
   return (
@@ -255,7 +275,7 @@ function EquipamentoBase({ eqKey, eqLabel, eqImg, especificacoes, presets, campo
         <SwitchToggle checked={usado} onChange={toggleUsado}/>
       </div>
       {specs.map(spec => (
-        <EspecificacaoRow key={spec.id} spec={spec} eqLabel={eqLabel} campos={campos} dispatch={dispatch}
+        <EspecificacaoRow key={spec.id} spec={spec} eqLabel={eqLabel} campos={campos} estruturaId={estruturaId} dispatch={dispatch}
           defaultAberto={spec.id === recemCriadoId}/>
       ))}
       {usado && (
@@ -267,16 +287,16 @@ function EquipamentoBase({ eqKey, eqLabel, eqImg, especificacoes, presets, campo
   )
 }
 
-function EquipamentosAclaramento({ equipamentosDef, especificacoes, presets, campos, dispatch }) {
+function EquipamentosAclaramento({ equipamentosDef, especificacoes, presets, campos, estruturaId, dispatch }) {
   return (
     <Card className="mb-8">
       <CardHeader>
-        <span className="text-[13px] font-semibold text-ink">Equipamentos de aclaramento utilizados no projeto</span>
+        <span className="text-[13px] font-semibold text-ink">Equipamentos de aclaramento utilizados nesta edificação</span>
         <span className="text-[11px] text-ink-faint">dados necessários para o memorial (item 5.2, NBR 10898) — escolha um preset ou cadastre manualmente</span>
       </CardHeader>
       <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3 items-start">
         {equipamentosDef.map(eq => (
-          <EquipamentoBase key={eq.key} eqKey={eq.key} eqLabel={eq.label} eqImg={IMAGENS_EQUIPAMENTO[eq.key]} especificacoes={especificacoes} presets={presets} campos={campos} dispatch={dispatch}/>
+          <EquipamentoBase key={eq.key} eqKey={eq.key} eqLabel={eq.label} eqImg={IMAGENS_EQUIPAMENTO[eq.key]} especificacoes={especificacoes} presets={presets} campos={campos} estruturaId={estruturaId} dispatch={dispatch}/>
         ))}
       </div>
     </Card>
@@ -444,19 +464,10 @@ export default function IluminacaoPage() {
   const { iluminacao: iluNorma } = useNorma()
   const { porEstrutura } = useMedidasObrigatorias()
   const { TIPOS_SISTEMA, EQUIPAMENTOS_ACLARAMENTO, CAMPOS_EQUIPAMENTO, PRESETS_EQUIPAMENTO } = iluNorma
-  const sistema = state.iluminacaoSistema
-
-  const especificacoes = sistema.especificacoes || []
-  const sistemaDefinido = !!sistema.tipo
-  const podeConfigurarPavimentos = sistemaDefinido && especificacoes.length > 0
-
-  // Opções do checklist de aclaramento por pavimento — uma por especificação
-  // cadastrada (não por tipo base), rotuladas com o fluxo luminoso para
-  // diferenciar variantes do mesmo tipo.
-  const opcoesAclaramento = especificacoes.map(spec => {
-    const base = EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
-    return { key: spec.id, label: nomeEspecificacao(spec, base?.label || spec.tipoBase) }
-  })
+  // Default true (ver INITIAL_STATE) — projetos existentes, que sempre
+  // tiveram um único sistema pro projeto todo, continuam exatamente como
+  // estavam até o usuário responder "Não" à pergunta no topo da página.
+  const mesmoSistema = state.iluminacaoMesmoSistema !== false
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -469,64 +480,98 @@ export default function IluminacaoPage() {
             Sistema de Iluminação de Emergência
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-            Escolha o sistema utilizado no projeto e os equipamentos de aclaramento, e depois cadastre as quantidades por pavimento, conforme a NT 18 CBMMA / NBR 10898.
+            Escolha o sistema utilizado e os equipamentos de aclaramento, e depois cadastre as quantidades por pavimento, conforme a NT 18 CBMMA / NBR 10898.
           </p>
         </div>
 
         <ReferenciaNormativa iluNorma={iluNorma}/>
 
-        <SistemaSelecionado sistema={sistema} tiposSistema={TIPOS_SISTEMA} dispatch={dispatch}/>
+        <MesmoSistemaPergunta mesmoSistema={mesmoSistema} dispatch={dispatch}/>
 
-        {!sistemaDefinido ? (
-          <EmptyState texto="Selecione o sistema de iluminação de emergência utilizado no projeto para liberar as quantidades por pavimento."/>
+        {mesmoSistema && (
+          <SistemaSelecionado titulo="Sistema utilizado no projeto" sistema={state.iluminacaoSistema} tiposSistema={TIPOS_SISTEMA}
+            onChange={changes => dispatch({ type: 'SET_ILUMINACAO_SISTEMA', changes })}/>
+        )}
+
+        {mesmoSistema && !state.iluminacaoSistema.tipo ? (
+          <EmptyState texto="Selecione o sistema de iluminação de emergência utilizado no projeto para liberar os equipamentos e as quantidades por pavimento."/>
         ) : (
-          <>
-            <EquipamentosAclaramento equipamentosDef={EQUIPAMENTOS_ACLARAMENTO} especificacoes={especificacoes} presets={PRESETS_EQUIPAMENTO} campos={CAMPOS_EQUIPAMENTO} dispatch={dispatch}/>
+          state.estruturas.map(est => {
+            const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
+            const comItens = pavimentos.filter(pav => state.iluminacao.some(i => i.pavimentoId === pav.id)).length
+            const pe = porEstrutura.find(p => p.estrutura.id === est.id)
+            const exigido = !!pe?.sistemas?.iluminacao?.ativo
+            const status = !exigido
+              ? statusEstrutura('concluido', 'Não exigida')
+              : statusPorProgresso(comItens, Math.max(pavimentos.length, 1), {
+                  pendente: 'Aguardando dados', andamento: `${comItens} de ${pavimentos.length} pavimentos`, concluido: 'Dados carregados',
+                })
 
-            {!podeConfigurarPavimentos ? (
-              <EmptyState texto="Cadastre ao menos uma especificação de equipamento de aclaramento acima para liberar as quantidades por pavimento."/>
-            ) : (
-              state.estruturas.map(est => {
-                const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
-                const comItens = pavimentos.filter(pav => state.iluminacao.some(i => i.pavimentoId === pav.id)).length
-                const pe = porEstrutura.find(p => p.estrutura.id === est.id)
-                const exigido = !!pe?.sistemas?.iluminacao?.ativo
-                const status = !exigido
-                  ? statusEstrutura('concluido', 'Não exigida')
-                  : statusPorProgresso(comItens, Math.max(pavimentos.length, 1), {
-                      pendente: 'Aguardando dados', andamento: `${comItens} de ${pavimentos.length} pavimentos`, concluido: 'Dados carregados',
-                    })
-                return (
-                  <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'iluminacao' } : null} defaultOpen={false}>
-                    {!exigido ? (
-                      <div className="ibox green">
-                        <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                        <span className="text-xs">Iluminação de emergência não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
-                      </div>
-                    ) : pavimentos.length === 0 ? (
-                      <div className="ibox amber">
-                        <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-                        <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>
-                      </div>
-                    ) : pavimentos.map(pav => (
-                      <PavimentoCard
-                        key={pav.id}
-                        pavimento={pav}
-                        estruturaId={est.id}
-                        alturaPisoPiso={est.alturaPisoPiso}
-                        itensAclaramento={state.iluminacao.filter(i => i.pavimentoId === pav.id && i.categoria === 'aclaramento')}
-                        itensBalizamento={state.iluminacao.filter(i => i.pavimentoId === pav.id && i.categoria === 'balizamento')}
-                        balizamentoAplicado={state.iluminacaoBalizamentoAplicado[pav.id]}
-                        equipamentosUsados={opcoesAclaramento}
-                        iluNorma={iluNorma}
-                        dispatch={dispatch}
-                      />
-                    ))}
-                  </EstruturaSection>
-                )
-              })
-            )}
-          </>
+            // Sistema e especificações desta estrutura — o sistema vem do
+            // card global quando `mesmoSistema`, senão do próprio card por
+            // estrutura; as especificações são sempre por estrutura (uma
+            // edificação pode usar luminárias diferentes de outra).
+            const sistemaDaEstrutura = mesmoSistema ? state.iluminacaoSistema : (state.iluminacaoSistemaPorEstrutura[est.id] || { tipo: '', localizacaoFonte: '' })
+            const sistemaDefinido = !!sistemaDaEstrutura.tipo
+            const especificacoes = state.iluminacaoEspecificacoesPorEstrutura[est.id] || []
+            const podeConfigurarPavimentos = sistemaDefinido && especificacoes.length > 0
+
+            // Opções do checklist de aclaramento por pavimento — uma por
+            // especificação cadastrada (não por tipo base), rotuladas com o
+            // fluxo luminoso para diferenciar variantes do mesmo tipo.
+            const opcoesAclaramento = especificacoes.map(spec => {
+              const base = EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
+              return { key: spec.id, label: nomeEspecificacao(spec, base?.label || spec.tipoBase) }
+            })
+
+            return (
+              <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'iluminacao' } : null} defaultOpen={false}>
+                {!exigido ? (
+                  <div className="ibox green">
+                    <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
+                    <span className="text-xs">Iluminação de emergência não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+                  </div>
+                ) : (
+                  <>
+                    {!mesmoSistema && (
+                      <SistemaSelecionado titulo="Sistema utilizado nesta edificação" sistema={sistemaDaEstrutura} tiposSistema={TIPOS_SISTEMA}
+                        onChange={changes => dispatch({ type: 'SET_ILUMINACAO_SISTEMA_ESTRUTURA', estruturaId: est.id, changes })}/>
+                    )}
+
+                    {!sistemaDefinido ? (
+                      <EmptyState texto="Selecione o sistema de iluminação de emergência utilizado nesta edificação para liberar os equipamentos e as quantidades por pavimento."/>
+                    ) : (
+                      <>
+                        <EquipamentosAclaramento equipamentosDef={EQUIPAMENTOS_ACLARAMENTO} especificacoes={especificacoes} presets={PRESETS_EQUIPAMENTO} campos={CAMPOS_EQUIPAMENTO} estruturaId={est.id} dispatch={dispatch}/>
+
+                        {!podeConfigurarPavimentos ? (
+                          <EmptyState texto="Cadastre ao menos uma especificação de equipamento de aclaramento acima para liberar as quantidades por pavimento."/>
+                        ) : pavimentos.length === 0 ? (
+                          <div className="ibox amber">
+                            <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+                            <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>
+                          </div>
+                        ) : pavimentos.map(pav => (
+                          <PavimentoCard
+                            key={pav.id}
+                            pavimento={pav}
+                            estruturaId={est.id}
+                            alturaPisoPiso={est.alturaPisoPiso}
+                            itensAclaramento={state.iluminacao.filter(i => i.pavimentoId === pav.id && i.categoria === 'aclaramento')}
+                            itensBalizamento={state.iluminacao.filter(i => i.pavimentoId === pav.id && i.categoria === 'balizamento')}
+                            balizamentoAplicado={state.iluminacaoBalizamentoAplicado[pav.id]}
+                            equipamentosUsados={opcoesAclaramento}
+                            iluNorma={iluNorma}
+                            dispatch={dispatch}
+                          />
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
+              </EstruturaSection>
+            )
+          })
         )}
       </div>
     </div>

@@ -213,7 +213,27 @@ function migrarParaPorEstrutura(saved) {
     riscosOutrosDescPorEstrutura = { [firstEstId]: saved.riscosOutrosDesc }
   }
 
-  return { cargaState, sistemasPorEstrutura, riscosEspeciaisPorEstrutura, riscosOutrosDescPorEstrutura }
+  // Migração: especificações de equipamentos de aclaramento viviam em
+  // iluminacaoSistema.especificacoes (uma lista só pro projeto inteiro) —
+  // agora são por-estrutura, já que uma estrutura pode usar luminárias
+  // diferentes de outra. Best-effort, igual às migrações acima: joga tudo
+  // pra primeira estrutura.
+  let iluminacaoEspecificacoesPorEstrutura = saved.iluminacaoEspecificacoesPorEstrutura || {}
+  const especAntigas = saved.iluminacaoSistema?.especificacoes
+  if (especAntigas?.length && !saved.iluminacaoEspecificacoesPorEstrutura && firstEstId) {
+    iluminacaoEspecificacoesPorEstrutura = { [firstEstId]: especAntigas }
+  }
+
+  return { cargaState, sistemasPorEstrutura, riscosEspeciaisPorEstrutura, riscosOutrosDescPorEstrutura, iluminacaoEspecificacoesPorEstrutura }
+}
+
+// Remove `especificacoes` de um iluminacaoSistema salvo no formato antigo
+// (ver migrarParaPorEstrutura) — sem isso, o campo ficaria duplicado e
+// esquecido dentro de iluminacaoSistema depois da migração.
+function hydratarIluminacaoSistema(saved) {
+  const resto = { ...(saved || {}) }
+  delete resto.especificacoes
+  return { ...INITIAL_STATE.iluminacaoSistema, ...resto }
 }
 
 // Mescla planoEmergencia salvo com os defaults atuais (INITIAL_STATE) — mas,
@@ -252,7 +272,7 @@ function hydrateState(saved) {
     ...saved,
     estruturas: migrarAlturaEdificacao(saved.estruturas || INITIAL_STATE.estruturas),
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
-    iluminacaoSistema: { ...INITIAL_STATE.iluminacaoSistema, ...(saved.iluminacaoSistema || {}) },
+    iluminacaoSistema: hydratarIluminacaoSistema(saved.iluminacaoSistema),
     hidrantes: { ...INITIAL_STATE.hidrantes, ...(saved.hidrantes || {}) },
     planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
     // Migração: pavimentos salvos antes de `ambientes` (Saída de Emergência)
@@ -391,19 +411,28 @@ const INITIAL_STATE = {
   // Blocos de nota livre exibidos no Dashboard ao lado de Identificação —
   // { id, html, atualizadoEm }. Uso livre do projetista.
   notas: [],
-  // Sistema de iluminação de emergência escolhido para o projeto todo (não
-  // varia por pavimento) — perguntado antes de liberar as quantidades por
-  // pavimento em IluminacaoPage.jsx. `localizacaoFonte` só se aplica a
-  // 'central'/'motogerador'. `especificacoes` guarda as especificações
-  // técnicas (item 5.2, NBR 10898) cadastradas para os equipamentos de
-  // aclaramento — uma lista, pois um mesmo tipo base (ver
-  // EQUIPAMENTOS_ACLARAMENTO em normas/MA/iluminacao.js) pode ter mais de
-  // uma variante (ex.: fluxos luminosos diferentes).
+  // Se todas as edificações do projeto usam o mesmo sistema de iluminação de
+  // emergência — perguntado no topo de IluminacaoPage.jsx. true (padrão) =
+  // um único sistema pra todo o projeto, guardado em `iluminacaoSistema`;
+  // false = cada estrutura escolhe o seu, em `iluminacaoSistemaPorEstrutura`.
+  iluminacaoMesmoSistema: true,
+  // Sistema de iluminação de emergência escolhido pro projeto todo — só
+  // usado quando `iluminacaoMesmoSistema` é true. `localizacaoFonte` só se
+  // aplica a 'central'/'motogerador'.
   iluminacaoSistema: {
     tipo: '', // '' | 'bloco_autonomo' | 'central' | 'motogerador'
     localizacaoFonte: '',
-    especificacoes: [],
   },
+  // Mesmo formato de `iluminacaoSistema`, um por estrutura — usado quando
+  // `iluminacaoMesmoSistema` é false (chave = id da estrutura).
+  iluminacaoSistemaPorEstrutura: {},
+  // Especificações técnicas (item 5.2, NBR 10898) dos equipamentos de
+  // aclaramento, por estrutura — uma estrutura pode usar luminárias
+  // diferentes de outra. Chave = id da estrutura; valor = lista de
+  // especificações (um mesmo tipo base, ver EQUIPAMENTOS_ACLARAMENTO em
+  // normas/MA/iluminacao.js, pode ter mais de uma variante cadastrada, ex.:
+  // fluxos luminosos diferentes).
+  iluminacaoEspecificacoesPorEstrutura: {},
   // Resposta por pavimento à pergunta "foram aplicadas luminárias de
   // balizamento neste pavimento?" — chave = pavimentoId, valor true/false.
   // Ausente = ainda não respondida (a tela pergunta antes de liberar o
@@ -584,6 +613,8 @@ function reducer(state, action) {
         sistemasPorEstrutura: semChave(state.sistemasPorEstrutura, action.id),
         riscosEspeciaisPorEstrutura: semChave(state.riscosEspeciaisPorEstrutura, action.id),
         riscosOutrosDescPorEstrutura: semChave(state.riscosOutrosDescPorEstrutura, action.id),
+        iluminacaoSistemaPorEstrutura: semChave(state.iluminacaoSistemaPorEstrutura, action.id),
+        iluminacaoEspecificacoesPorEstrutura: semChave(state.iluminacaoEspecificacoesPorEstrutura, action.id),
       }
     }
     case 'RENAME_ESTRUTURA':
@@ -711,60 +742,83 @@ function reducer(state, action) {
       return { ...state, iluminacao: state.iluminacao.filter(i => i.id !== action.id) }
     case 'SET_ILUMINACAO_SISTEMA':
       return { ...state, iluminacaoSistema: { ...state.iluminacaoSistema, ...action.changes } }
-    // Switch liga/desliga de um tipo base de equipamento — ligar cria uma
-    // especificação default (se ainda não houver nenhuma desse tipo);
-    // desligar remove todas as especificações desse tipo e os quantitativos
-    // de aclaramento que já as referenciavam em algum pavimento.
+    // Se todas as edificações usam o mesmo sistema — pergunta no topo de
+    // IluminacaoPage.jsx. Só liga/desliga a flag; os dados nos dois formatos
+    // (iluminacaoSistema global, iluminacaoSistemaPorEstrutura) ficam
+    // guardados independente de qual está em uso no momento, pra não perder
+    // nada se o usuário mudar de ideia e voltar.
+    case 'SET_ILUMINACAO_MESMO_SISTEMA':
+      return { ...state, iluminacaoMesmoSistema: action.valor }
+    case 'SET_ILUMINACAO_SISTEMA_ESTRUTURA':
+      return {
+        ...state,
+        iluminacaoSistemaPorEstrutura: {
+          ...state.iluminacaoSistemaPorEstrutura,
+          [action.estruturaId]: { ...(state.iluminacaoSistemaPorEstrutura[action.estruturaId] || INITIAL_STATE.iluminacaoSistema), ...action.changes },
+        },
+      }
+    // Switch liga/desliga de um tipo base de equipamento, dentro de uma
+    // estrutura — ligar cria uma especificação default (se ainda não houver
+    // nenhuma desse tipo nesta estrutura); desligar remove todas as
+    // especificações desse tipo (nesta estrutura) e os quantitativos de
+    // aclaramento que já as referenciavam em algum pavimento dela.
     case 'SET_EQUIPAMENTO_USADO': {
-      const { tipoBase, usado, preset, id } = action
-      const especIds = new Set(state.iluminacaoSistema.especificacoes.filter(s => s.tipoBase === tipoBase).map(s => s.id))
+      const { estruturaId, tipoBase, usado, preset, id } = action
+      const specsEst = state.iluminacaoEspecificacoesPorEstrutura[estruturaId] || []
+      const especIds = new Set(specsEst.filter(s => s.tipoBase === tipoBase).map(s => s.id))
       if (usado) {
         if (especIds.size > 0) return state
         return {
           ...state,
-          iluminacaoSistema: {
-            ...state.iluminacaoSistema,
-            especificacoes: [...state.iluminacaoSistema.especificacoes, novaEspecificacaoEquipamento(tipoBase, preset, id)],
+          iluminacaoEspecificacoesPorEstrutura: {
+            ...state.iluminacaoEspecificacoesPorEstrutura,
+            [estruturaId]: [...specsEst, novaEspecificacaoEquipamento(tipoBase, preset, id)],
           },
         }
       }
       return {
         ...state,
-        iluminacaoSistema: {
-          ...state.iluminacaoSistema,
-          especificacoes: state.iluminacaoSistema.especificacoes.filter(s => s.tipoBase !== tipoBase),
+        iluminacaoEspecificacoesPorEstrutura: {
+          ...state.iluminacaoEspecificacoesPorEstrutura,
+          [estruturaId]: specsEst.filter(s => s.tipoBase !== tipoBase),
         },
-        iluminacao: state.iluminacao.filter(i => !(i.categoria === 'aclaramento' && especIds.has(i.tipoEquipamento))),
+        iluminacao: state.iluminacao.filter(i => !(i.estruturaId === estruturaId && i.categoria === 'aclaramento' && especIds.has(i.tipoEquipamento))),
       }
     }
-    case 'ADD_ESPECIFICACAO_EQUIPAMENTO':
+    case 'ADD_ESPECIFICACAO_EQUIPAMENTO': {
+      const specsEst = state.iluminacaoEspecificacoesPorEstrutura[action.estruturaId] || []
       return {
         ...state,
-        iluminacaoSistema: {
-          ...state.iluminacaoSistema,
-          especificacoes: [...state.iluminacaoSistema.especificacoes, novaEspecificacaoEquipamento(action.tipoBase, action.preset, action.id)],
+        iluminacaoEspecificacoesPorEstrutura: {
+          ...state.iluminacaoEspecificacoesPorEstrutura,
+          [action.estruturaId]: [...specsEst, novaEspecificacaoEquipamento(action.tipoBase, action.preset, action.id)],
         },
       }
-    case 'UPDATE_ESPECIFICACAO_EQUIPAMENTO':
+    }
+    case 'UPDATE_ESPECIFICACAO_EQUIPAMENTO': {
+      const specsEst = state.iluminacaoEspecificacoesPorEstrutura[action.estruturaId] || []
       return {
         ...state,
-        iluminacaoSistema: {
-          ...state.iluminacaoSistema,
-          especificacoes: state.iluminacaoSistema.especificacoes.map(s => s.id === action.id ? { ...s, ...action.changes } : s),
+        iluminacaoEspecificacoesPorEstrutura: {
+          ...state.iluminacaoEspecificacoesPorEstrutura,
+          [action.estruturaId]: specsEst.map(s => s.id === action.id ? { ...s, ...action.changes } : s),
         },
       }
+    }
     // Remove a especificação e também os quantitativos de aclaramento que já
     // referenciavam ela em algum pavimento — evita item órfão apontando para
     // uma especificação inexistente.
-    case 'REMOVE_ESPECIFICACAO_EQUIPAMENTO':
+    case 'REMOVE_ESPECIFICACAO_EQUIPAMENTO': {
+      const specsEst = state.iluminacaoEspecificacoesPorEstrutura[action.estruturaId] || []
       return {
         ...state,
-        iluminacaoSistema: {
-          ...state.iluminacaoSistema,
-          especificacoes: state.iluminacaoSistema.especificacoes.filter(s => s.id !== action.id),
+        iluminacaoEspecificacoesPorEstrutura: {
+          ...state.iluminacaoEspecificacoesPorEstrutura,
+          [action.estruturaId]: specsEst.filter(s => s.id !== action.id),
         },
-        iluminacao: state.iluminacao.filter(i => !(i.categoria === 'aclaramento' && i.tipoEquipamento === action.id)),
+        iluminacao: state.iluminacao.filter(i => !(i.estruturaId === action.estruturaId && i.categoria === 'aclaramento' && i.tipoEquipamento === action.id)),
       }
+    }
     case 'ADD_SINALIZACAO':
       return { ...state, sinalizacao: [...state.sinalizacao, novoItemSinalizacao(action.estruturaId, action.tipoPlaca, action.quantidade, action.id)] }
     case 'UPDATE_SINALIZACAO':
