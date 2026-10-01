@@ -163,11 +163,11 @@ function EquipamentoCard({ item, equipamentosDef, campos, dispatch, defaultAbert
 // base ──────────────────────────────────────────────────────────────────
 // Botão de verdade (não um <select> disfarçado) — abre um menu com os dois
 // tipos base de equipamento (ver EQUIPAMENTOS_ACLARAMENTO), cada um com
-// seus presets de catálogo + "Personalizado"; escolher uma opção já cria o
-// item neste pavimento (especificação + quantidade inicial 1 num só passo).
-// O menu é renderizado via portal em document.body e posicionado por
-// coordenadas fixas — os cartões desta tela ficam dentro de vários
-// containers com overflow-hidden (para os cantos arredondados), que
+// "Adicionar Luminária" (em branco) + seus presets de catálogo; escolher uma
+// opção já cria o item neste pavimento (especificação + quantidade inicial 1
+// num só passo). O menu é renderizado via portal em document.body e
+// posicionado por coordenadas fixas — os cartões desta tela ficam dentro de
+// vários containers com overflow-hidden (para os cantos arredondados), que
 // cortariam um menu posicionado como filho normal. Fecha ao clicar fora ou
 // ao rolar a página — sem overlay de tela cheia (isso bloqueava o scroll: o
 // shell do app rola por uma div interna, e um overlay via portal fica fora
@@ -178,9 +178,23 @@ function AdicionarEquipamentoMenu({ equipamentosDef, presets, onAdicionar }) {
   const btnRef = useRef(null)
   const menuRef = useRef(null)
 
+  // Abre pra cima quando não há espaço suficiente embaixo do botão (ex.:
+  // botão perto do fim da tela, dentro de um card de pavimento no fim da
+  // lista) — sem isso o menu extrapolava a viewport e ficava cortado, sem
+  // como rolar até as últimas opções. Altura máxima sempre limitada ao
+  // espaço realmente disponível no lado escolhido.
   const abrir = () => {
     const r = btnRef.current.getBoundingClientRect()
-    setPos({ top: r.bottom + 4, left: r.left, width: r.width })
+    const margem = 8
+    const espacoAbaixo = window.innerHeight - r.bottom - margem
+    const espacoAcima = r.top - margem
+    const paraCima = espacoAbaixo < 200 && espacoAcima > espacoAbaixo
+    setPos({
+      left: r.left, width: r.width,
+      top: paraCima ? null : r.bottom + 4,
+      bottom: paraCima ? window.innerHeight - r.top + 4 : null,
+      maxHeight: Math.max(120, Math.min(320, paraCima ? espacoAcima - 4 : espacoAbaixo - 4)),
+    })
   }
   const fechar = () => setPos(null)
   const escolher = (tipoBase, preset) => { onAdicionar(tipoBase, preset); fechar() }
@@ -208,20 +222,20 @@ function AdicionarEquipamentoMenu({ equipamentosDef, presets, onAdicionar }) {
       </button>
       {pos && createPortal(
         <div ref={menuRef}
-          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
-          className="z-[1000] bg-surface border border-solid border-border rounded-md shadow-[0_8px_24px_rgba(0,0,0,.4)] overflow-hidden max-h-[280px] overflow-y-auto"
+          style={{ position: 'fixed', top: pos.top ?? undefined, bottom: pos.bottom ?? undefined, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
+          className="z-[1000] bg-surface border border-solid border-border rounded-md shadow-[0_8px_24px_rgba(0,0,0,.4)] overflow-hidden overflow-y-auto"
         >
           {equipamentosDef.map(eq => (
             <div key={eq.key}>
               <div className="py-1.5 px-3 text-[10px] text-ink-faint uppercase tracking-[.06em] bg-surface-2">{eq.label}</div>
+              <button type="button" onClick={() => escolher(eq.key, undefined)}
+                className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
+              ><Icon name="plus" size={10} className="inline-block mr-1.5 align-[-1px]"/>Adicionar Luminária</button>
               {presets.filter(p => p.tipoBase === eq.key).map(p => (
                 <button key={p.key} type="button" onClick={() => escolher(eq.key, p)}
                   className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
                 >{p.label}</button>
               ))}
-              <button type="button" onClick={() => escolher(eq.key, undefined)}
-                className="w-full text-left py-2 px-3 text-[12px] text-ink-faint italic cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
-              >Personalizado (em branco)</button>
             </div>
           ))}
         </div>,
