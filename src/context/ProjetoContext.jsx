@@ -727,6 +727,16 @@ function reducer(state, action) {
       return { ...state, iluminacao: [...state.iluminacao, novoItemIluminacao(action.estruturaId, action.pavimentoId, action.categoria, action.overrides, action.id)] }
     case 'UPDATE_ILUMINACAO':
       return { ...state, iluminacao: state.iluminacao.map(i => i.id === action.id ? { ...i, ...action.changes } : i) }
+    // Substitui só o cadastro de aclaramento das estruturas presentes no
+    // lote importado (ver resolverImportacaoIluminacao em
+    // IluminacaoPage.jsx) — mesmo padrão de IMPORT_EXTINTORES. Os itens já
+    // chegam com estruturaId/pavimentoId/tipoBase/campos técnicos/quantidade
+    // resolvidos contra o projeto atual.
+    case 'IMPORT_ILUMINACAO': {
+      const estruturasDoLote = new Set(action.itens.map(it => it.estruturaId))
+      const preservados = state.iluminacao.filter(i => !estruturasDoLote.has(i.estruturaId))
+      return { ...state, estruturas: marcarOrigemRevit(state.estruturas, estruturasDoLote, 'iluminacao'), iluminacao: [...preservados, ...action.itens.map(it => ({ ...it, id: it.id || idIluminacao() }))] }
+    }
     case 'REMOVE_ILUMINACAO':
       return { ...state, iluminacao: state.iluminacao.filter(i => i.id !== action.id) }
     case 'SET_ILUMINACAO_SISTEMA':
@@ -1039,6 +1049,8 @@ function resolverAcaoLocal(action, state) {
       return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idExtintor() }) }
     case 'IMPORT_SINALIZACAO':
       return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idSinalizacao() }) }
+    case 'IMPORT_ILUMINACAO':
+      return { ...action, itens: action.itens.map(it => it.id ? it : { ...it, id: idIluminacao() }) }
     case 'IMPORT_AMBIENTES_SE':
       return { ...action, atualizacoes: action.atualizacoes.map(a => ({ ...a, ambientes: a.ambientes.map(it => it.id ? it : { ...it, id: idAmbienteSE() }) })) }
     case 'TOGGLE_SISTEMA_ESTRUTURA': {

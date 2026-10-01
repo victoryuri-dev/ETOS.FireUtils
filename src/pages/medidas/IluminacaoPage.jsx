@@ -3,12 +3,14 @@ import { createPortal } from 'react-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
+import { supabase } from '../../lib/supabase'
 import { nomeEspecificacao } from '../../data/iluminacao_calc'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import QuantityStepper from '../../components/ui/QuantityStepper'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import { useToast } from '../../hooks/useToast'
 import { statusPorProgresso, statusEstrutura } from '../../utils/statusEstrutura'
 import { fmtUn } from '../../utils/numero'
 import SwitchToggle from '../../components/ui/SwitchToggle'
@@ -20,6 +22,99 @@ import blocoIluminacaoImg from '../../assets/bloco de iluminacao.png'
 const IMAGENS_EQUIPAMENTO = {
   luminaria_30leds: luminaria30ledsImg,
   bloco_emergencia: blocoIluminacaoImg,
+}
+
+// ── Importação do firedata.json / Supabase (plugin Revit) ────────────
+// Formato esperado (ver iluminacao/calc.py no plugin):
+//   { "iluminacao": { "_timestamp": "...", "itens": [
+//       { "pavimento": "Térreo", "tipoBase": "luminaria_30leds",
+//         "fluxoLuminosoLm": "100", "tipoLampada": "30 LEDs SMD", "quantidade": 3 },
+//       ...
+//   ] } }
+//
+// O plugin identifica o tipo base (ver params.py: parâmetro de tipo "Tipo
+// Base Iluminação" nas famílias de categoria Luminárias) e lê fluxo
+// luminoso + tipo de lâmpada direto da família — "tipoBase" aceita tanto a
+// chave interna (ex.: "luminaria_30leds") quanto o label do catálogo
+// (ex.: "Luminária de Emergência 30 LEDs"), case/acento-insensível.
+//
+// Potência, tensão e autonomia não vêm do Revit (não são parâmetro de
+// família) — quando o fluxo luminoso importado bate com algum preset do
+// catálogo (ver PRESETS_EQUIPAMENTO em normas/MA/iluminacao.js) do mesmo
+// tipo base, esses três campos entram preenchidos com os valores do preset;
+// senão ficam em branco, pro RT completar manualmente.
+function norm(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+// Mesma lógica de ExtintoresPage.jsx — o Revit só enumera "níveis" (Nível 1,
+// Nível 2, ...) na ordem em que foram criados; quando o nome não bate com
+// nenhum pavimento cadastrado, tenta casar "Nível N" pela mesma numeração
+// que o site usa internamente pros pavimentos acima do solo (P1 = Térreo).
+// Não tenta adivinhar subsolo.
+function pavimentoPorNivelRevit(nomePavimento, estruturaId, pavimentos) {
+  const m = norm(nomePavimento).match(/^(?:n[ií]vel|piso|level)\s*(\d+)$/)
+  if (!m) return null
+  const n = parseInt(m[1], 10)
+  return pavimentos.find(p => p.estruturaId === estruturaId && p.id === `${estruturaId}-P${n}`) || null
+}
+
+// `estruturaIdForcado`: presente no pull do Supabase (uma linha por
+// estrutura, já resolvida no envio — ver revit-sync), ausente no upload
+// manual de arquivo.
+function resolverImportacaoIluminacao(json, estruturas, pavimentos, equipamentosDef, presets, estruturaIdForcado) {
+  const dados = json?.iluminacao
+  if (!dados?.itens) throw new Error('Chave "iluminacao.itens" não encontrada no arquivo.')
+
+  const grupos = new Map()
+  const erros = []
+
+  const estruturaForcada = estruturaIdForcado ? estruturas.find(e => e.id === estruturaIdForcado) : null
+  if (estruturaIdForcado && !estruturaForcada) {
+    throw new Error('Estrutura vinculada não encontrada no projeto — reconfigure o vínculo no plugin.')
+  }
+
+  dados.itens.forEach((it, i) => {
+    const linha = `Item ${i + 1}`
+
+    const est = estruturaForcada || estruturas[0]
+    if (!est) { erros.push(`${linha}: nenhuma estrutura cadastrada no projeto para receber o equipamento.`); return }
+
+    const pav = pavimentos.find(p => p.estruturaId === est.id && norm(p.label) === norm(it.pavimento))
+      || pavimentoPorNivelRevit(it.pavimento, est.id, pavimentos)
+      || pavimentos.find(p => p.estruturaId === est.id && p.tipo === 'terreo')
+    if (!pav) { erros.push(`${linha}: ${est.nome} não tem nenhum pavimento cadastrado para receber o equipamento.`); return }
+
+    const chaveTipo = norm(it.tipoBase)
+    const eqInfo = equipamentosDef.find(eq => norm(eq.key) === chaveTipo || norm(eq.label) === chaveTipo)
+    if (!eqInfo) { erros.push(`${linha}: tipo base "${it.tipoBase}" não reconhecido.`); return }
+
+    const fluxoLuminosoLm = (it.fluxoLuminosoLm != null ? String(it.fluxoLuminosoLm) : '').trim()
+    const tipoLampada = (it.tipoLampada || '').trim()
+    const quantidade = parseInt(it.quantidade) || 1
+
+    // Completa potência/tensão/autonomia com o preset do catálogo que tiver
+    // o mesmo fluxo luminoso, se houver — ver comentário no topo do arquivo.
+    const presetCorrespondente = fluxoLuminosoLm
+      ? presets.find(p => p.tipoBase === eqInfo.key && String(p.fluxoLuminosoLm) === fluxoLuminosoLm)
+      : null
+
+    const chave = [pav.id, eqInfo.key, fluxoLuminosoLm, tipoLampada].join('|')
+    const existente = grupos.get(chave)
+    if (existente) existente.quantidade += quantidade
+    else grupos.set(chave, {
+      estruturaId: est.id, pavimentoId: pav.id, categoria: 'aclaramento',
+      tipoBase: eqInfo.key, identificacao: '',
+      tipoLampada: tipoLampada || presetCorrespondente?.tipoLampada || '',
+      potenciaW: presetCorrespondente?.potenciaW || '',
+      tensaoV: presetCorrespondente?.tensaoV || '',
+      fluxoLuminosoLm,
+      autonomia: presetCorrespondente?.autonomia || '',
+      quantidade,
+    })
+  })
+
+  return { resolvidos: [...grupos.values()], erros, timestamp: dados._timestamp || null }
 }
 
 // Gerado aqui (em vez de deixar o reducer decidir) para que quem despacha a
@@ -355,24 +450,131 @@ export default function IluminacaoPage() {
   const { iluminacao: iluNorma } = useNorma()
   const { porEstrutura } = useMedidasObrigatorias()
   const { TIPOS_SISTEMA, EQUIPAMENTOS_ACLARAMENTO, CAMPOS_EQUIPAMENTO, PRESETS_EQUIPAMENTO } = iluNorma
+  const toast = useToast()
   // Default true (ver INITIAL_STATE) — projetos existentes, que sempre
   // tiveram um único sistema pro projeto todo, continuam exatamente como
   // estavam até o usuário responder "Não" à pergunta no topo da página.
   const mesmoSistema = state.iluminacaoMesmoSistema !== false
 
+  // Resultado de uma importação do Revit: pendências viram um aviso de erro
+  // e o que foi importado, um de sucesso — mesmo padrão de SinalizacaoPage.
+  const notificarImportacao = (info, erros) => {
+    if (erros.length > 0) {
+      toast.error(`${erros.length === 1 ? 'Um item não pôde ser importado' : `${erros.length} itens não puderam ser importados`}: ${erros.join(' ')}`)
+    }
+    if (info) toast.success(`${info.total} equipamento${info.total !== 1 ? 's' : ''} importado${info.total !== 1 ? 's' : ''} do Revit${info.timestamp ? ` — exportação: ${info.timestamp}` : ''}. Esta importação substituiu o cadastro anterior da(s) estrutura(s) recebida(s).`)
+  }
+  const [buscando, setBuscando] = useState(false)
+  // Id da estrutura sendo atualizada individualmente (botão "Atualizar" no
+  // card dela) — null quando nenhuma está em busca. Separado de `buscando`
+  // (o "Buscar do Revit" do cabeçalho, que busca todas de uma vez).
+  const [buscandoEstruturaId, setBuscandoEstruturaId] = useState(null)
+  const fileInputRef = useRef(null)
+
+  // Aplica o payload da chave "iluminacao" (vindo de um arquivo ou do
+  // Supabase) — mesmo parser de sempre, só muda a origem do JSON.
+  const aplicarIluminacao = (payloadIluminacao, estruturaIdForcado) => {
+    try {
+      const { resolvidos, erros, timestamp } = resolverImportacaoIluminacao(
+        { iluminacao: payloadIluminacao }, state.estruturas, state.pavimentos, EQUIPAMENTOS_ACLARAMENTO, PRESETS_EQUIPAMENTO, estruturaIdForcado
+      )
+      if (resolvidos.length > 0) dispatch({ type: 'IMPORT_ILUMINACAO', itens: resolvidos })
+      return { total: resolvidos.length, erros, timestamp }
+    } catch (err) {
+      return { total: 0, erros: [err.message || 'Dados inválidos.'], timestamp: null }
+    }
+  }
+
+  const handleImport = e => {
+    const file = e.target.files[0]
+    if (!file) return
+    e.target.value = ''
+    const reader = new FileReader()
+    reader.onload = ev => {
+      try {
+        const json = JSON.parse(ev.target.result)
+        const { total, erros, timestamp } = aplicarIluminacao(json.iluminacao)
+        notificarImportacao({ timestamp, total }, erros)
+      } catch (err) {
+        notificarImportacao(null, [err.message || 'Arquivo inválido.'])
+      }
+    }
+    reader.readAsText(file, 'utf-8')
+  }
+
+  // Busca uma linha por estrutura (cada arquivo Revit sincroniza a sua) e
+  // aplica cada uma escopada — a importação de uma estrutura não mexe no
+  // cadastro das demais (ver IMPORT_ILUMINACAO em ProjetoContext.jsx).
+  const handleBuscarRevit = async () => {
+    setBuscando(true)
+    const { data, error } = await supabase
+      .from('revit_syncs_latest').select('estrutura_id, payload').eq('projeto_id', state.id).eq('medida', 'iluminacao')
+    setBuscando(false)
+    if (error) {
+      notificarImportacao(null, [`Falha ao consultar o Supabase: ${error.message}`])
+      return
+    }
+    if (!data || data.length === 0) {
+      notificarImportacao(null, ['Nenhum dado de iluminação sincronizado do Revit ainda para este projeto.'])
+      return
+    }
+    let totalGeral = 0
+    const errosGeral = []
+    let timestampMaisRecente = null
+    for (const row of data) {
+      const { total, erros, timestamp } = aplicarIluminacao(row.payload, row.estrutura_id)
+      totalGeral += total
+      errosGeral.push(...erros)
+      if (timestamp && (!timestampMaisRecente || timestamp > timestampMaisRecente)) timestampMaisRecente = timestamp
+    }
+    notificarImportacao({ timestamp: timestampMaisRecente, total: totalGeral }, errosGeral)
+  }
+
+  // Mesma busca de handleBuscarRevit, mas escopada a uma única estrutura
+  // (botão "Atualizar" no card dela).
+  const handleBuscarRevitEstrutura = async estruturaId => {
+    setBuscandoEstruturaId(estruturaId)
+    const { data, error } = await supabase
+      .from('revit_syncs_latest').select('payload').eq('projeto_id', state.id)
+      .eq('medida', 'iluminacao').eq('estrutura_id', estruturaId).maybeSingle()
+    setBuscandoEstruturaId(null)
+    if (error) {
+      notificarImportacao(null, [`Falha ao consultar o Supabase: ${error.message}`])
+      return
+    }
+    if (!data) {
+      notificarImportacao(null, ['Nenhum dado de iluminação sincronizado do Revit ainda para esta estrutura.'])
+      return
+    }
+    const { total, erros, timestamp } = aplicarIluminacao(data.payload, estruturaId)
+    notificarImportacao({ timestamp, total }, erros)
+  }
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
 
-        <div className="mb-7">
-          <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
-            <Icon name={SISTEMA_ICON.iluminacao} size={20} color="var(--color-red)" className="shrink-0"/>
-            Sistema de Iluminação de Emergência
-          </h2>
-          <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-            Escolha o sistema utilizado e os equipamentos de aclaramento, e depois cadastre as quantidades por pavimento, conforme a NT 18 CBMMA / NBR 10898.
-          </p>
+        <div className="flex items-start justify-between gap-4 mb-7">
+          <div>
+            <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
+            <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+              <Icon name={SISTEMA_ICON.iluminacao} size={20} color="var(--color-red)" className="shrink-0"/>
+              Sistema de Iluminação de Emergência
+            </h2>
+            <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+              Escolha o sistema utilizado e os equipamentos de aclaramento, e depois cadastre as quantidades por pavimento, conforme a NT 18 CBMMA / NBR 10898.
+            </p>
+          </div>
+          <div className="shrink-0 flex flex-col items-end gap-1.5">
+            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
+            <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
+              <Icon name="upload" size={13}/>
+              {buscando ? 'Buscando…' : 'Buscar do Revit'}
+            </button>
+            <button type="button" className="text-[10px] text-ink-faint hover:text-ink underline bg-transparent border-none cursor-pointer p-0" onClick={() => fileInputRef.current?.click()}>
+              ou importar de um arquivo .json
+            </button>
+          </div>
         </div>
 
         <ReferenciaNormativa iluNorma={iluNorma}/>
@@ -406,7 +608,20 @@ export default function IluminacaoPage() {
             const sistemaDefinido = !!sistemaDaEstrutura.tipo
 
             return (
-              <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'iluminacao' } : null} defaultOpen={false}>
+              <EstruturaSection key={est.id} titulo={est.nome} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'iluminacao' } : null} defaultOpen={false} extra={
+                <div className="flex items-center gap-2">
+                  <EstruturaHeaderInfo estrutura={est} semArea/>
+                  {exigido && (
+                    <button type="button" className="btn-ghost text-[10px] py-1 px-2 gap-1"
+                      onClick={e => { e.stopPropagation(); handleBuscarRevitEstrutura(est.id) }}
+                      disabled={buscandoEstruturaId === est.id}
+                      title="Buscar do Revit só os dados desta estrutura">
+                      <Icon name="upload" size={10}/>
+                      {buscandoEstruturaId === est.id ? 'Buscando…' : 'Atualizar'}
+                    </button>
+                  )}
+                </div>
+              }>
                 {!exigido ? (
                   <div className="ibox green">
                     <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
