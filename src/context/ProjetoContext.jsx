@@ -189,27 +189,36 @@ function migrarParaPorEstrutura(saved) {
 
 // Migração: especificações de equipamentos de aclaramento já viveram em
 // dois formatos antigos — (1) iluminacaoSistema.especificacoes, uma lista
-// só pro projeto inteiro, e (2) iluminacaoEspecificacoesPorEstrutura, um
-// catálogo por estrutura referenciado pelos itens de quantitativo via
-// `tipoEquipamento` (um id do catálogo). Hoje cada item de aclaramento
-// (state.iluminacao) carrega sua própria especificação completa, sem
-// catálogo à parte — cada pavimento tem sua cópia independente (ver
-// IluminacaoPage.jsx). Mescla de volta nos itens a especificação salva em
-// qualquer um dos formatos antigos que eles referenciavam.
+// só pro projeto inteiro, sem associação a nenhuma estrutura específica, e
+// (2) iluminacaoEspecificacoesPorEstrutura, um catálogo por estrutura —
+// ambos referenciados pelos itens de quantitativo via `tipoEquipamento` (um
+// id do catálogo). Hoje cada item de aclaramento (state.iluminacao) carrega
+// sua própria especificação completa, sem catálogo à parte — cada pavimento
+// tem sua cópia independente (ver IluminacaoPage.jsx). Mescla de volta nos
+// itens a especificação salva em qualquer um dos formatos antigos.
+//
+// Busca o id em TODOS os catálogos salvos de uma vez (por estrutura + o
+// antigo global) em vez de só no catálogo da própria estrutura do item —
+// ids de especificação são gerados aleatoriamente, sem risco de colisão
+// entre catálogos, então não há motivo pra restringir a busca. Restringir
+// por estruturaId é o que causava o bug: o formato (1) era uma lista única,
+// e uma migração anterior já tinha jogado ela inteira só pra primeira
+// estrutura do projeto — item de qualquer outra estrutura referenciando uma
+// dessas especificações não encontrava correspondência e ficava sem
+// tipoBase/campos técnicos (sem imagem nem nome na tela, só a quantidade).
 function migrarAclaramentoParaItens(saved) {
   const itens = saved.iluminacao || []
   if (!itens.some(i => i.categoria === 'aclaramento' && i.tipoEquipamento)) return itens
 
-  const catalogoPorEstrutura = { ...(saved.iluminacaoEspecificacoesPorEstrutura || {}) }
-  const especGlobais = saved.iluminacaoSistema?.especificacoes
-  const firstEstId = saved.estruturas?.[0]?.id
-  if (especGlobais?.length && firstEstId && !catalogoPorEstrutura[firstEstId]) {
-    catalogoPorEstrutura[firstEstId] = especGlobais
-  }
+  const especsPorId = new Map()
+  Object.values(saved.iluminacaoEspecificacoesPorEstrutura || {}).forEach(lista => {
+    (lista || []).forEach(s => especsPorId.set(s.id, s))
+  })
+  ;(saved.iluminacaoSistema?.especificacoes || []).forEach(s => especsPorId.set(s.id, s))
 
   return itens.map(item => {
     if (item.categoria !== 'aclaramento' || !item.tipoEquipamento) return item
-    const spec = (catalogoPorEstrutura[item.estruturaId] || []).find(s => s.id === item.tipoEquipamento)
+    const spec = especsPorId.get(item.tipoEquipamento)
     if (!spec) return item
     const resto = { ...item }
     delete resto.tipoEquipamento
