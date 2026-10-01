@@ -67,25 +67,59 @@ function paragrafoSistema(sistema, TIPOS_SISTEMA, sujeito) {
   }
 }
 
-// Tabela de características técnicas dos equipamentos de aclaramento
-// cadastrados — uma linha por especificação, mesmas colunas de
-// CAMPOS_EQUIPAMENTO usadas no formulário (IluminacaoPage.jsx).
-function tabelaCaracteristicasEquipamentos(equipamentosUsados, equipamentosSpec, CAMPOS_EQUIPAMENTO) {
-  if (equipamentosUsados.length === 0) return null
+// Assinatura técnica de uma especificação — mesmo tipoBase + mesmos valores
+// nos campos técnicos (CAMPOS_EQUIPAMENTO) conta como "o mesmo equipamento",
+// mesmo cadastrado em estruturas diferentes (ex.: a mesma luminária de 2200
+// lm usada no Bloco A e no Bloco B). `identificacao` (texto livre) fica de
+// fora de propósito — não é característica técnica, só um apelido.
+function assinaturaEquipamento(spec, CAMPOS_EQUIPAMENTO) {
+  return [spec.tipoBase, ...CAMPOS_EQUIPAMENTO.map(c => spec[c.key] || '')].join('|')
+}
+
+// Tabela global de características dos equipamentos de aclaramento — uma
+// seção só, antes de todas as edificações, com uma linha por equipamento
+// tecnicamente distinto (ver assinaturaEquipamento), agregando a
+// quantidade total instalada em todas as estruturas que o usam. Qtd vem
+// sempre na primeira coluna.
+function tabelaCaracteristicasGlobal(state, norma, CAMPOS_EQUIPAMENTO) {
+  const grupos = new Map() // assinatura -> { spec, baseLabel, qtd }
+
+  ;(state.estruturas || []).forEach(est => {
+    const especificacoes = state.iluminacaoEspecificacoesPorEstrutura?.[est.id] || []
+    especificacoes.forEach(spec => {
+      const base = norma.EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
+      const qtd = (state.iluminacao || [])
+        .filter(i => i.estruturaId === est.id && i.categoria === 'aclaramento' && i.tipoEquipamento === spec.id)
+        .reduce((soma, i) => soma + (parseInt(i.quantidade) || 0), 0)
+
+      const assinatura = assinaturaEquipamento(spec, CAMPOS_EQUIPAMENTO)
+      const existente = grupos.get(assinatura)
+      if (existente) {
+        existente.qtd += qtd
+        // Entre especificações equivalentes, prefere uma com identificação
+        // própria pro nome da linha (ver nomeEspecificacao) — mais legível
+        // que o nome genérico quando o projetista deu um apelido.
+        if (!existente.spec.identificacao && spec.identificacao) existente.spec = spec
+      } else {
+        grupos.set(assinatura, { spec, baseLabel: base?.label || spec.tipoBase, qtd })
+      }
+    })
+  })
+
+  if (grupos.size === 0) return null
+
   return {
     tipo: 'tabela',
-    colunas: ['Equipamento', ...CAMPOS_EQUIPAMENTO.map(c => c.unidade ? `${c.label} (${c.unidade})` : c.label)],
-    linhas: equipamentosUsados.map(eq => [
-      eq.label,
-      ...CAMPOS_EQUIPAMENTO.map(c => equipamentosSpec[eq.key]?.[c.key] || '—'),
+    colunas: ['Qtd', 'Equipamento', ...CAMPOS_EQUIPAMENTO.map(c => c.unidade ? `${c.label} (${c.unidade})` : c.label)],
+    linhas: [...grupos.values()].map(g => [
+      String(g.qtd),
+      nomeEspecificacao(g.spec, g.baseLabel),
+      ...CAMPOS_EQUIPAMENTO.map(c => g.spec[c.key] || '—'),
     ]),
   }
 }
 
-// Blocos de uma estrutura — sistema (só quando não há um único sistema pro
-// projeto todo), características dos equipamentos cadastrados nela e as
-// tabelas de aclaramento/balizamento por pavimento.
-function blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, especificacoesDaEstrutura, norma, TIPOS_SISTEMA, CAMPOS_EQUIPAMENTO, mesmoSistema) {
+function blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, especificacoesDaEstrutura, norma, TIPOS_SISTEMA, mesmoSistema) {
   const itensPorPav = new Map(pavs.map(p => [p.id, itensDaEstrutura.filter(i => i.pavimentoId === p.id && i.categoria === 'aclaramento')]))
   const itensBalizPorPav = new Map(pavs.map(p => [p.id, itensDaEstrutura.filter(i => i.pavimentoId === p.id && i.categoria === 'balizamento')]))
 
@@ -93,17 +127,10 @@ function blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, espe
     const base = norma.EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
     return { key: spec.id, label: nomeEspecificacao(spec, base?.label || spec.tipoBase) }
   })
-  const equipamentosSpec = Object.fromEntries(especificacoesDaEstrutura.map(spec => [spec.id, spec]))
 
   const blocos = [{ tipo: 'titulo2', texto: est.nome }]
 
   if (!mesmoSistema) blocos.push(paragrafoSistema(sistemaDaEstrutura, TIPOS_SISTEMA, 'nesta edificação'))
-
-  const tabCaract = tabelaCaracteristicasEquipamentos(equipamentosUsados, equipamentosSpec, CAMPOS_EQUIPAMENTO)
-  if (tabCaract) {
-    blocos.push({ tipo: 'titulo3', texto: 'Características dos equipamentos' })
-    blocos.push(tabCaract)
-  }
 
   const tabAclar = tabelaAclaramento(pavs, itensPorPav, equipamentosUsados)
   blocos.push(tabAclar || { tipo: 'paragrafo', texto: `Nenhuma luminária de aclaramento cadastrada em ${est.nome}.` })
@@ -132,13 +159,25 @@ export function textoMemorialIluminacao(state) {
   // narra o seu próprio sistema (ver blocosDaEstrutura).
   if (mesmoSistema) blocos.push(paragrafoSistema(state.iluminacaoSistema || {}, TIPOS_SISTEMA, 'no projeto'))
 
+  // Seção única com as características de todos os equipamentos de
+  // aclaramento do projeto, antes de entrar nas edificações — mesmo quando
+  // cada estrutura cadastra suas próprias especificações (ver
+  // iluminacaoEspecificacoesPorEstrutura), o memorial não repete a mesma
+  // luminária em várias tabelas: agrupa pela assinatura técnica e soma a
+  // quantidade total instalada.
+  const tabCaractGlobal = tabelaCaracteristicasGlobal(state, norma, CAMPOS_EQUIPAMENTO)
+  if (tabCaractGlobal) {
+    blocos.push({ tipo: 'titulo2', texto: 'Características dos Equipamentos de Aclaramento' })
+    blocos.push(tabCaractGlobal)
+  }
+
   const blocosPavimentos = (state.estruturas || []).flatMap(est => {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     if (pavs.length === 0) return []
     const itensDaEstrutura = (state.iluminacao || []).filter(i => pavs.some(p => p.id === i.pavimentoId))
     const sistemaDaEstrutura = mesmoSistema ? (state.iluminacaoSistema || {}) : (state.iluminacaoSistemaPorEstrutura?.[est.id] || {})
     const especificacoesDaEstrutura = state.iluminacaoEspecificacoesPorEstrutura?.[est.id] || []
-    return blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, especificacoesDaEstrutura, norma, TIPOS_SISTEMA, CAMPOS_EQUIPAMENTO, mesmoSistema)
+    return blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, especificacoesDaEstrutura, norma, TIPOS_SISTEMA, mesmoSistema)
   })
 
   if (blocosPavimentos.length === 0) {
