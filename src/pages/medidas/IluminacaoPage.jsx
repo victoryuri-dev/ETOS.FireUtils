@@ -81,11 +81,11 @@ function MesmoSistemaPergunta({ mesmoSistema, dispatch }) {
   const setMesmoSistema = valor => dispatch({ type: 'SET_ILUMINACAO_MESMO_SISTEMA', valor })
   return (
     <Card className="mb-8">
-      <div className="py-3.5 px-[18px]">
-        <PerguntaSimNao
-          pergunta="Todas as edificações do projeto utilizam o mesmo sistema de iluminação de emergência (bloco autônomo, sistema centralizado ou grupo motogerador)?"
-          valor={mesmoSistema} onSim={() => setMesmoSistema(true)} onNao={() => setMesmoSistema(false)}
-        />
+      <div className="py-3.5 px-[18px] flex items-center gap-3">
+        <span className="text-[12px] text-ink-muted flex-1">
+          Todas as edificações do projeto utilizam o mesmo sistema de iluminação de emergência (bloco autônomo, sistema centralizado ou grupo motogerador)?
+        </span>
+        <SwitchToggle checked={mesmoSistema} onChange={setMesmoSistema}/>
       </div>
     </Card>
   )
@@ -139,7 +139,7 @@ function EspecificacaoRow({ spec, eqLabel, campos, estruturaId, dispatch, defaul
   const resumo = [spec.tipoLampada, spec.fluxoLuminosoLm && fmtUn(spec.fluxoLuminosoLm, 'lm', 2, `${spec.fluxoLuminosoLm} lm`)].filter(Boolean).join(' · ')
 
   return (
-    <div className="border-t border-solid border-border">
+    <div className="border border-solid border-border rounded-md overflow-hidden bg-surface">
       <div className="flex items-center gap-2 py-2 px-3">
         <button type="button" onClick={() => setAberto(a => !a)}
           className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer bg-transparent border-none p-0"
@@ -147,7 +147,7 @@ function EspecificacaoRow({ spec, eqLabel, campos, estruturaId, dispatch, defaul
           <Icon name="chevD" size={12} className={`text-ink-faint shrink-0 transition-transform duration-150 ${aberto ? 'rotate-180' : ''}`}/>
           <div className="flex-1 min-w-0">
             <div className="text-[12px] font-semibold text-ink truncate">{nome}</div>
-            {resumo && <div className="text-[10px] text-ink-faint truncate">{resumo}</div>}
+            {!aberto && resumo && <div className="text-[10px] text-ink-faint truncate">{resumo}</div>}
           </div>
         </button>
         <button type="button" onClick={() => dispatch({ type: 'REMOVE_ESPECIFICACAO_EQUIPAMENTO', estruturaId, id: spec.id })} className="btn-del shrink-0">
@@ -155,7 +155,7 @@ function EspecificacaoRow({ spec, eqLabel, campos, estruturaId, dispatch, defaul
         </button>
       </div>
       {aberto && (
-        <div className="pb-3 px-3">
+        <div className="pb-3 px-3 pt-2.5 border-t border-solid border-border">
           <div className="mb-2.5">
             <Label>Identificação</Label>
             <input className={inputClass} placeholder={nomeEspecificacao({ ...spec, identificacao: '' }, eqLabel)}
@@ -268,20 +268,20 @@ function EquipamentoBase({ eqKey, eqLabel, eqImg, especificacoes, presets, campo
   }
 
   return (
-    <div className="rounded-md border border-solid border-border h-fit">
-      <div className="flex items-center gap-3.5 py-3 px-3 rounded-t-md overflow-hidden">
-        <img src={eqImg} alt={eqLabel} className="w-24 h-24 object-contain rounded bg-surface-2 shrink-0"/>
-        <span className="text-[13px] font-semibold text-ink flex-1">{eqLabel}</span>
-        <SwitchToggle checked={usado} onChange={toggleUsado}/>
+    <div className="flex flex-col gap-2.5 h-fit">
+      <div className="rounded-md border border-solid border-border overflow-hidden">
+        <div className="flex items-center gap-3.5 py-3 px-3">
+          <img src={eqImg} alt={eqLabel} className="w-24 h-24 object-contain rounded bg-surface-2 shrink-0"/>
+          <span className="text-[13px] font-semibold text-ink flex-1">{eqLabel}</span>
+          <SwitchToggle checked={usado} onChange={toggleUsado}/>
+        </div>
       </div>
       {specs.map(spec => (
         <EspecificacaoRow key={spec.id} spec={spec} eqLabel={eqLabel} campos={campos} estruturaId={estruturaId} dispatch={dispatch}
           defaultAberto={spec.id === recemCriadoId}/>
       ))}
       {usado && (
-        <div className="px-3 pb-3 pt-2.5 border-t border-solid border-border">
-          <AdicionarEspecificacaoMenu presetsDoTipo={presetsDoTipo} onAdicionar={adicionar}/>
-        </div>
+        <AdicionarEspecificacaoMenu presetsDoTipo={presetsDoTipo} onAdicionar={adicionar}/>
       )}
     </div>
   )
