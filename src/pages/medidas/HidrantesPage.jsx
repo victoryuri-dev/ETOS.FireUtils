@@ -5,7 +5,7 @@ import Icon from '../../components/ui/Icon'
 import { useToast } from '../../hooks/useToast'
 import StepsNav from '../../components/layout/StepsNav'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
-import FormularioSistema, { ClassificacaoDoSistema } from '../../components/hidrantes/FormularioSistema'
+import FormularioSistema from '../../components/hidrantes/FormularioSistema'
 import { SelecaoBombas, SucaoBomba } from '../../components/hidrantes/BombaESuccaoForm'
 import FormSection from '../../components/ui/FormSection'
 import { calcPotenciaBomba } from '../../data/hidrantes_calc'
@@ -111,6 +111,35 @@ function ResumoExecutivo({ d }) {
             )}
           </div>
         </Card>
+      ))}
+    </div>
+  )
+}
+
+// ── Dados do Sistema (resumo compacto) ─────────────────────────────────
+// Só o que o RT precisa pra conferir que os requisitos normativos certos
+// foram usados — o detalhamento completo (referência de cada valor,
+// mangueira, velocidade máxima por trecho etc.) fica no memorial de
+// cálculo impresso (memorial/hidrantesCalculo.js), não duplicado aqui.
+function DadosDoSistema({ d }) {
+  const { dados_sistema, valor_sistema, metodo, C_HW, res } = d
+  const stats = [
+    { label: 'Classificação', val: valor_sistema },
+    { label: 'Método', val: metodo },
+    { label: 'Vazão mínima', val: `${f2(dados_sistema.q_min)} L/min` },
+    { label: 'Pressão mín.–máx.', val: `${dados_sistema.p_min}–100 mca` },
+    { label: 'Coef. C', val: String(C_HW) },
+  ]
+  if (res.esguicho) {
+    stats.push({ label: 'Mangueira', val: `DN${dados_sistema.mang_dn} · ${f2(dados_sistema.mang_comp)} m` })
+  }
+  return (
+    <div className="grid grid-cols-3 gap-3 mb-8">
+      {stats.map(s => (
+        <div key={s.label} className="bg-surface border border-solid border-border rounded-md py-3 px-3.5 text-center">
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1 whitespace-nowrap">{s.label}</div>
+          <div className="text-[13px] font-bold text-ink">{s.val}</div>
+        </div>
       ))}
     </div>
   )
@@ -536,7 +565,7 @@ export default function HidrantesPage() {
 
             {dados && (
               <>
-                <ClassificacaoDoSistema/>
+                <DadosDoSistema d={dados}/>
 
                 <VerificacaoHidranteDesfavoravel ranking={dados.ranking_hidrantes}/>
 

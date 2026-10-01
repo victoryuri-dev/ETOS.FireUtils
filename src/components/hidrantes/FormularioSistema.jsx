@@ -44,77 +44,12 @@ function EstruturaPill({ active, obrigatorio, onClick, nome, area, divisao, carg
   )
 }
 
-// Extraído pra ser reaproveitado também pela Etapa 2 (Dimensionamento,
-// HidrantesPage.jsx) — mesma classificação (área × ocupação × Tipo/RTI),
-// única fonte de verdade, em vez de duplicar outro resumo lido só do
-// payload sincronizado do Revit.
-export function ClassificacaoDoSistema() {
-  const {
-    h, set, norma,
-    areaTotal, sugestao, escolherOpcao,
-    tipoAtual, dadosTipo,
-  } = useClassificacaoHidrantes()
-
-  return (
-    <FormSection title="Classificação do Sistema" description={`Cruzamento área construída × ocupação, conforme Tabela 3 da ${norma.NORMA.nome}.`}>
-      <div className="grid grid-cols-2 gap-4 bg-surface-2 border border-solid border-border rounded-lg p-4 mb-4">
-        <Resultado label="Área total construída (estruturas selecionadas acima)"
-          value={areaTotal ? `${fmtNum(areaTotal)} m²` : '—'}/>
-        <Resultado label="Ocupação usada na classificação" hint={sugestao.divisao ? `coluna ${sugestao.coluna} da Tabela 3` : undefined}
-          value={sugestao.divisao || 'Nenhuma divisão classificada ainda (Etapa 4/5)'}/>
-      </div>
-
-      {sugestao.opcoes.length > 1 && (
-        <div className="mb-4">
-          <Field label="A norma permite dois sistemas para esta ocupação — escolha qual adotar" />
-          <div className="grid grid-cols-2 gap-2 mt-1">
-            {sugestao.opcoes.map(op => (
-              <Pill key={op.tipo} active={h.tipo === op.tipo} onClick={() => escolherOpcao(op)}>
-                Tipo {op.tipo} — RTI {fmtNum(op.rti)} m³
-              </Pill>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {sugestao.opcoes.length === 1 && sugestao.opcoes[0].nota && (
-        <Nota>{sugestao.opcoes[0].nota}</Nota>
-      )}
-
-      {dadosTipo && norma.TIPOS_SISTEMA[tipoAtual]?.variantes.length > 1 && (
-        <div className="mb-4">
-          <Field label="Mangueira do Tipo 4"/>
-          <div className="grid grid-cols-2 gap-2 mt-1">
-            {norma.TIPOS_SISTEMA[tipoAtual].variantes.map((v, i) => (
-              <Pill key={i} active={(h.tipoVariante || 0) === i} onClick={() => set({ tipoVariante: i })}>
-                Esguicho DN{v.esguicho} — mangueira DN{v.mangueiraDn} — {v.pressaoMin} mca
-              </Pill>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-6 gap-3 bg-surface-2 border border-solid border-border rounded-lg p-4 mt-4">
-        <Resultado label="Tipo" value={tipoAtual ? `Tipo ${tipoAtual}` : '—'}/>
-        {dadosTipo && (
-          <>
-            <Resultado label="Esguicho" value={`DN${dadosTipo.esguicho}`}/>
-            <Resultado label="Mangueira" value={`DN${dadosTipo.mangueiraDn} — ${dadosTipo.mangueiraComprimento} m`}/>
-            <Resultado label="Expedições" value={dadosTipo.expedicoes} className="capitalize"/>
-            <Resultado label="Vazão mín." value={`${dadosTipo.vazaoMin} L/min`}/>
-            <Resultado label="Pressão mín." value={`${dadosTipo.pressaoMin} mca`}/>
-          </>
-        )}
-      </div>
-    </FormSection>
-  )
-}
-
 export default function FormularioSistema() {
   const {
     h, set, norma,
     infoPorEstrutura, estruturasSelecionadas, toggleEstrutura,
-    dadosTipo, recalqueDuplo, vazaoSistema,
+    areaTotal, sugestao, escolherOpcao,
+    tipoAtual, dadosTipo, recalqueDuplo, vazaoSistema,
   } = useClassificacaoHidrantes()
 
   return (
@@ -131,7 +66,58 @@ export default function FormularioSistema() {
         </div>
       </FormSection>
 
-      <ClassificacaoDoSistema/>
+      {/* A — Classificação do sistema */}
+      <FormSection title="Classificação do Sistema" description={`Cruzamento área construída × ocupação, conforme Tabela 3 da ${norma.NORMA.nome}.`}>
+        <div className="grid grid-cols-2 gap-4 bg-surface-2 border border-solid border-border rounded-lg p-4 mb-4">
+          <Resultado label="Área total construída (estruturas selecionadas acima)"
+            value={areaTotal ? `${fmtNum(areaTotal)} m²` : '—'}/>
+          <Resultado label="Ocupação usada na classificação" hint={sugestao.divisao ? `coluna ${sugestao.coluna} da Tabela 3` : undefined}
+            value={sugestao.divisao || 'Nenhuma divisão classificada ainda (Etapa 4/5)'}/>
+        </div>
+
+        {sugestao.opcoes.length > 1 && (
+          <div className="mb-4">
+            <Field label="A norma permite dois sistemas para esta ocupação — escolha qual adotar" />
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              {sugestao.opcoes.map(op => (
+                <Pill key={op.tipo} active={h.tipo === op.tipo} onClick={() => escolherOpcao(op)}>
+                  Tipo {op.tipo} — RTI {fmtNum(op.rti)} m³
+                </Pill>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {sugestao.opcoes.length === 1 && sugestao.opcoes[0].nota && (
+          <Nota>{sugestao.opcoes[0].nota}</Nota>
+        )}
+
+        {dadosTipo && norma.TIPOS_SISTEMA[tipoAtual]?.variantes.length > 1 && (
+          <div className="mb-4">
+            <Field label="Mangueira do Tipo 4"/>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              {norma.TIPOS_SISTEMA[tipoAtual].variantes.map((v, i) => (
+                <Pill key={i} active={(h.tipoVariante || 0) === i} onClick={() => set({ tipoVariante: i })}>
+                  Esguicho DN{v.esguicho} — mangueira DN{v.mangueiraDn} — {v.pressaoMin} mca
+                </Pill>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-6 gap-3 bg-surface-2 border border-solid border-border rounded-lg p-4 mt-4">
+          <Resultado label="Tipo" value={tipoAtual ? `Tipo ${tipoAtual}` : '—'}/>
+          {dadosTipo && (
+            <>
+              <Resultado label="Esguicho" value={`DN${dadosTipo.esguicho}`}/>
+              <Resultado label="Mangueira" value={`DN${dadosTipo.mangueiraDn} — ${dadosTipo.mangueiraComprimento} m`}/>
+              <Resultado label="Expedições" value={dadosTipo.expedicoes} className="capitalize"/>
+              <Resultado label="Vazão mín." value={`${dadosTipo.vazaoMin} L/min`}/>
+              <Resultado label="Pressão mín." value={`${dadosTipo.pressaoMin} mca`}/>
+            </>
+          )}
+        </div>
+      </FormSection>
 
       {/* B — Reservatório e RTI */}
       <FormSection title="Reservatório">
