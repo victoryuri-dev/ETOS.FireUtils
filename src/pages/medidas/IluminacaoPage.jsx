@@ -23,12 +23,12 @@ const IMAGENS_EQUIPAMENTO = {
 }
 
 // Gerado aqui (em vez de deixar o reducer decidir) para que quem despacha a
-// criação já saiba o id da especificação nova e possa abri-la expandida
-// assim que ela aparecer na lista — ver EquipamentoBase.
-let especSeq = 0
-function gerarIdEspecificacao() {
-  especSeq += 1
-  return `spec-${Date.now().toString(36)}-${especSeq}-${Math.random().toString(36).slice(2, 5)}`
+// criação já saiba o id do item novo e possa abri-lo expandido assim que
+// aparecer na lista — ver BlocoAclaramento.
+let aclaramentoSeq = 0
+function gerarIdAclaramento() {
+  aclaramentoSeq += 1
+  return `ilu-${Date.now().toString(36)}-${aclaramentoSeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────
@@ -102,24 +102,28 @@ function SistemaSelecionado({ titulo, sistema, tiposSistema, onChange }) {
   )
 }
 
-// ── Uma especificação cadastrada para um tipo base de equipamento ────
-// Um mesmo tipo base pode ter várias especificações (ex.: variantes com
-// fluxo luminoso diferente) — cada uma vira uma opção própria nos
-// quantitativos por pavimento (diferenciadas pelo fluxo). Recolhida por
-// padrão para não sobrecarregar a tela quando há várias cadastradas — o
-// nome e o resumo (lâmpada · fluxo) já dizem o essencial sem abrir. Exceção:
-// uma especificação recém-criada (`defaultAberto`) nasce aberta, para o
-// usuário não esquecer de conferir/preencher os dados — ele fecha depois se
-// quiser.
-function EspecificacaoRow({ spec, eqLabel, campos, estruturaId, dispatch, defaultAberto }) {
+// ── Um equipamento de aclaramento cadastrado neste pavimento — a
+// especificação técnica e a quantidade são preenchidas juntas, num único
+// card (antes eram duas etapas: cadastrar a luminária, depois achar outro
+// checklist pra informar quanto tinha de cada uma). A quantidade fica no
+// header do card, sempre visível. Recolhido por padrão pra não sobrecarregar
+// a tela quando há vários cadastrados — o nome e o resumo (lâmpada · fluxo)
+// já dizem o essencial sem abrir. Exceção: um equipamento recém-criado
+// (`defaultAberto`) nasce aberto, pro usuário não esquecer de conferir os
+// dados técnicos — ele fecha depois se quiser. Cada pavimento tem sua
+// própria lista independente (duas estruturas, ou dois andares, usando o
+// "mesmo modelo" cadastram cada um a sua cópia — sem catálogo compartilhado).
+function EquipamentoCard({ item, equipamentosDef, campos, dispatch, defaultAberto }) {
   const [aberto, setAberto] = useState(!!defaultAberto)
-  const setField = (key, value) => dispatch({ type: 'UPDATE_ESPECIFICACAO_EQUIPAMENTO', estruturaId, id: spec.id, changes: { [key]: value } })
-  const nome = nomeEspecificacao(spec, eqLabel)
-  const resumo = [spec.tipoLampada, spec.fluxoLuminosoLm && fmtUn(spec.fluxoLuminosoLm, 'lm', 2, `${spec.fluxoLuminosoLm} lm`)].filter(Boolean).join(' · ')
+  const eqLabel = equipamentosDef.find(eq => eq.key === item.tipoBase)?.label || item.tipoBase
+  const nome = nomeEspecificacao(item, eqLabel)
+  const resumo = [item.tipoLampada, item.fluxoLuminosoLm && fmtUn(item.fluxoLuminosoLm, 'lm', 2, `${item.fluxoLuminosoLm} lm`)].filter(Boolean).join(' · ')
+  const setField = (key, value) => dispatch({ type: 'UPDATE_ILUMINACAO', id: item.id, changes: { [key]: value } })
 
   return (
     <div className="border border-solid border-border rounded-md overflow-hidden bg-surface">
       <div className="flex items-center gap-2 py-2 px-3">
+        <img src={IMAGENS_EQUIPAMENTO[item.tipoBase]} alt="" className="w-8 h-8 object-contain rounded bg-surface-2 shrink-0"/>
         <button type="button" onClick={() => setAberto(a => !a)}
           className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer bg-transparent border-none p-0"
         >
@@ -129,7 +133,8 @@ function EspecificacaoRow({ spec, eqLabel, campos, estruturaId, dispatch, defaul
             {!aberto && resumo && <div className="text-[10px] text-ink-faint truncate">{resumo}</div>}
           </div>
         </button>
-        <button type="button" onClick={() => dispatch({ type: 'REMOVE_ESPECIFICACAO_EQUIPAMENTO', estruturaId, id: spec.id })} className="btn-del shrink-0">
+        <QuantityStepper value={item.quantidade || 0} onChange={v => setField('quantidade', v)}/>
+        <button type="button" onClick={() => dispatch({ type: 'REMOVE_ILUMINACAO', id: item.id })} className="btn-del shrink-0">
           <Icon name="trash" size={12}/>
         </button>
       </div>
@@ -137,14 +142,14 @@ function EspecificacaoRow({ spec, eqLabel, campos, estruturaId, dispatch, defaul
         <div className="pb-3 px-3 pt-2.5 border-t border-solid border-border">
           <div className="mb-2.5">
             <Label>Identificação</Label>
-            <input className={inputClass} placeholder={nomeEspecificacao({ ...spec, identificacao: '' }, eqLabel)}
-              value={spec.identificacao} onChange={e => setField('identificacao', e.target.value)}/>
+            <input className={inputClass} placeholder={nomeEspecificacao({ ...item, identificacao: '' }, eqLabel)}
+              value={item.identificacao} onChange={e => setField('identificacao', e.target.value)}/>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             {campos.map(c => (
               <div key={c.key}>
                 <Label>{c.label}{c.unidade ? ` (${c.unidade})` : ''}</Label>
-                <input className={inputClass} value={spec[c.key]} onChange={e => setField(c.key, e.target.value)}/>
+                <input className={inputClass} value={item[c.key]} onChange={e => setField(c.key, e.target.value)}/>
               </div>
             ))}
           </div>
@@ -154,18 +159,21 @@ function EspecificacaoRow({ spec, eqLabel, campos, estruturaId, dispatch, defaul
   )
 }
 
-// ── Botão "+ Adicionar especificação" com menu de presets ─────────────
-// Botão de verdade (não um <select> disfarçado) — abre um menu com os
-// presets do tipo + "Personalizado"; escolher um cria a especificação já
-// preenchida (ou em branco, no caso do personalizado). O menu é renderizado
-// via portal em document.body e posicionado por coordenadas fixas — os
-// cartões desta tela ficam dentro de vários containers com overflow-hidden
-// (para os cantos arredondados), que cortariam um menu posicionado como
-// filho normal. Fecha ao clicar fora ou ao rolar a página — sem overlay de
-// tela cheia (isso bloqueava o scroll: o shell do app rola por uma div
-// interna, e um overlay via portal fica fora dela na árvore do DOM, então
-// a roda do mouse sobre o overlay não achava nada pra rolar).
-function AdicionarEspecificacaoMenu({ presetsDoTipo, onAdicionar }) {
+// ── Botão "+ Adicionar equipamento" com menu de presets agrupado por tipo
+// base ──────────────────────────────────────────────────────────────────
+// Botão de verdade (não um <select> disfarçado) — abre um menu com os dois
+// tipos base de equipamento (ver EQUIPAMENTOS_ACLARAMENTO), cada um com
+// seus presets de catálogo + "Personalizado"; escolher uma opção já cria o
+// item neste pavimento (especificação + quantidade inicial 1 num só passo).
+// O menu é renderizado via portal em document.body e posicionado por
+// coordenadas fixas — os cartões desta tela ficam dentro de vários
+// containers com overflow-hidden (para os cantos arredondados), que
+// cortariam um menu posicionado como filho normal. Fecha ao clicar fora ou
+// ao rolar a página — sem overlay de tela cheia (isso bloqueava o scroll: o
+// shell do app rola por uma div interna, e um overlay via portal fica fora
+// dela na árvore do DOM, então a roda do mouse sobre o overlay não achava
+// nada pra rolar).
+function AdicionarEquipamentoMenu({ equipamentosDef, presets, onAdicionar }) {
   const [pos, setPos] = useState(null)
   const btnRef = useRef(null)
   const menuRef = useRef(null)
@@ -175,7 +183,7 @@ function AdicionarEspecificacaoMenu({ presetsDoTipo, onAdicionar }) {
     setPos({ top: r.bottom + 4, left: r.left, width: r.width })
   }
   const fechar = () => setPos(null)
-  const escolher = preset => { onAdicionar(preset); fechar() }
+  const escolher = (tipoBase, preset) => { onAdicionar(tipoBase, preset); fechar() }
 
   useEffect(() => {
     if (!pos) return
@@ -196,21 +204,26 @@ function AdicionarEspecificacaoMenu({ presetsDoTipo, onAdicionar }) {
   return (
     <>
       <button ref={btnRef} type="button" className="btn-add w-full justify-center py-2" onClick={() => (pos ? fechar() : abrir())}>
-        <Icon name="plus" size={11}/> Adicionar especificação
+        <Icon name="plus" size={11}/> Adicionar equipamento
       </button>
       {pos && createPortal(
         <div ref={menuRef}
           style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
-          className="z-[1000] bg-surface border border-solid border-border rounded-md shadow-[0_8px_24px_rgba(0,0,0,.4)] overflow-hidden max-h-[240px] overflow-y-auto"
+          className="z-[1000] bg-surface border border-solid border-border rounded-md shadow-[0_8px_24px_rgba(0,0,0,.4)] overflow-hidden max-h-[280px] overflow-y-auto"
         >
-          {presetsDoTipo.map(p => (
-            <button key={p.key} type="button" onClick={() => escolher(p)}
-              className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
-            >{p.label}</button>
+          {equipamentosDef.map(eq => (
+            <div key={eq.key}>
+              <div className="py-1.5 px-3 text-[10px] text-ink-faint uppercase tracking-[.06em] bg-surface-2">{eq.label}</div>
+              {presets.filter(p => p.tipoBase === eq.key).map(p => (
+                <button key={p.key} type="button" onClick={() => escolher(eq.key, p)}
+                  className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
+                >{p.label}</button>
+              ))}
+              <button type="button" onClick={() => escolher(eq.key, undefined)}
+                className="w-full text-left py-2 px-3 text-[12px] text-ink-faint italic cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
+              >Personalizado (em branco)</button>
+            </div>
           ))}
-          <button type="button" onClick={() => escolher(undefined)}
-            className="w-full text-left py-2 px-3 text-[12px] text-ink-faint italic cursor-pointer bg-transparent border-none hover:bg-white/[.05] hover:text-ink"
-          >Personalizado (em branco)</button>
         </div>,
         document.body,
       )}
@@ -218,119 +231,43 @@ function AdicionarEspecificacaoMenu({ presetsDoTipo, onAdicionar }) {
   )
 }
 
-// ── Cartão de um tipo base de equipamento — imagem, nome, switch e suas
-// especificações. O switch liga cria uma especificação default (o primeiro
-// preset do tipo, se houver); o menu "Adicionar especificação" (abaixo da
-// lista) cadastra variantes extras, por preset ou em branco. Em ambos os
-// casos a especificação nasce com o id gerado aqui mesmo (em vez de deixar
-// o reducer gerar) para saber exatamente qual linha acabou de aparecer e
-// abri-la já expandida — ver `recemCriadoId`.
-function EquipamentoBase({ eqKey, eqLabel, eqImg, especificacoes, presets, campos, estruturaId, dispatch }) {
-  const specs = especificacoes.filter(s => s.tipoBase === eqKey)
-  const usado = specs.length > 0
-  const presetsDoTipo = presets.filter(p => p.tipoBase === eqKey)
+// ── Bloco de Aclaramento de um pavimento ─────────────────────────────
+function BlocoAclaramento({ estruturaId, pavimentoId, itens, equipamentosDef, presets, campos, dispatch }) {
   const [recemCriadoId, setRecemCriadoId] = useState(null)
 
-  const toggleUsado = v => {
-    if (v) {
-      const id = gerarIdEspecificacao()
-      setRecemCriadoId(id)
-      dispatch({ type: 'SET_EQUIPAMENTO_USADO', estruturaId, tipoBase: eqKey, usado: v, preset: presetsDoTipo[0], id })
-    } else {
-      dispatch({ type: 'SET_EQUIPAMENTO_USADO', estruturaId, tipoBase: eqKey, usado: v })
-    }
-  }
-  const adicionar = preset => {
-    const id = gerarIdEspecificacao()
+  const adicionar = (tipoBase, preset) => {
+    const id = gerarIdAclaramento()
     setRecemCriadoId(id)
-    dispatch({ type: 'ADD_ESPECIFICACAO_EQUIPAMENTO', estruturaId, tipoBase: eqKey, preset, id })
+    dispatch({
+      type: 'ADD_ILUMINACAO', estruturaId, pavimentoId, categoria: 'aclaramento', id,
+      overrides: {
+        tipoBase, identificacao: '',
+        tipoLampada: preset?.tipoLampada || '',
+        potenciaW: preset?.potenciaW || '',
+        tensaoV: preset?.tensaoV || '',
+        fluxoLuminosoLm: preset?.fluxoLuminosoLm || '',
+        autonomia: preset?.autonomia || '',
+        quantidade: 1,
+      },
+    })
   }
 
   return (
-    <div className="flex flex-col gap-2.5 h-fit">
-      <div className="rounded-md border border-solid border-border overflow-hidden">
-        <div className="flex items-center gap-3.5 py-3 px-3">
-          <img src={eqImg} alt={eqLabel} className="w-24 h-24 object-contain rounded bg-surface-2 shrink-0"/>
-          <span className="text-[13px] font-semibold text-ink flex-1">{eqLabel}</span>
-          <SwitchToggle checked={usado} onChange={toggleUsado}/>
-        </div>
-      </div>
-      {specs.map(spec => (
-        <EspecificacaoRow key={spec.id} spec={spec} eqLabel={eqLabel} campos={campos} estruturaId={estruturaId} dispatch={dispatch}
-          defaultAberto={spec.id === recemCriadoId}/>
-      ))}
-      {usado && (
-        <AdicionarEspecificacaoMenu presetsDoTipo={presetsDoTipo} onAdicionar={adicionar}/>
-      )}
-    </div>
-  )
-}
-
-function EquipamentosAclaramento({ equipamentosDef, especificacoes, presets, campos, estruturaId, dispatch }) {
-  return (
-    <Card className="mb-8">
-      <CardHeader>
-        <span className="text-[13px] font-semibold text-ink">Equipamentos de aclaramento utilizados nesta edificação</span>
-        <span className="text-[11px] text-ink-faint">dados necessários para o memorial (item 5.2, NBR 10898) — escolha um preset ou cadastre manualmente</span>
-      </CardHeader>
-      <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3 items-start">
-        {equipamentosDef.map(eq => (
-          <EquipamentoBase key={eq.key} eqKey={eq.key} eqLabel={eq.label} eqImg={IMAGENS_EQUIPAMENTO[eq.key]} especificacoes={especificacoes} presets={presets} campos={campos} estruturaId={estruturaId} dispatch={dispatch}/>
-        ))}
-      </div>
-    </Card>
-  )
-}
-
-// ── Checklist de quantidades por pavimento ───────────────────────────
-function ChecklistQuantidades({ estruturaId, pavimentoId, categoria, campoTipo, opcoes, itens, dispatch }) {
-  const setQuantidade = (opcaoKey, valor) => {
-    const item = itens.find(i => i[campoTipo] === opcaoKey)
-    if (item) {
-      if (valor <= 0) dispatch({ type: 'REMOVE_ILUMINACAO', id: item.id })
-      else dispatch({ type: 'UPDATE_ILUMINACAO', id: item.id, changes: { quantidade: valor } })
-    } else if (valor > 0) {
-      dispatch({ type: 'ADD_ILUMINACAO', estruturaId, pavimentoId, categoria, overrides: { [campoTipo]: opcaoKey, quantidade: valor } })
-    }
-  }
-
-  return (
-    <div className="border border-solid border-border rounded-md overflow-hidden">
-      <table className="w-full border-collapse">
-        <tbody>
-          {opcoes.map(o => {
-            const item = itens.find(i => i[campoTipo] === o.key)
-            return (
-              <tr key={o.key}>
-                <td className="py-1.5 px-2.5 text-[13px] text-ink-muted border-b border-solid border-border-2">{o.label}</td>
-                <td className="py-1.5 px-2.5 border-b border-solid border-border-2 w-[100px]">
-                  <QuantityStepper value={item?.quantidade || 0} onChange={v => setQuantidade(o.key, v)}/>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-// ── Bloco de Aclaramento de um pavimento ─────────────────────────────
-function BlocoAclaramento({ estruturaId, pavimentoId, itens, equipamentosUsados, dispatch }) {
-  return (
-    <div className="mb-4">
+    <div>
       <div className="text-[13px] font-semibold text-ink mb-2">Aclaramento</div>
-      <ChecklistQuantidades
-        estruturaId={estruturaId} pavimentoId={pavimentoId}
-        categoria="aclaramento" campoTipo="tipoEquipamento"
-        opcoes={equipamentosUsados} itens={itens} dispatch={dispatch}
-      />
+      <div className="flex flex-col gap-2.5">
+        {itens.map(item => (
+          <EquipamentoCard key={item.id} item={item} equipamentosDef={equipamentosDef} campos={campos} dispatch={dispatch}
+            defaultAberto={item.id === recemCriadoId}/>
+        ))}
+        <AdicionarEquipamentoMenu equipamentosDef={equipamentosDef} presets={presets} onAdicionar={adicionar}/>
+      </div>
     </div>
   )
 }
 
 // ── Card de um pavimento ──────────────────────────────────────────────
-function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclaramento, equipamentosUsados, dispatch }) {
+function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclaramento, equipamentosDef, presets, campos, dispatch }) {
   return (
     <Card className="mb-4">
       <CardHeader>
@@ -342,7 +279,7 @@ function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclarament
         <BlocoAclaramento
           estruturaId={estruturaId} pavimentoId={pavimento.id}
           itens={itensAclaramento}
-          equipamentosUsados={equipamentosUsados} dispatch={dispatch}
+          equipamentosDef={equipamentosDef} presets={presets} campos={campos} dispatch={dispatch}
         />
       </div>
     </Card>
@@ -450,16 +387,6 @@ export default function IluminacaoPage() {
             // edificação pode usar luminárias diferentes de outra).
             const sistemaDaEstrutura = mesmoSistema ? state.iluminacaoSistema : (state.iluminacaoSistemaPorEstrutura[est.id] || { tipo: '', localizacaoFonte: '' })
             const sistemaDefinido = !!sistemaDaEstrutura.tipo
-            const especificacoes = state.iluminacaoEspecificacoesPorEstrutura[est.id] || []
-            const podeConfigurarPavimentos = sistemaDefinido && especificacoes.length > 0
-
-            // Opções do checklist de aclaramento por pavimento — uma por
-            // especificação cadastrada (não por tipo base), rotuladas com o
-            // fluxo luminoso para diferenciar variantes do mesmo tipo.
-            const opcoesAclaramento = especificacoes.map(spec => {
-              const base = EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
-              return { key: spec.id, label: nomeEspecificacao(spec, base?.label || spec.tipoBase) }
-            })
 
             return (
               <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'iluminacao' } : null} defaultOpen={false}>
@@ -476,31 +403,23 @@ export default function IluminacaoPage() {
                     )}
 
                     {!sistemaDefinido ? (
-                      <EmptyState texto="Selecione o sistema de iluminação de emergência utilizado nesta edificação para liberar os equipamentos e as quantidades por pavimento."/>
-                    ) : (
-                      <>
-                        <EquipamentosAclaramento equipamentosDef={EQUIPAMENTOS_ACLARAMENTO} especificacoes={especificacoes} presets={PRESETS_EQUIPAMENTO} campos={CAMPOS_EQUIPAMENTO} estruturaId={est.id} dispatch={dispatch}/>
-
-                        {!podeConfigurarPavimentos ? (
-                          <EmptyState texto="Cadastre ao menos uma especificação de equipamento de aclaramento acima para liberar as quantidades por pavimento."/>
-                        ) : pavimentos.length === 0 ? (
-                          <div className="ibox amber">
-                            <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-                            <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>
-                          </div>
-                        ) : pavimentos.map(pav => (
-                          <PavimentoCard
-                            key={pav.id}
-                            pavimento={pav}
-                            estruturaId={est.id}
-                            alturaPisoPiso={est.alturaPisoPiso}
-                            itensAclaramento={state.iluminacao.filter(i => i.pavimentoId === pav.id && i.categoria === 'aclaramento')}
-                            equipamentosUsados={opcoesAclaramento}
-                            dispatch={dispatch}
-                          />
-                        ))}
-                      </>
-                    )}
+                      <EmptyState texto="Selecione o sistema de iluminação de emergência utilizado nesta edificação para liberar as quantidades por pavimento."/>
+                    ) : pavimentos.length === 0 ? (
+                      <div className="ibox amber">
+                        <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+                        <span className="text-xs">Nenhum pavimento cadastrado nesta estrutura ainda — configure os pavimentos na Etapa 2.</span>
+                      </div>
+                    ) : pavimentos.map(pav => (
+                      <PavimentoCard
+                        key={pav.id}
+                        pavimento={pav}
+                        estruturaId={est.id}
+                        alturaPisoPiso={est.alturaPisoPiso}
+                        itensAclaramento={state.iluminacao.filter(i => i.pavimentoId === pav.id && i.categoria === 'aclaramento')}
+                        equipamentosDef={EQUIPAMENTOS_ACLARAMENTO} presets={PRESETS_EQUIPAMENTO} campos={CAMPOS_EQUIPAMENTO}
+                        dispatch={dispatch}
+                      />
+                    ))}
                   </>
                 )}
               </EstruturaSection>
