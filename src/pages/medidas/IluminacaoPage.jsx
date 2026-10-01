@@ -81,14 +81,17 @@ function SistemaSelecionado({ titulo, sistema, tiposSistema, onChange }) {
       <CardHeader><span className="text-[13px] font-semibold text-ink">{titulo}</span></CardHeader>
       <div className="py-3.5 px-[18px]">
         <div className="grid grid-cols-3 gap-3 mb-3">
-          {tiposSistema.map(t => (
-            <button key={t.key} type="button" onClick={() => setTipo(t.key)}
-              className={`text-left p-3 rounded-md border border-solid cursor-pointer transition-colors duration-150 bg-transparent ${sistema.tipo === t.key ? 'border-red-border' : 'border-border hover:bg-white/[.03]'}`}
-            >
-              <div className={`text-[13px] font-semibold mb-1 ${sistema.tipo === t.key ? 'text-red' : 'text-ink'}`}>{t.label}</div>
-              <div className="text-[11px] text-ink-faint leading-[1.5]">{t.descricao}</div>
-            </button>
-          ))}
+          {tiposSistema.map(t => {
+            const ativo = sistema.tipo === t.key
+            return (
+              <button key={t.key} type="button" onClick={() => setTipo(t.key)} aria-pressed={ativo}
+                className={`text-left p-3 rounded-md border border-solid cursor-pointer transition-colors duration-150 ${ativo ? 'border-red-border bg-red-dim' : 'border-border bg-bg hover:border-ink-faint'}`}
+              >
+                <div className={`text-[13px] font-semibold mb-1 ${ativo ? 'text-red' : 'text-ink'}`}>{t.label}</div>
+                <div className="text-[11px] text-ink-faint leading-[1.5]">{t.descricao}</div>
+              </button>
+            )
+          })}
         </div>
         {precisaLocalizacao && (
           <div className="max-w-[420px]">
