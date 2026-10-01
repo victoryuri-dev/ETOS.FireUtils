@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
-import { calcularBalizamento, nomeEspecificacao } from '../../data/iluminacao_calc'
+import { nomeEspecificacao } from '../../data/iluminacao_calc'
 import Icon from '../../components/ui/Icon'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import QuantityStepper from '../../components/ui/QuantityStepper'
@@ -42,13 +42,6 @@ function Card({ children, className = '' }) {
 function CardHeader({ children }) {
   return <div className="py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 flex-wrap">{children}</div>
 }
-function Chip({ ok, children }) {
-  return (
-    <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-md font-semibold text-xs border border-solid ${ok ? 'bg-green-dim border-green-border text-green' : 'bg-red-dim border-red-border text-red'}`}>
-      {ok ? '✓' : '✗'} {children}
-    </span>
-  )
-}
 function EmptyState({ texto }) {
   return (
     <div className="border border-solid border-border rounded-lg py-12 px-6 text-center bg-surface mb-8">
@@ -57,20 +50,6 @@ function EmptyState({ texto }) {
     </div>
   )
 }
-function PerguntaSimNao({ pergunta, valor, onSim, onNao }) {
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-[12px] text-ink-muted flex-1 min-w-[140px]">{pergunta}</span>
-      <button type="button" onClick={onSim}
-        className={`text-[11px] py-1 px-2.5 rounded-md border border-solid cursor-pointer transition-all duration-150 bg-transparent ${valor === true ? 'border-green-border text-green font-semibold' : 'border-border text-ink-faint font-normal hover:bg-white/[.03]'}`}
-      >Sim</button>
-      <button type="button" onClick={onNao}
-        className={`text-[11px] py-1 px-2.5 rounded-md border border-solid cursor-pointer transition-all duration-150 bg-transparent ${valor === false ? 'border-red-border text-red font-semibold' : 'border-border text-ink-faint font-normal hover:bg-white/[.03]'}`}
-      >Não</button>
-    </div>
-  )
-}
-
 // ── Pergunta: mesmo sistema de iluminação para todas as edificações? ────
 // Gate no topo da página — decide se o sistema é escolhido uma vez pro
 // projeto todo (SistemaSelecionado global) ou dentro de cada estrutura
@@ -303,7 +282,7 @@ function EquipamentosAclaramento({ equipamentosDef, especificacoes, presets, cam
   )
 }
 
-// ── Checklist de quantidades por pavimento (usado por aclaramento e balizamento) ──
+// ── Checklist de quantidades por pavimento ───────────────────────────
 function ChecklistQuantidades({ estruturaId, pavimentoId, categoria, campoTipo, opcoes, itens, dispatch }) {
   const setQuantidade = (opcaoKey, valor) => {
     const item = itens.find(i => i[campoTipo] === opcaoKey)
@@ -350,45 +329,8 @@ function BlocoAclaramento({ estruturaId, pavimentoId, itens, equipamentosUsados,
   )
 }
 
-// ── Bloco de Balizamento (checklist) de um pavimento ─────────────────
-// Antes de abrir o checklist de quantidades, pergunta explicitamente se
-// luminárias de balizamento foram aplicadas neste pavimento.
-function BlocoBalizamento({ estruturaId, pavimentoId, itens, aplicado, dispatch, iluNorma }) {
-  const { PONTOS_BALIZAMENTO } = iluNorma
-  const resultado = calcularBalizamento(itens, PONTOS_BALIZAMENTO)
-  const setAplicado = valor => dispatch({ type: 'SET_BALIZAMENTO_APLICADO', pavimentoId, valor })
-
-  return (
-    <div>
-      <div className="text-[13px] font-semibold text-ink mb-2">Balizamento</div>
-      <div className="mb-2.5">
-        <PerguntaSimNao
-          pergunta="Foram aplicadas luminárias de balizamento neste pavimento?"
-          valor={aplicado} onSim={() => setAplicado(true)} onNao={() => setAplicado(false)}
-        />
-      </div>
-
-      {aplicado === true && (
-        <>
-          <ChecklistQuantidades
-            estruturaId={estruturaId} pavimentoId={pavimentoId}
-            categoria="balizamento" campoTipo="pontoTipo"
-            opcoes={PONTOS_BALIZAMENTO} itens={itens} dispatch={dispatch}
-          />
-          <div className="mt-2">
-            <Chip ok={resultado.minimoAtendido}>{resultado.pontosCadastrados} de {PONTOS_BALIZAMENTO.length} tipos de ponto balizados — {resultado.quantidadeTotal} luminária{resultado.quantidadeTotal !== 1 ? 's' : ''}</Chip>
-          </div>
-        </>
-      )}
-      {aplicado === false && (
-        <div className="text-[11px] text-ink-faint py-1.5">Sem luminárias de balizamento neste pavimento.</div>
-      )}
-    </div>
-  )
-}
-
 // ── Card de um pavimento ──────────────────────────────────────────────
-function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclaramento, itensBalizamento, balizamentoAplicado, equipamentosUsados, iluNorma, dispatch }) {
+function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclaramento, equipamentosUsados, dispatch }) {
   return (
     <Card className="mb-4">
       <CardHeader>
@@ -396,15 +338,11 @@ function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclarament
         {pavimento.area && <span className="text-[11px] text-ink-faint">{fmtUn(pavimento.area, 'm²', 2, `${pavimento.area} m²`)}</span>}
         {alturaPisoPiso > 0 && <span className="text-[11px] text-ink-faint">· pé-direito {alturaPisoPiso} m</span>}
       </CardHeader>
-      <div className="py-3.5 px-[18px] grid grid-cols-2 gap-6">
+      <div className="py-3.5 px-[18px]">
         <BlocoAclaramento
           estruturaId={estruturaId} pavimentoId={pavimento.id}
           itens={itensAclaramento}
           equipamentosUsados={equipamentosUsados} dispatch={dispatch}
-        />
-        <BlocoBalizamento
-          estruturaId={estruturaId} pavimentoId={pavimento.id}
-          itens={itensBalizamento} aplicado={balizamentoAplicado} iluNorma={iluNorma} dispatch={dispatch}
         />
       </div>
     </Card>
@@ -434,8 +372,7 @@ function ReferenciaNormativa({ iluNorma }) {
       {open && <div className="py-3.5 px-[18px] flex flex-col gap-4">
         <div>
           <RefLabel>Iluminância mínima</RefLabel>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Balizamento</span><span className="font-mono font-semibold text-ink">{ILUMINANCIA_MINIMA.balizamento} lux</span></div>
+          <div className="grid grid-cols-2 gap-4">
             <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Aclaramento (normal)</span><span className="font-mono font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_normal} lux</span></div>
             <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Aclaramento (risco/público)</span><span className="font-mono font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_risco} lux</span></div>
           </div>
@@ -451,7 +388,7 @@ function ReferenciaNormativa({ iluNorma }) {
         </div>
 
         <div className="text-[11px] text-ink-faint leading-[1.6] pt-2 border-t border-solid border-border-2">
-          {NOTAS.aclaramento}<br/>{NOTAS.balizamento}<br/>{NOTAS.autonomia}<br/>{NOTAS.tempoResposta}
+          {NOTAS.aclaramento}<br/>{NOTAS.autonomia}<br/>{NOTAS.tempoResposta}
         </div>
       </div>}
     </Card>
@@ -558,10 +495,7 @@ export default function IluminacaoPage() {
                             estruturaId={est.id}
                             alturaPisoPiso={est.alturaPisoPiso}
                             itensAclaramento={state.iluminacao.filter(i => i.pavimentoId === pav.id && i.categoria === 'aclaramento')}
-                            itensBalizamento={state.iluminacao.filter(i => i.pavimentoId === pav.id && i.categoria === 'balizamento')}
-                            balizamentoAplicado={state.iluminacaoBalizamentoAplicado[pav.id]}
                             equipamentosUsados={opcoesAclaramento}
-                            iluNorma={iluNorma}
                             dispatch={dispatch}
                           />
                         ))}

@@ -7,7 +7,7 @@
 // mesmo padrão do memorial de Extintores.
 
 import { getIluminacao } from '../normas/index'
-import { calcularBalizamento, nomeEspecificacao } from '../iluminacao_calc'
+import { nomeEspecificacao } from '../iluminacao_calc'
 
 // Matriz pavimento x equipamento (em vez de uma tabela por pavimento) —
 // só entram como coluna os equipamentos com ao menos 1 unidade cadastrada
@@ -25,26 +25,6 @@ function tabelaAclaramento(pavs, itensPorPav, equipamentosUsados) {
     linhas: pavs.map(p => {
       const itens = itensPorPav.get(p.id)
       return [p.label, ...colunas.map(eq => String(itens.find(i => i.tipoEquipamento === eq.key)?.quantidade || 0))]
-    }),
-  }
-}
-
-// Mesma lógica em matriz pra balizamento — só entra pavimento com algo
-// cadastrado (linha) e ponto com alguma unidade nessa estrutura (coluna).
-function tabelaBalizamento(pavs, itensBalizPorPav, pontosBalizamento) {
-  const pavsComItens = pavs.filter(p => itensBalizPorPav.get(p.id).length > 0)
-  if (pavsComItens.length === 0) return null
-
-  const porPontoDaEstrutura = calcularBalizamento(pavsComItens.flatMap(p => itensBalizPorPav.get(p.id)), pontosBalizamento).porPonto
-  const colunas = pontosBalizamento.filter(pt => porPontoDaEstrutura[pt.key] > 0)
-  if (colunas.length === 0) return null
-
-  return {
-    tipo: 'tabela',
-    colunas: ['Pavimento', ...colunas.map(c => c.label)],
-    linhas: pavsComItens.map(p => {
-      const { porPonto } = calcularBalizamento(itensBalizPorPav.get(p.id), pontosBalizamento)
-      return [p.label, ...colunas.map(c => String(porPonto[c.key] || 0))]
     }),
   }
 }
@@ -121,7 +101,6 @@ function tabelaCaracteristicasGlobal(state, norma, CAMPOS_EQUIPAMENTO) {
 
 function blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, especificacoesDaEstrutura, norma, TIPOS_SISTEMA, mesmoSistema) {
   const itensPorPav = new Map(pavs.map(p => [p.id, itensDaEstrutura.filter(i => i.pavimentoId === p.id && i.categoria === 'aclaramento')]))
-  const itensBalizPorPav = new Map(pavs.map(p => [p.id, itensDaEstrutura.filter(i => i.pavimentoId === p.id && i.categoria === 'balizamento')]))
 
   const equipamentosUsados = especificacoesDaEstrutura.map(spec => {
     const base = norma.EQUIPAMENTOS_ACLARAMENTO.find(eq => eq.key === spec.tipoBase)
@@ -135,12 +114,6 @@ function blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, espe
   const tabAclar = tabelaAclaramento(pavs, itensPorPav, equipamentosUsados)
   blocos.push(tabAclar || { tipo: 'paragrafo', texto: `Nenhuma luminária de aclaramento cadastrada em ${est.nome}.` })
 
-  const tabBaliz = tabelaBalizamento(pavs, itensBalizPorPav, norma.PONTOS_BALIZAMENTO)
-  if (tabBaliz) {
-    blocos.push({ tipo: 'titulo3', texto: 'Luminárias de Balizamento' })
-    blocos.push(tabBaliz)
-  }
-
   return blocos
 }
 
@@ -151,7 +124,7 @@ export function textoMemorialIluminacao(state) {
 
   const blocos = [{
     tipo: 'paragrafo',
-    texto: `A iluminação de emergência deve garantir iluminância mínima de ${ILUMINANCIA_MINIMA.aclaramento_normal} lux nos ambientes em geral (${ILUMINANCIA_MINIMA.aclaramento_risco} lux em áreas de risco elevado ou grande concentração de público) e de ${ILUMINANCIA_MINIMA.balizamento} lux no eixo dos percursos de saída, com uniformidade máxima de ${RAZAO_UNIFORMIDADE_MAX}:1, autonomia mínima de bateria de ${AUTONOMIA_MINIMA_HORAS} hora e tempo de resposta de no máximo ${TEMPO_RESPOSTA_MAX_S} segundos após a falta de energia da rede normal (NBR 10898 / NT 18 CBMMA).`,
+    texto: `A iluminação de emergência deve garantir iluminância mínima de ${ILUMINANCIA_MINIMA.aclaramento_normal} lux nos ambientes em geral (${ILUMINANCIA_MINIMA.aclaramento_risco} lux em áreas de risco elevado ou grande concentração de público), com uniformidade máxima de ${RAZAO_UNIFORMIDADE_MAX}:1, autonomia mínima de bateria de ${AUTONOMIA_MINIMA_HORAS} hora e tempo de resposta de no máximo ${TEMPO_RESPOSTA_MAX_S} segundos após a falta de energia da rede normal (NBR 10898 / NT 18 CBMMA).`,
   }]
 
   // Só entra um parágrafo global sobre o sistema quando o projeto usa um

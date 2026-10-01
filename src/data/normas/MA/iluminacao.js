@@ -17,7 +17,6 @@ export const TIPOS_SISTEMA = [
 
 // ── Iluminância mínima (lux) — NBR 10898 ────────────────────────────────────
 export const ILUMINANCIA_MINIMA = {
-  balizamento:        3,  // no eixo do percurso de saída (piso)
   aclaramento_normal: 5,  // ambientes em geral
   aclaramento_risco:  10, // áreas de risco elevado / grande concentração de público
 }
@@ -86,20 +85,8 @@ export const PRESETS_EQUIPAMENTO = [
   },
 ]
 
-// ── Pontos de balizamento obrigatórios (checklist por pavimento) ───────────
-// Cada ponto existente no pavimento deve ter luminária de balizamento própria.
-export const PONTOS_BALIZAMENTO = [
-  { key: 'mudanca_direcao', label: 'Mudança de direção' },
-  { key: 'escada',          label: 'Escada / mudança de nível' },
-  { key: 'porta_saida',     label: 'Porta de saída' },
-  { key: 'equipamento',     label: 'Equipamento de combate a incêndio (extintor, hidrante, alarme)' },
-  { key: 'intersecao',      label: 'Interseção de corredores' },
-  { key: 'outro',           label: 'Outro ponto de risco' },
-]
-
 export const NOTAS = {
   aclaramento:  'NBR 10898 — a iluminação de aclaramento deve garantir o reconhecimento de obstáculos e o trajeto até a saída, com iluminância mínima de 5 lux nos ambientes em geral e 10 lux em áreas de risco elevado ou grande concentração de público, respeitada a uniformidade máxima de 40:1.',
-  balizamento:  'NBR 10898 — todo ponto de mudança de direção, mudança de nível, porta de saída, equipamento de combate a incêndio e interseção de corredores deve possuir luminária de balizamento própria, com iluminância mínima de 3 lux no eixo do percurso.',
   autonomia:    `Autonomia mínima da bateria de ${AUTONOMIA_MINIMA_HORAS} hora, conforme NBR 10898. Ocupações específicas podem exigir autonomia estendida — confirmar contra a NT 18 CBMMA vigente.`,
   tempoResposta: `O sistema deve entrar em plena operação em no máximo ${TEMPO_RESPOSTA_MAX_S} segundos após a falta de energia da rede normal.`,
 }

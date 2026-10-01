@@ -33,17 +33,17 @@ function novoExtintor(estruturaId, pavimentoId, ambiente, id) {
 }
 
 // Mesma lógica de idExtintor — evita colisão entre itens criados no mesmo
-// milissegundo (aclaramento e balizamento são adicionados em sequência).
+// milissegundo.
 let iluminacaoSeq = 0
 function idIluminacao() {
   iluminacaoSeq += 1
   return `ilu-${Date.now().toString(36)}-${iluminacaoSeq}-${Math.random().toString(36).slice(2, 5)}`
 }
 
-// Item de iluminação de emergência — granularidade só até pavimento (sem
-// ambiente), conforme NT 18 CBMMA / NBR 10898. `categoria` decide o campo
-// discriminador ('aclaramento' → tipoEquipamento, 'balizamento' → pontoTipo),
-// sempre enviado em `overrides` por quem despacha a ação.
+// Item de iluminação de emergência (aclaramento) — granularidade só até
+// pavimento (sem ambiente), conforme NT 18 CBMMA / NBR 10898. `categoria`
+// é sempre 'aclaramento' (campo discriminador: tipoEquipamento), sempre
+// enviado em `overrides` por quem despacha a ação.
 function novoItemIluminacao(estruturaId, pavimentoId, categoria, overrides = {}, id) {
   return { id: id || idIluminacao(), estruturaId, pavimentoId, categoria, quantidade: 1, ...overrides }
 }
@@ -433,11 +433,6 @@ const INITIAL_STATE = {
   // normas/MA/iluminacao.js, pode ter mais de uma variante cadastrada, ex.:
   // fluxos luminosos diferentes).
   iluminacaoEspecificacoesPorEstrutura: {},
-  // Resposta por pavimento à pergunta "foram aplicadas luminárias de
-  // balizamento neste pavimento?" — chave = pavimentoId, valor true/false.
-  // Ausente = ainda não respondida (a tela pergunta antes de liberar o
-  // checklist de quantidades).
-  iluminacaoBalizamentoAplicado: {},
   // Área de compartimentação horizontal considerada por pavimento (chave =
   // pavimentoId) — item 5.1.2, NT 09 CBMMA: deve somar a área de todos os
   // pavimentos e mezaninos interligados com o pavimento em questão, não só
@@ -998,8 +993,6 @@ function reducer(state, action) {
         }),
       }
     }
-    case 'SET_BALIZAMENTO_APLICADO':
-      return { ...state, iluminacaoBalizamentoAplicado: { ...state.iluminacaoBalizamentoAplicado, [action.pavimentoId]: action.valor } }
     case 'SET_AREA_COMPARTIMENTACAO':
       return { ...state, areaCompartimentacaoHorizontal: { ...state.areaCompartimentacaoHorizontal, [action.pavimentoId]: action.valor } }
     case 'SET_ACESSO_VIATURA':

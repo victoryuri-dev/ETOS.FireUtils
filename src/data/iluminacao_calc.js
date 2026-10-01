@@ -1,10 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // iluminacao_calc.js — Funções universais de dimensionamento da Iluminação de
 // Emergência (NT 18 CBMMA / NBR 10898). Recebem os dados normativos
-// (iluminância mínima, catálogo de blocos, pontos de balizamento) como
-// parâmetro; não importam nenhum arquivo de estado diretamente. Mesmas
-// funções alimentam a tela de dimensionamento e o texto do memorial — nunca
-// duas fontes de verdade.
+// (iluminância mínima, catálogo de blocos) como parâmetro; não importam
+// nenhum arquivo de estado diretamente. Mesmas funções alimentam a tela de
+// dimensionamento e o texto do memorial — nunca duas fontes de verdade.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { fmtNum } from '../utils/numero'
@@ -17,19 +16,4 @@ import { fmtNum } from '../utils/numero'
 export function nomeEspecificacao(spec, baseLabel) {
   if (spec.identificacao) return spec.identificacao
   return spec.fluxoLuminosoLm ? `${baseLabel} — ${fmtNum(spec.fluxoLuminosoLm, 2, spec.fluxoLuminosoLm)} lm` : baseLabel
-}
-
-/** Resultado do checklist de balizamento de um pavimento: soma as
- *  quantidades cadastradas por tipo de ponto (mudança de direção, escada,
- *  porta de saída etc.) — cada ponto exige ao menos 1 luminária própria. */
-export function calcularBalizamento(itens, pontosBalizamento) {
-  const porPonto = {}
-  pontosBalizamento.forEach(p => { porPonto[p.key] = 0 })
-  itens.forEach(i => { porPonto[i.pontoTipo] = (porPonto[i.pontoTipo] || 0) + (parseInt(i.quantidade) || 0) })
-
-  const quantidadeTotal = Object.values(porPonto).reduce((s, v) => s + v, 0)
-  const pontosCadastrados = Object.values(porPonto).filter(v => v > 0).length
-  const minimoAtendido = quantidadeTotal > 0
-
-  return { porPonto, quantidadeTotal, pontosCadastrados, minimoAtendido }
 }
