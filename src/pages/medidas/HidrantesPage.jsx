@@ -375,13 +375,13 @@ function PerdasPorTrecho({ d }) {
 // Ht/Qt já convergidos — o passo a passo de como Ht foi montado (Ponto A →
 // saída da bomba → RTI) fica só no memorial de cálculo impresso. São os
 // dois números mais importantes da página (alimentam a bomba na Etapa 3),
-// por isso ganham a cor de destaque — Ramal Governante é só referência de
-// qual ramal governou o dimensionamento, não um valor a conferir, então
-// fica em tom neutro.
+// por isso ganham a cor de destaque. Fica por último na página — é o
+// resultado final, depois de toda a verificação (velocidade, perdas por
+// trecho) que sustenta esses dois números.
 function ResultadoHidraulico({ d }) {
   const { res } = d
   return (
-    <div className="grid grid-cols-3 gap-4 mb-8">
+    <div className="grid grid-cols-2 gap-4 mb-8">
       <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
         <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura Manométrica Total (Ht)</div>
         <div className="text-xl font-bold text-red font-mono">{fmca(res.P_RTI)}</div>
@@ -389,10 +389,6 @@ function ResultadoHidraulico({ d }) {
       <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
         <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Vazão Total (Qt)</div>
         <div className="text-xl font-bold text-red font-mono">{lmin(res.Qt)}</div>
-      </div>
-      <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
-        <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Ramal Governante</div>
-        <div className="text-base font-semibold text-ink font-mono">{res.hid_governa}</div>
       </div>
     </div>
   )
@@ -575,8 +571,6 @@ export default function HidrantesPage() {
 
                 <ResumoExecutivo d={dados}/>
 
-                <ResultadoHidraulico d={dados}/>
-
                 <div className="mb-8">
                   <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Verificação de Velocidade</h4>
                   <VerificacaoVelocidade d={dados} norma={norma}/>
@@ -586,6 +580,8 @@ export default function HidrantesPage() {
                   <h4 className="text-xs font-bold text-ink uppercase tracking-[.05em] mb-3">Perdas de Carga por Trecho</h4>
                   <PerdasPorTrecho d={dados}/>
                 </div>
+
+                <ResultadoHidraulico d={dados}/>
               </>
             )}
           </>
