@@ -30,6 +30,25 @@ export const ELEMENTOS = [
   { key: 'isolamento', label: 'Isolamento Térmico Acústico' },
 ]
 
+// Normas de ensaio de referência por elemento (item 9 das instruções
+// normativas do CMAR — Anexo A da NT 10/2021 CBMMA: "Classificação e
+// Ensaios"). Só orienta a marcação na tela/memorial — não entra na
+// comparação de classe (ORDEM_CLASSE/TABELA_B1). Cobertura e isolamento
+// térmico acústico não têm lista própria nas instruções recebidas — ficam
+// só com o campo livre na tela, em vez de uma lista inventada.
+export const NORMAS_ENSAIO_POR_ELEMENTO = {
+  piso:   ['ISO 1182', 'NBR 8660', 'EN ISO 11925-2', 'ASTM E662'],
+  parede: ['ISO 1182', 'NBR 9442', 'ASTM E662'],
+  teto:   ['ISO 1182', 'NBR 9442', 'ASTM E662'],
+}
+
+/** Quebra o texto livre de "Normas de ensaio" (string separada por vírgula,
+ *  como salva em acabamentos[].normasEnsaio) numa lista, pra cruzar com
+ *  NORMAS_ENSAIO_POR_ELEMENTO e saber quais checkboxes já estão marcados. */
+export function parseNormasEnsaio(str) {
+  return (str || '').split(',').map(s => s.trim()).filter(Boolean)
+}
+
 // Universo de classes de reação ao fogo que um laudo pode atribuir a um
 // material — item 5 das instruções: Classe I a VI, com subdivisão A/B
 // (fumaça) dentro de cada classe numérica. NÃO usado para comparar "melhor

@@ -3,7 +3,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { divisoesDaEstrutura } from '../../utils/classificacao'
-import { montarLinhas, resumoCMAR, ORDEM_CLASSE, formatarClasses } from '../../data/cmar_calc'
+import { montarLinhas, resumoCMAR, ORDEM_CLASSE, formatarClasses, NORMAS_ENSAIO_POR_ELEMENTO, parseNormasEnsaio } from '../../data/cmar_calc'
 import { MATERIAIS_INCOMBUSTIVEIS, buscarMaterialIncombustivel, CLASSE_INCOMBUSTIVEL, MATERIAIS_ENSAIADOS, buscarMaterialEnsaiado } from '../../data/materiaisAcabamento'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
@@ -45,8 +45,28 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   const ensaiado = item?.origem === 'ensaiado'
   const [editando, setEditando] = useState(manual && !(item.classeAdotada && item.fabricante && item.laudoNumero))
   const materiaisEnsaiadosDoElemento = MATERIAIS_ENSAIADOS[elemento] || []
+  const normasDisponiveis = NORMAS_ENSAIO_POR_ELEMENTO[elemento] || []
 
   const set = (changes) => dispatch({ type: 'SET_ACABAMENTO', estruturaId, chave: linha.chave, changes })
+
+  // Lista pré-marcável por elemento (item 9 das instruções) — o que não
+  // está na lista de referência (ex.: uma norma de sistema especial) fica
+  // no campo livre abaixo, preservado junto com o que for marcado/
+  // desmarcado nos checkboxes.
+  const normasAtuais = parseNormasEnsaio(item?.normasEnsaio)
+  const normasMarcadas = normasAtuais.filter(n => normasDisponiveis.includes(n))
+  const normaExtra = normasAtuais.filter(n => !normasDisponiveis.includes(n)).join(', ')
+
+  const toggleNorma = (norma) => {
+    const novas = normasMarcadas.includes(norma)
+      ? normasAtuais.filter(n => n !== norma)
+      : [...normasAtuais, norma]
+    set({ normasEnsaio: novas.join(', ') })
+  }
+
+  const setNormaExtra = (texto) => {
+    set({ normasEnsaio: [...normasMarcadas, ...parseNormasEnsaio(texto)].join(', ') })
+  }
 
   const handleMaterial = (e) => {
     const val = e.target.value
@@ -100,12 +120,31 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
         </td>
         <td className={`${td} text-ink whitespace-nowrap`}>{classeMostrada || '—'}</td>
         <td className={td}>
-          <input
-            placeholder="ex.: ISO 1182, NBR 9442"
-            value={item?.normasEnsaio || ''}
-            onChange={e => set({ normasEnsaio: e.target.value })}
-            className={input}
-          />
+          {normasDisponiveis.length > 0 ? (
+            <>
+              <div className="flex flex-col gap-0.5">
+                {normasDisponiveis.map(norma => (
+                  <label key={norma} className="flex items-center gap-1.5 text-[11px] text-ink-faint cursor-pointer">
+                    <input type="checkbox" checked={normasMarcadas.includes(norma)} onChange={() => toggleNorma(norma)}/>
+                    {norma}
+                  </label>
+                ))}
+              </div>
+              <input
+                placeholder="outra norma…"
+                value={normaExtra}
+                onChange={e => setNormaExtra(e.target.value)}
+                className={`${input} mt-1`}
+              />
+            </>
+          ) : (
+            <input
+              placeholder="ex.: EN 13823 – SBI"
+              value={item?.normasEnsaio || ''}
+              onChange={e => set({ normasEnsaio: e.target.value })}
+              className={input}
+            />
+          )}
         </td>
         <td className={`${td} font-semibold whitespace-nowrap ${r.cls}`}>{r.label}</td>
       </tr>
