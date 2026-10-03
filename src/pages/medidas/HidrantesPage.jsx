@@ -8,6 +8,7 @@ import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import FormularioSistema from '../../components/hidrantes/FormularioSistema'
 import { SelecaoBombas, SucaoBomba } from '../../components/hidrantes/BombaESuccaoForm'
 import FormSection from '../../components/ui/FormSection'
+import InfoTip from '../../components/ui/InfoTip'
 import { calcPotenciaBomba } from '../../data/hidrantes_calc'
 import { getHidrantes } from '../../data/normas/index'
 import { fmtNum } from '../../utils/numero'
@@ -162,6 +163,18 @@ function DadosDoSistema({ d }) {
 // Mais Favorável" é único: só o último da lista (o de menor perda de carga
 // total) — os demais, entre o 2º desfavorável e esse último, não têm uma
 // situação especial pra rotular.
+// Cabeçalho de coluna em sigla + InfoTip com o significado — mais compacto
+// que o nome por extenso, sem perder a explicação (ela só fica a um hover
+// de distância em vez de ocupar espaço fixo no cabeçalho).
+function THSigla({ sigla, tip, align = 'center' }) {
+  return (
+    <span className={`inline-flex items-center gap-1 ${align === 'end' ? 'justify-end' : 'justify-center'}`}>
+      {sigla}
+      <InfoTip text={tip} align={align}/>
+    </span>
+  )
+}
+
 function situacaoHidrante(indice, total) {
   if (indice === 0) return { texto: '1º Hidrante Mais Desfavorável', classe: 'bg-red-dim border-red-border text-red' }
   if (indice === 1) return { texto: '2º Hidrante Mais Desfavorável', classe: 'bg-amber-dim border-amber-border text-amber' }
@@ -190,9 +203,15 @@ function VerificacaoHidranteDesfavoravel({ ranking }) {
         <thead>
           <tr>
             <TH>Hidrante</TH>
-            <TH right>Perda de Carga (vazão simples)</TH>
-            <TH right>Desnível (∆Z)</TH>
-            <TH right>Perda de Carga Total</TH>
+            <TH right>
+              <THSigla sigla="J" align="end" tip="Perda de carga do trecho Bomba → Hidrante, por Hazen-Williams, com a vazão nominal de um único hidrante — sem equilíbrio hidráulico. Usada só para ranquear."/>
+            </TH>
+            <TH right>
+              <THSigla sigla="∆Z" align="end" tip="Desnível geométrico entre a bomba e o hidrante."/>
+            </TH>
+            <TH right>
+              <THSigla sigla="J + ∆Z" align="end" tip="Perda de Carga Total = perda de carga (J) + desnível (∆Z) — usada só para ranquear os hidrantes. O 1º e o 2º mais desfavoráveis recebem a marcha de cálculo completa, com equilíbrio hidráulico, no restante desta etapa."/>
+            </TH>
             <TH center>Situação</TH>
           </tr>
         </thead>
