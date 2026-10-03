@@ -28,8 +28,8 @@ const statusSinalizacao = qtd => qtd > 0
 // agregado por estrutura, sem pavimento. "estrutura" é casada por nome/label
 // contra o que já está cadastrado no projeto (Etapa 2) — o plugin não
 // precisa (e não consegue) conhecer os IDs internos gerados pelo app.
-// "tipoPlaca" aceita o código oficial da placa (ex.: "S1", "E5",
-// case-insensitive) — a chave interna do catálogo (ex.: "s1") também é
+// "tipoPlaca" aceita o código oficial da placa (ex.: "S1-E", "E5",
+// case-insensitive) — a chave interna do catálogo (ex.: "s1_e") também é
 // aceita.
 //
 // `estruturaIdForcado`: presente no pull do Supabase (uma linha por

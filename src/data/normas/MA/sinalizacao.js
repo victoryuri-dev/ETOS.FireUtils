@@ -69,9 +69,13 @@ export const TIPOS_PLACA = [
     img: a5, localInstalacao: 'Quadros, casas de máquinas e áreas com risco de choque elétrico' },
 
   // Orientação e saída de emergência — fundo verde (NBR 13434-3)
-  { key: 's1', codigo: 'S1', categoria: 'orientacao', label: 'Saída de emergência — seta à direita',
+  { key: 's1_e', codigo: 'S1-E', categoria: 'orientacao', label: 'Saída de emergência — seta à esquerda (modelo 1)',
     img: s1, quantidadeRef: 'O necessário para atender a NT 14', localInstalacao: 'Rotas de saída' },
-  { key: 's2', codigo: 'S2', categoria: 'orientacao', label: 'Saída de emergência — seta à esquerda',
+  { key: 's1_d', codigo: 'S1-D', categoria: 'orientacao', label: 'Saída de emergência — seta à direita (modelo 1)',
+    img: s1, quantidadeRef: 'O necessário para atender a NT 14', localInstalacao: 'Rotas de saída' },
+  { key: 's2_e', codigo: 'S2-E', categoria: 'orientacao', label: 'Saída de emergência — seta à esquerda (modelo 2)',
+    img: s2, quantidadeRef: 'O necessário para atender a NT 14', localInstalacao: 'Rotas de saída' },
+  { key: 's2_d', codigo: 'S2-D', categoria: 'orientacao', label: 'Saída de emergência — seta à direita (modelo 2)',
     img: s2, quantidadeRef: 'O necessário para atender a NT 14', localInstalacao: 'Rotas de saída' },
   { key: 's3', codigo: 'S3', categoria: 'orientacao', label: 'Saída de emergência — seta em frente',
     img: s3, quantidadeRef: 'O necessário para atender a NT 14', localInstalacao: 'Rotas de saída' },
