@@ -790,7 +790,10 @@ export default function MemorialDescritivoPage({ onBack }) {
         </button>
       </div>
 
-      <div className="relative flex-1 min-h-0 flex flex-col">
+      {/* `relative` ancora o MenuSecoes na tela; na impressão vira `static`,
+          senão a .print-area (absoluta) passa a ser recortada pelos
+          overflow-hidden dos ancestrais e só sai a 1ª folha. */}
+      <div className="relative print:static flex-1 min-h-0 flex flex-col">
       <MenuSecoes secoes={indice} rolagemRef={rolagemRef}/>
       <div ref={rolagemRef} className="flex-1 overflow-y-auto py-8 flex flex-col">
         {!secoes.length ? (
