@@ -43,6 +43,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   const { elemento, elementoLabel, classesExigidas, item, resultado } = linha
   const manual = item?.origem === 'manual'
   const ensaiado = item?.origem === 'ensaiado'
+  const incombustivel = item?.origem === 'incombustivel'
   const [editando, setEditando] = useState(manual && !(item.classeAdotada && item.fabricante && item.laudoNumero))
   const materiaisEnsaiadosDoElemento = MATERIAIS_ENSAIADOS[elemento] || []
   const normasDisponiveis = NORMAS_ENSAIO_POR_ELEMENTO[elemento] || []
@@ -79,7 +80,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
       return
     }
     const mat = buscarMaterialIncombustivel(val)
-    set({ origem: 'incombustivel', materialId: val, materialNome: mat?.nome || '', classeAdotada: CLASSE_INCOMBUSTIVEL, fabricante: '', laudoNumero: '', laudoValidade: '' })
+    set({ origem: 'incombustivel', materialId: val, materialNome: mat?.nome || '', classeAdotada: CLASSE_INCOMBUSTIVEL, fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' })
     setEditando(false)
   }
 
@@ -120,7 +121,9 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
         </td>
         <td className={`${td} text-ink whitespace-nowrap`}>{classeMostrada || '—'}</td>
         <td className={td}>
-          {normasDisponiveis.length > 0 ? (
+          {incombustivel ? (
+            <span className="text-ink-faint">Não aplicável — material incombustível</span>
+          ) : normasDisponiveis.length > 0 ? (
             <>
               <div className="flex flex-col gap-0.5">
                 {normasDisponiveis.map(norma => (
