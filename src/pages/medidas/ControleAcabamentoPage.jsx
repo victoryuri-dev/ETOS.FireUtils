@@ -3,12 +3,12 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { divisoesDaEstrutura } from '../../utils/classificacao'
-import { montarLinhas, resumoCMAR, ORDEM_CLASSE, formatarClasses, NORMAS_ENSAIO_POR_ELEMENTO, parseNormasEnsaio } from '../../data/cmar_calc'
+import { montarLinhas, classeResolvida, ORDEM_CLASSE, NORMAS_ENSAIO_POR_ELEMENTO, parseNormasEnsaio } from '../../data/cmar_calc'
 import { MATERIAIS_INCOMBUSTIVEIS, buscarMaterialIncombustivel, CLASSE_INCOMBUSTIVEL, MATERIAIS_ENSAIADOS, buscarMaterialEnsaiado } from '../../data/materiaisAcabamento'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
-import { statusEstrutura } from '../../utils/statusEstrutura'
+import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 
 function Card({ children, className = '' }) {
@@ -26,21 +26,13 @@ const th = 'py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.
 const td = 'py-2 px-3 text-xs align-top'
 const input = 'bg-bg border border-solid border-border rounded-md text-ink text-[11px] py-1.5 px-2 w-full outline-none box-border'
 
-const RESULTADO_INFO = {
-  ATENDE:              { cls: 'text-green',     label: 'Atende' },
-  NAO_ATENDE:          { cls: 'text-red',       label: 'Não atende' },
-  PENDENTE_LAUDO:      { cls: 'text-amber',     label: 'Pendente de laudo' },
-  NAO_PREENCHIDO:      { cls: 'text-ink-faint', label: 'A preencher' },
-  SEM_DADO_NORMATIVO:  { cls: 'text-amber',     label: 'Pendente de norma' },
-}
-
 // Uma linha (elemento construtivo de uma divisão) do Quadro Resumo de
 // Controle de Materiais de Acabamento. O material incombustível e o
 // material do catálogo de ensaiados resolvem a classe sozinhos (itens 6/7
 // das instruções normativas); qualquer outro material só é aceito com
 // fabricante e nº do laudo preenchidos (nunca presumir classe).
 function LinhaAcabamento({ estruturaId, linha, dispatch }) {
-  const { elemento, elementoLabel, classesExigidas, item, resultado } = linha
+  const { elemento, elementoLabel, item } = linha
   const manual = item?.origem === 'manual'
   const ensaiado = item?.origem === 'ensaiado'
   const incombustivel = item?.origem === 'incombustivel'
@@ -85,7 +77,6 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   }
 
   const classeMostrada = item?.origem === 'incombustivel' ? CLASSE_INCOMBUSTIVEL : (ensaiado || manual ? item.classeAdotada : '')
-  const r = RESULTADO_INFO[resultado] || RESULTADO_INFO.NAO_PREENCHIDO
 
   return (
     <>
@@ -115,9 +106,6 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
               {editando ? 'ocultar dados do laudo' : (item.materialNome || 'editar dados do laudo')}
             </button>
           )}
-        </td>
-        <td className={`${td} text-ink-faint`}>
-          {formatarClasses(classesExigidas) || <span className="text-amber whitespace-nowrap">Pendente de norma</span>}
         </td>
         <td className={`${td} text-ink whitespace-nowrap`}>{classeMostrada || '—'}</td>
         <td className={td}>
@@ -149,11 +137,10 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
             />
           )}
         </td>
-        <td className={`${td} font-semibold whitespace-nowrap ${r.cls}`}>{r.label}</td>
       </tr>
       {manual && editando && (
         <tr className="border-b border-solid border-border last:border-b-0">
-          <td colSpan={6} className="py-3 px-3 bg-surface-2">
+          <td colSpan={4} className="py-3 px-3 bg-surface-2">
             <div className="grid grid-cols-4 gap-2">
               <input placeholder="Nome do material" value={item.materialNome} onChange={e => set({ materialNome: e.target.value })} className={input}/>
               <select value={item.classeAdotada} onChange={e => set({ classeAdotada: e.target.value })} className={input}>
@@ -185,10 +172,8 @@ function TabelaAcabamento({ titulo, linhas, estruturaId, dispatch }) {
             <tr className="border-b border-solid border-border">
               <th className={th}>Elemento construtivo</th>
               <th className={th}>Material</th>
-              <th className={th}>Classe exigida</th>
-              <th className={th}>Classe adotada</th>
+              <th className={th}>Classe</th>
               <th className={th}>Normas de ensaio</th>
-              <th className={th}>Resultado</th>
             </tr>
           </thead>
           <tbody>
@@ -200,26 +185,13 @@ function TabelaAcabamento({ titulo, linhas, estruturaId, dispatch }) {
   )
 }
 
-const RESUMO_INFO = {
-  ATENDE:                { cls: 'ibox green', titulo: 'ATENDE', texto: 'Todos os materiais possuem classificação compatível com as exigências da NT 10/2021 CBMMA.' },
-  ATENDE_COM_PENDENCIAS: { cls: 'ibox amber', titulo: 'ATENDE COM PENDÊNCIAS DOCUMENTAIS', texto: 'Os materiais especificados são potencialmente compatíveis, porém há linhas sem material selecionado ou sem os dados de laudo necessários para comprovar a classe.' },
-  NAO_ATENDE:            { cls: 'ibox red',   titulo: 'NÃO ATENDE', texto: 'Um ou mais materiais possuem classificação inferior à exigida pela NT 10/2021 CBMMA.' },
-  DADOS_INSUFICIENTES:   { cls: 'ibox amber', titulo: 'DADOS INSUFICIENTES', texto: 'Uma ou mais linhas (cobertura, isolamento térmico acústico, ou divisão sem dado normativo cadastrado para este estado) ainda não têm classe exigida definida — não é possível concluir a análise até isso ser preenchido.' },
-}
-
-const STATUS_RESUMO = {
-  ATENDE:                statusEstrutura('concluido', 'Atende'),
-  ATENDE_COM_PENDENCIAS: statusEstrutura('andamento', 'Pendências documentais'),
-  NAO_ATENDE:            statusEstrutura('atencao', 'Não atende'),
-  DADOS_INSUFICIENTES:   statusEstrutura('pendente', 'Dados insuficientes'),
-}
-
 function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispatch, exigido }) {
   const divisoes = divisoesDaEstrutura(pavimentos)
   const linhas = montarLinhas(divisoes, tabela, itens)
-  const resumo = resumoCMAR(linhas)
-  const info = RESUMO_INFO[resumo]
-  const status = exigido ? STATUS_RESUMO[resumo] : statusEstrutura('concluido', 'Não exigida')
+  const preenchidas = linhas.filter(l => classeResolvida(l.item)).length
+  const status = exigido
+    ? statusPorProgresso(preenchidas, linhas.length, { pendente: 'Nenhum material informado', concluido: 'Materiais informados' })
+    : statusEstrutura('concluido', 'Não exigida')
 
   return (
     <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'controle_acabamento' } : null} defaultOpen={false}>
@@ -228,21 +200,7 @@ function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispat
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
           <span className="text-xs">Controle de materiais de acabamento não exigido para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
         </div>
-      ) : (
-      <>
-      {Object.keys(tabela).length === 0 ? (
-        <div className="ibox amber">
-          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">A Tabela B.1 (Anexo B) da NT 10/2021 CBMMA ainda não foi cadastrada para este estado — as classes exigidas abaixo ficarão pendentes até isso ser preenchido.</span>
-        </div>
-      ) : (
-        <div className="ibox amber">
-          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">A classe exigida para <strong>cobertura</strong> e <strong>isolamento térmico acústico</strong> ainda não foi cadastrada (a Tabela B.1 não traz essas colunas) — essas linhas ficarão pendentes até uma referência normativa ser informada.</span>
-        </div>
-      )}
-
-      {divisoes.length === 0 ? (
+      ) : divisoes.length === 0 ? (
         <div className="ibox amber">
           <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
           <span className="text-xs">Nenhuma divisão de ocupação cadastrada nesta estrutura ainda — volte à Etapa 2 (Pavimentos) para classificá-la.</span>
@@ -257,13 +215,6 @@ function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispat
             dispatch={dispatch}
           />
         ))
-      )}
-
-      <div className={info.cls}>
-        <Icon name={resumo === 'ATENDE' ? 'check' : 'warn'} size={14} color={`var(--color-${resumo === 'ATENDE' ? 'green' : resumo === 'NAO_ATENDE' ? 'red' : 'amber'})`} className="shrink-0"/>
-        <span className="text-xs"><strong>{info.titulo}</strong> — {info.texto}</span>
-      </div>
-      </>
       )}
     </EstruturaSection>
   )
