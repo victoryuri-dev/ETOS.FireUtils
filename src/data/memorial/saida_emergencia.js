@@ -142,7 +142,7 @@ function tabelaAmbientes(listaAmbientes, taxaPopulacional, larguras) {
       const { pop, capPT, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
       return [
         amb.nome,
-        `${fmt(amb.area || 0)} m²`,
+        amb.area ? `${fmt(amb.area)} m²` : '—',
         amb.divisao || '—',
         taxaPopulacionalTexto(amb, taxaPopulacional),
         pop, capPT, pt.n, fmt(pt.la),

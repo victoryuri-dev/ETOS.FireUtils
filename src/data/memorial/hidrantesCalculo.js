@@ -58,7 +58,7 @@ export function textoMemorialCalculoHidrantes(state) {
       titulo,
       blocos: [{
         tipo: 'paragrafo',
-        texto: 'Dimensionamento hidráulico ainda não importado do plugin Revit — pendente. Use "Buscar do Revit" (ou importe o firedata.json) na página Hidrantes/Mangotinho para trazer o resultado de "Dimensionar Hidrantes".',
+        texto: 'Dimensionamento hidráulico ainda não importado do plugin Revit — pendente de preenchimento pelo responsável técnico.',
       }],
     }
   }

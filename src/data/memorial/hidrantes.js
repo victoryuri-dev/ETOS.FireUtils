@@ -5,7 +5,8 @@
 // (memorial de cálculo) é responsabilidade do plugin Revit e entra depois.
 
 import { getHidrantes } from '../normas/index'
-import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
+import { dadosDoTipo, POSICOES_RESERVATORIO, sugerirClassificacao, faixaAreaIndex } from '../hidrantes_calc'
+import { cargaDaDivisao } from '../extintores_calc'
 import { fmtNum } from '../../utils/numero'
 
 const f2 = (n) => fmtNum(n, 2)
@@ -18,7 +19,43 @@ const LABEL_RECALQUE = {
 }
 const LABEL_VALVULA_BLOQUEIO = { gaveta: 'gaveta', gaveta_os_y: 'gaveta de haste ascendente (OS&Y)' }
 
-export function textoMemorialHidrantes(state) {
+// Reconstrói a classificação (Tipo/RTI, Tabela 3) a partir do estado do
+// projeto — MESMA lógica de useClassificacaoHidrantes.js (área total das
+// estruturas selecionadas + divisão de maior carga de incêndio + presença
+// de sprinklers nessas estruturas), só sem hooks, pra tornar a origem da
+// RTI auditável no memorial (NUNCA recalcula a RTI adotada por h.rti —
+// só mostra de onde ela deveria vir, pro CBMMA poder conferir).
+function classificacaoAuditada(state, h, norma, porEstrutura) {
+  const selecionadas = h.estruturasSelecionadas?.length ? h.estruturasSelecionadas : (state.estruturas || []).map(e => e.id)
+  const areaTotal = (state.estruturas || [])
+    .filter(e => selecionadas.includes(e.id))
+    .reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
+
+  const porDivisao = new Map()
+  ;(state.pavimentos || []).filter(p => selecionadas.includes(p.estruturaId)).forEach(p => {
+    const cargaState = state.cargaState?.[p.estruturaId] || {}
+    const divs = [p.divisao, ...(p.acess || []).map(a => a.divisao)].filter(Boolean)
+    divs.forEach(divisao => {
+      const carga = cargaDaDivisao(divisao, cargaState)
+      if (carga == null) return
+      const atual = porDivisao.get(divisao)
+      if (!atual || carga > atual) porDivisao.set(divisao, carga)
+    })
+  })
+  const divisoesComCarga = [...porDivisao.entries()].map(([divisao, cargaMJm2]) => ({ divisao, cargaMJm2 }))
+
+  const temSprinklers = selecionadas.some(id => {
+    const pe = porEstrutura?.find(p => p.estrutura.id === id)
+    return !!(pe?.sistemas?.sprinklers?.ativo || pe?.sistemas?.sprinklers?.obrigatorio)
+  })
+
+  const sugestao = sugerirClassificacao(areaTotal, divisoesComCarga, temSprinklers, norma)
+  const faixa = norma.FAIXAS_AREA[faixaAreaIndex(areaTotal, norma)]
+  const opcaoDoTipo = sugestao.opcoes.find(o => String(o.tipo) === String(h.tipo))
+  return { areaTotal, faixa, sugestao, opcaoDoTipo }
+}
+
+export function textoMemorialHidrantes(state, _sistemas, porEstrutura) {
   const norma = getHidrantes(state.uf)
   const h = state.hidrantes || {}
   const blocos = []
@@ -40,9 +77,28 @@ export function textoMemorialHidrantes(state) {
 
   blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
   if (h.rti) {
+    const { faixa, sugestao, opcaoDoTipo } = classificacaoAuditada(state, h, norma, porEstrutura)
+    const rtiMinima = opcaoDoTipo?.rti ?? null
+    const rtiAdotada = parseFloat(h.rti) || 0
+    const rtiDisponivel = h.reservatorioExclusivo ? rtiAdotada : (parseFloat(h.reservatorioVolumeTotal) || null)
+    const situacao = rtiMinima == null || rtiDisponivel == null
+      ? 'NÃO AUDITÁVEL — classificação ou volume disponível pendente'
+      : (rtiDisponivel >= rtiMinima ? 'ATENDE' : 'NÃO ATENDE')
     blocos.push({
-      tipo: 'campo', label: 'Reserva Técnica de Incêndio (RTI)',
-      valor: `${fmtNum(h.rti, 2, h.rti)} m³ — mínimo normativo conforme Tabela 3, ${norma.NORMA.nome}`,
+      tipo: 'tabela',
+      colunas: ['Parâmetro', 'Valor'],
+      alinhas: ['left', 'left'],
+      linhas: [
+        ['RTI adotada', `${fmtNum(rtiAdotada, 2, h.rti)} m³`],
+        ['Critério', sugestao.coluna != null
+          ? `Tabela 3, coluna ${sugestao.coluna}, faixa de área ${faixa?.label || '—'} (${norma.NORMA.nome})`
+          : 'Classificação pendente — área e/ou carga de incêndio das estruturas selecionadas não permitem localizar a linha da Tabela 3'],
+        ['Sistema', dadosTipo.label],
+        ['Ocupação/divisão determinante', sugestao.divisao || '—'],
+        ['RTI mínima normativa', rtiMinima != null ? `${fmtNum(rtiMinima, 2, rtiMinima)} m³` : '—'],
+        ['RTI disponível', rtiDisponivel != null ? `${fmtNum(rtiDisponivel, 2, rtiDisponivel)} m³${h.reservatorioExclusivo ? ' (reservatório exclusivo)' : ''}` : '—'],
+        ['Situação', situacao],
+      ],
     })
   }
   const materialReservatorio = norma.MATERIAIS_RESERVATORIO.find(m => m.key === h.reservatorioMaterial)
