@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial } from '../../data/memorial/registry'
@@ -38,10 +38,14 @@ const NIVEL_MAXIMO_SUMARIO = 1
 // secao e so um bloco de conteudo, sem largura, sombra ou margem de folha.
 const FOLHA = 'memorial-secao relative flex flex-col w-full bg-white text-black'
 
-// CSS processado pelo Paged.js: pagina A4 com margem de 25mm e quebra de
-// pagina por secao.
+// CSS processado pelo Paged.js: pagina A4 com margem de 25mm, quebra de
+// pagina por secao e numero da pagina no canto inferior direito.
+// Capa e Sumario (pagina nomeada "pretextual") contam na numeracao, mas nao
+// exibem o numero.
 const CSS_PAGINA = `
-@page { size: A4 portrait; margin: 25mm; }
+@page { size: A4 portrait; margin: 25mm; @bottom-right { content: counter(page); } }
+@page pretextual { @bottom-right { content: none; } }
+.memorial-pretextual { page: pretextual; }
 .memorial-secao { break-after: page; min-height: 246mm; }
 .memorial-secao:last-child { break-after: auto; }
 `
@@ -198,7 +202,7 @@ function Capa({ state }) {
   const enderecoCompleto = enderecoCompletoDe(state, '')
 
   return (
-    <div className={FOLHA}>
+    <div className={`${FOLHA} memorial-pretextual`}>
       <div className="text-center my-auto py-16">
         <h1 className="capa-titulo font-heading font-bold text-black uppercase">
           Memorial Descritivo de Projeto de Prevenção e Combate a Incêndio
@@ -215,7 +219,7 @@ function Capa({ state }) {
 
 function Sumario() {
   return (
-    <div className={FOLHA}>
+    <div className={`${FOLHA} memorial-pretextual`}>
       <h1 className="font-heading text-black text-center mb-8">Sumário</h1>
       <div data-sumario/>
     </div>
@@ -768,6 +772,22 @@ function SecaoMedida({ secao, numeroSecao, state, ultima }) {
   )
 }
 
+// Níveis de zoom do preview, como num editor de texto.
+const NIVEIS_ZOOM = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.25, 1.5]
+const CHAVE_ZOOM = 'memorial-zoom'
+
+function lerZoomSalvo() {
+  try {
+    const salvo = Number(localStorage.getItem(CHAVE_ZOOM))
+    return NIVEIS_ZOOM.includes(salvo) ? salvo : 1
+  } catch { return 1 }
+}
+
+function proximoZoom(atual, direcao) {
+  const i = NIVEIS_ZOOM.indexOf(atual)
+  return NIVEIS_ZOOM[Math.min(NIVEIS_ZOOM.length - 1, Math.max(0, (i < 0 ? NIVEIS_ZOOM.indexOf(1) : i) + direcao))]
+}
+
 export default function MemorialDescritivoPage({ onBack }) {
   const { state }    = useProjeto()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
@@ -779,12 +799,43 @@ export default function MemorialDescritivoPage({ onBack }) {
     setIndice(coletarSecoes(destino))
   }
 
+  // Zoom do preview (só na tela — a impressão sai sempre em 100%): reduzindo,
+  // as folhas passam a caber lado a lado, como no Word/Docs.
+  const [zoom, setZoom] = useState(lerZoomSalvo)
+  const mudarZoom = direcao => setZoom(z => proximoZoom(z, direcao))
+  useEffect(() => {
+    try { localStorage.setItem(CHAVE_ZOOM, String(zoom)) } catch { /* sem storage: só não lembra */ }
+  }, [zoom])
+  // Ctrl + roda do mouse dá zoom no documento em vez de na página inteira.
+  useEffect(() => {
+    const cont = rolagemRef.current
+    if (!cont) return
+    const aoRodar = e => {
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      setZoom(z => proximoZoom(z, e.deltaY < 0 ? 1 : -1))
+    }
+    cont.addEventListener('wheel', aoRodar, { passive: false })
+    return () => cont.removeEventListener('wheel', aoRodar)
+  }, [])
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-none">
       <div className="no-print shrink-0 flex items-center justify-between py-3 px-8 border-b border-solid border-border bg-none">
         <button className="btn-ghost" onClick={onBack}>
           <Icon name="left" size={13}/> Voltar
         </button>
+        <div className="flex items-center gap-1" role="group" aria-label="Zoom do documento">
+          <button type="button" className="btn-ghost px-2" onClick={() => mudarZoom(-1)} disabled={zoom <= NIVEIS_ZOOM[0]} aria-label="Diminuir zoom" title="Diminuir zoom (Ctrl + roda do mouse)">
+            <Icon name="minus" size={13}/>
+          </button>
+          <button type="button" className="btn-ghost px-2 min-w-[58px] justify-center tabular-nums" onClick={() => setZoom(1)} title="Voltar para 100%">
+            {Math.round(zoom * 100)}%
+          </button>
+          <button type="button" className="btn-ghost px-2" onClick={() => mudarZoom(1)} disabled={zoom >= NIVEIS_ZOOM[NIVEIS_ZOOM.length - 1]} aria-label="Aumentar zoom" title="Aumentar zoom (Ctrl + roda do mouse)">
+            <Icon name="plus" size={13}/>
+          </button>
+        </div>
         <button className="btn-primary" onClick={() => window.print()} disabled={!secoes.length}>
           <Icon name="file" size={13}/> Imprimir / Salvar PDF
         </button>
@@ -795,7 +846,7 @@ export default function MemorialDescritivoPage({ onBack }) {
           overflow-hidden dos ancestrais e só sai a 1ª folha. */}
       <div className="relative print:static flex-1 min-h-0 flex flex-col">
       <MenuSecoes secoes={indice} rolagemRef={rolagemRef}/>
-      <div ref={rolagemRef} className="flex-1 overflow-y-auto py-8 flex flex-col">
+      <div ref={rolagemRef} className="flex-1 overflow-auto py-8 flex flex-col" style={{ '--memorial-zoom': zoom }}>
         {!secoes.length ? (
           <div className="max-w-[600px] mx-auto py-16 px-10 text-center border border-dashed border-border rounded-lg text-ink-faint text-[13px]">
             Nenhuma medida com memorial disponível ainda. Preencha o dimensionamento de uma medida (ex.: Acesso de Viatura) para gerar as páginas aqui.

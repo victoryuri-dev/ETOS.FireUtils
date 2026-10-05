@@ -156,6 +156,12 @@
   font-weight: 700;
 }
 
+/* Numero da pagina (caixa de margem do Paged.js): 10pt, preto. */
+.print-area-memorial .pagedjs_margin-content {
+  font-size: 10pt;
+  color: #000;
+}
+
 /* Titulo de tabela: centralizado, negrito, 10pt e sem numero (nao entra na
    numeracao progressiva nem no Sumario). */
 .print-area-memorial .titulo-tabela {
@@ -204,13 +210,18 @@
   .no-print{display:none!important}
 }
 
-/* Preview do memorial: folhas A4 empilhadas, como um editor de texto. */
+/* Preview do memorial: folhas A4 como num editor de texto. O zoom vem de
+   --memorial-zoom (MemorialDescritivoPage); as folhas quebram em linhas, entao
+   com zoom menor cabem varias lado a lado. `safe center` evita cortar a
+   esquerda da folha quando ela fica mais larga que a area (zoom > 100%). */
 .print-area-memorial .pagedjs_pages {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-flow: row wrap;
+  justify-content: safe center;
+  align-items: flex-start;
   gap: 24px;
   padding-bottom: 8px;
+  zoom: var(--memorial-zoom, 1);
 }
 .print-area-memorial .pagedjs_page {
   flex: none;
@@ -225,6 +236,7 @@
      do navegador — a area de impressao e absoluta (ver .print-area). */
   .print-area-memorial .pagedjs_pages {
     display: block !important;
+    zoom: 1 !important;
     gap: 0;
     padding: 0;
     height: auto !important;
