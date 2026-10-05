@@ -71,7 +71,7 @@ export default function GerenciamentoRiscoPage() {
         </span>
       </div>
 
-      <FormSection title="Edificação e funcionamento" description="Vizinhança, apoio externo e características de uso — item B.1 do Anexo B.">
+      <FormSection title="Edificação e funcionamento" description="Vizinhança, apoio externo e características de uso — item B.1 do Anexo B. A população fixa é calculada automaticamente a partir da população fixa informada na Brigada de Incêndio.">
         <div className="g2 mb-3">
           <div className="fg">
             <label>Tipo de localização</label>
@@ -95,16 +95,9 @@ export default function GerenciamentoRiscoPage() {
           <input value={pe.meiosAjudaExterna} onChange={e => set({ meiosAjudaExterna: e.target.value })}
             placeholder="Ex.: Posto de Bombeiros do Centro, Brigada de empresa vizinha"/>
         </div>
-        <div className="g2 mb-3">
-          <div className="fg">
-            <label>População fixa</label>
-            <input type="number" value={pe.populacaoFixa} onChange={e => set({ populacaoFixa: e.target.value })}
-              placeholder={state.quantidadePublico ? `Ex.: ${state.quantidadePublico}` : ''}/>
-          </div>
-          <div className="fg">
-            <label>População flutuante</label>
-            <input type="number" value={pe.populacaoFlutuante} onChange={e => set({ populacaoFlutuante: e.target.value })}/>
-          </div>
+        <div className="fg mb-3">
+          <label>População flutuante</label>
+          <input type="number" value={pe.populacaoFlutuante} onChange={e => set({ populacaoFlutuante: e.target.value })}/>
         </div>
         <div className="fg mb-3">
           <label>Características de funcionamento</label>
@@ -161,12 +154,8 @@ export default function GerenciamentoRiscoPage() {
         </FormSection>
       )}
 
-      <FormSection title="Recursos humanos e apoio externo" description="Brigada, hospital de referência e telefone de emergência — item B.1.10 do Anexo B.">
-        <div className="g3">
-          <div className="fg">
-            <label>Brigadistas (nº de membros)</label>
-            <input type="number" value={pe.brigadistasQtd} onChange={e => set({ brigadistasQtd: e.target.value })}/>
-          </div>
+      <FormSection title="Recursos humanos e apoio externo" description="Brigadistas profissionais, hospital de referência e telefone de emergência — item B.1.10 do Anexo B. O número total de brigadistas é calculado automaticamente a partir do dimensionamento da Brigada de Incêndio.">
+        <div className="g2">
           <div className="fg">
             <label>Brigadistas profissionais</label>
             <input type="number" value={pe.brigadistasProfissionaisQtd} onChange={e => set({ brigadistasProfissionaisQtd: e.target.value })}/>

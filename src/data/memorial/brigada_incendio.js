@@ -49,7 +49,17 @@ function divisoesUsadas(linhasCalculadas) {
   return [...vistas.entries()].map(([linha, divisao]) => ({ divisao, linha }))
 }
 
-function blocosDaEstrutura(est, pavs, altura, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela) {
+function blocosDaEstrutura(est, pavs, altura, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, exigido) {
+  const blocos = [{ tipo: 'titulo2', texto: est.nome }]
+
+  // Não exigida pra esta estrutura (NT 01 CBMMA, por ocupação/altura) — só a
+  // nota explicando o motivo, sem a tabela normativa nem a de resultado
+  // (não há nada pra calcular quando a medida nem é obrigatória aqui).
+  if (!exigido) {
+    blocos.push({ tipo: 'paragrafo', texto: 'Brigada de incêndio não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.' })
+    return { blocos, temAsterisco: false }
+  }
+
   const linhasCalculadas = pavs.map(pav => {
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
     return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, altura, tabela) }
@@ -57,8 +67,6 @@ function blocosDaEstrutura(est, pavs, altura, cargaEst, cnaesDiv, limiaresRisco,
 
   const temAsterisco = linhasCalculadas.some(({ linha, resultado, nivelTreinamento, nivelInstalacao }) =>
     linha && !linha.isento && (resultado?.brigadistas == null || nivelTreinamento?.dinamico || nivelInstalacao?.dinamico))
-
-  const blocos = [{ tipo: 'titulo2', texto: est.nome }]
 
   // ── Trecho normativo (Anexo A) — uma linha por divisão usada, tal como
   // impressa na Tabela A.1, com as notas do rodapé logo abaixo.
@@ -113,7 +121,7 @@ function blocosDaEstrutura(est, pavs, altura, cargaEst, cnaesDiv, limiaresRisco,
   return { blocos, temAsterisco }
 }
 
-export function textoMemorialBrigadaIncendio(state) {
+export function textoMemorialBrigadaIncendio(state, sistemas, porEstrutura) {
   const brigNorma = getBrigada(state.uf)
   const extNorma  = getExtintores(state.uf)
   const { NORMA, TABELA_A1, NOTAS_TABELA_A1, NOTAS_GERAIS } = brigNorma
@@ -128,7 +136,12 @@ export function textoMemorialBrigadaIncendio(state) {
   const blocos = (state.estruturas || []).flatMap(est => {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     if (pavs.length === 0) return []
-    const r = blocosDaEstrutura(est, pavs, est.altura, state.cargaState[est.id] || {}, cnaesDiv, extNorma.LIMIARES_RISCO, TABELA_A1, NOTAS_TABELA_A1)
+    // Obrigatoriedade por estrutura (useMedidasObrigatorias) — mesmo padrão
+    // de compartimentacao.js: cai para o agregado do projeto só se
+    // `porEstrutura` não foi repassado.
+    const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
+    const exigido = pe ? !!pe.sistemas?.brigada?.ativo : !!sistemas?.brigada?.ativo
+    const r = blocosDaEstrutura(est, pavs, est.altura, state.cargaState[est.id] || {}, cnaesDiv, extNorma.LIMIARES_RISCO, TABELA_A1, NOTAS_TABELA_A1, exigido)
     if (r.temAsterisco) temAsterisco = true
     return r.blocos
   })
