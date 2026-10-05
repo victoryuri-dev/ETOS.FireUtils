@@ -297,7 +297,7 @@ function dadosExemplo() {
       riscosLocalizacaoPorEstrutura: {
         'est-exemplo-2': { glp: 'Botijões de GLP armazenados em área ventilada externa, afastada das saídas, no subsolo.' },
       },
-      brigadistasQtd: '8', brigadistasProfissionaisQtd: '0',
+      brigadistasProfissionaisQtd: '0',
       telefoneCBM: '193', hospitalReferencia: 'Hospital Municipal Djalma Marques (Socorrão I)',
       ...PROCEDIMENTOS_PADRAO,
     },

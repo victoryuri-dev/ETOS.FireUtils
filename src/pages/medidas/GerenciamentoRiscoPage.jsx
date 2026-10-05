@@ -161,12 +161,8 @@ export default function GerenciamentoRiscoPage() {
         </FormSection>
       )}
 
-      <FormSection title="Recursos humanos e apoio externo" description="Brigada, hospital de referência e telefone de emergência — item B.1.10 do Anexo B.">
-        <div className="g3">
-          <div className="fg">
-            <label>Brigadistas (nº de membros)</label>
-            <input type="number" value={pe.brigadistasQtd} onChange={e => set({ brigadistasQtd: e.target.value })}/>
-          </div>
+      <FormSection title="Recursos humanos e apoio externo" description="Brigadistas profissionais, hospital de referência e telefone de emergência — item B.1.10 do Anexo B. O número total de brigadistas é calculado automaticamente a partir do dimensionamento da Brigada de Incêndio.">
+        <div className="g2">
           <div className="fg">
             <label>Brigadistas profissionais</label>
             <input type="number" value={pe.brigadistasProfissionaisQtd} onChange={e => set({ brigadistasProfissionaisQtd: e.target.value })}/>

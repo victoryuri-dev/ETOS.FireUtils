@@ -561,7 +561,7 @@ const INITIAL_STATE = {
     // utils/anexoB.js), ja que os riscos marcados na Configuracao tambem sao
     // por estrutura: riscosLocalizacaoPorEstrutura[estId][riscoKey] = texto.
     riscosLocalizacaoPorEstrutura: {},
-    brigadistasQtd: '', brigadistasProfissionaisQtd: '',
+    brigadistasProfissionaisQtd: '',
     telefoneCBM: '193', hospitalReferencia: '',
     ...PROCEDIMENTOS_PADRAO,
   },

@@ -47,10 +47,12 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
       <td className={TD}>
         <input
           type="number" min="0" step="1"
-          value={pavimento.populacaoFixa ?? ''}
+          value={isento ? '' : (pavimento.populacaoFixa ?? '')}
           onChange={e => setPopulacao(e.target.value)}
-          placeholder="0"
-          className="w-16 text-right"
+          placeholder={isento ? '—' : '0'}
+          disabled={isento}
+          title={isento ? 'Divisão isenta de brigada de incêndio — população fixa não se aplica.' : undefined}
+          className="w-16 text-right disabled:opacity-40 disabled:cursor-not-allowed"
         />
       </td>
       {!linha ? (

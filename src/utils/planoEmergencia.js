@@ -8,6 +8,8 @@
 // editável na tela de complementação.
 import { buildAnexoBData, RISCOS_ESPECIAIS } from './anexoB'
 import { fmtNum, fmtUn } from './numero'
+import { getBrigada, getExtintores, getCNAEsDivisao } from '../data/normas/index'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento } from '../data/brigada_calc'
 
 // Texto padrão dos 10 procedimentos básicos (item B.2 do Anexo B) — adaptado
 // de um exemplo prático genérico de plano de emergência, servindo de ponto de
@@ -73,6 +75,27 @@ function riscosPorEstruturaDe(state, pe) {
     .filter(r => r.riscos.length > 0)
 }
 
+// Total de brigadistas exigidos no projeto inteiro (soma de todas as
+// estruturas/pavimentos) — nunca mais um número digitado à parte: é o MESMO
+// cálculo (mesma Tabela A.1, mesma resolução de risco) que alimenta a tela e
+// o memorial de Brigada de Incêndio (ver brigada_calc.js). Pavimentos sem
+// linha na Tabela A.1, isentos ou ainda sem população fixa informada entram
+// como 0, sem travar a soma dos demais.
+function totalBrigadistasDoProjeto(state) {
+  const brigNorma = getBrigada(state.uf)
+  const extNorma = getExtintores(state.uf)
+  const cnaesDiv = divisao => getCNAEsDivisao(state.uf, divisao)
+  let total = 0
+  ;(state.pavimentos || []).forEach(pav => {
+    const estrutura = (state.estruturas || []).find(e => e.id === pav.estruturaId)
+    const cargaEst = state.cargaState[pav.estruturaId] || {}
+    const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, extNorma.LIMIARES_RISCO)
+    const { resultado } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura?.altura, brigNorma.TABELA_A1)
+    total += resultado?.brigadistas || 0
+  })
+  return total
+}
+
 export function buildPlanoEmergenciaData(state, sistemas) {
   const b = buildAnexoBData(state, sistemas)
   const pe = state.planoEmergencia || {}
@@ -97,7 +120,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
 
     riscosPorEstrutura: riscosPorEstruturaDe(state, pe),
 
-    brigadistasQtd: pe.brigadistasQtd || '',
+    brigadistasQtd: totalBrigadistasDoProjeto(state) || '',
     brigadistasProfissionaisQtd: pe.brigadistasProfissionaisQtd || '',
 
     sistemasAtivos: [...b.medidasCol1, ...b.medidasCol2].filter(m => m.ativo).map(m => m.label),
