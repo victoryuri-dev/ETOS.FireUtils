@@ -8,12 +8,9 @@ import { MATERIAIS_INCOMBUSTIVEIS, buscarMaterialIncombustivel, CLASSE_INCOMBUST
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
+import InlineEditableNome from '../../components/ui/InlineEditableNome'
 import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
-
-function Card({ children, className = '' }) {
-  return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
-}
 
 // Descrição oficial da divisão (ex.: "A-3" -> "Habitação coletiva") — OCUPACOES
 // é indexado pela letra do grupo, com as divisões aninhadas em `.divisoes`
@@ -168,42 +165,51 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   )
 }
 
-// Caixa "Edificação/Ambiente" — nome 100% editável (texto livre, sem
-// vínculo com a divisão de ocupação) e removível pelo usuário.
+// Caixa "Edificação/Ambiente" — retrátil, nome 100% editável (clique no
+// nome ou no lápis) e removível pelo usuário. Mesmo estilo-base dos cards
+// de ambiente de Extintores/Saída de Emergência (AmbienteCard,
+// ExtintoresPage.jsx e InlineEditableNome, compartilhado entre os dois) —
+// só cor e formatação reaproveitadas daqui, sem o arrastar-e-soltar deles.
 function TabelaAcabamento({ ambiente, linhas, estruturaId, dispatch }) {
+  const [aberto, setAberto] = useState(true)
   const renomear = (nome) => dispatch({ type: 'RENAME_AMBIENTE_ACABAMENTO', id: ambiente.id, nome })
-  const remover = () => dispatch({ type: 'REMOVE_AMBIENTE_ACABAMENTO', id: ambiente.id })
+  const remover = (e) => {
+    e.stopPropagation()
+    dispatch({ type: 'REMOVE_AMBIENTE_ACABAMENTO', id: ambiente.id })
+  }
 
   return (
-    <Card className="mb-3">
-      <div className="py-2 px-3 border-b border-solid border-border flex items-center gap-2">
-        <input
-          value={ambiente.nome}
-          onChange={e => renomear(e.target.value)}
-          placeholder="Nome do ambiente (ex.: C-1 — Comércio com baixa carga de incêndio)"
-          title="Clique para editar o nome do ambiente"
-          className="bg-transparent border-0 border-b border-dashed border-border-2 hover:border-ink-hint focus:border-red-border outline-none text-xs font-semibold text-ink px-0 py-0.5 flex-1 min-w-0 transition-colors"
-        />
-        <button type="button" onClick={remover} className="btn-del shrink-0" title="Remover ambiente">
+    <div className="group rounded-lg border border-solid border-border bg-surface hover:border-white/20 transition-colors mb-3">
+      <div
+        className={`flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none bg-surface-2 ${aberto ? 'rounded-t-[7px] border-b border-solid border-border' : 'rounded-[7px]'}`}
+        onClick={() => setAberto(a => !a)}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
+          <InlineEditableNome value={ambiente.nome} onCommit={renomear} textClassName="font-heading text-[13px] font-semibold text-ink truncate"/>
+        </div>
+        <button type="button" onClick={remover} className="bg-transparent border-none text-ink-faint hover:text-red cursor-pointer p-1 shrink-0" title="Remover ambiente">
           <Icon name="trash" size={12}/>
         </button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-solid border-border">
-              <th className={th}>Elemento construtivo</th>
-              <th className={th}>Material</th>
-              <th className={th}>Classe</th>
-              <th className={th}>Normas de ensaio</th>
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.map(l => <LinhaAcabamento key={l.chave} estruturaId={estruturaId} linha={l} dispatch={dispatch}/>)}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+      {aberto && (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-solid border-border">
+                <th className={th}>Elemento construtivo</th>
+                <th className={th}>Material</th>
+                <th className={th}>Classe</th>
+                <th className={th}>Normas de ensaio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linhas.map(l => <LinhaAcabamento key={l.chave} estruturaId={estruturaId} linha={l} dispatch={dispatch}/>)}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -215,7 +221,7 @@ function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido }) {
     ? statusPorProgresso(preenchidas, todasLinhas.length, { pendente: 'Nenhum material informado', concluido: 'Materiais informados' })
     : statusEstrutura('concluido', 'Não exigida')
 
-  const adicionarAmbiente = () => dispatch({ type: 'ADD_AMBIENTE_ACABAMENTO', estruturaId: est.id, nome: '' })
+  const adicionarAmbiente = () => dispatch({ type: 'ADD_AMBIENTE_ACABAMENTO', estruturaId: est.id, nome: `Ambiente ${ambientes.length + 1}` })
 
   return (
     <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'controle_acabamento' } : null} defaultOpen={false}>
