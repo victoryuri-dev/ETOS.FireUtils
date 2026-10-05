@@ -110,7 +110,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
             </button>
           )}
         </td>
-        <td className={`${td} text-ink whitespace-nowrap`}>{classeMostrada || '—'}</td>
+        <td className={`${td} text-ink text-center whitespace-nowrap`}>{classeMostrada || '—'}</td>
         <td className={td}>
           {naoPossui ? (
             <span className="text-ink-faint">N/A — elemento não possui</span>
@@ -118,9 +118,9 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
             <span className="text-ink-faint">Não aplicável — material incombustível</span>
           ) : normasDisponiveis.length > 0 ? (
             <>
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
                 {normasDisponiveis.map(norma => (
-                  <label key={norma} className="flex items-center gap-1.5 text-[11px] text-ink-faint cursor-pointer">
+                  <label key={norma} className="flex items-center gap-1.5 text-[11px] text-ink-faint whitespace-nowrap cursor-pointer">
                     <input type="checkbox" checked={normasMarcadas.includes(norma)} onChange={() => toggleNorma(norma)}/>
                     {norma}
                   </label>
@@ -130,7 +130,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
                 placeholder="outra norma…"
                 value={normaExtra}
                 onChange={e => setNormaExtra(e.target.value)}
-                className={`${input} mt-1`}
+                className={`${input} mt-1.5`}
               />
             </>
           ) : (
@@ -194,12 +194,18 @@ function TabelaAcabamento({ ambiente, linhas, estruturaId, dispatch }) {
       </div>
       {aberto && (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse table-fixed min-w-[640px]">
+            <colgroup>
+              <col className="w-[120px]"/>
+              <col className="w-[27%]"/>
+              <col className="w-[64px]"/>
+              <col/>
+            </colgroup>
             <thead>
               <tr className="border-b border-solid border-border">
                 <th className={th}>Elemento construtivo</th>
                 <th className={th}>Material</th>
-                <th className={th}>Classe</th>
+                <th className={`${th} text-center`}>Classe</th>
                 <th className={th}>Normas de ensaio</th>
               </tr>
             </thead>
