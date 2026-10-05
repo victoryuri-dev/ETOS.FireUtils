@@ -374,8 +374,8 @@ function novaEstrutura(nome, id) {
 // Descargas (tela dedicada, dentro de Saída de Emergência) — piso de
 // descarga nasce true aqui (é o térreo), mas fica editável lá.
 // `populacaoFixa`: ocupantes fixos DESTE pavimento, usada pelo dimensionamento
-// da Brigada de Incêndio (Tabela A.1, NT 17) — não confundir com
-// state.planoEmergencia.populacaoFixa, que é o total da edificação inteira.
+// da Brigada de Incêndio (Tabela A.1, NT 17) — é também a fonte da população
+// fixa total mostrada no Plano de Emergência (ver utils/planoEmergencia.js).
 function pavimentoTerreo(estruturaId) {
   return { id: `${estruturaId}-P1`, estruturaId, tipo:'terreo', label: 'Terreo', grupo: 'E', divisao: 'E-1', cnae: '', cnaeDesc: '', area: '', populacaoFixa: '', acess: [], ambientes: [], acessos: acessosPadrao(true), pisoDescarga: true }
 }
@@ -553,7 +553,7 @@ const INITIAL_STATE = {
   planoEmergencia: {
     localizacaoTipo: 'Urbana',
     caracteristicaVizinhanca: '', distanciaCBM: '', meiosAjudaExterna: 'Posto de Bombeiros',
-    populacaoFixa: '', populacaoFlutuante: '',
+    populacaoFlutuante: '',
     horarioFuncionamento: '',
     pneTemPessoas: false, pneDescricao: '',
     // Localizacao de cada risco especial marcado — chaveado por estrutura e,

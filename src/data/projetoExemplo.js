@@ -291,7 +291,7 @@ function dadosExemplo() {
       localizacaoTipo: 'Urbana',
       caracteristicaVizinhanca: 'Área comercial consolidada, com edificações comerciais e residenciais multifamiliares no entorno imediato.',
       distanciaCBM: '3.5', meiosAjudaExterna: 'Posto de Bombeiros',
-      populacaoFixa: '48', populacaoFlutuante: '35',
+      populacaoFlutuante: '35',
       horarioFuncionamento: 'Segunda a sábado, das 08h às 18h; pensionato com ocupação 24 horas.',
       pneTemPessoas: true, pneDescricao: 'Pensionato dispõe de 1 dormitório adaptado no pavimento térreo, próximo à saída principal.',
       riscosLocalizacaoPorEstrutura: {

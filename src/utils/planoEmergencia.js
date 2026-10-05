@@ -75,6 +75,14 @@ function riscosPorEstruturaDe(state, pe) {
     .filter(r => r.riscos.length > 0)
 }
 
+// População fixa total do projeto — soma da população fixa de cada
+// pavimento, o MESMO dado digitado na tela de Brigada de Incêndio (não mais
+// um número à parte aqui). Pavimentos isentos de brigada ficam sem esse
+// campo (ver LinhaPavimento em BrigadaIncendioPage.jsx) e entram como 0.
+function totalPopulacaoFixaDoProjeto(state) {
+  return (state.pavimentos || []).reduce((total, pav) => total + (Number(pav.populacaoFixa) || 0), 0)
+}
+
 // Total de brigadistas exigidos no projeto inteiro (soma de todas as
 // estruturas/pavimentos) — nunca mais um número digitado à parte: é o MESMO
 // cálculo (mesma Tabela A.1, mesma resolução de risco) que alimenta a tela e
@@ -99,6 +107,7 @@ function totalBrigadistasDoProjeto(state) {
 export function buildPlanoEmergenciaData(state, sistemas) {
   const b = buildAnexoBData(state, sistemas)
   const pe = state.planoEmergencia || {}
+  const populacaoFixaTotal = totalPopulacaoFixaDoProjeto(state)
 
   return {
     edificacao: state.respFantasia || state.respRazaoSocial || state.nome || '',
@@ -112,7 +121,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     estruturas: estruturasDetalheDe(state),
     ocupacao: b.classificacaoOcupacao,
 
-    populacaoFixa: pe.populacaoFixa ? fmtNum(pe.populacaoFixa, 0, pe.populacaoFixa) : '',
+    populacaoFixa: populacaoFixaTotal ? fmtNum(populacaoFixaTotal, 0, '') : '',
     populacaoFlutuante: pe.populacaoFlutuante ? fmtNum(pe.populacaoFlutuante, 0, pe.populacaoFlutuante) : '',
     horarioFuncionamento: pe.horarioFuncionamento || '',
     pneTemPessoas: !!pe.pneTemPessoas,
