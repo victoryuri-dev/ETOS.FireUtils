@@ -36,6 +36,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   const manual = item?.origem === 'manual'
   const ensaiado = item?.origem === 'ensaiado'
   const incombustivel = item?.origem === 'incombustivel'
+  const naoPossui = item?.origem === 'nao_possui'
   const [editando, setEditando] = useState(manual && !(item.classeAdotada && item.fabricante && item.laudoNumero))
   const materiaisEnsaiadosDoElemento = MATERIAIS_ENSAIADOS[elemento] || []
   const normasDisponiveis = NORMAS_ENSAIO_POR_ELEMENTO[elemento] || []
@@ -64,6 +65,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   const handleMaterial = (e) => {
     const val = e.target.value
     if (val === '') { set({ origem: '', materialId: '', materialNome: '', classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '' }); setEditando(false); return }
+    if (val === 'nao_possui') { set({ origem: 'nao_possui', materialId: '', materialNome: '', classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' }); setEditando(false); return }
     if (val === 'manual') { set({ origem: 'manual', materialId: '', materialNome: '', classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '' }); setEditando(true); return }
     if (val.startsWith('ensaiado:')) {
       const mat = buscarMaterialEnsaiado(elemento, val.slice('ensaiado:'.length))
@@ -76,7 +78,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
     setEditando(false)
   }
 
-  const classeMostrada = item?.origem === 'incombustivel' ? CLASSE_INCOMBUSTIVEL : (ensaiado || manual ? item.classeAdotada : '')
+  const classeMostrada = naoPossui ? 'N/A' : incombustivel ? CLASSE_INCOMBUSTIVEL : (ensaiado || manual ? item.classeAdotada : '')
 
   return (
     <>
@@ -84,11 +86,12 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
         <td className={`${td} text-ink whitespace-nowrap`}>{elementoLabel}</td>
         <td className={td}>
           <select
-            value={manual ? 'manual' : ensaiado ? `ensaiado:${item.materialId}` : (item?.materialId || '')}
+            value={manual ? 'manual' : ensaiado ? `ensaiado:${item.materialId}` : naoPossui ? 'nao_possui' : (item?.materialId || '')}
             onChange={handleMaterial}
             className={input}
           >
             <option value="">Selecionar material…</option>
+            <option value="nao_possui">Não possui este elemento</option>
             <optgroup label="Incombustíveis (Classe I automática)">
               {MATERIAIS_INCOMBUSTIVEIS.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
             </optgroup>
@@ -109,7 +112,9 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
         </td>
         <td className={`${td} text-ink whitespace-nowrap`}>{classeMostrada || '—'}</td>
         <td className={td}>
-          {incombustivel ? (
+          {naoPossui ? (
+            <span className="text-ink-faint">N/A — elemento não possui</span>
+          ) : incombustivel ? (
             <span className="text-ink-faint">Não aplicável — material incombustível</span>
           ) : normasDisponiveis.length > 0 ? (
             <>
@@ -188,7 +193,7 @@ function TabelaAcabamento({ titulo, linhas, estruturaId, dispatch }) {
 function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispatch, exigido }) {
   const divisoes = divisoesDaEstrutura(pavimentos)
   const linhas = montarLinhas(divisoes, tabela, itens)
-  const preenchidas = linhas.filter(l => classeResolvida(l.item)).length
+  const preenchidas = linhas.filter(l => l.item?.origem === 'nao_possui' || classeResolvida(l.item)).length
   const status = exigido
     ? statusPorProgresso(preenchidas, linhas.length, { pendente: 'Nenhum material informado', concluido: 'Materiais informados' })
     : statusEstrutura('concluido', 'Não exigida')

@@ -22,16 +22,23 @@ function descricaoAmbiente(ocupacoes, divisao) {
 }
 
 function fmtMaterial(item) {
+  if (item?.origem === 'nao_possui') return 'N/A'
   if (!item || !item.origem) return 'Não informado'
   if (item.origem === 'incombustivel') return item.materialNome
   return item.materialNome || 'Material não identificado'
 }
 
 function fmtClasse(item) {
+  if (item?.origem === 'nao_possui') return 'N/A'
   if (item?.origem === 'incombustivel') return 'I'
   if (item?.origem === 'ensaiado') return item.classeAdotada || 'Não informada'
   if (item?.origem === 'manual' && item.classeAdotada && item.fabricante && item.laudoNumero) return item.classeAdotada
   return 'Não informada'
+}
+
+function fmtNormasEnsaio(item) {
+  if (item?.origem === 'nao_possui') return 'N/A'
+  return item?.normasEnsaio?.trim() || '—'
 }
 
 function blocosDaEstrutura(state, est, tabela, ocupacoes) {
@@ -56,7 +63,7 @@ function blocosDaEstrutura(state, est, tabela, ocupacoes) {
       l.elementoLabel,
       fmtClasse(l.item),
       fmtMaterial(l.item),
-      l.item?.normasEnsaio?.trim() || '—',
+      fmtNormasEnsaio(l.item),
     ]),
   })
 
