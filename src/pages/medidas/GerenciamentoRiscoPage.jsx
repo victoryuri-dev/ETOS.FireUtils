@@ -167,8 +167,20 @@ export default function GerenciamentoRiscoPage() {
         </div>
         <div className="fg mt-3">
           <label>Hospital de referência</label>
-          <input value={pe.hospitalReferencia} onChange={e => set({ hospitalReferencia: e.target.value })}
-            placeholder="Ex.: Hospital Municipal, a 2 km"/>
+          <input value={pe.hospitalNome} onChange={e => set({ hospitalNome: e.target.value })}
+            placeholder="Ex.: Hospital Municipal Djalma Marques"/>
+        </div>
+        <div className="g2 mt-3">
+          <div className="fg">
+            <label>Distância do hospital</label>
+            <input value={pe.hospitalDistancia} onChange={e => set({ hospitalDistancia: e.target.value })}
+              placeholder="Ex.: 2 km"/>
+          </div>
+          <div className="fg">
+            <label>Endereço do hospital</label>
+            <input value={pe.hospitalEndereco} onChange={e => set({ hospitalEndereco: e.target.value })}
+              placeholder="Ex.: Av. Example, 123 — Centro"/>
+          </div>
         </div>
       </FormSection>
 

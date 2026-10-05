@@ -562,7 +562,7 @@ const INITIAL_STATE = {
     // por estrutura: riscosLocalizacaoPorEstrutura[estId][riscoKey] = texto.
     riscosLocalizacaoPorEstrutura: {},
     brigadistasProfissionaisQtd: '',
-    telefoneCBM: '193', hospitalReferencia: '',
+    telefoneCBM: '193', hospitalNome: '', hospitalDistancia: '', hospitalEndereco: '',
     ...PROCEDIMENTOS_PADRAO,
   },
   sistemas: {

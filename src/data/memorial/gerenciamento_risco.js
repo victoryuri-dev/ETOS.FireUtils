@@ -81,7 +81,14 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     },
     {
       label: 'Primeiros socorros e hospitais próximos', valor: d.respPrimeirosSocorros,
-      sub: [{ label: 'Hospital de referência', valor: d.hospitalReferencia }],
+      sub: [{
+        label: 'Hospital de referência', valor: '',
+        sub: [
+          { label: 'Nome', valor: d.hospitalNome },
+          { label: 'Distância', valor: d.hospitalDistancia },
+          { label: 'Endereço', valor: d.hospitalEndereco },
+        ],
+      }],
     },
     { label: 'Eliminar riscos', valor: d.respEliminarRiscos },
     { label: 'Abandono de área', valor: d.respAbandono },

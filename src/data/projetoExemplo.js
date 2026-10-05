@@ -298,7 +298,8 @@ function dadosExemplo() {
         'est-exemplo-2': { glp: 'Botijões de GLP armazenados em área ventilada externa, afastada das saídas, no subsolo.' },
       },
       brigadistasProfissionaisQtd: '0',
-      telefoneCBM: '193', hospitalReferencia: 'Hospital Municipal Djalma Marques (Socorrão I)',
+      telefoneCBM: '193',
+      hospitalNome: 'Hospital Municipal Djalma Marques (Socorrão I)', hospitalDistancia: '2 km', hospitalEndereco: 'Av. Kennedy, s/n — Areinha',
       ...PROCEDIMENTOS_PADRAO,
     },
     // Campo legado — só a lista de chaves importa (useMedidasObrigatorias lê

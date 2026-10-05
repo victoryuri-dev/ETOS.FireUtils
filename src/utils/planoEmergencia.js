@@ -136,7 +136,9 @@ export function buildPlanoEmergenciaData(state, sistemas) {
 
     meioAlerta: pe.meioAlerta || PROCEDIMENTOS_PADRAO.meioAlerta,
     telefoneCBM: pe.telefoneCBM || '193',
-    hospitalReferencia: pe.hospitalReferencia || '',
+    hospitalNome: pe.hospitalNome || '',
+    hospitalDistancia: pe.hospitalDistancia || '',
+    hospitalEndereco: pe.hospitalEndereco || '',
     respAnaliseSituacao: pe.respAnaliseSituacao || PROCEDIMENTOS_PADRAO.respAnaliseSituacao,
     respApoioExterno: pe.respApoioExterno || PROCEDIMENTOS_PADRAO.respApoioExterno,
     respPrimeirosSocorros: pe.respPrimeirosSocorros || PROCEDIMENTOS_PADRAO.respPrimeirosSocorros,
