@@ -1,18 +1,23 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // cmar_calc.js — Funções universais do Controle de Material de Acabamento e
-// Revestimento (CMAR, NT 10 CBMMA). Recebem os dados normativos (tabela por
-// divisão) como parâmetro; não importam nenhum arquivo de estado
+// Revestimento (CMAR, NT 10 CBMMA). Não importam nenhum arquivo de estado
 // diretamente. As mesmas funções alimentam a tela de dimensionamento e o
 // "Quadro Resumo de Controle de Materiais de Acabamento" do memorial —
 // nunca duas fontes de verdade.
 //
-// Princípio (item 24 das instruções normativas do CMAR):
-//   OCUPAÇÃO → ELEMENTO → CLASSE MÁXIMA ADMITIDA → MATERIAL → CLASSE DO
-//   MATERIAL → ATENDE?
-// Uma classe de material nunca é presumida (item 6): só existe classe
-// resolvida quando o material é comprovadamente incombustível (catálogo,
-// ver materiaisAcabamento.js) ou quando o usuário informou os dados de
-// laudo/fabricante do material cadastrado manualmente.
+// Uma classe de material nunca é presumida (item 6 das instruções
+// normativas do CMAR): só existe classe resolvida quando o material é
+// comprovadamente incombustível (catálogo, ver materiaisAcabamento.js),
+// vem do catálogo de materiais já ensaiados, ou o usuário informou os
+// dados de laudo/fabricante do material cadastrado manualmente.
+//
+// classesAdmitidasDivisao/resultadoLinha/resumoCMAR (comparação contra a
+// Tabela B.1 por divisão) ficam definidas abaixo mas não são mais chamadas
+// por montarLinhas — "Edificação/Ambiente" virou uma caixa de nome livre
+// editável pelo usuário (acabamentoAmbientes), não necessariamente um
+// código de divisão da NT, então deixou de ser cruzável automaticamente
+// contra a tabela. Mantidas como lógica já validada, caso a comparação
+// volte a ser necessária.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { CLASSE_INCOMBUSTIVEL } from './materiaisAcabamento'
@@ -110,27 +115,24 @@ export function resultadoLinha(item, classesExigidas) {
   return classesExigidas.includes(classe) ? 'ATENDE' : 'NAO_ATENDE'
 }
 
-/** Monta todas as linhas (divisão × elemento) de uma estrutura, cruzando os
- *  itens já cadastrados (`itens`, filtrados pela estrutura) com a tabela
- *  normativa. Usado tanto pela tela quanto pelo memorial — nunca duas
- *  fontes de verdade sobre o resultado de uma linha. */
-export function montarLinhas(divisoes, tabela, itens) {
+/** Monta as 5 linhas (uma por ELEMENTOS) de um ambiente — "Edificação/
+ *  Ambiente" é agora uma caixa totalmente editável pelo usuário
+ *  (acabamentoAmbientes, ver ProjetoContext.jsx), não mais derivada da
+ *  divisão de ocupação do pavimento; por isso não cruza mais com a Tabela
+ *  B.1 aqui (um nome livre não é necessariamente um código de divisão da
+ *  NT). Cruza só os itens já cadastrados (`itens`, filtrados pela
+ *  estrutura) com ELEMENTOS. Usado tanto pela tela quanto pelo memorial —
+ *  nunca duas fontes de verdade sobre o conteúdo de uma linha. */
+export function montarLinhas(ambiente, itens) {
   const porChave = new Map(itens.map(a => [a.chave, a]))
-  const linhas = []
-
-  divisoes.forEach(divisao => {
-    ELEMENTOS.forEach(el => {
-      const chave = `${divisao}|${el.key}`
-      const classesExigidas = classesAdmitidasDivisao(tabela, divisao, el.key)
-      const item = porChave.get(chave) || null
-      linhas.push({
-        chave, divisao, elemento: el.key, elementoLabel: el.label,
-        classesExigidas, item, resultado: resultadoLinha(item, classesExigidas),
-      })
-    })
+  return ELEMENTOS.map(el => {
+    const chave = `${ambiente.id}|${el.key}`
+    return {
+      chave, ambienteId: ambiente.id, ambienteNome: ambiente.nome,
+      elemento: el.key, elementoLabel: el.label,
+      item: porChave.get(chave) || null,
+    }
   })
-
-  return linhas
 }
 
 /** Conclusão padrão do CMAR (item 23 das instruções), a partir de todas as

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
@@ -18,6 +18,9 @@ function Card({ children, className = '' }) {
 // Descrição oficial da divisão (ex.: "A-3" -> "Habitação coletiva") — OCUPACOES
 // é indexado pela letra do grupo, com as divisões aninhadas em `.divisoes`
 // (mesma resolução usada em descricaoDivisao, MemorialDescritivoPage.jsx).
+// Usada só pra sugerir o nome inicial de um ambiente semeado automaticamente
+// (ver useEffect de semeadura em ControleAcabamentoPage) — depois disso o
+// nome é 100% editável pelo usuário.
 function descricaoDivisao(ocupacoes, divisao) {
   return ocupacoes?.[divisao.charAt(0)]?.divisoes?.[divisao] || ''
 }
@@ -26,7 +29,7 @@ const th = 'py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.
 const td = 'py-2 px-3 text-xs align-top'
 const input = 'bg-bg border border-solid border-border rounded-md text-ink text-[11px] py-1.5 px-2 w-full outline-none box-border'
 
-// Uma linha (elemento construtivo de uma divisão) do Quadro Resumo de
+// Uma linha (elemento construtivo de um ambiente) do Quadro Resumo de
 // Controle de Materiais de Acabamento. O material incombustível e o
 // material do catálogo de ensaiados resolvem a classe sozinhos (itens 6/7
 // das instruções normativas); qualquer outro material só é aceito com
@@ -165,11 +168,25 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   )
 }
 
-function TabelaAcabamento({ titulo, linhas, estruturaId, dispatch }) {
+// Caixa "Edificação/Ambiente" — nome 100% editável (texto livre, sem
+// vínculo com a divisão de ocupação) e removível pelo usuário.
+function TabelaAcabamento({ ambiente, linhas, estruturaId, dispatch }) {
+  const renomear = (nome) => dispatch({ type: 'RENAME_AMBIENTE_ACABAMENTO', id: ambiente.id, nome })
+  const remover = () => dispatch({ type: 'REMOVE_AMBIENTE_ACABAMENTO', id: ambiente.id })
+
   return (
     <Card className="mb-3">
-      <div className="py-2.5 px-3 border-b border-solid border-border">
-        <div className="text-xs font-semibold text-ink">{titulo}</div>
+      <div className="py-2 px-3 border-b border-solid border-border flex items-center gap-2">
+        <input
+          value={ambiente.nome}
+          onChange={e => renomear(e.target.value)}
+          placeholder="Nome do ambiente (ex.: C-1 — Comércio com baixa carga de incêndio)"
+          title="Clique para editar o nome do ambiente"
+          className="bg-transparent border-0 border-b border-dashed border-border-2 hover:border-ink-hint focus:border-red-border outline-none text-xs font-semibold text-ink px-0 py-0.5 flex-1 min-w-0 transition-colors"
+        />
+        <button type="button" onClick={remover} className="btn-del shrink-0" title="Remover ambiente">
+          <Icon name="trash" size={12}/>
+        </button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
@@ -190,13 +207,15 @@ function TabelaAcabamento({ titulo, linhas, estruturaId, dispatch }) {
   )
 }
 
-function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispatch, exigido }) {
-  const divisoes = divisoesDaEstrutura(pavimentos)
-  const linhas = montarLinhas(divisoes, tabela, itens)
-  const preenchidas = linhas.filter(l => l.item?.origem === 'nao_possui' || classeResolvida(l.item)).length
+function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido }) {
+  const linhasPorAmbiente = ambientes.map(amb => ({ ambiente: amb, linhas: montarLinhas(amb, itens) }))
+  const todasLinhas = linhasPorAmbiente.flatMap(({ linhas }) => linhas)
+  const preenchidas = todasLinhas.filter(l => l.item?.origem === 'nao_possui' || classeResolvida(l.item)).length
   const status = exigido
-    ? statusPorProgresso(preenchidas, linhas.length, { pendente: 'Nenhum material informado', concluido: 'Materiais informados' })
+    ? statusPorProgresso(preenchidas, todasLinhas.length, { pendente: 'Nenhum material informado', concluido: 'Materiais informados' })
     : statusEstrutura('concluido', 'Não exigida')
+
+  const adicionarAmbiente = () => dispatch({ type: 'ADD_AMBIENTE_ACABAMENTO', estruturaId: est.id, nome: '' })
 
   return (
     <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'controle_acabamento' } : null} defaultOpen={false}>
@@ -205,21 +224,23 @@ function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispat
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
           <span className="text-xs">Controle de materiais de acabamento não exigido para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
         </div>
-      ) : divisoes.length === 0 ? (
-        <div className="ibox amber">
-          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">Nenhuma divisão de ocupação cadastrada nesta estrutura ainda — volte à Etapa 2 (Pavimentos) para classificá-la.</span>
-        </div>
       ) : (
-        divisoes.map(divisao => (
-          <TabelaAcabamento
-            key={divisao}
-            titulo={descricaoDivisao(ocupacoes, divisao) ? `${divisao} — ${descricaoDivisao(ocupacoes, divisao)}` : divisao}
-            linhas={linhas.filter(l => l.divisao === divisao)}
-            estruturaId={est.id}
-            dispatch={dispatch}
-          />
-        ))
+        <>
+          {ambientes.length === 0 && (
+            <div className="ibox amber">
+              <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+              <span className="text-xs">Nenhum ambiente cadastrado nesta estrutura ainda — adicione um abaixo.</span>
+            </div>
+          )}
+
+          {linhasPorAmbiente.map(({ ambiente, linhas }) => (
+            <TabelaAcabamento key={ambiente.id} ambiente={ambiente} linhas={linhas} estruturaId={est.id} dispatch={dispatch}/>
+          ))}
+
+          <button type="button" onClick={adicionarAmbiente} className="btn-add w-full justify-center py-2">
+            <Icon name="plus" size={12}/> Adicionar ambiente
+          </button>
+        </>
       )}
     </EstruturaSection>
   )
@@ -227,9 +248,33 @@ function EstruturaAcabamento({ est, pavimentos, tabela, ocupacoes, itens, dispat
 
 export default function ControleAcabamentoPage() {
   const { state, dispatch } = useProjeto()
-  const { cmar, ocupacoes } = useNorma()
-  const { TABELA_B1 } = cmar
+  const { ocupacoes } = useNorma()
   const { porEstrutura } = useMedidasObrigatorias()
+
+  // Semeia uma caixa de ambiente por divisão já classificada na estrutura —
+  // só da primeira vez que a estrutura aparece aqui sem nenhuma caixa (ver
+  // INIT_AMBIENTES_ACABAMENTO no reducer, idempotente). Depois disso o
+  // conjunto de ambientes é 100% gerido pelo usuário: a semeadura nunca
+  // roda de novo nem sobrescreve nomes já editados ou caixas já removidas
+  // (mesmo padrão de INIT_CARGA, ver Step5.jsx).
+  const estruturasParaSemear = state.estruturas
+    .filter(est => !state.acabamentoAmbientes.some(a => a.estruturaId === est.id))
+    .map(est => ({ est, divisoes: divisoesDaEstrutura(state.pavimentos.filter(p => p.estruturaId === est.id)) }))
+    .filter(({ divisoes }) => divisoes.length > 0)
+
+  const seedDepsKey = estruturasParaSemear.map(({ est, divisoes }) => `${est.id}:${divisoes.join('|')}`).join(';')
+
+  useEffect(() => {
+    estruturasParaSemear.forEach(({ est, divisoes }) => {
+      const ambientes = divisoes.map(d => ({
+        id: `${est.id}-amb-${d}`,
+        estruturaId: est.id,
+        nome: descricaoDivisao(ocupacoes, d) ? `${d} — ${descricaoDivisao(ocupacoes, d)}` : d,
+      }))
+      dispatch({ type: 'INIT_AMBIENTES_ACABAMENTO', estruturaId: est.id, ambientes })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedDepsKey])
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -242,7 +287,7 @@ export default function ControleAcabamentoPage() {
             Controle de Materiais de Acabamento e Revestimento
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
-            Quadro Resumo de Controle de Materiais de Acabamento por estrutura — piso, parede/divisórias, teto/forro, cobertura e isolamento térmico acústico de cada ocupação, conforme Anexo B da NT 10/2021 CBMMA. Materiais incombustíveis recebem Classe I automaticamente, e produtos do catálogo de materiais já ensaiados (piso, parede e teto) têm a classe preenchida direto do ensaio; qualquer outro material exige fabricante e nº do laudo para a classe ser considerada comprovada.
+            Quadro Resumo de Controle de Materiais de Acabamento por estrutura — um ambiente por caixa (nome livre, editável), com piso, parede/divisórias, teto/forro, cobertura e isolamento térmico acústico cada um. Materiais incombustíveis recebem Classe I automaticamente, e produtos do catálogo de materiais já ensaiados (piso, parede e teto) têm a classe preenchida direto do ensaio; qualquer outro material exige fabricante e nº do laudo para a classe ser considerada comprovada.
           </p>
         </div>
 
@@ -252,9 +297,7 @@ export default function ControleAcabamentoPage() {
             <EstruturaAcabamento
               key={est.id}
               est={est}
-              pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
-              tabela={TABELA_B1}
-              ocupacoes={ocupacoes}
+              ambientes={state.acabamentoAmbientes.filter(a => a.estruturaId === est.id)}
               itens={state.acabamentos.filter(a => a.estruturaId === est.id)}
               dispatch={dispatch}
               exigido={!!pe?.sistemas?.controle_acabamento?.ativo}

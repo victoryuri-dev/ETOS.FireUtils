@@ -65,21 +65,42 @@ function idAcabamento() {
 }
 
 // Linha do CMAR (Controle de Material de Acabamento e Revestimento) — uma
-// por combinação estrutura+chave (`chave` = `${divisao}|${elemento}`, ver
-// cmar_calc.js). `origem` discrimina se a classe vem do catálogo de
-// materiais incombustíveis ('incombustivel', classe sempre 'I') ou de
-// cadastro manual ('manual', exige classeAdotada + fabricante + laudoNumero
-// preenchidos para a classe ser considerada comprovada — ver
-// classeResolvida em cmar_calc.js, nunca presume classe sem essa
-// documentação). `normasEnsaio` é o campo livre do Quadro Resumo do
-// memorial (ex.: "ISO 1182, NBR 9442") — não participa da comparação de
-// classe, só da citação no memorial.
+// por combinação estrutura+chave (`chave` = `${ambienteId}|${elemento}`,
+// ver cmar_calc.js — `ambienteId` referencia acabamentoAmbientes, não mais
+// o código da divisão). `origem` discrimina se a classe vem do catálogo de
+// materiais incombustíveis ('incombustivel', classe sempre 'I'), do
+// catálogo de materiais ensaiados ('ensaiado'), de cadastro manual
+// ('manual', exige classeAdotada + fabricante + laudoNumero preenchidos
+// para a classe ser considerada comprovada — ver classeResolvida em
+// cmar_calc.js, nunca presume classe sem essa documentação) ou de
+// 'nao_possui' (elemento dispensado pelo usuário, sem material algum).
+// `normasEnsaio` é o campo livre do Quadro Resumo do memorial (ex.: "ISO
+// 1182, NBR 9442") — não participa da comparação de classe, só da citação
+// no memorial.
 function novaLinhaAcabamento(estruturaId, chave) {
   return {
     id: idAcabamento(), estruturaId, chave,
     origem: '', materialId: '', materialNome: '',
     classeAdotada: '', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '',
   }
+}
+
+// Mesma lógica de idAcabamento — evita colisão entre ambientes do CMAR
+// cadastrados no mesmo milissegundo.
+let ambienteAcabamentoSeq = 0
+function idAmbienteAcabamento() {
+  ambienteAcabamentoSeq += 1
+  return `cmaramb-${Date.now().toString(36)}-${ambienteAcabamentoSeq}-${Math.random().toString(36).slice(2, 5)}`
+}
+
+// Caixa "Edificação/Ambiente" do Quadro Resumo — por estrutura, totalmente
+// editável pelo usuário (nome livre, adicionar/remover quantas quiser).
+// Nasce com `nome` vazio quando criada manualmente (ControleAcabamentoPage.jsx
+// pede o nome logo em seguida); quando semeada automaticamente a partir das
+// divisões já classificadas na estrutura (INIT_AMBIENTES_ACABAMENTO), já
+// nasce com um nome sugerido — mas sempre editável depois, nunca travado.
+function novoAmbienteAcabamento(estruturaId, nome, id) {
+  return { id: id || idAmbienteAcabamento(), estruturaId, nome: nome || '' }
 }
 
 // Mesma lógica de idAcabamento — evita colisão entre ambientes cadastrados
@@ -410,6 +431,9 @@ const INITIAL_STATE = {
   iluminacao: [],
   sinalizacao: [],
   acabamentos: [],
+  // Caixas "Edificação/Ambiente" do Quadro Resumo do CMAR — por estrutura,
+  // ver novoAmbienteAcabamento acima.
+  acabamentoAmbientes: [],
   // Blocos de nota livre exibidos no Dashboard ao lado de Identificação —
   // { id, html, atualizadoEm }. Uso livre do projetista.
   notas: [],
@@ -599,6 +623,7 @@ function reducer(state, action) {
         iluminacao: state.iluminacao.filter(i => i.estruturaId !== action.id),
         sinalizacao: state.sinalizacao.filter(s => s.estruturaId !== action.id),
         acabamentos: state.acabamentos.filter(a => a.estruturaId !== action.id),
+        acabamentoAmbientes: state.acabamentoAmbientes.filter(a => a.estruturaId !== action.id),
         cargaState: semChave(state.cargaState, action.id),
         sistemasPorEstrutura: semChave(state.sistemasPorEstrutura, action.id),
         riscosEspeciaisPorEstrutura: semChave(state.riscosEspeciaisPorEstrutura, action.id),
@@ -800,6 +825,30 @@ function reducer(state, action) {
         return { ...state, acabamentos: [...state.acabamentos, { ...novaLinhaAcabamento(estruturaId, chave), ...changes }] }
       }
       return { ...state, acabamentos: state.acabamentos.map((a, i) => i === idx ? { ...a, ...changes } : a) }
+    }
+    // Caixas "Edificação/Ambiente" do CMAR (ControleAcabamentoPage.jsx) —
+    // totalmente geridas pelo usuário: adicionar, renomear, remover. Nascem
+    // automaticamente (INIT_AMBIENTES_ACABAMENTO, idempotente — só roda se a
+    // estrutura ainda não tiver nenhuma) a partir das divisões já
+    // classificadas, mas o usuário pode renomear ou apagar livremente
+    // depois; a semeadura nunca roda de novo nem reaparece sozinha.
+    case 'ADD_AMBIENTE_ACABAMENTO':
+      return { ...state, acabamentoAmbientes: [...state.acabamentoAmbientes, novoAmbienteAcabamento(action.estruturaId, action.nome, action.id)] }
+    case 'RENAME_AMBIENTE_ACABAMENTO':
+      return { ...state, acabamentoAmbientes: state.acabamentoAmbientes.map(a => a.id === action.id ? { ...a, nome: action.nome } : a) }
+    // Remove a caixa e também as linhas do CMAR já preenchidas nela (chave
+    // = `${ambienteId}|${elemento}`) — senão ficariam órfãs, nunca mais
+    // visíveis mas ainda ocupando state.acabamentos.
+    case 'REMOVE_AMBIENTE_ACABAMENTO':
+      return {
+        ...state,
+        acabamentoAmbientes: state.acabamentoAmbientes.filter(a => a.id !== action.id),
+        acabamentos: state.acabamentos.filter(a => !a.chave.startsWith(`${action.id}|`)),
+      }
+    case 'INIT_AMBIENTES_ACABAMENTO': {
+      const { estruturaId, ambientes } = action
+      if (state.acabamentoAmbientes.some(a => a.estruturaId === estruturaId)) return state
+      return { ...state, acabamentoAmbientes: [...state.acabamentoAmbientes, ...ambientes] }
     }
     // Ambientes de Saída de Emergência (SaidaEmergenciaPage.jsx) — vivem
     // dentro do pavimento (population/dimensionamento é por pavimento, não
@@ -1033,6 +1082,7 @@ function resolverAcaoLocal(action, state) {
     case 'ADD_SINALIZACAO':
     case 'ADD_ESTRUTURA':
     case 'ADD_AMBIENTE_SE':
+    case 'ADD_AMBIENTE_ACABAMENTO':
     case 'CRIAR_SAIDA':
     case 'CRIAR_ACESSO':
       return action.id ? action : { ...action, id: idParaTipo(action.type)() }
@@ -1074,6 +1124,7 @@ function idParaTipo(tipo) {
   if (tipo === 'ADD_SINALIZACAO')  return idSinalizacao
   if (tipo === 'ADD_ESTRUTURA')    return idEstrutura
   if (tipo === 'ADD_AMBIENTE_SE')  return idAmbienteSE
+  if (tipo === 'ADD_AMBIENTE_ACABAMENTO') return idAmbienteAcabamento
   return idAcesso // CRIAR_SAIDA / CRIAR_ACESSO
 }
 

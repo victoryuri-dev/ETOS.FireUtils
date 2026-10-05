@@ -3,23 +3,16 @@
 // A tabela impressa reproduz exatamente o "Quadro Resumo de Controle de
 // Materiais de Acabamento" (mesmas colunas/ordem: Edificação/Ambiente,
 // Elemento construtivo, Classe adotada, Material, Normas de ensaio) — só
-// isso, sem comparação contra classe exigida nem conclusão de
-// atendimento normativo (não faz parte do quadro oficial nem do que é
-// pedido aqui). Usa o MESMO cálculo puro (cmar_calc.js) que alimenta a
-// tela de dimensionamento — o texto nunca duplica a lógica de resolução
-// de classe.
+// isso, sem comparação contra classe exigida nem conclusão de atendimento
+// normativo. A coluna Edificação/Ambiente é mesclada verticalmente (célula
+// `{ texto, rowSpan }` + `null` nas linhas cobertas — mesmo mecanismo
+// genérico de MemorialDescritivoPage.jsx usado na tabela de distâncias
+// máximas de saida_emergencia.js), já que as 5 linhas de elemento de um
+// mesmo ambiente repetem o mesmo nome. Usa o MESMO cálculo puro
+// (cmar_calc.js) que alimenta a tela de dimensionamento — o texto nunca
+// duplica a lógica de resolução de classe.
 
-import { getControleAcabamento, getOcupacoes } from '../normas/index'
-import { divisoesDaEstrutura } from '../../utils/classificacao'
 import { montarLinhas } from '../cmar_calc'
-
-// Mesma resolução usada em descricaoDivisao (MemorialDescritivoPage.jsx) e
-// ControleAcabamentoPage.jsx — OCUPACOES é indexado pela letra do grupo,
-// com as divisões aninhadas em `.divisoes`.
-function descricaoAmbiente(ocupacoes, divisao) {
-  const desc = ocupacoes?.[divisao.charAt(0)]?.divisoes?.[divisao]
-  return desc ? `${divisao} — ${desc}` : divisao
-}
 
 function fmtMaterial(item) {
   if (item?.origem === 'nao_possui') return 'N/A'
@@ -41,40 +34,44 @@ function fmtNormasEnsaio(item) {
   return item?.normasEnsaio?.trim() || '—'
 }
 
-function blocosDaEstrutura(state, est, tabela, ocupacoes) {
-  const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
-  const divisoes = divisoesDaEstrutura(pavimentos)
+function blocosDaEstrutura(state, est) {
+  const ambientes = state.acabamentoAmbientes.filter(a => a.estruturaId === est.id)
   const itens = state.acabamentos.filter(a => a.estruturaId === est.id)
-  const linhas = montarLinhas(divisoes, tabela, itens)
   const nomeEst = est.nome || 'Estrutura'
 
   const blocos = [{ tipo: 'titulo2', texto: nomeEst }]
 
-  if (divisoes.length === 0) {
-    blocos.push({ tipo: 'paragrafo', texto: `Não há divisões de ocupação classificadas em ${nomeEst} — CMAR pendente de definição.` })
+  if (ambientes.length === 0) {
+    blocos.push({ tipo: 'paragrafo', texto: `Não há ambientes cadastrados em ${nomeEst} — CMAR pendente de definição.` })
     return blocos
   }
 
-  blocos.push({
-    tipo: 'tabela',
-    colunas: ['Edificação/Ambiente', 'Elemento construtivo', 'Classe adotada', 'Material', 'Normas de ensaio'],
-    linhas: linhas.map(l => [
-      descricaoAmbiente(ocupacoes, l.divisao),
+  const linhas = ambientes.flatMap(ambiente => {
+    const linhasAmbiente = montarLinhas(ambiente, itens)
+    const nomeAmbiente = ambiente.nome?.trim() || 'Ambiente sem nome'
+    return linhasAmbiente.map((l, i) => [
+      // Mescla as 5 linhas do ambiente numa só célula — `null` nas linhas
+      // seguintes é "já coberta pelo rowSpan acima" (ver case 'tabela' em
+      // MemorialDescritivoPage.jsx), não "sem dado".
+      i === 0 ? { texto: nomeAmbiente, rowSpan: linhasAmbiente.length } : null,
       l.elementoLabel,
       fmtClasse(l.item),
       fmtMaterial(l.item),
       fmtNormasEnsaio(l.item),
-    ]),
+    ])
+  })
+
+  blocos.push({
+    tipo: 'tabela',
+    colunas: ['Edificação/Ambiente', 'Elemento construtivo', 'Classe adotada', 'Material', 'Normas de ensaio'],
+    linhas,
   })
 
   return blocos
 }
 
 export function textoMemorialControleAcabamento(state) {
-  const { TABELA_B1 } = getControleAcabamento(state.uf)
-  const ocupacoes = getOcupacoes(state.uf)
-
-  const blocos = (state.estruturas || []).flatMap(est => blocosDaEstrutura(state, est, TABELA_B1, ocupacoes))
+  const blocos = (state.estruturas || []).flatMap(est => blocosDaEstrutura(state, est))
 
   if (blocos.length === 0) {
     blocos.push({ tipo: 'paragrafo', texto: 'Não há dados suficientes para a análise do CMAR — pendente de definição pelo responsável técnico.' })
