@@ -412,8 +412,13 @@ export function textoMemorialCalculoHidrantes(state) {
 
   const ramalIt = equilibrio.ramal_iterado
   const ramalGov = equilibrio.ramal_governante
-  const pDepoisHd01 = ramalIt === 'HD01' ? equilibrio.P_A : res.P_PA2
-  const pDepoisHd02 = ramalIt === 'HD02' ? equilibrio.P_A : res.P_PA1
+  // O ramal NÃO iterado é o governante — por construção, ele não muda (ver
+  // parágrafo abaixo), então "depois" tem que repetir o próprio P_PA dele,
+  // não o do outro ramal. Bug corrigido: a 2ª metade de cada ternário
+  // buscava res.P_PA2/res.P_PA1 trocados, fazendo a tabela mostrar o
+  // governante "caindo" pro valor do ramal mais favorável.
+  const pDepoisHd01 = ramalIt === 'HD01' ? equilibrio.P_A : res.P_PA1
+  const pDepoisHd02 = ramalIt === 'HD02' ? equilibrio.P_A : res.P_PA2
 
   paragrafo('Comparativo de pressões entre os ramais, antes e depois do equilíbrio hidráulico:')
   tabela(['Ramal', 'P_A antes do equilíbrio', 'P_A depois do equilíbrio', 'Governante'], [
