@@ -48,6 +48,7 @@ const CSS_PAGINA = `
 .memorial-pretextual { page: pretextual; }
 .memorial-secao { break-after: page; min-height: 246mm; }
 .memorial-secao:last-child { break-after: auto; }
+tr { break-inside: avoid; }
 `
 
 // Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
