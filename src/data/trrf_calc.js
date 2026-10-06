@@ -157,10 +157,3 @@ function _resumoPorPosicao(linhas, posicao) {
     })
   return [...vistos.values()]
 }
-
-/** Metodologia normativa de cada material estrutural adotado — usada tanto
- *  na tela quanto no memorial para citar a norma/método de comprovação. */
-export function metodologiaDosMateriais(materiais, mapa) {
-  const lista = Array.isArray(materiais) ? materiais : [materiais].filter(Boolean)
-  return lista.map(m => ({ material: m, ...(mapa[m] || null) })).filter(m => m.norma)
-}
