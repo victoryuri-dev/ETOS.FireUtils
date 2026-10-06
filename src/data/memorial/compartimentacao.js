@@ -13,7 +13,7 @@
 // explicando o motivo da isenção.
 
 import { calcularAreaMaximaCompartimentacao } from '../compart_calc'
-import { getCompartimentacao } from '../normas/index'
+import { getCompartimentacao, getMedidas } from '../normas/index'
 import { fmtUn } from '../../utils/numero'
 
 function labelsMarcados(catalogo, chaves) {
@@ -24,17 +24,44 @@ function textosCondicoes(catalogo, chaves) {
   return catalogo.filter(o => (chaves || []).includes(o.key)).map(o => `${o.texto} (item ${o.ref})`)
 }
 
-// `medida` = "Compartimentação horizontal" ou "Compartimentação vertical" —
-// o nome da estrutura já aparece no título da seção (titulo2) logo acima,
-// então não repete aqui.
-function dispensadaBloco(medida) {
-  return { tipo: 'paragrafo', texto: `${medida} dispensada para a ocupação e altura atuais desta estrutura, conforme a Tabela 5 (simplificada) ou 6 (normal) aplicável da NT 01 CBMMA.` }
-}
-
 function fmtArea(valor) {
   return typeof valor === 'number' ? fmtUn(valor, 'm²') : 'sem limite definido'
 }
 const m2 = v => fmtUn(v, 'm²', 2, `${v} m²`)
+
+// `medida` = "Compartimentação horizontal" ou "Compartimentação vertical" —
+// o nome da estrutura já aparece no título da seção (titulo2) logo acima,
+// então não repete aqui. Texto FIRME sobre o motivo real da dispensa — nunca
+// a redação genérica "conforme a Tabela 5 ou 6", que apresenta como
+// possibilidade algo que o motor de normas (useMedidasObrigatorias) já
+// resolveu de forma unívoca pra esta estrutura (`pe.simplificado`).
+function textoDispensada(medida, pe, limiares) {
+  if (pe?.simplificado === true) {
+    if (limiares) {
+      const area = pe.areaEstrutura ? m2(pe.areaEstrutura) : 'não informada'
+      const altura = pe.alturaEstrutura ? `${pe.alturaEstrutura} m` : 'não informada'
+      return `${medida} dispensada: a área construída (${area}) e a altura (${altura}) desta estrutura estão abaixo dos limiares do processo normal (${m2(limiares.areaMin)} e ${limiares.alturaMin} m) da NT 01 CBMMA, enquadrando-a no processo simplificado (Tabela 5), que não exige ${medida.toLowerCase()} para nenhuma ocupação.`
+    }
+    return `${medida} dispensada: esta estrutura se enquadra no processo simplificado (Tabela 5) da NT 01 CBMMA, que não exige ${medida.toLowerCase()} para nenhuma ocupação.`
+  }
+  if (pe?.simplificado === false) {
+    const divisoes = pe.divisoes?.length ? pe.divisoes.join(', ') : 'desta estrutura'
+    const altura = pe.alturaEstrutura ? `${pe.alturaEstrutura} m` : 'atual'
+    return `${medida} dispensada: pela Tabela 6 (processo normal) da NT 01 CBMMA, não é exigida para a(s) divisão(ões) ${divisoes} na altura de ${altura} desta estrutura.`
+  }
+  return `${medida} dispensada para a ocupação e altura atuais desta estrutura, conforme a Tabela 5 (simplificada) ou 6 (normal) aplicável da NT 01 CBMMA.`
+}
+
+// Caso a norma exija a medida mas o responsável técnico tenha desativado o
+// toggle manualmente em Configuração (useMedidasObrigatorias: `ativo` segue
+// o override quando ele existe) — nunca narrar isso como "dispensada pela
+// norma", que seria factualmente errado: a norma exige, a desativação foi
+// uma decisão do RT, sob sua responsabilidade.
+function textoDesativadaManualmente(medida, pe) {
+  const divisoes = pe?.divisoes?.length ? pe.divisoes.join(', ') : 'desta estrutura'
+  const altura = pe?.alturaEstrutura ? `${pe.alturaEstrutura} m` : 'atual'
+  return `${medida} desativada manualmente pelo responsável técnico nesta estrutura. A NT 01 CBMMA exige ${medida.toLowerCase()} para a(s) divisão(ões) ${divisoes} na altura de ${altura} — a desativação é uma decisão do responsável técnico, sob sua responsabilidade, e deve ser justificada tecnicamente perante o Corpo de Bombeiros.`
+}
 
 // Único parágrafo mostrado quando a edificação se enquadra inteira num
 // único compartimento (nenhum pavimento excede a área máxima do Anexo B, e
@@ -52,18 +79,26 @@ function textoDentroDoLimite(r) {
 export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   const blocos = []
   const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS } = getCompartimentacao(state.uf)
+  const limiares = getMedidas(state.uf)?.LIMIARES
 
   ;(state.estruturas || []).forEach(est => {
-    // Obrigatoriedade por estrutura (useMedidasObrigatorias) — `sistemas.ativo`
-    // já respeita o toggle manual de Configuração (cai para o `obrigatorio`
-    // da norma só quando não há override); cai para o agregado do projeto
-    // só se `porEstrutura` não foi repassado.
+    // `ativo` já respeita o toggle manual de Configuração (useMedidasObrigatorias);
+    // `obrigatorioPelaNorma` é o que a Tabela 5/6 exige por si só, sem o
+    // override — os dois juntos distinguem "a norma dispensa" de "o RT
+    // desativou manualmente algo que a norma exige" (ver textos abaixo).
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
-    const obrigatorio = pe ? !!pe.sistemas?.compart_horizontal?.ativo : !!sistemas?.compart_horizontal?.ativo
+    const sistemaPE = pe?.sistemas?.compart_horizontal
+    const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_horizontal?.ativo
+    const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_horizontal?.obrigatorio
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
-    if (!obrigatorio) {
-      blocos.push(dispensadaBloco('Compartimentação horizontal'))
+    if (!ativo) {
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: obrigatorioPelaNorma
+          ? textoDesativadaManualmente('Compartimentação horizontal', pe)
+          : textoDispensada('Compartimentação horizontal', pe, limiares),
+      })
       return
     }
 
@@ -145,14 +180,22 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
 export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
   const blocos = []
   const { ELEMENTOS_COMPART_VERTICAL, CONDICOES_ESPECIAIS_VERTICAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR } = getCompartimentacao(state.uf)
+  const limiares = getMedidas(state.uf)?.LIMIARES
 
   ;(state.estruturas || []).forEach(est => {
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
-    const obrigatorio = pe ? !!pe.sistemas?.compart_vertical?.ativo : !!sistemas?.compart_vertical?.ativo
+    const sistemaPE = pe?.sistemas?.compart_vertical
+    const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_vertical?.ativo
+    const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_vertical?.obrigatorio
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
-    if (!obrigatorio) {
-      blocos.push(dispensadaBloco('Compartimentação vertical'))
+    if (!ativo) {
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: obrigatorioPelaNorma
+          ? textoDesativadaManualmente('Compartimentação vertical', pe)
+          : textoDispensada('Compartimentação vertical', pe, limiares),
+      })
       blocos.push({ tipo: 'paragrafo', texto: 'Atenção (item 6.1.1, NT 09 CBMMA): a inexistência ou a quebra da compartimentação vertical, por qualquer meio, implica na somatória das áreas dos pavimentos interligados para fins de cálculo da área máxima de compartimentação horizontal.' })
       return
     }
