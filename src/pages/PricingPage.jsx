@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import logo from '../assets/fireutils-landing.svg'
+import hydranteMark from '../assets/icons/hidrante-icon.svg'
 import Icon from '../components/ui/Icon'
 import './PricingPage.css'
 
@@ -101,15 +102,18 @@ export default function PricingPage() {
 
       <main>
         <section className="pp-hero">
-          <div className="pp-beams" aria-hidden="true"><i/><i/><i/></div>
           <div className="pp-hero-copy">
-            <span className="pp-kicker"><i/> PLANOS FIREUTILS</span>
-            <h1>Escolha o que precisa.<br/><span>Projete sem limite.</span></h1>
+            <span className="pp-kicker"><i/> FIREUTILS / PLANOS 2026</span>
+            <h1>ESCOLHA.<br/><span>PROJETE.</span><br/>AVANCE.</h1>
+            <p>Um módulo para cada etapa.<br/>Um fluxo completo no PRO.</p>
           </div>
-          <div className="pp-hero-aside">
-            <p>Ative um módulo específico ou use o fluxo completo. Todos os planos permitem trabalhar em projetos ilimitados durante o período contratado.</p>
-            <div className="pp-unlimited"><Icon name="checkCircle" size={18}/><span><strong>Projetos ilimitados</strong><small>Sem cobrança por projeto ou por cálculo</small></span></div>
+          <div className="pp-hero-art" aria-hidden="true">
+            <span className="pp-art-label">DO MODELO<br/>AO CÁLCULO.</span>
+            <div className="pp-pipe pp-pipe-a"/><div className="pp-pipe pp-pipe-b"/><div className="pp-pipe pp-pipe-c"/>
+            <img src={hydranteMark} alt=""/>
+            <span className="pp-art-number">04</span>
           </div>
+          <div className="pp-hero-aside"><p>Ative um módulo específico ou use o fluxo completo. Todos os planos permitem trabalhar em projetos ilimitados durante o período contratado.</p><div className="pp-unlimited"><Icon name="checkCircle" size={18}/><span><strong>PROJETOS ILIMITADOS</strong><small>Sem cobrança por projeto ou por cálculo</small></span></div></div>
         </section>
 
         <section className="pp-pricing" id="planos">
@@ -126,21 +130,21 @@ export default function PricingPage() {
 
           <article className="pp-pro-card">
             <div className="pp-pro-intro">
-              <span className="pp-recommended">RECOMENDADO</span>
-              <h2>FireUtils PRO</h2>
+              <span className="pp-recommended">01 / FLUXO COMPLETO — RECOMENDADO</span>
+              <h2>FIREUTILS<br/>PRO</h2>
               <p>O fluxo completo, do modelo BIM ao memorial técnico.</p>
               <Price prices={PRO.prices} period={period}/>
               <Link className="pp-primary" to="/login">Começar com o PRO <Icon name="right" size={16}/></Link>
             </div>
             <div className="pp-pro-includes"><span>Tudo em uma licença</span><FeatureList items={PRO.features}/></div>
-            <div className="pp-pro-mark" aria-hidden="true">PRO</div>
+            <div className="pp-pro-mark" aria-hidden="true">01</div>
           </article>
 
           <div className="pp-modules-heading"><h2>Ou contrate por módulo</h2><p>Comece pela necessidade atual e adicione novos módulos quando quiser.</p></div>
           <div className="pp-plan-grid">
-            {PLANS.map(plan => (
+            {PLANS.map((plan, index) => (
               <article className="pp-plan-card" key={plan.id}>
-                <div className="pp-plan-top"><span>FIREUTILS</span><h3>{plan.name}</h3><p>{plan.description}</p></div>
+                <div className="pp-plan-top"><span>0{index + 2} / FIREUTILS</span><h3>{plan.name}</h3><p>{plan.description}</p></div>
                 <Price prices={plan.prices} period={period}/>
                 <FeatureList items={plan.features}/>
                 <Link to="/login">Escolher {plan.name} <Icon name="right" size={14}/></Link>
