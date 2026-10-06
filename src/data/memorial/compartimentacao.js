@@ -8,12 +8,15 @@
 // Regra geral: só entram tabela, TRRF, elementos de proteção e condições
 // especiais quando a compartimentação é EXIGIDA e NÃO ISENTA (nem por
 // substituição por sistema alternativo, nem — só a horizontal — por a
-// edificação já se enquadrar num único compartimento). Sendo isenta por
-// qualquer um desses meios, nada disso se aplica, e a seção vira só a frase
-// explicando o motivo da isenção.
+// edificação já se enquadrar num único compartimento). Sendo isenta por uma
+// dessas condições/notas específicas, a seção vira só a frase explicando o
+// motivo. Já quando a dispensa é simplesmente a norma não exigir a medida
+// pra esta estrutura (Tabela 6 não exige pra esta ocupação/altura, ou
+// processo simplificado — Tabela 5, que nunca exige) a estrutura nem é
+// citada nesta seção do memorial.
 
 import { calcularAreaMaximaCompartimentacao } from '../compart_calc'
-import { getCompartimentacao, getMedidas } from '../normas/index'
+import { getCompartimentacao } from '../normas/index'
 import { fmtUn } from '../../utils/numero'
 
 function labelsMarcados(catalogo, chaves) {
@@ -28,29 +31,6 @@ function fmtArea(valor) {
   return typeof valor === 'number' ? fmtUn(valor, 'm²') : 'sem limite definido'
 }
 const m2 = v => fmtUn(v, 'm²', 2, `${v} m²`)
-
-// `medida` = "Compartimentação horizontal" ou "Compartimentação vertical" —
-// o nome da estrutura já aparece no título da seção (titulo2) logo acima,
-// então não repete aqui. Texto FIRME sobre o motivo real da dispensa — nunca
-// a redação genérica "conforme a Tabela 5 ou 6", que apresenta como
-// possibilidade algo que o motor de normas (useMedidasObrigatorias) já
-// resolveu de forma unívoca pra esta estrutura (`pe.simplificado`).
-function textoDispensada(medida, pe, limiares) {
-  if (pe?.simplificado === true) {
-    if (limiares) {
-      const area = pe.areaEstrutura ? m2(pe.areaEstrutura) : 'não informada'
-      const altura = pe.alturaEstrutura ? `${pe.alturaEstrutura} m` : 'não informada'
-      return `${medida} dispensada: a área construída (${area}) e a altura (${altura}) desta estrutura estão abaixo dos limiares do processo normal (${m2(limiares.areaMin)} e ${limiares.alturaMin} m) da NT 01 CBMMA, enquadrando-a no processo simplificado (Tabela 5), que não exige ${medida.toLowerCase()} para nenhuma ocupação.`
-    }
-    return `${medida} dispensada: esta estrutura se enquadra no processo simplificado (Tabela 5) da NT 01 CBMMA, que não exige ${medida.toLowerCase()} para nenhuma ocupação.`
-  }
-  if (pe?.simplificado === false) {
-    const divisoes = pe.divisoes?.length ? pe.divisoes.join(', ') : 'desta estrutura'
-    const altura = pe.alturaEstrutura ? `${pe.alturaEstrutura} m` : 'atual'
-    return `${medida} dispensada: pela Tabela 6 (processo normal) da NT 01 CBMMA, não é exigida para a(s) divisão(ões) ${divisoes} na altura de ${altura} desta estrutura.`
-  }
-  return `${medida} dispensada para a ocupação e altura atuais desta estrutura, conforme a Tabela 5 (simplificada) ou 6 (normal) aplicável da NT 01 CBMMA.`
-}
 
 // Caso a norma exija a medida mas o responsável técnico tenha desativado o
 // toggle manualmente em Configuração (useMedidasObrigatorias: `ativo` segue
@@ -79,25 +59,32 @@ function textoDentroDoLimite(r) {
 export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   const blocos = []
   const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS } = getCompartimentacao(state.uf)
-  const limiares = getMedidas(state.uf)?.LIMIARES
 
   ;(state.estruturas || []).forEach(est => {
     // `ativo` já respeita o toggle manual de Configuração (useMedidasObrigatorias);
     // `obrigatorioPelaNorma` é o que a Tabela 5/6 exige por si só, sem o
-    // override — os dois juntos distinguem "a norma dispensa" de "o RT
-    // desativou manualmente algo que a norma exige" (ver textos abaixo).
+    // override.
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
     const sistemaPE = pe?.sistemas?.compart_horizontal
     const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_horizontal?.ativo
     const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_horizontal?.obrigatorio
+
+    // A norma simplesmente não exige esta medida pra esta estrutura — nem
+    // pela Tabela 6 (ocupação/altura não pedem) nem pelo processo
+    // simplificado (Tabela 5, que nunca exige compartimentação). Não é uma
+    // isenção por nota/condição específica, então nem cita a estrutura
+    // nesta seção do memorial.
+    if (!ativo && !obrigatorioPelaNorma) return
+
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
     if (!ativo) {
+      // Aqui obrigatorioPelaNorma é true: a norma exige, mas o RT desativou
+      // manualmente — isso precisa constar e ser justificado, nunca
+      // narrado como "dispensada pela norma".
       blocos.push({
         tipo: 'paragrafo',
-        texto: obrigatorioPelaNorma
-          ? textoDesativadaManualmente('Compartimentação horizontal', pe)
-          : textoDispensada('Compartimentação horizontal', pe, limiares),
+        texto: textoDesativadaManualmente('Compartimentação horizontal', pe),
       })
       return
     }
@@ -171,7 +158,12 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   })
 
   if (blocos.length === 0) {
-    blocos.push({ tipo: 'paragrafo', texto: 'Não há estruturas cadastradas no projeto.' })
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: (state.estruturas || []).length > 0
+        ? 'Compartimentação horizontal não exigida pela NT 01 CBMMA (Tabela 5 ou 6, conforme o processo aplicável a cada estrutura) para nenhuma estrutura deste projeto.'
+        : 'Não há estruturas cadastradas no projeto.',
+    })
   }
 
   return { titulo: 'Compartimentação Horizontal', blocos }
@@ -180,21 +172,23 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
 export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
   const blocos = []
   const { ELEMENTOS_COMPART_VERTICAL, CONDICOES_ESPECIAIS_VERTICAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR } = getCompartimentacao(state.uf)
-  const limiares = getMedidas(state.uf)?.LIMIARES
 
   ;(state.estruturas || []).forEach(est => {
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
     const sistemaPE = pe?.sistemas?.compart_vertical
     const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_vertical?.ativo
     const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_vertical?.obrigatorio
+
+    // Mesma regra da horizontal: dispensa pura pela norma (Tabela 5 ou 6)
+    // não cita a estrutura nesta seção.
+    if (!ativo && !obrigatorioPelaNorma) return
+
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
     if (!ativo) {
       blocos.push({
         tipo: 'paragrafo',
-        texto: obrigatorioPelaNorma
-          ? textoDesativadaManualmente('Compartimentação vertical', pe)
-          : textoDispensada('Compartimentação vertical', pe, limiares),
+        texto: textoDesativadaManualmente('Compartimentação vertical', pe),
       })
       blocos.push({ tipo: 'paragrafo', texto: 'Atenção (item 6.1.1, NT 09 CBMMA): a inexistência ou a quebra da compartimentação vertical, por qualquer meio, implica na somatória das áreas dos pavimentos interligados para fins de cálculo da área máxima de compartimentação horizontal.' })
       return
@@ -228,7 +222,12 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
   })
 
   if (blocos.length === 0) {
-    blocos.push({ tipo: 'paragrafo', texto: 'Não há estruturas cadastradas no projeto.' })
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: (state.estruturas || []).length > 0
+        ? 'Compartimentação vertical não exigida pela NT 01 CBMMA (Tabela 5 ou 6, conforme o processo aplicável a cada estrutura) para nenhuma estrutura deste projeto.'
+        : 'Não há estruturas cadastradas no projeto.',
+    })
   }
 
   return { titulo: 'Compartimentação Vertical', blocos }
