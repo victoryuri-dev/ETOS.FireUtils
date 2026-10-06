@@ -18,7 +18,7 @@ function dadosExemplo() {
     situacao: 'nova', numeroAlvara: '',
     anoConstrucao: '', situacaoCBM: 'Sem AVCB anterior',
     numeroAVCB: '', validadeAVCB: '', condicoesAtuais: '',
-    areaTerreno: '500', areaConstruidaTotal: '650', quantidadePublico: '80', areaComplementar: '20',
+    areaTerreno: '500', areaConstruidaTotal: '750', quantidadePublico: '80', areaComplementar: '20',
     areaMaiorPav: '250', peDireito: '3',
     usoSubsolo: 'Estacionamento', coberturaHabitavel: 'Nao',
     compartVertical: 'Sem compartimentacao',
@@ -32,7 +32,7 @@ function dadosExemplo() {
         obsSegEstrutural: 'Estrutura em concreto armado, TRRF compatível com altura e ocupação C-1 conforme IT/NT de resistência ao fogo vigente.',
         // Compartimentação (ver CompartimentacaoPage.jsx / normas/MA/compartimentacao.js)
         elementosCompartHorizontal: ['parede_corta_fogo', 'porta_corta_fogo'],
-        elementosCompartVertical: [],
+        elementosCompartVertical: ['selo_corta_fogo'],
         condicoesEspeciaisCompartHorizontal: [],
         condicoesEspeciaisCompartVertical: [],
         obsCompartimentacao: 'Parede corta-fogo EI-60 separando o depósito do salão de vendas.',
@@ -54,7 +54,7 @@ function dadosExemplo() {
       },
       {
         id: 'est-exemplo-2', nome: 'Estrutura 2',
-        areaTotal: '400', altura: '12', alturaPisoPiso: 6,
+        areaTotal: '500', altura: '12', alturaPisoPiso: 6,
         nPavimentos: 3, nSubsolos: 1, profundidadeSubsolo: '3', alturaEdificacao: '3',
         estrutura: ['Estrutura metalica'],
         obsSegEstrutural: 'Estrutura metálica com revestimento contra fogo (argamassa projetada), TRRF compatível com altura e ocupação A-1.',
@@ -191,7 +191,7 @@ function dadosExemplo() {
     },
     riscosEspeciaisPorEstrutura: {
       'est-exemplo-1': {
-        liquidos_inflamaveis: false, fogos_artificio: false, glp: false,
+        liquidos_inflamaveis: false, fogos_artificio: false, glp: true,
         vasos_pressao: false, produtos_perigosos: false, outros: false,
       },
       'est-exemplo-2': {
@@ -238,16 +238,28 @@ function dadosExemplo() {
       { id: 'sin-ex-11', estruturaId: 'est-exemplo-2', tipoPlaca: 'a5', quantidade: 1 },
     ],
     // Controle de Materiais de Acabamento e Revestimento — CMAR (ver
-    // cmar_calc.js/materiaisAcabamento.js; linhas são por divisão×elemento).
+    // cmar_calc.js/materiaisAcabamento.js). "Edificação/Ambiente" é uma
+    // caixa de nome livre por estrutura (acabamentoAmbientes, abaixo) — as
+    // linhas de acabamentos[] são por ambienteId×elemento (chave
+    // `${ambiente.id}|${elemento}`, ver cmar_calc.js:montarLinhas), não
+    // mais por divisão.
+    acabamentoAmbientes: [
+      { id: 'amb-cmar-1-1', estruturaId: 'est-exemplo-1', nome: 'Salão de Vendas (C-1)' },
+      { id: 'amb-cmar-1-2', estruturaId: 'est-exemplo-1', nome: 'Depósito de Mercadorias (C-1)' },
+      { id: 'amb-cmar-2-1', estruturaId: 'est-exemplo-2', nome: 'Dormitórios e áreas comuns (A-1)' },
+      { id: 'amb-cmar-2-2', estruturaId: 'est-exemplo-2', nome: 'Estacionamento — Subsolo 1 (G-1)' },
+    ],
     acabamentos: [
-      { id: 'cmar-ex-1', estruturaId: 'est-exemplo-1', chave: 'C-1|piso', origem: 'incombustivel', materialId: 'ceramico', materialNome: 'Produto cerâmico (porcelanato, cerâmica, azulejo)', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
-      { id: 'cmar-ex-2', estruturaId: 'est-exemplo-1', chave: 'C-1|parede', origem: 'incombustivel', materialId: 'alvenaria', materialNome: 'Alvenaria', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
-      { id: 'cmar-ex-3', estruturaId: 'est-exemplo-1', chave: 'C-1|teto', origem: 'manual', materialId: '', materialNome: 'Forro modular em PVC', classeAdotada: 'III-A', fabricante: 'Plasbil', laudoNumero: 'LE-2025-0231', laudoValidade: '2028-02-01', normasEnsaio: 'NBR 9442' },
-      { id: 'cmar-ex-4', estruturaId: 'est-exemplo-2', chave: 'A-1|piso', origem: 'incombustivel', materialId: 'ceramico', materialNome: 'Produto cerâmico (porcelanato, cerâmica, azulejo)', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
-      { id: 'cmar-ex-5', estruturaId: 'est-exemplo-2', chave: 'A-1|parede', origem: 'incombustivel', materialId: 'alvenaria', materialNome: 'Alvenaria', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
-      { id: 'cmar-ex-6', estruturaId: 'est-exemplo-2', chave: 'A-1|teto', origem: 'ensaiado', materialId: 'teto-gesso-acartonado', materialNome: 'Gesso acartonado', classeAdotada: 'II-A', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
-      { id: 'cmar-ex-7', estruturaId: 'est-exemplo-2', chave: 'G-1|piso', origem: 'incombustivel', materialId: 'concreto', materialNome: 'Concreto', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
-      { id: 'cmar-ex-8', estruturaId: 'est-exemplo-2', chave: 'G-1|teto', origem: 'incombustivel', materialId: 'concreto', materialNome: 'Concreto', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
+      { id: 'cmar-ex-1', estruturaId: 'est-exemplo-1', chave: 'amb-cmar-1-1|piso', origem: 'incombustivel', materialId: 'ceramico', materialNome: 'Produto cerâmico (porcelanato, cerâmica, azulejo)', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
+      { id: 'cmar-ex-2', estruturaId: 'est-exemplo-1', chave: 'amb-cmar-1-1|parede', origem: 'incombustivel', materialId: 'alvenaria', materialNome: 'Alvenaria', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
+      { id: 'cmar-ex-3', estruturaId: 'est-exemplo-1', chave: 'amb-cmar-1-1|teto', origem: 'manual', materialId: '', materialNome: 'Forro modular em PVC', classeAdotada: 'III-A', fabricante: 'Plasbil', laudoNumero: 'LE-2025-0231', laudoValidade: '2028-02-01', normasEnsaio: 'NBR 9442' },
+      { id: 'cmar-ex-9', estruturaId: 'est-exemplo-1', chave: 'amb-cmar-1-2|piso', origem: 'incombustivel', materialId: 'ceramico', materialNome: 'Produto cerâmico (porcelanato, cerâmica, azulejo)', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
+      { id: 'cmar-ex-10', estruturaId: 'est-exemplo-1', chave: 'amb-cmar-1-2|parede', origem: 'incombustivel', materialId: 'alvenaria', materialNome: 'Alvenaria', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
+      { id: 'cmar-ex-4', estruturaId: 'est-exemplo-2', chave: 'amb-cmar-2-1|piso', origem: 'incombustivel', materialId: 'ceramico', materialNome: 'Produto cerâmico (porcelanato, cerâmica, azulejo)', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
+      { id: 'cmar-ex-5', estruturaId: 'est-exemplo-2', chave: 'amb-cmar-2-1|parede', origem: 'incombustivel', materialId: 'alvenaria', materialNome: 'Alvenaria', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
+      { id: 'cmar-ex-6', estruturaId: 'est-exemplo-2', chave: 'amb-cmar-2-1|teto', origem: 'ensaiado', materialId: 'teto-gesso-acartonado', materialNome: 'Gesso acartonado', classeAdotada: 'II-A', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
+      { id: 'cmar-ex-7', estruturaId: 'est-exemplo-2', chave: 'amb-cmar-2-2|piso', origem: 'incombustivel', materialId: 'concreto', materialNome: 'Concreto', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
+      { id: 'cmar-ex-8', estruturaId: 'est-exemplo-2', chave: 'amb-cmar-2-2|teto', origem: 'incombustivel', materialId: 'concreto', materialNome: 'Concreto', classeAdotada: 'I', fabricante: '', laudoNumero: '', laudoValidade: '', normasEnsaio: '' },
     ],
     notas: [],
     areaCompartimentacaoHorizontal: {},
@@ -267,8 +279,8 @@ function dadosExemplo() {
     // registro único por projeto (ver ProjetoContext.jsx:INITIAL_STATE.hidrantes).
     hidrantes: {
       estruturasSelecionadas: ['est-exemplo-1', 'est-exemplo-2'],
-      tipo: '2', tipoVariante: 0, rti: '45',
-      reservatorioMaterial: 'Fibra de vidro', reservatorioExclusivo: true, reservatorioVolumeTotal: '12000',
+      tipo: '2', tipoVariante: 0, rti: '8',
+      reservatorioMaterial: 'fibra_vidro', reservatorioExclusivo: true, reservatorioVolumeTotal: '12000',
       reservatorioPosicao: 'elevado',
       bombaExiste: true, bombaJockey: true,
       bombaJockeyPotencia: '1', bombaJockeyVazao: '10', bombaJockeyPressao: '100',
@@ -279,11 +291,60 @@ function dadosExemplo() {
       bombaPotenciaAdotada: '15',
       metodoCalculo: 'valvula',
       succaoAltitude: 5, succaoTemperatura: 30,
-      redeMaterial: 'Aço galvanizado',
-      recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 2,
+      redeMaterial: 'galvanizado',
+      recalqueTipo: 'coluna_fachada', recalqueJustificativaPasseio: '', recalqueEntradas: 2,
       valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',
-      observacoes: 'Sistema tipo 2 (NT 22 CBMMA), rede molhada, com reservatório elevado exclusivo.',
-      dimensionamento: null,
+      observacoes: 'Sistema tipo 2 (NT 22 CBMMA), rede molhada, com reservatório elevado exclusivo. RTI de 8 m³ conforme Tabela 3 (coluna 1, faixa até 2.500 m², divisão C-1 — maior carga de incêndio entre as estruturas selecionadas).',
+      // Dimensionamento hidráulico (marcha + equilíbrio no Ponto A) —
+      // reproduz EXATAMENTE as fórmulas de Fire Utils.tab/lib/hidrantes/
+      // calc.py:calcular_rede, só pra que o projeto de exemplo exercite o
+      // memorial de cálculo (memorial/hidrantesCalculo.js) sem depender do
+      // plugin Revit. Rede: T1 sucção RTI→bomba (DN80, 5+2 m), T2 bomba→
+      // Ponto A (DN65, 10+3 m), T3 Ponto A→HD01/térreo (DN65, 40+8 m), T4
+      // Ponto A→HD02/pavimento 2 (DN65, 25+6 m). Cotas: RTI elevada a 15 m,
+      // sucção/recalque a ~2 m (bomba afogada, sucção positiva).
+      dimensionamento: {
+        res: {
+          metodo: 'valvula', esguicho: false, K: 87.4518, P_valv_ref: 30, esg: null,
+          dH: { t3: -2.5, t4: 3.5, t2: 0.3, t1: -13 },
+          j: {
+            t1: { label: 'Trecho de Sucção (RTI à Bomba)', Q_lmin: 313.79, segmentos: [{ d_mm: 80, L: 5, Leq: 2, Ltotal: 7, n_tubos: 1, ids: [], acessorios: [], Jun: 0.0193, J: 0.1352, V: 1.0404 }], J: 0.1352, V_max: 1.0404, L: 5, Leq: 2 },
+            t2: { label: 'Trecho Bomba ao Ponto A', Q_lmin: 313.79, segmentos: [{ d_mm: 65, L: 10, Leq: 3, Ltotal: 13, n_tubos: 1, ids: [], acessorios: [], Jun: 0.0531, J: 0.6904, V: 1.576 }], J: 0.6904, V_max: 1.576, L: 10, Leq: 3 },
+            t3: { label: 'Trecho HD01 ao Ponto A', Q_lmin: 163.79, segmentos: [{ d_mm: 65, L: 40, Leq: 8, Ltotal: 48, n_tubos: 1, ids: [], acessorios: [], Jun: 0.016, J: 0.7657, V: 0.8226 }], J: 0.7657, V_max: 0.8226, L: 40, Leq: 8 },
+            t4: { label: 'Trecho HD02 ao Ponto A', Q_lmin: 150, segmentos: [{ d_mm: 65, L: 25, Leq: 6, Ltotal: 31, n_tubos: 1, ids: [], acessorios: [], Jun: 0.0136, J: 0.4203, V: 0.7534 }], J: 0.4203, V_max: 0.7534, L: 25, Leq: 6 },
+          },
+          j_inicial: {
+            t3: { label: 'Trecho HD01 ao Ponto A', Q_lmin: 150, segmentos: [{ d_mm: 65, L: 40, Leq: 8, Ltotal: 48, n_tubos: 1, ids: [], acessorios: [], Jun: 0.0136, J: 0.6507, V: 0.7534 }], J: 0.6507, V_max: 0.7534, L: 40, Leq: 8 },
+            t4: { label: 'Trecho HD02 ao Ponto A', Q_lmin: 150, segmentos: [{ d_mm: 65, L: 25, Leq: 6, Ltotal: 31, n_tubos: 1, ids: [], acessorios: [], Jun: 0.0136, J: 0.4203, V: 0.7534 }], J: 0.4203, V_max: 0.7534, L: 25, Leq: 6 },
+          },
+          equilibrio: {
+            ramal_iterado: 'HD01', ramal_governante: 'HD02', Q: 163.79, P_ref: 35.7695,
+            j: { label: 'Trecho HD01 ao Ponto A', Q_lmin: 163.79, segmentos: [{ d_mm: 65, L: 40, Leq: 8, Ltotal: 48, n_tubos: 1, ids: [], acessorios: [], Jun: 0.016, J: 0.7657, V: 0.8226 }], J: 0.7657, V_max: 0.8226, L: 40, Leq: 8 },
+            P_A: 34.0352, erro: 0.115,
+            historico: [{ n: 1, P_ref: 35.7695, Q: 163.79, J: 0.7657,
+              j: { label: 'Trecho HD01 ao Ponto A', Q_lmin: 163.79, segmentos: [{ d_mm: 65, L: 40, Leq: 8, Ltotal: 48, n_tubos: 1, ids: [], acessorios: [], Jun: 0.016, J: 0.7657, V: 0.8226 }], J: 0.7657, V_max: 0.8226, L: 40, Leq: 8 },
+              P_A: 34.0352, erro: 0.115 }],
+            convergiu: true, tolerancia: 0.5,
+          },
+          Q_hd01: 163.79, Q_hd02: 150, Qt: 313.79, P_PA1: 28.1507, P_PA2: 33.9203, P_PA: 33.9203,
+          P_hd01: 35.7695, P_hd02: 30, P_SB: 34.9107, P_RTI: 22.0459, hid_governa: 'HD02',
+        },
+        dados_sistema: { q_min: 150, p_min: 30, esguicho_dn: 40, mang_dn: 40, mang_comp: 30 },
+        cotas: { z_rti: 15, z_succao: 2, z_recalque: 2.2, z_ponto_a: 2.5, z_hd01: 0, z_hd02: 6 },
+        succao: 'positiva',
+        verif_succao: {
+          cota_rti: 15, cota_succao_bomba: 2, dH: 13, condicao: 'POSITIVA',
+          justificativa: 'A cota da RTI está acima da cota de sucção da bomba — bomba afogada, sucção positiva (reservatório elevado).',
+          exige_npsh: false,
+        },
+        verif_npshd: null, erro_npshd: null, j_succao_npsh: null,
+        C_HW: 120, metodo: 'Válvula do Hidrante', valor_sistema: 'Tipo 2',
+        timestamp: '2026-02-18 10:30:00',
+        ranking_hidrantes: [
+          { id: 'HD02', J: 0.4203, dZ: 3.5, score: 3.9203 },
+          { id: 'HD01', J: 0.6507, dZ: -2.5, score: -1.8493 },
+        ],
+      },
     },
     // Complementa o Plano de Emergência / Gerenciamento de Risco (NT 16/2021
     // CBMMA, Anexo B) — ver GerenciamentoRiscoPage.jsx.
@@ -291,14 +352,16 @@ function dadosExemplo() {
       localizacaoTipo: 'Urbana',
       caracteristicaVizinhanca: 'Área comercial consolidada, com edificações comerciais e residenciais multifamiliares no entorno imediato.',
       distanciaCBM: '3.5', meiosAjudaExterna: 'Posto de Bombeiros',
-      populacaoFixa: '48', populacaoFlutuante: '35',
+      populacaoFlutuante: '35',
       horarioFuncionamento: 'Segunda a sábado, das 08h às 18h; pensionato com ocupação 24 horas.',
       pneTemPessoas: true, pneDescricao: 'Pensionato dispõe de 1 dormitório adaptado no pavimento térreo, próximo à saída principal.',
       riscosLocalizacaoPorEstrutura: {
-        'est-exemplo-2': { glp: 'Botijões de GLP armazenados em área ventilada externa, afastada das saídas, no subsolo.' },
+        'est-exemplo-1': { glp: 'Botijão de GLP de 13 kg para cocção, em abrigo ventilado, em área externa no pavimento térreo, afastado das saídas de emergência.' },
+        'est-exemplo-2': { glp: 'Central de GLP em abrigo ventilado, em área externa no pavimento térreo, afastada das saídas de emergência e das aberturas do subsolo.' },
       },
-      brigadistasQtd: '8', brigadistasProfissionaisQtd: '0',
-      telefoneCBM: '193', hospitalReferencia: 'Hospital Municipal Djalma Marques (Socorrão I)',
+      brigadistasProfissionaisQtd: '0',
+      telefoneCBM: '193',
+      hospitalNome: 'Hospital Municipal Djalma Marques (Socorrão I)', hospitalDistancia: '2 km', hospitalEndereco: 'Av. Kennedy, s/n — Areinha',
       ...PROCEDIMENTOS_PADRAO,
     },
     // Campo legado — só a lista de chaves importa (useMedidasObrigatorias lê

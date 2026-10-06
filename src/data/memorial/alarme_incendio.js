@@ -60,11 +60,11 @@ function blocosEstrutura(norma, { est, pavs: pavsBrutos }) {
   if (cfg.painelSinoptico) extras.push('painel sinóptico com o esquema ilustrativo de localização dos acionadores')
   if (extras.length) txt += ` Dispõe de ${extras.join(' e ')}.`
   if (cfg.preAlarme) {
-    txt += ` Por tratar-se de local de grande concentração de pessoas, o alarme geral é precedido de pré-alarme na sala de segurança, junto à central, com temporizador de no máximo ${c.pre_alarme_retardo_max_min} minuto(s) para o acionamento posterior do alarme geral, na existência de brigada de incêndio na edificação; o alarme geral permanece obrigatório para toda a edificação (${cita(norma, 'pre_alarme')}).`
+    txt += ` Por tratar-se de local de grande concentração de pessoas, o alarme geral é precedido de pré-alarme na sala de segurança, junto à central, com temporizador de no máximo ${c.pre_alarme_retardo_max_min} ${Number(c.pre_alarme_retardo_max_min) === 1 ? 'minuto' : 'minutos'} para o acionamento posterior do alarme geral, na existência de brigada de incêndio na edificação; o alarme geral permanece obrigatório para toda a edificação (${cita(norma, 'pre_alarme')}).`
   }
   if (cfg.subcentral && c.subcentral_retardo_max_min != null) {
     const qtd = cfg.subcentralQtd || '1'
-    txt += ` Há ${qtd} subcentral${Number(qtd) === 1 ? '' : 'is'} interligada${Number(qtd) === 1 ? '' : 's'} à central supervisionadora, com emissão simultânea de sinal de alarme; o alarme geral para toda a edificação soa caso, em ${c.subcentral_retardo_max_min} minutos, não sejam tomadas medidas junto à central supervisionadora (${cita(norma, 'subcentral')}).`
+    txt += ` Há ${qtd} ${Number(qtd) === 1 ? 'subcentral interligada' : 'subcentrais interligadas'} à central supervisionadora, com emissão simultânea de sinal de alarme; o alarme geral para toda a edificação soa caso, em ${c.subcentral_retardo_max_min} minutos, não sejam tomadas medidas junto à central supervisionadora (${cita(norma, 'subcentral')}).`
   }
   blocos.push({ tipo: 'paragrafo', texto: txt })
 
@@ -73,7 +73,7 @@ function blocosEstrutura(norma, { est, pavs: pavsBrutos }) {
   if (cfg.central === 'enderecavel') {
     blocos.push({
       tipo: 'paragrafo',
-      texto: `Por a central ser do tipo endereçável, a indicação de funcionamento e de alarme nos acionadores manuais é dispensada, uma vez que a central supervisiona de forma constante e periódica os equipamentos periféricos${cfg.preAlarme ? '; havendo pré-alarme, o LED de alarme nos acionadores é obrigatório' : ''} (${cita(norma, 'leds_acionadores')}).`,
+      texto: `Pela central ser do tipo endereçável, a indicação de funcionamento e de alarme nos acionadores manuais é dispensada, uma vez que a central supervisiona de forma constante e periódica os equipamentos periféricos${cfg.preAlarme ? '; havendo pré-alarme, o LED de alarme nos acionadores é obrigatório' : ''} (${cita(norma, 'leds_acionadores')}).`,
     })
   } else if (cfg.central === 'convencional') {
     blocos.push({

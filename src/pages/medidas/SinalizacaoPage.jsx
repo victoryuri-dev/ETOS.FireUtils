@@ -137,7 +137,7 @@ function CategoriaAccordion({ categoria, tipos, itens, estruturaId, dispatch, de
           {tiposUsados.length > 0 && (
             <div className="flex items-center gap-1 flex-wrap">
               {tiposUsados.map(t => (
-                <span key={t.key} className={`inline-block py-0.5 px-1.5 rounded border text-[11px] font-mono font-semibold ${corTagCategoria(categoria.key)}`}>{t.codigo}</span>
+                <span key={t.key} className={`inline-block py-0.5 px-1.5 rounded border text-[11px] font-mono font-semibold whitespace-nowrap ${corTagCategoria(categoria.key)}`}>{t.codigo}</span>
               ))}
             </div>
           )}
@@ -156,7 +156,7 @@ function CategoriaAccordion({ categoria, tipos, itens, estruturaId, dispatch, de
                     <img src={t.img} alt={t.codigo} className="w-20 h-20 max-w-none object-contain rounded-md"/>
                   </td>
                   <td className="py-2 px-2.5 border-b border-solid border-border-2 w-[56px]">
-                    <span className={`inline-block py-0.5 px-1.5 rounded border text-[11px] font-mono font-semibold transition-colors ${usado ? corTagCategoria(t.categoria) : 'bg-surface-2 border-border-2 text-ink-muted'}`}>{t.codigo}</span>
+                    <span className={`inline-block py-0.5 px-1.5 rounded border text-[11px] font-mono font-semibold whitespace-nowrap transition-colors ${usado ? corTagCategoria(t.categoria) : 'bg-surface-2 border-border-2 text-ink-muted'}`}>{t.codigo}</span>
                   </td>
                   <td className="py-2 px-2.5 text-[13px] text-ink-muted border-b border-solid border-border-2">
                     {t.label}

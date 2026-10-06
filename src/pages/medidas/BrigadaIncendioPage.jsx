@@ -4,6 +4,7 @@ import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento } from '../../data/brigada_calc'
 import Icon from '../../components/ui/Icon'
+import InfoTip from '../../components/ui/InfoTip'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
@@ -47,10 +48,12 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
       <td className={TD}>
         <input
           type="number" min="0" step="1"
-          value={pavimento.populacaoFixa ?? ''}
+          value={isento ? '' : (pavimento.populacaoFixa ?? '')}
           onChange={e => setPopulacao(e.target.value)}
-          placeholder="0"
-          className="w-16 text-right"
+          placeholder={isento ? '—' : '0'}
+          disabled={isento}
+          title={isento ? 'Divisão isenta de brigada de incêndio — população fixa não se aplica.' : undefined}
+          className="w-16 text-right disabled:opacity-40 disabled:cursor-not-allowed"
         />
       </td>
       {!linha ? (
@@ -157,7 +160,12 @@ function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresR
                     <th className={TH}>Pavimento</th>
                     <th className={TH}>Divisão</th>
                     <th className={TH}>Risco</th>
-                    <th className={`${TH} text-right`}>Pop. fixa</th>
+                    <th className={`${TH} text-right`}>
+                      <span className="inline-flex items-center justify-end gap-1">
+                        Pop. fixa
+                        <InfoTip text="População fixa é o número de pessoas que permanece regularmente na edificação, considerando-se os turnos de trabalho, a natureza da ocupação e os terceiros que prestam serviços sob as mesmas condições." align="end"/>
+                      </span>
+                    </th>
                     <th className={`${TH} text-center`}>Brigadistas</th>
                     <th className={TH}>Treinamento</th>
                     <th className={TH}>Instalação</th>

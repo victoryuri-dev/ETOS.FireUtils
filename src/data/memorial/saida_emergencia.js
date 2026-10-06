@@ -129,6 +129,13 @@ function taxaPopulacionalTexto(amb, taxaPopulacional) {
   return taxaPopulacional[amb.divisao]?.obs || '—'
 }
 
+// Medida que entra no cálculo da população do ambiente: com assentos fixos a
+// área não conta — vale a quantidade de assentos ("64 p"); nos demais, a área.
+function medidaTexto(amb) {
+  if (amb.popTipo === 'fixo') return `${fmt(parseInt(amb.assentos) || 0)} p`
+  return `${fmt(amb.area || 0)} m²`
+}
+
 // ── Tabela única com todos os ambientes do pavimento (largura de porta) ──
 function tabelaAmbientes(listaAmbientes, taxaPopulacional, larguras) {
   return {
@@ -136,15 +143,15 @@ function tabelaAmbientes(listaAmbientes, taxaPopulacional, larguras) {
     centralizado: true,
     linhasCabecalho: [
       [{ texto: 'POPULAÇÃO E PORTAS DOS AMBIENTES', colSpan: 8 }],
-      [{ texto: 'AMBIENTES' }, { texto: 'ÁREA' }, { texto: 'DIVISÃO' }, { texto: 'TAXA POPULACIONAL' }, { texto: 'POP.' }, { texto: 'CUP' }, { texto: 'UP' }, { texto: 'LARGURA MÍNIMA (m)' }],
+      [{ texto: 'AMBIENTES' }, { texto: 'DIVISÃO' }, { texto: 'TAXA POPULACIONAL' }, { texto: 'MEDIDA' }, { texto: 'POP.' }, { texto: 'CUP' }, { texto: 'UP' }, { texto: 'L. MÍN (m)' }],
     ],
     linhas: listaAmbientes.map(({ amb }) => {
       const { pop, capPT, pt } = calcNoAmbientePT(amb, taxaPopulacional, larguras)
       return [
         amb.nome,
-        `${fmt(amb.area || 0)} m²`,
         amb.divisao || '—',
         taxaPopulacionalTexto(amb, taxaPopulacional),
+        medidaTexto(amb),
         pop, capPT, pt.n, fmt(pt.la),
       ]
     }),

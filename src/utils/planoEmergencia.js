@@ -8,6 +8,8 @@
 // editável na tela de complementação.
 import { buildAnexoBData, RISCOS_ESPECIAIS } from './anexoB'
 import { fmtNum, fmtUn } from './numero'
+import { getBrigada, getExtintores, getCNAEsDivisao } from '../data/normas/index'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento } from '../data/brigada_calc'
 
 // Texto padrão dos 10 procedimentos básicos (item B.2 do Anexo B) — adaptado
 // de um exemplo prático genérico de plano de emergência, servindo de ponto de
@@ -23,8 +25,22 @@ export const PROCEDIMENTOS_PADRAO = {
   respAbandono: 'Caso seja necessário abandonar a edificação, deve ser acionado novamente o alarme de incêndio para que se inicie o abandono geral. Os ocupantes do setor sinistrado, que já devem estar cientes da emergência, devem ser os primeiros a se deslocar, em fila e sem tumulto, após o primeiro toque, com um brigadista liderando a fila e outro encerrando a mesma. Antes do abandono definitivo do setor, um ou dois brigadistas devem verificar se não ficaram ocupantes retardatários e providenciar o fechamento de portas e/ou janelas, se possível. Cada pessoa portadora de deficiência física, permanente ou temporária, deve ser acompanhada por dois brigadistas ou voluntários, previamente designados pelo Chefe da Brigada. Todos os demais ocupantes, após soar o primeiro alarme, devem parar o que estiverem fazendo, pegar apenas seus documentos pessoais e se agruparem em fila organizada e direcionada à saída de emergência. Após o segundo toque do alarme, os ocupantes devem iniciar o deslocamento, dando preferência às demais filas quando cruzarem com as mesmas (como numa rotatória de trânsito), até deixarem a edificação e se dirigirem ao ponto de encontro previamente definido.',
   respIsolamento: 'A área sinistrada deve ser isolada fisicamente, de modo a garantir os trabalhos de emergência e evitar que pessoas não autorizadas adentrem ao local.',
   respConfinamento: 'O incêndio deve ser confinado de modo a evitar a sua propagação e consequências.',
-  respCombate: 'Os demais brigadistas devem iniciar, se necessário e/ou possível, o combate ao fogo sob comando de brigadista profissional, podendo ser auxiliados por outros ocupantes, desde que devidamente treinados, capacitados e protegidos. O combate ao incêndio deve ser efetuado conforme treinamento específico dado aos brigadistas.',
+  respCombate: 'Os demais brigadistas devem iniciar, se necessário e/ou possível, o combate ao fogo sob comando do Chefe da Brigada, podendo ser auxiliados por outros ocupantes, desde que devidamente treinados, capacitados e protegidos. O combate ao incêndio deve ser efetuado conforme treinamento específico dado aos brigadistas.',
   respInvestigacao: 'Após o controle total da emergência e a volta à normalidade, incluindo a liberação da edificação pelas autoridades, o Chefe da Brigada deve iniciar o processo de investigação e elaborar um relatório, por escrito, sobre o sinistro e as ações de controle, para as devidas providências e/ou investigação.',
+}
+
+// Texto padrão de "Combate ao Princípio de Incêndio" (item B.2.g) — o
+// comando citado depende de a edificação ter brigadista(s) profissional(is)
+// cadastrado(s) (pe.brigadistasProfissionaisQtd); gerado à parte de
+// PROCEDIMENTOS_PADRAO.respCombate (usado só como default neutro, sem
+// brigadista profissional, na seed de projeto novo em INITIAL_STATE) pra
+// nunca imprimir "sob comando de brigadista profissional" quando o projeto
+// declara zero — contradição que só o texto fixo não evitava.
+function respCombatePadrao(temBrigadistaProfissional) {
+  const comando = temBrigadistaProfissional
+    ? 'sob comando de brigadista profissional'
+    : 'sob comando do Chefe da Brigada'
+  return `Os demais brigadistas devem iniciar, se necessário e/ou possível, o combate ao fogo ${comando}, podendo ser auxiliados por outros ocupantes, desde que devidamente treinados, capacitados e protegidos. O combate ao incêndio deve ser efetuado conforme treinamento específico dado aos brigadistas.`
 }
 
 function enderecoCompletoDe(state) {
@@ -73,9 +89,39 @@ function riscosPorEstruturaDe(state, pe) {
     .filter(r => r.riscos.length > 0)
 }
 
+// População fixa total do projeto — soma da população fixa de cada
+// pavimento, o MESMO dado digitado na tela de Brigada de Incêndio (não mais
+// um número à parte aqui). Pavimentos isentos de brigada ficam sem esse
+// campo (ver LinhaPavimento em BrigadaIncendioPage.jsx) e entram como 0.
+function totalPopulacaoFixaDoProjeto(state) {
+  return (state.pavimentos || []).reduce((total, pav) => total + (Number(pav.populacaoFixa) || 0), 0)
+}
+
+// Total de brigadistas exigidos no projeto inteiro (soma de todas as
+// estruturas/pavimentos) — nunca mais um número digitado à parte: é o MESMO
+// cálculo (mesma Tabela A.1, mesma resolução de risco) que alimenta a tela e
+// o memorial de Brigada de Incêndio (ver brigada_calc.js). Pavimentos sem
+// linha na Tabela A.1, isentos ou ainda sem população fixa informada entram
+// como 0, sem travar a soma dos demais.
+function totalBrigadistasDoProjeto(state) {
+  const brigNorma = getBrigada(state.uf)
+  const extNorma = getExtintores(state.uf)
+  const cnaesDiv = divisao => getCNAEsDivisao(state.uf, divisao)
+  let total = 0
+  ;(state.pavimentos || []).forEach(pav => {
+    const estrutura = (state.estruturas || []).find(e => e.id === pav.estruturaId)
+    const cargaEst = state.cargaState[pav.estruturaId] || {}
+    const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, extNorma.LIMIARES_RISCO)
+    const { resultado } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura?.altura, brigNorma.TABELA_A1)
+    total += resultado?.brigadistas || 0
+  })
+  return total
+}
+
 export function buildPlanoEmergenciaData(state, sistemas) {
   const b = buildAnexoBData(state, sistemas)
   const pe = state.planoEmergencia || {}
+  const populacaoFixaTotal = totalPopulacaoFixaDoProjeto(state)
 
   return {
     edificacao: state.respFantasia || state.respRazaoSocial || state.nome || '',
@@ -89,7 +135,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     estruturas: estruturasDetalheDe(state),
     ocupacao: b.classificacaoOcupacao,
 
-    populacaoFixa: pe.populacaoFixa ? fmtNum(pe.populacaoFixa, 0, pe.populacaoFixa) : '',
+    populacaoFixa: populacaoFixaTotal ? fmtNum(populacaoFixaTotal, 0, '') : '',
     populacaoFlutuante: pe.populacaoFlutuante ? fmtNum(pe.populacaoFlutuante, 0, pe.populacaoFlutuante) : '',
     horarioFuncionamento: pe.horarioFuncionamento || '',
     pneTemPessoas: !!pe.pneTemPessoas,
@@ -97,14 +143,16 @@ export function buildPlanoEmergenciaData(state, sistemas) {
 
     riscosPorEstrutura: riscosPorEstruturaDe(state, pe),
 
-    brigadistasQtd: pe.brigadistasQtd || '',
+    brigadistasQtd: totalBrigadistasDoProjeto(state) || '',
     brigadistasProfissionaisQtd: pe.brigadistasProfissionaisQtd || '',
 
     sistemasAtivos: [...b.medidasCol1, ...b.medidasCol2].filter(m => m.ativo).map(m => m.label),
 
     meioAlerta: pe.meioAlerta || PROCEDIMENTOS_PADRAO.meioAlerta,
     telefoneCBM: pe.telefoneCBM || '193',
-    hospitalReferencia: pe.hospitalReferencia || '',
+    hospitalNome: pe.hospitalNome || '',
+    hospitalDistancia: pe.hospitalDistancia || '',
+    hospitalEndereco: pe.hospitalEndereco || '',
     respAnaliseSituacao: pe.respAnaliseSituacao || PROCEDIMENTOS_PADRAO.respAnaliseSituacao,
     respApoioExterno: pe.respApoioExterno || PROCEDIMENTOS_PADRAO.respApoioExterno,
     respPrimeirosSocorros: pe.respPrimeirosSocorros || PROCEDIMENTOS_PADRAO.respPrimeirosSocorros,
@@ -112,7 +160,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     respAbandono: pe.respAbandono || PROCEDIMENTOS_PADRAO.respAbandono,
     respIsolamento: pe.respIsolamento || PROCEDIMENTOS_PADRAO.respIsolamento,
     respConfinamento: pe.respConfinamento || PROCEDIMENTOS_PADRAO.respConfinamento,
-    respCombate: pe.respCombate || PROCEDIMENTOS_PADRAO.respCombate,
+    respCombate: pe.respCombate || respCombatePadrao(parseFloat(pe.brigadistasProfissionaisQtd) > 0),
     respInvestigacao: pe.respInvestigacao || PROCEDIMENTOS_PADRAO.respInvestigacao,
 
     proprietario: b.proprietario,

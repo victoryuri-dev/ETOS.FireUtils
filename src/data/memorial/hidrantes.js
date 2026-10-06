@@ -4,8 +4,9 @@
 // nada, só formata o que já foi definido. O dimensionamento hidráulico
 // (memorial de cálculo) é responsabilidade do plugin Revit e entra depois.
 
-import { getHidrantes } from '../normas/index'
+import { getHidrantes, getExtintores } from '../normas/index'
 import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
+import { classificacaoHidrantesData } from '../../hooks/useClassificacaoHidrantes'
 import { fmtNum } from '../../utils/numero'
 
 const f2 = (n) => fmtNum(n, 2)
@@ -17,8 +18,12 @@ const LABEL_RECALQUE = {
   passeio: 'instalado no passeio público',
 }
 const LABEL_VALVULA_BLOQUEIO = { gaveta: 'gaveta', gaveta_os_y: 'gaveta de haste ascendente (OS&Y)' }
+const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 
-export function textoMemorialHidrantes(state) {
+// `porEstrutura` vem de useMedidasObrigatorias() (ver buildMemorial em
+// registry.js, que já o calcula uma vez pra todas as seções) — repassado
+// aqui pra classificacaoHidrantesData() sem recalcular.
+export function textoMemorialHidrantes(state, _sistemas, porEstrutura) {
   const norma = getHidrantes(state.uf)
   const h = state.hidrantes || {}
   const blocos = []
@@ -38,13 +43,76 @@ export function textoMemorialHidrantes(state) {
     texto: `A edificação será protegida por Sistema de Proteção por Hidrantes e Mangotinhos ${dadosTipo.label}, dimensionado conforme a ${norma.NORMA.nome}, com vazão mínima de ${dadosTipo.vazaoMin} L/min e pressão mínima de ${dadosTipo.pressaoMin} mca na válvula do hidrante mais desfavorável (Tabela 2, ${norma.NORMA.nome}).`,
   })
 
-  blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
+  // Classificação (Tipo/RTI, Tabela 3) recalculada aqui — MESMA lógica de
+  // useClassificacaoHidrantes.js (Etapa 1/3 do dashboard: área total das
+  // estruturas selecionadas + divisão de maior carga de incêndio + presença
+  // de sprinklers nessas estruturas), só sem hooks (classificacaoHidrantesData
+  // é o núcleo puro do hook, reaproveitado aqui pra nunca duplicar a lógica —
+  // ver o próprio hook). NUNCA recalcula a RTI adotada por h.rti — só narra
+  // de onde ela deveria vir (edificações consideradas, área, ocupação de
+  // maior risco, RTI mínima tabelada), pro CBMMA poder auditar o valor salvo.
+  const extNorma = getExtintores(state.uf)
+  const classificacao = classificacaoHidrantesData(state, norma, extNorma, porEstrutura)
+  const faixa = norma.FAIXAS_AREA[classificacao.sugestao.faixaIndex]
+  const opcaoDoTipo = classificacao.sugestao.opcoes.find(o => String(o.tipo) === String(h.tipo))
+  const rtiMinima = opcaoDoTipo?.rti ?? null
+
+  blocos.push({ tipo: 'titulo2', texto: 'Tipo do Sistema e Volume de Reserva de Incêndio Mínima' })
+  blocos.push({
+    tipo: 'paragrafo',
+    texto: 'Edificações/estruturas do projeto consideradas para o dimensionamento do Sistema de Hidrantes — a área construída somada e a ocupação de maior risco entre as consideradas definem a coluna da Tabela 3 e, por ela, o Tipo de sistema exigido.',
+  })
+  blocos.push({
+    tipo: 'tabela',
+    colunas: ['Estrutura', 'Área Construída', 'Ocupação', 'Risco', 'Considerada'],
+    linhas: classificacao.infoPorEstrutura.map(e => [
+      e.nome,
+      `${fmtNum(e.area, 2, e.area)} m²`,
+      e.divisaoLabel || '—',
+      e.risco ? RISCO_LABEL[e.risco] : '—',
+      classificacao.estruturasSelecionadas.includes(e.id) ? 'Sim' : 'Não',
+    ]),
+  })
+  blocos.push({
+    tipo: 'tabela',
+    colunas: ['Critério de Classificação (Tabela 3)', 'Valor Adotado'],
+    linhas: [
+      ['Área construída total considerada', `${fmtNum(classificacao.areaTotal, 2, classificacao.areaTotal)} m²`],
+      ['Faixa de área (Tabela 3)', faixa?.label || '—'],
+      ['Ocupação de maior risco considerada', classificacao.sugestao.divisao || '—'],
+      ['Risco', classificacao.risco ? RISCO_LABEL[classificacao.risco] : '—'],
+      ['Coluna da Tabela 3', classificacao.sugestao.coluna != null ? `Coluna ${classificacao.sugestao.coluna}` : '—'],
+      ['Chuveiros automáticos (sprinklers) nas estruturas consideradas', classificacao.temSprinklers ? 'Sim' : 'Não'],
+      ['Tipo de sistema escolhido', dadosTipo.label],
+    ],
+  })
+
+  // Verificação da RTI adotada (h.rti) contra a mínima tabelada pro Tipo
+  // escolhido — só quando já há RTI salva (sempre que h.tipo está definido,
+  // dado que a RTI é sincronizada automaticamente junto com o Tipo; ver
+  // useClassificacaoHidrantes.js). RTI "disponível" é o volume do
+  // reservatório que de fato garante a reserva de incêndio: o próprio
+  // reservatório quando exclusivo, ou o volume total informado quando
+  // compartilhado (ver bloco "Reservatório" abaixo).
   if (h.rti) {
+    const rtiAdotada = parseFloat(h.rti) || 0
+    const rtiDisponivel = h.reservatorioExclusivo ? rtiAdotada : (parseFloat(h.reservatorioVolumeTotal) || null)
+    const situacao = rtiMinima == null || rtiDisponivel == null
+      ? 'NÃO AUDITÁVEL — classificação ou volume disponível pendente'
+      : (rtiDisponivel >= rtiMinima ? 'ATENDE' : 'NÃO ATENDE')
     blocos.push({
-      tipo: 'campo', label: 'Reserva Técnica de Incêndio (RTI)',
-      valor: `${fmtNum(h.rti, 2, h.rti)} m³ — mínimo normativo conforme Tabela 3, ${norma.NORMA.nome}`,
+      tipo: 'tabela',
+      colunas: ['Verificação da Reserva Técnica de Incêndio (RTI)', 'Valor'],
+      linhas: [
+        ['RTI mínima normativa', rtiMinima != null ? `${fmtNum(rtiMinima, 2, rtiMinima)} m³` : '—'],
+        ['RTI adotada', `${fmtNum(rtiAdotada, 2, h.rti)} m³`],
+        ['RTI disponível', rtiDisponivel != null ? `${fmtNum(rtiDisponivel, 2, rtiDisponivel)} m³${h.reservatorioExclusivo ? ' (reservatório exclusivo)' : ''}` : '—'],
+        ['Situação', situacao],
+      ],
     })
   }
+
+  blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
   const materialReservatorio = norma.MATERIAIS_RESERVATORIO.find(m => m.key === h.reservatorioMaterial)
   const posicaoReservatorio = POSICOES_RESERVATORIO.find(p => p.key === h.reservatorioPosicao)
   if (materialReservatorio) {
