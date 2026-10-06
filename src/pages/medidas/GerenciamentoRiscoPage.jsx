@@ -3,6 +3,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import FormSection from '../../components/ui/FormSection'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import Icon from '../../components/ui/Icon'
+import InfoTip from '../../components/ui/InfoTip'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import { RISCOS_ESPECIAIS } from '../../utils/anexoB'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
@@ -96,7 +97,7 @@ export default function GerenciamentoRiscoPage() {
             placeholder="Ex.: Posto de Bombeiros do Centro, Brigada de empresa vizinha"/>
         </div>
         <div className="fg mb-3">
-          <label>População flutuante</label>
+          <label>População flutuante <InfoTip text="Número de pessoas que não se enquadra no conceito de população fixa, devendo ser calculado pelo número máximo diário ou simultâneo de pessoas que frequentam casualmente uma edificação."/></label>
           <input type="number" value={pe.populacaoFlutuante} onChange={e => set({ populacaoFlutuante: e.target.value })}/>
         </div>
         <div className="fg mb-3">
