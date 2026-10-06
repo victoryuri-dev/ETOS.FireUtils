@@ -4,7 +4,6 @@ import { getMedidasObrigatorias, getGruposSemDados, getCompartimentacao } from '
 import { classificarPavimentos, divisoesDaEstrutura } from '../utils/classificacao'
 import { alturaEdificacaoBase } from '../data/trrf_calc'
 import { calcularAreaMaximaCompartimentacao } from '../data/compart_calc'
-import { getNormaRemota, normasCarregadas } from '../lib/normasRemote'
 
 // Inverso do abaixo: mesmo que a tabela da norma marque como obrigatoria pra
 // a ocupacao/altura, o usuario decide se instala (fica sempre habilitavel/
@@ -33,33 +32,11 @@ const BASELINE_QUANDO_FALTA_DADO = [
 // nenhuma tela pra resolver, num modo pensado pra não pedir esse dado.
 const SISTEMAS_DIMENSIONAMENTO = new Set(['saida_emergencia', 'hidrantes', 'sprinklers'])
 
-// Sistemas cuja norma (Tabela 2/3 etc.) vem da base central (normas_dados,
-// Supabase) por UF, sem fallback estático por estado — hidrantes/mangotinho
-// (mesmo sistema, uma chave só, "hidrantes") e chuveiros automáticos
-// (sprinklers) ainda não têm arquivo normas/<UF> próprio pra cada estado,
-// diferente de saida_emergencia/extintores/etc. Usar a norma do Maranhão
-// pra dimensionar hidrantes num estado sem essa base cadastrada dá um
-// resultado normativamente errado (critérios podem divergir por CBM) —
-// melhor bloquear o sistema até a base daquele UF ser cadastrada no
-// Supabase do que silenciosamente aplicar a de outro estado.
-const SISTEMAS_BASE_NORMATIVA_REMOTA = new Set(['hidrantes', 'sprinklers'])
-
-// true = liberado (base normativa existe pro UF, ou ainda não terminou de
-// carregar — não bloqueia por uma checagem que ainda não respondeu).
-// false = carregou e confirmou que não há nada cadastrado pra esse
-// sistema neste UF.
-function disponivelPorNorma(sistemaKey, uf) {
-  if (!SISTEMAS_BASE_NORMATIVA_REMOTA.has(sistemaKey)) return true
-  if (!normasCarregadas(uf)) return true
-  return !!getNormaRemota(uf, sistemaKey)
-}
-
 /**
  * Núcleo puro (sem hooks) de useMedidasObrigatorias, abaixo — extraído pra
  * poder ser chamado também fora de componentes React, como na geração do
  * memorial descritivo (ver memorial/hidrantes.js), sem duplicar esta
- * lógica. `disponivelPorNorma` lê o cache de normasRemote.js direto (fora
- * do React), então funciona igual nos dois contextos.
+ * lógica.
  */
 export function medidasObrigatorias(state) {
   const dimensionamento = state.tipoProjeto === 'dimensionamento'
@@ -114,12 +91,7 @@ export function medidasObrigatorias(state) {
     const sistemas = {}
     Object.keys(state.sistemas || {}).forEach(k => {
       if (dimensionamento && !SISTEMAS_DIMENSIONAMENTO.has(k)) {
-        sistemas[k] = { obrigatorio: false, ativo: false, disponivel: true }
-        return
-      }
-      const disponivel = disponivelPorNorma(k, state.uf)
-      if (!disponivel) {
-        sistemas[k] = { obrigatorio: false, ativo: false, disponivel: false }
+        sistemas[k] = { obrigatorio: false, ativo: false }
         return
       }
       const obrigatorio = !!medidas[k]
@@ -129,7 +101,7 @@ export function medidasObrigatorias(state) {
         if (k === 'compart_horizontal' && isentoCompartHorizontal) ativo = false
         if (k === 'compart_vertical' && isentoCompartVertical) ativo = false
       }
-      sistemas[k] = { obrigatorio, ativo, disponivel: true }
+      sistemas[k] = { obrigatorio, ativo }
     })
 
     return {
@@ -153,17 +125,12 @@ export function medidasObrigatorias(state) {
   const sistemas = {}
   Object.keys(state.sistemas || {}).forEach(k => {
     if (dimensionamento && !SISTEMAS_DIMENSIONAMENTO.has(k)) {
-      sistemas[k] = { obrigatorio: false, ativo: false, disponivel: true }
-      return
-    }
-    const disponivel = disponivelPorNorma(k, state.uf)
-    if (!disponivel) {
-      sistemas[k] = { obrigatorio: false, ativo: false, disponivel: false }
+      sistemas[k] = { obrigatorio: false, ativo: false }
       return
     }
     const obrigatorio = porEstrutura.some(pe => pe.sistemas[k]?.obrigatorio)
     const ativo = porEstrutura.some(pe => pe.sistemas[k]?.ativo)
-    sistemas[k] = { obrigatorio, ativo, disponivel: true }
+    sistemas[k] = { obrigatorio, ativo }
   })
 
   return { porEstrutura, sistemas }
@@ -178,10 +145,11 @@ export function medidasObrigatorias(state) {
  */
 export function useMedidasObrigatorias() {
   const { state, normasVersion } = useProjeto()
-  // `normasVersion` não é lido dentro de medidasObrigatorias (disponivelPorNorma
-  // lê o cache de normasRemote.js direto, por fora do React) — mas precisa
-  // disparar o recálculo quando o fetch da base central terminar, senão
-  // hidrantes/sprinklers ficam bloqueados (ou liberados) com o resultado do
+  // `normasVersion` não é lido dentro de medidasObrigatorias diretamente —
+  // getMedidasObrigatorias/getGruposSemDados (normas/index.js) leem a
+  // Tabela 5/6 (`medidas_seguranca`) do cache de normasRemote.js, por fora
+  // do React — mas precisa disparar o recálculo quando o fetch da base
+  // central terminar, senão o resultado fica preso ao fallback estático do
   // primeiro render, antes do Supabase responder.
   return useMemo(
     () => medidasObrigatorias(state),

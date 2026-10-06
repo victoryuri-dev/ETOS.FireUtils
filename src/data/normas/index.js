@@ -82,9 +82,9 @@ function temSistemaCadastrado(uf, sistema, mapaEstatico) {
 // "apenas dimensionamento" não passa pela classificação por ocupação
 // (Step2 pula direto pras estruturas — ver comentário lá), então só
 // precisa de pelo menos um sistema dimensionável com dado de verdade;
-// hidrantes/sprinklers já se bloqueiam individualmente sem base cadastrada
-// (ver useMedidasObrigatorias.js:disponivelPorNorma), então aqui só
-// interessa saída de emergência.
+// aqui só interessa saída de emergência (hidrantes/sprinklers sempre
+// caem no fallback estático do MA quando o UF não tem base própria, sem
+// bloquear o projeto).
 function disponibilidadeEstado(uf) {
   const ativo = temSistemaCadastrado(uf, 'ocupacoes', NORMAS) && temSistemaCadastrado(uf, 'medidas_seguranca', NORMAS_MED)
   const ativoDimensionamento = ativo || temSistemaCadastrado(uf, 'saida_emergencia', NORMAS_SE)

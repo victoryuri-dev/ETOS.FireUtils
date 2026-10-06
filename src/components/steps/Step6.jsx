@@ -99,38 +99,30 @@ function MedidasGrid({ pe, dispatch, sistConfig }) {
       style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(max(170px, calc((100% - 24px) / 4)), 1fr))' }}
     >
       {sistConfig.map(s => {
-        const sist = pe.sistemas[s.key] || { obrigatorio: false, ativo: false, disponivel: true }
+        const sist = pe.sistemas[s.key] || { obrigatorio: false, ativo: false }
         const on    = sist.ativo
         const obrig = sist.obrigatorio
-        // disponivel:false = sem base normativa cadastrada pro UF do projeto
-        // no Supabase (ver useMedidasObrigatorias.js) — bloqueado, nem chega
-        // a ser "desabilitada" (o usuario nao pode nem escolher instalar,
-        // porque nao ha norma pra dimensionar/exigir isso nesse estado).
-        const bloqueado = sist.disponivel === false
 
-        const toneClass = bloqueado
-          ? 'border-dashed border-border opacity-50'
-          : obrig
-            ? (on ? 'border-solid border-red-border bg-red-dim' : 'border-solid border-red-border bg-transparent')
-            : (on ? 'border-solid border-green-border bg-green-dim' : 'border-solid border-border bg-transparent')
+        const toneClass = obrig
+          ? (on ? 'border-solid border-red-border bg-red-dim' : 'border-solid border-red-border bg-transparent')
+          : (on ? 'border-solid border-green-border bg-green-dim' : 'border-solid border-border bg-transparent')
         // O estado aparece so na cor do simbolo (sem caixa, fundo nem texto de status):
         // ligado = vermelho (obrigatoria) ou verde (opcional); desligado = cinza. A borda
         // vermelha do cartao marca o que a norma exige (ver legenda). Cor via prop, nao
         // classe: os simbolos proprios do Icon fixam a cor inline.
-        const iconColor = bloqueado ? 'rgba(255,255,255,.25)' : on ? (obrig ? 'var(--color-red)' : '#2FBF92') : 'rgba(255,255,255,.35)'
-        const labelClass = bloqueado ? 'text-ink-faint' : on || obrig ? 'text-ink' : 'text-ink-muted'
+        const iconColor = on ? (obrig ? 'var(--color-red)' : '#2FBF92') : 'rgba(255,255,255,.35)'
+        const labelClass = on || obrig ? 'text-ink' : 'text-ink-muted'
         const alternar = () => dispatch({ type:'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: pe.estrutura.id, key:s.key })
 
         return (
           <div key={s.key}
-            onClick={bloqueado ? undefined : alternar}
+            onClick={alternar}
             role="switch"
             aria-checked={on}
-            aria-disabled={bloqueado}
-            tabIndex={bloqueado ? -1 : 0}
-            onKeyDown={bloqueado ? undefined : e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar() } }}
-            title={bloqueado ? 'Sem base normativa cadastrada para este estado ainda' : on ? 'Habilitada' : 'Desabilitada'}
-            className={`group border rounded-md p-3.5 flex items-center relative transition-[border-color,background-color,transform,box-shadow] duration-150 ${bloqueado ? 'cursor-not-allowed' : 'cursor-pointer motion-safe:hover:-translate-y-[2px] hover:shadow-[0_10px_22px_rgba(0,0,0,.3)]'} ${toneClass}`}>
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar() } }}
+            title={on ? 'Habilitada' : 'Desabilitada'}
+            className={`group border rounded-md p-3.5 flex items-center relative transition-[border-color,background-color,transform,box-shadow] duration-150 cursor-pointer motion-safe:hover:-translate-y-[2px] hover:shadow-[0_10px_22px_rgba(0,0,0,.3)] ${toneClass}`}>
             {/* Simbolo + nome, alinhados */}
             <div className="flex items-center gap-2.5 min-w-0">
               <Icon name={SISTEMA_ICON[s.key] || s.icon} size={26} color={iconColor} className="shrink-0"/>
@@ -138,9 +130,6 @@ function MedidasGrid({ pe, dispatch, sistConfig }) {
                 {s.label}
               </div>
             </div>
-            {bloqueado && (
-              <Icon name="lock" size={12} color="rgba(255,255,255,.4)" className="absolute top-2 right-2"/>
-            )}
           </div>
         )
       })}
@@ -212,10 +201,6 @@ export default function Step6({ step, totalSteps }) {
         <div className="flex items-center gap-1.5">
           <div className="w-3.5 h-3.5 bg-[rgba(255,255,255,.35)]"/>
           Desabilitada
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Icon name="lock" size={12} color="rgba(255,255,255,.4)"/>
-          Sem base normativa cadastrada para o estado do projeto ainda
         </div>
       </div>
 
