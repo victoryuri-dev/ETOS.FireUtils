@@ -61,13 +61,18 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS } = getCompartimentacao(state.uf)
 
   ;(state.estruturas || []).forEach(est => {
-    // `ativo` já respeita o toggle manual de Configuração (useMedidasObrigatorias);
-    // `obrigatorioPelaNorma` é o que a Tabela 5/6 exige por si só, sem o
-    // override.
+    // `ativo` já respeita o toggle manual de Configuração E as isenções de
+    // Compartimentação (substituição, compartimento único — useMedidasObrigatorias);
+    // `obrigatorioPelaNorma` é o que a Tabela 5/6 exige por si só, sem nada
+    // disso. `manual` isola só o toggle explícito de Configuração — único
+    // caso em que a desativação foi uma decisão do RT sem motivo técnico
+    // específico (as isenções por substituição/compartimento único têm,
+    // cada uma, seu próprio texto mais abaixo).
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
     const sistemaPE = pe?.sistemas?.compart_horizontal
     const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_horizontal?.ativo
     const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_horizontal?.obrigatorio
+    const manual = state.sistemasPorEstrutura?.[est.id]?.compart_horizontal
 
     // A norma simplesmente não exige esta medida pra esta estrutura — nem
     // pela Tabela 6 (ocupação/altura não pedem) nem pelo processo
@@ -78,10 +83,10 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
 
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
-    if (!ativo) {
-      // Aqui obrigatorioPelaNorma é true: a norma exige, mas o RT desativou
-      // manualmente — isso precisa constar e ser justificado, nunca
-      // narrado como "dispensada pela norma".
+    if (manual === false) {
+      // A norma exige, mas o RT desativou manualmente em Configuração — isso
+      // precisa constar e ser justificado, nunca narrado como "dispensada
+      // pela norma" nem confundido com as isenções por nota abaixo.
       blocos.push({
         tipo: 'paragrafo',
         texto: textoDesativadaManualmente('Compartimentação horizontal', pe),
@@ -178,6 +183,7 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
     const sistemaPE = pe?.sistemas?.compart_vertical
     const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_vertical?.ativo
     const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_vertical?.obrigatorio
+    const manual = state.sistemasPorEstrutura?.[est.id]?.compart_vertical
 
     // Mesma regra da horizontal: dispensa pura pela norma (Tabela 5 ou 6)
     // não cita a estrutura nesta seção.
@@ -185,7 +191,7 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
 
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
-    if (!ativo) {
+    if (manual === false) {
       blocos.push({
         tipo: 'paragrafo',
         texto: textoDesativadaManualmente('Compartimentação vertical', pe),

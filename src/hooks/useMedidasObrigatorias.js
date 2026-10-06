@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
 import { useProjeto } from '../context/ProjetoContext'
-import { getMedidasObrigatorias, getGruposSemDados } from '../data/normas/index'
+import { getMedidasObrigatorias, getGruposSemDados, getCompartimentacao } from '../data/normas/index'
 import { classificarPavimentos, divisoesDaEstrutura } from '../utils/classificacao'
 import { alturaEdificacaoBase } from '../data/trrf_calc'
+import { calcularAreaMaximaCompartimentacao } from '../data/compart_calc'
 import { getNormaRemota, normasCarregadas } from '../lib/normasRemote'
 
 // Inverso do abaixo: mesmo que a tabela da norma marque como obrigatoria pra
@@ -85,15 +86,31 @@ export function medidasObrigatorias(state) {
     // da norma ou o baseline de grupo-sem-dados tenham marcado true acima.
     SEMPRE_OPCIONAL.forEach(k => { medidas[k] = false })
 
+    // Compartimentação horizontal/vertical tem dois jeitos de ficar isenta
+    // mesmo sendo obrigatória pela norma, decididos na própria tela de
+    // Compartimentação (CompartimentacaoPage.jsx), sem passar pelo toggle
+    // manual de Configuração: substituição por sistema alternativo
+    // (est.isencaoCompart{Horizontal,Vertical} — nota de rodapé da Tabela 6)
+    // e, só a horizontal, a edificação já se enquadrar num único
+    // compartimento (mesmo calc puro de compart_calc.js que alimenta a tela
+    // e o memorial — nunca duas fontes de verdade). Sem isso, essas duas
+    // isenções não baixavam `ativo`, e a medida continuava marcada como
+    // aplicada (X) no Anexo B e no resumo do memorial.
+    const isentoCompartHorizontal = !!est.isencaoCompartHorizontal || (() => {
+      const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO } = getCompartimentacao(state.uf)
+      return calcularAreaMaximaCompartimentacao(pavsEst, est, TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, state.areaCompartimentacaoHorizontal).dentroDoLimite
+    })()
+    const isentoCompartVertical = !!est.isencaoCompartVertical
+
     // Sistemas desta estrutura: obrigatorio vem da norma (medidas acima).
     // ativo segue o toggle manual quando ele existe (guardado por estrutura
     // em state.sistemasPorEstrutura — cada torre/bloco decide os proprios
-    // sistemas, independente das demais); sem toggle manual, segue a norma.
-    // Isso permite desativar manualmente um sistema obrigatorio (o
-    // usuario decide não instalar, por conta e risco próprios) sem perder
-    // o proprio `obrigatorio` — quem le os dois campos pode continuar
-    // sinalizando (borda vermelha) que a norma exige mesmo estando
-    // desativado.
+    // sistemas, independente das demais); sem toggle manual, segue a norma,
+    // exceto compart_horizontal/vertical isentos como acima. Isso permite
+    // desativar manualmente um sistema obrigatorio (o usuario decide não
+    // instalar, por conta e risco próprios) sem perder o proprio
+    // `obrigatorio` — quem le os dois campos pode continuar sinalizando
+    // (borda vermelha) que a norma exige mesmo estando desativado.
     const sistemas = {}
     Object.keys(state.sistemas || {}).forEach(k => {
       if (dimensionamento && !SISTEMAS_DIMENSIONAMENTO.has(k)) {
@@ -107,7 +124,11 @@ export function medidasObrigatorias(state) {
       }
       const obrigatorio = !!medidas[k]
       const manual = state.sistemasPorEstrutura[est.id]?.[k]
-      const ativo = manual !== undefined ? manual : obrigatorio
+      let ativo = manual !== undefined ? manual : obrigatorio
+      if (manual === undefined) {
+        if (k === 'compart_horizontal' && isentoCompartHorizontal) ativo = false
+        if (k === 'compart_vertical' && isentoCompartVertical) ativo = false
+      }
       sistemas[k] = { obrigatorio, ativo, disponivel: true }
     })
 
@@ -165,6 +186,6 @@ export function useMedidasObrigatorias() {
   return useMemo(
     () => medidasObrigatorias(state),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.estruturas, state.pavimentos, state.uf, state.sistemas, state.sistemasPorEstrutura, state.tipoProjeto, normasVersion]
+    [state.estruturas, state.pavimentos, state.uf, state.sistemas, state.sistemasPorEstrutura, state.tipoProjeto, state.areaCompartimentacaoHorizontal, normasVersion]
   )
 }

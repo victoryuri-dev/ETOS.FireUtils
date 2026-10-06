@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial } from '../../data/memorial/registry'
-import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS } from '../../utils/anexoB'
+import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS, estadoMedidaSistema } from '../../utils/anexoB'
 import { getCNAEsDivisao, getNts } from '../../data/normas/index'
 import { edificacaoEhTerrea } from '../../data/trrf_calc'
 import { fmtNum, fmtUn } from '../../utils/numero'
@@ -441,6 +441,9 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
   const riscosAtivosGlobal = RISCOS_ESPECIAIS
     .filter(r => porEstrutura.some(pe => !!riscosPorEstrutura[pe.estrutura.id]?.[r.key]))
   const multiplasEstruturas = porEstrutura.length > 1
+  const temIsenta = multiplasEstruturas
+    ? medidas.some(m => porEstrutura.some(pe => estadoMedidaSistema(pe.sistemas, m.key) === 'isenta'))
+    : medidas.some(m => estadoMedidaSistema(sistemas, m.key) === 'isenta')
   // Estrutura unica: reaproveita o riscos dessa unica estrutura pra manter o
   // rotulo "Outros: <descricao>" embutido, como antes.
   const unicaEst = porEstrutura[0]?.estrutura
@@ -471,11 +474,14 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
             {medidas.map((m, i) => (
               <tr key={m.key} className={zebra(i)}>
                 <td className={TABELA_TD}>{m.label}</td>
-                {porEstrutura.map(pe => (
-                  <td key={pe.estrutura.id} className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
-                    {pe.sistemas[m.key]?.ativo ? 'X' : ''}
-                  </td>
-                ))}
+                {porEstrutura.map(pe => {
+                  const estado = estadoMedidaSistema(pe.sistemas, m.key)
+                  return (
+                    <td key={pe.estrutura.id} className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
+                      {estado === 'x' ? 'X' : estado === 'isenta' ? '-' : ''}
+                    </td>
+                  )
+                })}
               </tr>
             ))}
           </tbody>
@@ -485,16 +491,26 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
           <thead>
             <tr className={TABELA_THEAD}>
               <th className={`${TABELA_TH} text-left`}>Medidas de Segurança Aplicadas</th>
+              <th className={`${TABELA_TH} w-[70px]`}></th>
             </tr>
           </thead>
           <tbody>
             {medidas.map((m, i) => (
               <tr key={m.key} className={zebra(i)}>
                 <td className={TABELA_TD}>{m.label}</td>
+                <td className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
+                  {estadoMedidaSistema(sistemas, m.key) === 'isenta' ? '-' : 'X'}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+
+      {temIsenta && (
+        <p className="text-[10px] text-black/60 -mt-6 mb-8">
+          <strong>-</strong>: Medida de segurança isenta. Ver motivo na seção dedicada.
+        </p>
       )}
 
       {riscosAtivosGlobal.length > 0 && (

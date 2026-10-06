@@ -44,6 +44,20 @@ export const RISCOS_ESPECIAIS = [
   { key: 'outros',               label: 'Outros (especificar)' },
 ]
 
+// 'x' = medida adotada (ativo); 'isenta' = a norma exige mas a medida foi
+// dispensada por algum motivo específico (substituição por sistema
+// alternativo, compartimento único, desativação manual pelo RT — ver a
+// seção dedicada no memorial); 'none' = a norma nem exige essa medida.
+// Mesma função usada pelo Anexo B e pelo resumo "Medidas de Segurança
+// Aplicadas" do memorial (MemorialDescritivoPage.jsx) — nunca duas fontes
+// de verdade pro que conta como X/-/em branco.
+export function estadoMedidaSistema(sistemas, key) {
+  if (!key) return 'none'
+  if (sistemas?.[key]?.ativo) return 'x'
+  if (sistemas?.[key]?.obrigatorio) return 'isenta'
+  return 'none'
+}
+
 export function buildAnexoBData(state, sistemas) {
   const divisoesSet = new Set()
   ;(state.pavimentos || []).forEach(p => {
@@ -66,17 +80,6 @@ export function buildAnexoBData(state, sistemas) {
     const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0
     return Math.max(acc, q)
   }, 0)
-
-  // 'x' = medida adotada (ativo); 'isenta' = a norma exige mas a medida foi
-  // dispensada por algum motivo específico (substituição, compartimento
-  // único, desativação manual pelo RT — ver a seção dedicada no memorial);
-  // 'none' = a norma nem exige essa medida.
-  const estadoMedida = (key) => {
-    if (!key) return 'none'
-    if (sistemas?.[key]?.ativo) return 'x'
-    if (sistemas?.[key]?.obrigatorio) return 'isenta'
-    return 'none'
-  }
 
   return {
     endereco: state.endereco || '',
@@ -118,8 +121,8 @@ export function buildAnexoBData(state, sistemas) {
     // planoEmergencia.js pra listar sistemasAtivos) — uma medida isenta não
     // entra ali, mesmo exigida pela norma. `estado` é só pra exibição no
     // Anexo B (X / - / em branco).
-    medidasCol1: MEDIDAS_ANEXO_B_COL1.map(m => ({ label: m.label, estado: estadoMedida(m.key), ativo: !!sistemas?.[m.key]?.ativo })),
-    medidasCol2: MEDIDAS_ANEXO_B_COL2.map(m => ({ label: m.label, estado: estadoMedida(m.key), ativo: !!sistemas?.[m.key]?.ativo })),
+    medidasCol1: MEDIDAS_ANEXO_B_COL1.map(m => ({ label: m.label, estado: estadoMedidaSistema(sistemas, m.key), ativo: !!sistemas?.[m.key]?.ativo })),
+    medidasCol2: MEDIDAS_ANEXO_B_COL2.map(m => ({ label: m.label, estado: estadoMedidaSistema(sistemas, m.key), ativo: !!sistemas?.[m.key]?.ativo })),
     // Anexo B e um formulario unico pra edificacao/area de risco toda —
     // agrega (OR) os riscos especiais marcados em qualquer estrutura, e
     // junta as descricoes de "outros" de todas as que marcaram.
