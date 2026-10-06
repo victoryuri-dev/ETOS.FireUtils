@@ -31,16 +31,21 @@ function SectionBar({ children }) {
   )
 }
 
-function Check({ ativo }) {
-  return <td className={`${td} w-6 text-center text-[12px] print:text-[9.5px]`}>{ativo && <span className="font-bold">X</span>}</td>
+function Check({ estado }) {
+  return (
+    <td className={`${td} w-6 text-center text-[12px] print:text-[9.5px]`}>
+      {estado === 'x' && <span className="font-bold">X</span>}
+      {estado === 'isenta' && <span className="font-bold">-</span>}
+    </td>
+  )
 }
 
 function MedidaRow({ a, b }) {
   return (
     <tr>
-      <Check ativo={a.ativo}/>
+      <Check estado={a.estado}/>
       <td colSpan={3} className={`${td} ${lbl} normal-case`}>{a.label}</td>
-      <Check ativo={b.ativo}/>
+      <Check estado={b.estado}/>
       <td colSpan={5} className={`${td} ${lbl} normal-case`}>{b.label}</td>
     </tr>
   )
@@ -54,6 +59,7 @@ export default function AnexoBPage({ onBack }) {
 
   // Junta as duas colunas de medidas/riscos em pares de linha (igual ao formulario)
   const medidasRows = d.medidasCol1.map((a, i) => ({ a, b: d.medidasCol2[i] }))
+  const temIsenta = [...d.medidasCol1, ...d.medidasCol2].some(m => m.estado === 'isenta')
   const riscosRows = []
   for (let i = 0; i < d.riscosEspeciais.length; i += 2) {
     riscosRows.push({ a: d.riscosEspeciais[i], b: d.riscosEspeciais[i + 1] })
@@ -190,7 +196,12 @@ export default function AnexoBPage({ onBack }) {
             </tbody>
           </table>
 
-          <p className="text-[10px] text-[#8a8a8c] mt-2 print:mt-1 mb-0">Campos "Para uso do CBMMA" (protocolo, observações, Nº do CAP) são de preenchimento exclusivo do Corpo de Bombeiros.</p>
+          {temIsenta && (
+            <p className="text-[10px] text-[#8a8a8c] mt-2 print:mt-1 mb-0">
+              <span className="font-bold">-</span>: Medida de segurança isenta. Ver motivo na seção dedicada.
+            </p>
+          )}
+          <p className="text-[10px] text-[#8a8a8c] mt-1 print:mt-0.5 mb-0">Campos "Para uso do CBMMA" (protocolo, observações, Nº do CAP) são de preenchimento exclusivo do Corpo de Bombeiros.</p>
 
           {/* Assinaturas */}
           <div className="grid grid-cols-2 gap-8 mt-10 pt-4 print:mt-4 print:pt-2">

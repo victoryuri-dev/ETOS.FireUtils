@@ -67,7 +67,16 @@ export function buildAnexoBData(state, sistemas) {
     return Math.max(acc, q)
   }, 0)
 
-  const marcada = (key) => !!(sistemas?.[key]?.ativo || sistemas?.[key]?.obrigatorio)
+  // 'x' = medida adotada (ativo); 'isenta' = a norma exige mas a medida foi
+  // dispensada por algum motivo específico (substituição, compartimento
+  // único, desativação manual pelo RT — ver a seção dedicada no memorial);
+  // 'none' = a norma nem exige essa medida.
+  const estadoMedida = (key) => {
+    if (!key) return 'none'
+    if (sistemas?.[key]?.ativo) return 'x'
+    if (sistemas?.[key]?.obrigatorio) return 'isenta'
+    return 'none'
+  }
 
   return {
     endereco: state.endereco || '',
@@ -105,8 +114,12 @@ export function buildAnexoBData(state, sistemas) {
     estrutura: estruturaTipos,
     cobertura: state.cobertura || '',
     vedacao: state.fachada || '',
-    medidasCol1: MEDIDAS_ANEXO_B_COL1.map(m => ({ label: m.label, ativo: m.key ? marcada(m.key) : false })),
-    medidasCol2: MEDIDAS_ANEXO_B_COL2.map(m => ({ label: m.label, ativo: m.key ? marcada(m.key) : false })),
+    // `ativo` continua estritamente a medida realmente instalada (usado por
+    // planoEmergencia.js pra listar sistemasAtivos) — uma medida isenta não
+    // entra ali, mesmo exigida pela norma. `estado` é só pra exibição no
+    // Anexo B (X / - / em branco).
+    medidasCol1: MEDIDAS_ANEXO_B_COL1.map(m => ({ label: m.label, estado: estadoMedida(m.key), ativo: !!sistemas?.[m.key]?.ativo })),
+    medidasCol2: MEDIDAS_ANEXO_B_COL2.map(m => ({ label: m.label, estado: estadoMedida(m.key), ativo: !!sistemas?.[m.key]?.ativo })),
     // Anexo B e um formulario unico pra edificacao/area de risco toda —
     // agrega (OR) os riscos especiais marcados em qualquer estrutura, e
     // junta as descricoes de "outros" de todas as que marcaram.
@@ -116,7 +129,9 @@ export function buildAnexoBData(state, sistemas) {
       const outrosDesc = r.key === 'outros'
         ? Object.values(state.riscosOutrosDescPorEstrutura || {}).filter(Boolean).join('; ')
         : ''
-      return { label: outrosDesc ? `${r.label}: ${outrosDesc}` : r.label, ativo }
+      // Riscos especiais nao tem conceito de isencao (sao so marcados ou
+      // nao) — estado e sempre 'x' ou 'none', nunca 'isenta'.
+      return { label: outrosDesc ? `${r.label}: ${outrosDesc}` : r.label, ativo, estado: ativo ? 'x' : 'none' }
     }),
   }
 }
