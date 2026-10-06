@@ -11,6 +11,13 @@
 // mesmo ambiente repetem o mesmo nome. Usa o MESMO cálculo puro
 // (cmar_calc.js) que alimenta a tela de dimensionamento — o texto nunca
 // duplica a lógica de resolução de classe.
+//
+// Estrutura cuja norma não exige CMAR (useMedidasObrigatorias, por
+// estrutura) nem entra no documento — nenhum título, nenhuma tabela vazia
+// com "Não informado". Diferente de outras medidas (ex.: compartimentacao.js),
+// que ainda citam a estrutura com um parágrafo de dispensa: aqui o pedido
+// explícito foi não citar a edificação de jeito nenhum quando o CMAR não é
+// exigido para ela.
 
 import { montarLinhas } from '../cmar_calc'
 
@@ -70,8 +77,15 @@ function blocosDaEstrutura(state, est) {
   return blocos
 }
 
-export function textoMemorialControleAcabamento(state) {
-  const blocos = (state.estruturas || []).flatMap(est => blocosDaEstrutura(state, est))
+export function textoMemorialControleAcabamento(state, sistemas, porEstrutura) {
+  const exigidaEm = est => {
+    const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
+    return pe ? !!pe.sistemas?.controle_acabamento?.ativo : !!sistemas?.controle_acabamento?.ativo
+  }
+
+  const blocos = (state.estruturas || [])
+    .filter(exigidaEm)
+    .flatMap(est => blocosDaEstrutura(state, est))
 
   if (blocos.length === 0) {
     blocos.push({ tipo: 'paragrafo', texto: 'Não há dados suficientes para a análise do CMAR — pendente de definição pelo responsável técnico.' })
