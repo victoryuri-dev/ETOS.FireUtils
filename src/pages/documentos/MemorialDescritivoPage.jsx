@@ -42,13 +42,22 @@ const FOLHA = 'memorial-secao relative flex flex-col w-full bg-white text-black'
 // pagina por secao e numero da pagina no canto inferior direito.
 // Capa e Sumario (pagina nomeada "pretextual") contam na numeracao, mas nao
 // exibem o numero.
+//
+// A margem inferior do ultimo elemento da secao e zerada de proposito: a secao
+// e flex-col (margens nao colapsam), entao a margem de uma tabela que termina
+// rente ao fim da folha estourava a pagina em poucos px invisiveis. O Paged.js
+// tratava isso como transbordo e, ao corrigir, descartava as ultimas celulas
+// da ultima linha da tabela.
 const CSS_PAGINA = `
 @page { size: A4 portrait; margin: 25mm; @bottom-right { content: counter(page); } }
 @page pretextual { @bottom-right { content: none; } }
 .memorial-pretextual { page: pretextual; }
 .memorial-secao { break-after: page; min-height: 246mm; }
 .memorial-secao:last-child { break-after: auto; }
-tr { break-inside: avoid; }
+tr, td, th { break-inside: avoid; }
+.memorial-secao > :last-child,
+.memorial-secao > :last-child > :last-child,
+.memorial-secao > :last-child > :last-child > :last-child { margin-bottom: 0 !important; }
 `
 
 // Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
