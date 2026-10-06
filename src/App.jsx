@@ -9,6 +9,7 @@ import { supabase } from './lib/supabase'
 import { criarProjetoExemplo } from './data/projetoExemplo'
 import LoginPage      from './pages/LoginPage'
 import LandingPage    from './pages/LandingPage'
+import PricingPage    from './pages/PricingPage'
 import ProjectAside   from './components/layout/ProjectAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
@@ -366,6 +367,7 @@ function AppInner() {
   return (
     <Routes>
       <Route path="/landing" element={<LandingPage/>}/>
+      <Route path="/pricing" element={<PricingPage/>}/>
       <Route path="/login" element={<LoginRoute/>}/>
 
       <Route element={<AuthedLayout/>}>
