@@ -26,6 +26,12 @@ const th = 'py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.
 const td = 'py-2 px-3 text-xs align-top'
 const input = 'bg-bg border border-solid border-border rounded-md text-ink text-[11px] py-1.5 px-2 w-full outline-none box-border'
 
+// Textos padronizados — a mesma frase em todo lugar que fala do mesmo
+// estado da linha (select, texto de apoio na tela e memorial), em vez de
+// cada ponto descrever a mesma coisa com palavras diferentes.
+const TXT_NAO_POSSUI = 'Não possui este elemento'
+const TXT_INCOMBUSTIVEL_MOTIVO = 'N/A — material incombustível'
+
 // Uma linha (elemento construtivo de um ambiente) do Quadro Resumo de
 // Controle de Materiais de Acabamento. O material incombustível e o
 // material do catálogo de ensaiados resolvem a classe sozinhos (itens 6/7
@@ -91,7 +97,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
             className={input}
           >
             <option value="">Selecionar material…</option>
-            <option value="nao_possui">Não possui este elemento</option>
+            <option value="nao_possui">{TXT_NAO_POSSUI}</option>
             <optgroup label="Incombustíveis (Classe I automática)">
               {MATERIAIS_INCOMBUSTIVEIS.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
             </optgroup>
@@ -113,9 +119,9 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
         <td className={`${td} text-ink text-center whitespace-nowrap`}>{classeMostrada || '—'}</td>
         <td className={td}>
           {naoPossui ? (
-            <span className="text-ink-faint">N/A — elemento não possui</span>
+            <span className="text-ink-faint">N/A — {TXT_NAO_POSSUI.toLowerCase()}</span>
           ) : incombustivel ? (
-            <span className="text-ink-faint">Não aplicável — material incombustível</span>
+            <span className="text-ink-faint">{TXT_INCOMBUSTIVEL_MOTIVO}</span>
           ) : normasDisponiveis.length > 0 ? (
             <>
               <div className="flex flex-wrap gap-x-3 gap-y-1">

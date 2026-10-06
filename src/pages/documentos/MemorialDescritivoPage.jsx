@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial } from '../../data/memorial/registry'
-import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS } from '../../utils/anexoB'
+import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS, estadoMedidaSistema } from '../../utils/anexoB'
 import { getCNAEsDivisao, getNts } from '../../data/normas/index'
 import { edificacaoEhTerrea } from '../../data/trrf_calc'
 import { fmtNum, fmtUn } from '../../utils/numero'
@@ -42,13 +42,22 @@ const FOLHA = 'memorial-secao relative flex flex-col w-full bg-white text-black'
 // pagina por secao e numero da pagina no canto inferior direito.
 // Capa e Sumario (pagina nomeada "pretextual") contam na numeracao, mas nao
 // exibem o numero.
+//
+// A margem inferior do ultimo elemento da secao e zerada de proposito: a secao
+// e flex-col (margens nao colapsam), entao a margem de uma tabela que termina
+// rente ao fim da folha estourava a pagina em poucos px invisiveis. O Paged.js
+// tratava isso como transbordo e, ao corrigir, descartava as ultimas celulas
+// da ultima linha da tabela.
 const CSS_PAGINA = `
 @page { size: A4 portrait; margin: 25mm; @bottom-right { content: counter(page); } }
 @page pretextual { @bottom-right { content: none; } }
 .memorial-pretextual { page: pretextual; }
 .memorial-secao { break-after: page; min-height: 246mm; }
 .memorial-secao:last-child { break-after: auto; }
-tr { break-inside: avoid; }
+tr, td, th { break-inside: avoid; }
+.memorial-secao > :last-child,
+.memorial-secao > :last-child > :last-child,
+.memorial-secao > :last-child > :last-child > :last-child { margin-bottom: 0 !important; }
 `
 
 // Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
@@ -432,6 +441,9 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
   const riscosAtivosGlobal = RISCOS_ESPECIAIS
     .filter(r => porEstrutura.some(pe => !!riscosPorEstrutura[pe.estrutura.id]?.[r.key]))
   const multiplasEstruturas = porEstrutura.length > 1
+  const temIsenta = multiplasEstruturas
+    ? medidas.some(m => porEstrutura.some(pe => estadoMedidaSistema(pe.sistemas, m.key) === 'isenta'))
+    : medidas.some(m => estadoMedidaSistema(sistemas, m.key) === 'isenta')
   // Estrutura unica: reaproveita o riscos dessa unica estrutura pra manter o
   // rotulo "Outros: <descricao>" embutido, como antes.
   const unicaEst = porEstrutura[0]?.estrutura
@@ -462,11 +474,14 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
             {medidas.map((m, i) => (
               <tr key={m.key} className={zebra(i)}>
                 <td className={TABELA_TD}>{m.label}</td>
-                {porEstrutura.map(pe => (
-                  <td key={pe.estrutura.id} className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
-                    {pe.sistemas[m.key]?.ativo ? 'X' : ''}
-                  </td>
-                ))}
+                {porEstrutura.map(pe => {
+                  const estado = estadoMedidaSistema(pe.sistemas, m.key)
+                  return (
+                    <td key={pe.estrutura.id} className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
+                      {estado === 'x' ? 'X' : estado === 'isenta' ? '-' : ''}
+                    </td>
+                  )
+                })}
               </tr>
             ))}
           </tbody>
@@ -476,16 +491,26 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
           <thead>
             <tr className={TABELA_THEAD}>
               <th className={`${TABELA_TH} text-left`}>Medidas de Segurança Aplicadas</th>
+              <th className={`${TABELA_TH} w-[70px]`}></th>
             </tr>
           </thead>
           <tbody>
             {medidas.map((m, i) => (
               <tr key={m.key} className={zebra(i)}>
                 <td className={TABELA_TD}>{m.label}</td>
+                <td className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
+                  {estadoMedidaSistema(sistemas, m.key) === 'isenta' ? '-' : 'X'}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+
+      {temIsenta && (
+        <p className="text-[10px] text-black/60 -mt-6 mb-8">
+          <strong>-</strong>: Medida de segurança isenta. Ver motivo na seção dedicada.
+        </p>
       )}
 
       {riscosAtivosGlobal.length > 0 && (

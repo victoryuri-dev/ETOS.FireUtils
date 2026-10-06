@@ -8,9 +8,12 @@
 // Regra geral: só entram tabela, TRRF, elementos de proteção e condições
 // especiais quando a compartimentação é EXIGIDA e NÃO ISENTA (nem por
 // substituição por sistema alternativo, nem — só a horizontal — por a
-// edificação já se enquadrar num único compartimento). Sendo isenta por
-// qualquer um desses meios, nada disso se aplica, e a seção vira só a frase
-// explicando o motivo da isenção.
+// edificação já se enquadrar num único compartimento). Sendo isenta por uma
+// dessas condições/notas específicas, a seção vira só a frase explicando o
+// motivo. Já quando a dispensa é simplesmente a norma não exigir a medida
+// pra esta estrutura (Tabela 6 não exige pra esta ocupação/altura, ou
+// processo simplificado — Tabela 5, que nunca exige) a estrutura nem é
+// citada nesta seção do memorial.
 
 import { calcularAreaMaximaCompartimentacao } from '../compart_calc'
 import { getCompartimentacao } from '../normas/index'
@@ -24,17 +27,21 @@ function textosCondicoes(catalogo, chaves) {
   return catalogo.filter(o => (chaves || []).includes(o.key)).map(o => `${o.texto} (item ${o.ref})`)
 }
 
-// `medida` = "Compartimentação horizontal" ou "Compartimentação vertical" —
-// o nome da estrutura já aparece no título da seção (titulo2) logo acima,
-// então não repete aqui.
-function dispensadaBloco(medida) {
-  return { tipo: 'paragrafo', texto: `${medida} dispensada para a ocupação e altura atuais desta estrutura, conforme a Tabela 5 (simplificada) ou 6 (normal) aplicável da NT 01 CBMMA.` }
-}
-
 function fmtArea(valor) {
   return typeof valor === 'number' ? fmtUn(valor, 'm²') : 'sem limite definido'
 }
 const m2 = v => fmtUn(v, 'm²', 2, `${v} m²`)
+
+// Caso a norma exija a medida mas o responsável técnico tenha desativado o
+// toggle manualmente em Configuração (useMedidasObrigatorias: `ativo` segue
+// o override quando ele existe) — nunca narrar isso como "dispensada pela
+// norma", que seria factualmente errado: a norma exige, a desativação foi
+// uma decisão do RT, sob sua responsabilidade.
+function textoDesativadaManualmente(medida, pe) {
+  const divisoes = pe?.divisoes?.length ? pe.divisoes.join(', ') : 'desta estrutura'
+  const altura = pe?.alturaEstrutura ? `${pe.alturaEstrutura} m` : 'atual'
+  return `${medida} desativada manualmente pelo responsável técnico nesta estrutura. A NT 01 CBMMA exige ${medida.toLowerCase()} para a(s) divisão(ões) ${divisoes} na altura de ${altura} — a desativação é uma decisão do responsável técnico, sob sua responsabilidade, e deve ser justificada tecnicamente perante o Corpo de Bombeiros.`
+}
 
 // Único parágrafo mostrado quando a edificação se enquadra inteira num
 // único compartimento (nenhum pavimento excede a área máxima do Anexo B, e
@@ -54,16 +61,36 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS } = getCompartimentacao(state.uf)
 
   ;(state.estruturas || []).forEach(est => {
-    // Obrigatoriedade por estrutura (useMedidasObrigatorias) — `sistemas.ativo`
-    // já respeita o toggle manual de Configuração (cai para o `obrigatorio`
-    // da norma só quando não há override); cai para o agregado do projeto
-    // só se `porEstrutura` não foi repassado.
+    // `ativo` já respeita o toggle manual de Configuração E as isenções de
+    // Compartimentação (substituição, compartimento único — useMedidasObrigatorias);
+    // `obrigatorioPelaNorma` é o que a Tabela 5/6 exige por si só, sem nada
+    // disso. `manual` isola só o toggle explícito de Configuração — único
+    // caso em que a desativação foi uma decisão do RT sem motivo técnico
+    // específico (as isenções por substituição/compartimento único têm,
+    // cada uma, seu próprio texto mais abaixo).
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
-    const obrigatorio = pe ? !!pe.sistemas?.compart_horizontal?.ativo : !!sistemas?.compart_horizontal?.ativo
+    const sistemaPE = pe?.sistemas?.compart_horizontal
+    const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_horizontal?.ativo
+    const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_horizontal?.obrigatorio
+    const manual = state.sistemasPorEstrutura?.[est.id]?.compart_horizontal
+
+    // A norma simplesmente não exige esta medida pra esta estrutura — nem
+    // pela Tabela 6 (ocupação/altura não pedem) nem pelo processo
+    // simplificado (Tabela 5, que nunca exige compartimentação). Não é uma
+    // isenção por nota/condição específica, então nem cita a estrutura
+    // nesta seção do memorial.
+    if (!ativo && !obrigatorioPelaNorma) return
+
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
-    if (!obrigatorio) {
-      blocos.push(dispensadaBloco('Compartimentação horizontal'))
+    if (manual === false) {
+      // A norma exige, mas o RT desativou manualmente em Configuração — isso
+      // precisa constar e ser justificado, nunca narrado como "dispensada
+      // pela norma" nem confundido com as isenções por nota abaixo.
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: textoDesativadaManualmente('Compartimentação horizontal', pe),
+      })
       return
     }
 
@@ -136,7 +163,12 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   })
 
   if (blocos.length === 0) {
-    blocos.push({ tipo: 'paragrafo', texto: 'Não há estruturas cadastradas no projeto.' })
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: (state.estruturas || []).length > 0
+        ? 'Compartimentação horizontal não exigida pela NT 01 CBMMA (Tabela 5 ou 6, conforme o processo aplicável a cada estrutura) para nenhuma estrutura deste projeto.'
+        : 'Não há estruturas cadastradas no projeto.',
+    })
   }
 
   return { titulo: 'Compartimentação Horizontal', blocos }
@@ -148,11 +180,22 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
 
   ;(state.estruturas || []).forEach(est => {
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
-    const obrigatorio = pe ? !!pe.sistemas?.compart_vertical?.ativo : !!sistemas?.compart_vertical?.ativo
+    const sistemaPE = pe?.sistemas?.compart_vertical
+    const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_vertical?.ativo
+    const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_vertical?.obrigatorio
+    const manual = state.sistemasPorEstrutura?.[est.id]?.compart_vertical
+
+    // Mesma regra da horizontal: dispensa pura pela norma (Tabela 5 ou 6)
+    // não cita a estrutura nesta seção.
+    if (!ativo && !obrigatorioPelaNorma) return
+
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
-    if (!obrigatorio) {
-      blocos.push(dispensadaBloco('Compartimentação vertical'))
+    if (manual === false) {
+      blocos.push({
+        tipo: 'paragrafo',
+        texto: textoDesativadaManualmente('Compartimentação vertical', pe),
+      })
       blocos.push({ tipo: 'paragrafo', texto: 'Atenção (item 6.1.1, NT 09 CBMMA): a inexistência ou a quebra da compartimentação vertical, por qualquer meio, implica na somatória das áreas dos pavimentos interligados para fins de cálculo da área máxima de compartimentação horizontal.' })
       return
     }
@@ -185,7 +228,12 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
   })
 
   if (blocos.length === 0) {
-    blocos.push({ tipo: 'paragrafo', texto: 'Não há estruturas cadastradas no projeto.' })
+    blocos.push({
+      tipo: 'paragrafo',
+      texto: (state.estruturas || []).length > 0
+        ? 'Compartimentação vertical não exigida pela NT 01 CBMMA (Tabela 5 ou 6, conforme o processo aplicável a cada estrutura) para nenhuma estrutura deste projeto.'
+        : 'Não há estruturas cadastradas no projeto.',
+    })
   }
 
   return { titulo: 'Compartimentação Vertical', blocos }

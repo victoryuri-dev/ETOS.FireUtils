@@ -61,6 +61,19 @@ const ORDEM_SECOES = [
   'central_gas',
 ]
 
+// Compartimentação horizontal/vertical: `ativo` (useMedidasObrigatorias) cai
+// pra false quando a medida é isenta por nota (substituição por sistema
+// alternativo ou compartimento único — ver isentoCompartHorizontal/Vertical),
+// mesmo sendo obrigatória pela norma — correto pro Anexo B e pro resumo do
+// memorial (não se marca como "aplicada" algo que foi dispensado). Mas essas
+// duas medidas têm texto próprio pra narrar justamente essa isenção
+// (memorial/compartimentacao.js) — gating só por `ativo` tiraria a seção
+// inteira do documento bem no caso em que ela mais precisa aparecer. Por
+// isso entram aqui: a seção roda sempre que a norma exige (`obrigatorio`)
+// em alguma estrutura, mesmo isenta/desativada, e o texto decide internamente
+// o que narrar pra cada uma.
+const SECOES_SEMPRE_QUANDO_OBRIGATORIO = new Set(['compart_horizontal', 'compart_vertical'])
+
 /**
  * Monta as seções do memorial a partir das medidas ativas/obrigatórias do
  * projeto. `sistemas` é o resultado derivado de useMedidasObrigatorias() —
@@ -86,8 +99,8 @@ export function buildMemorial(state, sistemas, porEstrutura) {
   // corrigido nas páginas de forms: desativar manualmente uma medida
   // obrigatória em TODAS as estruturas não bastava pra tirar o capítulo
   // do memorial, porque `obrigatorio` (a norma, sem o override) continuava
-  // true e vencia no OR.
-  const ativa = key => !!src[key]?.ativo
+  // true e vencia no OR. Exceção: compart_horizontal/vertical (ver acima).
+  const ativa = key => !!src[key]?.ativo || (SECOES_SEMPRE_QUANDO_OBRIGATORIO.has(key) && !!src[key]?.obrigatorio)
 
   // Uma medida com builder que ninguem lembrou de colocar em ORDEM_SECOES
   // entra no fim, em vez de sumir do documento sem aviso — omitir uma secao

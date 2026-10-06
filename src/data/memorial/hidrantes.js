@@ -4,9 +4,9 @@
 // nada, só formata o que já foi definido. O dimensionamento hidráulico
 // (memorial de cálculo) é responsabilidade do plugin Revit e entra depois.
 
-import { getHidrantes } from '../normas/index'
-import { dadosDoTipo, POSICOES_RESERVATORIO, sugerirClassificacao, faixaAreaIndex } from '../hidrantes_calc'
-import { cargaDaDivisao } from '../extintores_calc'
+import { getHidrantes, getExtintores } from '../normas/index'
+import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
+import { classificacaoHidrantesData } from '../../hooks/useClassificacaoHidrantes'
 import { fmtNum } from '../../utils/numero'
 
 const f2 = (n) => fmtNum(n, 2)
@@ -18,43 +18,11 @@ const LABEL_RECALQUE = {
   passeio: 'instalado no passeio público',
 }
 const LABEL_VALVULA_BLOQUEIO = { gaveta: 'gaveta', gaveta_os_y: 'gaveta de haste ascendente (OS&Y)' }
+const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 
-// Reconstrói a classificação (Tipo/RTI, Tabela 3) a partir do estado do
-// projeto — MESMA lógica de useClassificacaoHidrantes.js (área total das
-// estruturas selecionadas + divisão de maior carga de incêndio + presença
-// de sprinklers nessas estruturas), só sem hooks, pra tornar a origem da
-// RTI auditável no memorial (NUNCA recalcula a RTI adotada por h.rti —
-// só mostra de onde ela deveria vir, pro CBMMA poder conferir).
-function classificacaoAuditada(state, h, norma, porEstrutura) {
-  const selecionadas = h.estruturasSelecionadas?.length ? h.estruturasSelecionadas : (state.estruturas || []).map(e => e.id)
-  const areaTotal = (state.estruturas || [])
-    .filter(e => selecionadas.includes(e.id))
-    .reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
-
-  const porDivisao = new Map()
-  ;(state.pavimentos || []).filter(p => selecionadas.includes(p.estruturaId)).forEach(p => {
-    const cargaState = state.cargaState?.[p.estruturaId] || {}
-    const divs = [p.divisao, ...(p.acess || []).map(a => a.divisao)].filter(Boolean)
-    divs.forEach(divisao => {
-      const carga = cargaDaDivisao(divisao, cargaState)
-      if (carga == null) return
-      const atual = porDivisao.get(divisao)
-      if (!atual || carga > atual) porDivisao.set(divisao, carga)
-    })
-  })
-  const divisoesComCarga = [...porDivisao.entries()].map(([divisao, cargaMJm2]) => ({ divisao, cargaMJm2 }))
-
-  const temSprinklers = selecionadas.some(id => {
-    const pe = porEstrutura?.find(p => p.estrutura.id === id)
-    return !!(pe?.sistemas?.sprinklers?.ativo || pe?.sistemas?.sprinklers?.obrigatorio)
-  })
-
-  const sugestao = sugerirClassificacao(areaTotal, divisoesComCarga, temSprinklers, norma)
-  const faixa = norma.FAIXAS_AREA[faixaAreaIndex(areaTotal, norma)]
-  const opcaoDoTipo = sugestao.opcoes.find(o => String(o.tipo) === String(h.tipo))
-  return { areaTotal, faixa, sugestao, opcaoDoTipo }
-}
-
+// `porEstrutura` vem de useMedidasObrigatorias() (ver buildMemorial em
+// registry.js, que já o calcula uma vez pra todas as seções) — repassado
+// aqui pra classificacaoHidrantesData() sem recalcular.
 export function textoMemorialHidrantes(state, _sistemas, porEstrutura) {
   const norma = getHidrantes(state.uf)
   const h = state.hidrantes || {}
@@ -70,51 +38,74 @@ export function textoMemorialHidrantes(state, _sistemas, porEstrutura) {
   const dadosTipo = dadosDoTipo(h.tipo, h.tipoVariante || 0, norma)
   const material = norma.MATERIAIS_TUBULACAO.find(m => m.key === h.redeMaterial)
 
+  // Classificação (Tipo/RTI, Tabela 3) recalculada aqui — MESMA lógica de
+  // useClassificacaoHidrantes.js (Etapa 1/3 do dashboard: área total das
+  // estruturas selecionadas + divisão de maior carga de incêndio + presença
+  // de sprinklers nessas estruturas), só sem hooks (classificacaoHidrantesData
+  // é o núcleo puro do hook, reaproveitado aqui pra nunca duplicar a lógica —
+  // ver o próprio hook). NUNCA recalcula a RTI adotada por h.rti (mostrada à
+  // parte, no bloco "Reservatório") — só narra de onde ela deveria vir
+  // (edificações consideradas, área, ocupação de maior risco, RTI mínima
+  // tabelada).
+  const extNorma = getExtintores(state.uf)
+  const classificacao = classificacaoHidrantesData(state, norma, extNorma, porEstrutura)
+  const opcaoDoTipo = classificacao.sugestao.opcoes.find(o => String(o.tipo) === String(h.tipo))
+  const rtiMinima = opcaoDoTipo?.rti ?? null
+  // Só as estruturas de fato aplicáveis (consideradas na área/ocupação da
+  // classificação) — as demais (sem exigência de hidrantes, ou excluídas
+  // manualmente pelo RT) não aparecem aqui.
+  const estruturasAplicaveis = classificacao.infoPorEstrutura.filter(e => classificacao.estruturasSelecionadas.includes(e.id))
+
+  blocos.push({ tipo: 'titulo2', texto: 'Tipo do Sistema e Volume de Reserva de Incêndio Mínima' })
   blocos.push({
     tipo: 'paragrafo',
-    texto: `A edificação será protegida por Sistema de Proteção por Hidrantes e Mangotinhos ${dadosTipo.label}, dimensionado conforme a ${norma.NORMA.nome}, com vazão mínima de ${dadosTipo.vazaoMin} L/min e pressão mínima de ${dadosTipo.pressaoMin} mca na válvula do hidrante mais desfavorável (Tabela 2, ${norma.NORMA.nome}).`,
+    texto: 'Edificações/estruturas do projeto consideradas para o dimensionamento do Sistema de Hidrantes — a área construída somada e a ocupação de maior risco entre elas definem a coluna da Tabela 3 e, por ela, o Tipo de sistema exigido.',
+  })
+  blocos.push({
+    tipo: 'tabela',
+    colunas: ['Estrutura', 'Área Construída', 'Ocupação', 'Risco'],
+    linhas: estruturasAplicaveis.map(e => [
+      e.nome,
+      `${fmtNum(e.area, 2, e.area)} m²`,
+      e.divisaoLabel || '—',
+      e.risco ? RISCO_LABEL[e.risco] : '—',
+    ]),
+  })
+  blocos.push({
+    tipo: 'tabela',
+    colunas: ['Critério de Classificação (Tabela 3)', 'Valor Adotado'],
+    linhas: [
+      ['Área construída total considerada', `${fmtNum(classificacao.areaTotal, 2, classificacao.areaTotal)} m²`],
+      ['Ocupação de maior risco considerada', classificacao.sugestao.divisao || '—'],
+      ['Risco', classificacao.risco ? RISCO_LABEL[classificacao.risco] : '—'],
+      ['Chuveiros automáticos (sprinklers) nas estruturas consideradas', classificacao.temSprinklers ? 'Sim' : 'Não'],
+      ['Tipo de sistema escolhido', dadosTipo.label],
+      ['Vazão mínima exigida', `${dadosTipo.vazaoMin} L/min`],
+      ['Pressão mínima exigida', `${dadosTipo.pressaoMin} mca`],
+      ['RTI mínima', rtiMinima != null ? `${fmtNum(rtiMinima, 2, rtiMinima)} m³` : '—'],
+    ],
   })
 
   blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
-  if (h.rti) {
-    const { faixa, sugestao, opcaoDoTipo } = classificacaoAuditada(state, h, norma, porEstrutura)
-    const rtiMinima = opcaoDoTipo?.rti ?? null
-    const rtiAdotada = parseFloat(h.rti) || 0
-    const rtiDisponivel = h.reservatorioExclusivo ? rtiAdotada : (parseFloat(h.reservatorioVolumeTotal) || null)
-    const situacao = rtiMinima == null || rtiDisponivel == null
-      ? 'NÃO AUDITÁVEL — classificação ou volume disponível pendente'
-      : (rtiDisponivel >= rtiMinima ? 'ATENDE' : 'NÃO ATENDE')
-    blocos.push({
-      tipo: 'tabela',
-      colunas: ['Parâmetro', 'Valor'],
-      alinhas: ['left', 'left'],
-      linhas: [
-        ['RTI adotada', `${fmtNum(rtiAdotada, 2, h.rti)} m³`],
-        ['Critério', sugestao.coluna != null
-          ? `Tabela 3, coluna ${sugestao.coluna}, faixa de área ${faixa?.label || '—'} (${norma.NORMA.nome})`
-          : 'Classificação pendente — área e/ou carga de incêndio das estruturas selecionadas não permitem localizar a linha da Tabela 3'],
-        ['Sistema', dadosTipo.label],
-        ['Ocupação/divisão determinante', sugestao.divisao || '—'],
-        ['RTI mínima normativa', rtiMinima != null ? `${fmtNum(rtiMinima, 2, rtiMinima)} m³` : '—'],
-        ['RTI disponível', rtiDisponivel != null ? `${fmtNum(rtiDisponivel, 2, rtiDisponivel)} m³${h.reservatorioExclusivo ? ' (reservatório exclusivo)' : ''}` : '—'],
-        ['Situação', situacao],
-      ],
-    })
-  }
   const materialReservatorio = norma.MATERIAIS_RESERVATORIO.find(m => m.key === h.reservatorioMaterial)
   const posicaoReservatorio = POSICOES_RESERVATORIO.find(p => p.key === h.reservatorioPosicao)
-  if (materialReservatorio) {
-    blocos.push({ tipo: 'paragrafo', texto: `O reservatório de incêndio será construído em ${materialReservatorio.label.toLowerCase()}.` })
-  }
+  blocos.push({ tipo: 'campo', label: 'Material do reservatório', valor: materialReservatorio?.label || '—' })
   if (posicaoReservatorio) {
     blocos.push({ tipo: 'campo', label: 'Posição do reservatório', valor: posicaoReservatorio.label })
   }
+  blocos.push({ tipo: 'campo', label: 'RTI adotada', valor: h.rti ? `${fmtNum(h.rti, 2, h.rti)} m³` : '—' })
   blocos.push({
     tipo: 'paragrafo',
     texto: h.reservatorioExclusivo
       ? 'O reservatório é de uso exclusivo para combate a incêndio.'
-      : `O reservatório é compartilhado com o consumo normal da edificação${h.reservatorioVolumeTotal ? `, com volume total de ${fmtNum(h.reservatorioVolumeTotal, 2, h.reservatorioVolumeTotal)} m³` : ''}, garantida a reserva efetiva de incêndio permanentemente (${norma.NORMA.nome}).`,
+      : `O reservatório é compartilhado com o consumo normal da edificação, garantida a reserva efetiva de incêndio permanentemente (${norma.NORMA.nome}).`,
   })
+  if (!h.reservatorioExclusivo) {
+    blocos.push({
+      tipo: 'campo', label: 'Volume total do reservatório',
+      valor: h.reservatorioVolumeTotal ? `${fmtNum(h.reservatorioVolumeTotal, 2, h.reservatorioVolumeTotal)} m³` : '—',
+    })
+  }
 
   blocos.push({ tipo: 'titulo2', texto: 'Bomba de Incêndio' })
   if (!h.bombaExiste) {

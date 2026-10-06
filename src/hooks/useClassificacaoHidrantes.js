@@ -12,12 +12,14 @@ import { useMedidasObrigatorias } from './useMedidasObrigatorias'
 import { cargaDaDivisao, classificarRisco } from '../data/extintores_calc'
 import { sugerirClassificacao, dadosDoTipo, exigeRecalqueDuplo, bombaReservaObrigatoria } from '../data/hidrantes_calc'
 
-export function useClassificacaoHidrantes() {
-  const { state, dispatch } = useProjeto()
-  const { hidrantes: norma, extintores: extNorma } = useNorma()
-  const { porEstrutura } = useMedidasObrigatorias()
+// Núcleo puro (sem hooks) do cálculo de classificação — extraído pra poder
+// ser chamado também fora de componentes React, como na geração do memorial
+// descritivo (ver memorial/hidrantes.js: "Tipo do Sistema e Volume de
+// Reserva de Incêndio Mínima" narra justamente infoPorEstrutura/
+// estruturasSelecionadas/sugestao/risco daqui), sem duplicar a lógica.
+// `porEstrutura` é o retorno de medidasObrigatorias() (useMedidasObrigatorias.js).
+export function classificacaoHidrantesData(state, norma, extNorma, porEstrutura) {
   const h = state.hidrantes
-  const set = changes => dispatch({ type: 'SET_HIDRANTES', changes })
 
   // Carga de incêndio máxima de uma estrutura (maior entre suas divisões,
   // principal + subsidiárias de todo pavimento) — usada tanto no card de
@@ -39,32 +41,26 @@ export function useClassificacaoHidrantes() {
   // "mista"), carga de incêndio máxima e risco. Alimenta o box "Áreas para
   // Classificação do Sistema" e a agregação (área total + divisões) usada
   // na sugestão de Tipo/RTI, ambas restritas às estruturas selecionadas.
-  const infoPorEstrutura = useMemo(() => {
-    return state.estruturas.map(est => {
-      const pe = porEstrutura.find(p => p.estrutura.id === est.id)
-      const { principaisDivs = [], edificacaoMista = false } = pe?.classificacao || {}
-      const divisaoLabel = principaisDivs.length === 0 ? null
-        : principaisDivs.length === 1 ? principaisDivs[0]
-        : `Mista (${principaisDivs.join(', ')})`
-      const carga = cargaMaximaDaEstrutura(est.id)
-      const risco = carga != null ? classificarRisco(carga, extNorma.LIMIARES_RISCO) : null
-      return {
-        id: est.id, nome: est.nome, area: parseFloat(est.areaTotal) || 0,
-        divisaoLabel, edificacaoMista, carga, risco,
-        hidrantesAtivo: !!pe?.sistemas?.hidrantes?.ativo,
-        hidrantesObrigatorio: !!pe?.sistemas?.hidrantes?.obrigatorio,
-      }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.estruturas, state.pavimentos, state.cargaState, porEstrutura, extNorma])
+  const infoPorEstrutura = state.estruturas.map(est => {
+    const pe = porEstrutura.find(p => p.estrutura.id === est.id)
+    const { principaisDivs = [], edificacaoMista = false } = pe?.classificacao || {}
+    const divisaoLabel = principaisDivs.length === 0 ? null
+      : principaisDivs.length === 1 ? principaisDivs[0]
+      : `Mista (${principaisDivs.join(', ')})`
+    const carga = cargaMaximaDaEstrutura(est.id)
+    const risco = carga != null ? classificarRisco(carga, extNorma.LIMIARES_RISCO) : null
+    return {
+      id: est.id, nome: est.nome, area: parseFloat(est.areaTotal) || 0,
+      divisaoLabel, edificacaoMista, carga, risco,
+      hidrantesAtivo: !!pe?.sistemas?.hidrantes?.ativo,
+      hidrantesObrigatorio: !!pe?.sistemas?.hidrantes?.obrigatorio,
+    }
+  })
 
   // Default: estruturas onde hidrantes é exigido/ativo. O RT pode ajustar
   // manualmente clicando nos cards — a partir daí, h.estruturasSelecionadas
   // (persistido) manda, não mais o default automático.
-  const defaultSelecionadas = useMemo(
-    () => infoPorEstrutura.filter(e => e.hidrantesAtivo).map(e => e.id),
-    [infoPorEstrutura],
-  )
+  const defaultSelecionadas = infoPorEstrutura.filter(e => e.hidrantesAtivo).map(e => e.id)
   const estruturasSelecionadas = h.estruturasSelecionadas?.length ? h.estruturasSelecionadas : defaultSelecionadas
 
   // Chuveiros automáticos SÓ nas estruturas selecionadas pra esta
@@ -73,47 +69,30 @@ export function useClassificacaoHidrantes() {
   // rebaixava (Nota 1/2 da Tabela 3) a classificação de um grupo de
   // edificações sem sprinklers só porque outra estrutura qualquer do
   // mesmo projeto tinha.
-  const temSprinklers = useMemo(
-    () => estruturasSelecionadas.some(id => {
-      const pe = porEstrutura.find(p => p.estrutura.id === id)
-      return !!(pe?.sistemas?.sprinklers?.ativo || pe?.sistemas?.sprinklers?.obrigatorio)
-    }),
-    [estruturasSelecionadas, porEstrutura],
-  )
+  const temSprinklers = estruturasSelecionadas.some(id => {
+    const pe = porEstrutura.find(p => p.estrutura.id === id)
+    return !!(pe?.sistemas?.sprinklers?.ativo || pe?.sistemas?.sprinklers?.obrigatorio)
+  })
 
-  const toggleEstrutura = id => {
-    const atual = new Set(estruturasSelecionadas)
-    atual.has(id) ? atual.delete(id) : atual.add(id)
-    set({ estruturasSelecionadas: [...atual] })
-  }
-
-  const areaTotal = useMemo(
-    () => infoPorEstrutura.filter(e => estruturasSelecionadas.includes(e.id)).reduce((s, e) => s + e.area, 0),
-    [infoPorEstrutura, estruturasSelecionadas],
-  )
+  const areaTotal = infoPorEstrutura.filter(e => estruturasSelecionadas.includes(e.id)).reduce((s, e) => s + e.area, 0)
 
   // Divisões das estruturas selecionadas (principal + subsidiárias de todo
   // pavimento), cada uma com a maior carga de incêndio já classificada —
   // insumo da sugestão automática de Tipo/RTI (usa a de maior carga).
-  const divisoesComCarga = useMemo(() => {
-    const porDivisao = new Map()
-    state.pavimentos.filter(p => estruturasSelecionadas.includes(p.estruturaId)).forEach(p => {
-      const cargaState = state.cargaState[p.estruturaId] || {}
-      const divs = [p.divisao, ...(p.acess || []).map(a => a.divisao)].filter(Boolean)
-      divs.forEach(divisao => {
-        const carga = cargaDaDivisao(divisao, cargaState)
-        if (carga == null) return
-        const atual = porDivisao.get(divisao)
-        if (!atual || carga > atual) porDivisao.set(divisao, carga)
-      })
+  const porDivisao = new Map()
+  state.pavimentos.filter(p => estruturasSelecionadas.includes(p.estruturaId)).forEach(p => {
+    const cargaState = state.cargaState[p.estruturaId] || {}
+    const divs = [p.divisao, ...(p.acess || []).map(a => a.divisao)].filter(Boolean)
+    divs.forEach(divisao => {
+      const carga = cargaDaDivisao(divisao, cargaState)
+      if (carga == null) return
+      const atual = porDivisao.get(divisao)
+      if (!atual || carga > atual) porDivisao.set(divisao, carga)
     })
-    return [...porDivisao.entries()].map(([divisao, cargaMJm2]) => ({ divisao, cargaMJm2 }))
-  }, [state.pavimentos, state.cargaState, estruturasSelecionadas])
+  })
+  const divisoesComCarga = [...porDivisao.entries()].map(([divisao, cargaMJm2]) => ({ divisao, cargaMJm2 }))
 
-  const sugestao = useMemo(
-    () => sugerirClassificacao(areaTotal, divisoesComCarga, temSprinklers, norma),
-    [areaTotal, divisoesComCarga, temSprinklers, norma],
-  )
+  const sugestao = sugerirClassificacao(areaTotal, divisoesComCarga, temSprinklers, norma)
 
   const maiorCarga = divisoesComCarga.length ? Math.max(...divisoesComCarga.map(d => d.cargaMJm2)) : 0
   const risco = classificarRisco(maiorCarga, extNorma.LIMIARES_RISCO)
@@ -129,6 +108,36 @@ export function useClassificacaoHidrantes() {
   // sistema) ficava classificado como recalque simples por engano.
   const vazaoSistema = dadosTipo ? dadosTipo.vazaoMin * norma.HIDRANTES_SIMULTANEOS : 0
   const recalqueDuplo = dadosTipo ? exigeRecalqueDuplo(vazaoSistema, norma) : false
+
+  return {
+    infoPorEstrutura, estruturasSelecionadas, temSprinklers,
+    areaTotal, divisoesComCarga, sugestao,
+    risco, reservaSugerida, tipoAtual, dadosTipo, recalqueDuplo, vazaoSistema,
+  }
+}
+
+export function useClassificacaoHidrantes() {
+  const { state, dispatch } = useProjeto()
+  const { hidrantes: norma, extintores: extNorma } = useNorma()
+  const { porEstrutura } = useMedidasObrigatorias()
+  const h = state.hidrantes
+  const set = changes => dispatch({ type: 'SET_HIDRANTES', changes })
+
+  const {
+    infoPorEstrutura, estruturasSelecionadas, temSprinklers,
+    areaTotal, divisoesComCarga, sugestao,
+    risco, reservaSugerida, tipoAtual, dadosTipo, recalqueDuplo, vazaoSistema,
+  } = useMemo(
+    () => classificacaoHidrantesData(state, norma, extNorma, porEstrutura),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.estruturas, state.pavimentos, state.cargaState, state.hidrantes, porEstrutura, norma, extNorma],
+  )
+
+  const toggleEstrutura = id => {
+    const atual = new Set(estruturasSelecionadas)
+    atual.has(id) ? atual.delete(id) : atual.add(id)
+    set({ estruturasSelecionadas: [...atual] })
+  }
 
   const escolherOpcao = opcao => set({ tipo: opcao.tipo, rti: opcao.rti, tipoVariante: 0 })
 
