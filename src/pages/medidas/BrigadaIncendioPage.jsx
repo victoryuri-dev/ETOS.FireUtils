@@ -4,6 +4,7 @@ import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento } from '../../data/brigada_calc'
 import Icon from '../../components/ui/Icon'
+import InfoTip from '../../components/ui/InfoTip'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
@@ -159,7 +160,12 @@ function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresR
                     <th className={TH}>Pavimento</th>
                     <th className={TH}>Divisão</th>
                     <th className={TH}>Risco</th>
-                    <th className={`${TH} text-right`}>Pop. fixa</th>
+                    <th className={`${TH} text-right`}>
+                      <span className="inline-flex items-center justify-end gap-1">
+                        Pop. fixa
+                        <InfoTip text="População fixa é o número de pessoas que permanece regularmente na edificação, considerando-se os turnos de trabalho, a natureza da ocupação e os terceiros que prestam serviços sob as mesmas condições." align="end"/>
+                      </span>
+                    </th>
                     <th className={`${TH} text-center`}>Brigadistas</th>
                     <th className={TH}>Treinamento</th>
                     <th className={TH}>Instalação</th>
