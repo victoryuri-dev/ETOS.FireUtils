@@ -30,7 +30,7 @@ const input = 'bg-bg border border-solid border-border rounded-md text-ink text-
 // estado da linha (select, texto de apoio na tela e memorial), em vez de
 // cada ponto descrever a mesma coisa com palavras diferentes.
 const TXT_NAO_POSSUI = 'Não possui este elemento'
-const TXT_INCOMBUSTIVEL_MOTIVO = 'Não aplicável — material incombustível'
+const TXT_INCOMBUSTIVEL_MOTIVO = 'N/A — material incombustível'
 
 // Uma linha (elemento construtivo de um ambiente) do Quadro Resumo de
 // Controle de Materiais de Acabamento. O material incombustível e o
