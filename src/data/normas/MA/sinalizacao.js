@@ -140,5 +140,5 @@ export const NOTAS = {
   geral: 'NBR 13434 (partes 1 a 3) — as placas de sinalização de emergência seguem cores, formas e pictogramas padronizados por categoria: proibição (fundo branco, faixa/círculo vermelho), alerta (fundo amarelo, faixa preta), orientação e saída (fundo verde) e equipamentos de combate a incêndio (fundo vermelho).',
   altura: 'Salvo indicação específica em contrário, as placas de equipamento e o número do pavimento devem ser instalados a 1,80 m de altura em relação ao piso acabado.',
   fotoluminescencia: 'As placas de orientação, saída de emergência e equipamentos devem ser fotoluminescentes, garantindo visibilidade mesmo na falta de energia elétrica.',
-  quantidade: 'A quantidade de placas de orientação e saída de emergência decorre diretamente do dimensionamento das rotas de fuga feito em Saída de Emergência (NT 11 CBMMA). As tabelas a seguir relacionam as placas efetivamente adotadas no projeto, por estrutura.',
+  quantidade: 'A quantidade de placas de orientação e saída de emergência decorre diretamente do dimensionamento das rotas de fuga feito em Saída de Emergência (NT 11 CBMMA).',
 }
