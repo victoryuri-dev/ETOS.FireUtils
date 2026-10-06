@@ -81,7 +81,14 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     },
     {
       label: 'Primeiros socorros e hospitais próximos', valor: d.respPrimeirosSocorros,
-      sub: [{ label: 'Hospital de referência', valor: d.hospitalReferencia }],
+      sub: [{
+        label: 'Hospital de referência', valor: '',
+        sub: [
+          { label: 'Nome', valor: d.hospitalNome },
+          { label: 'Distância', valor: d.hospitalDistancia },
+          { label: 'Endereço', valor: d.hospitalEndereco },
+        ],
+      }],
     },
     { label: 'Eliminar riscos', valor: d.respEliminarRiscos },
     { label: 'Abandono de área', valor: d.respAbandono },
@@ -108,10 +115,6 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
 
     { tipo: 'titulo2', texto: 'Procedimentos básicos de emergência contra incêndio' },
     { tipo: 'lista', itens: itensProcedimentos },
-
-    { tipo: 'titulo2', texto: 'Responsabilidade pelo plano' },
-    { tipo: 'campo', label: 'Responsável pela empresa (preposto)', valor: d.proprietario },
-    { tipo: 'campo', label: 'Responsável pela elaboração do Plano de Emergência', valor: d.responsavelTecnico },
   ]
 
   return { titulo: 'Gerenciamento de Risco — Plano de Emergência', blocos }

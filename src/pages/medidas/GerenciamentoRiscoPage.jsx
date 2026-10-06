@@ -3,6 +3,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import FormSection from '../../components/ui/FormSection'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import Icon from '../../components/ui/Icon'
+import InfoTip from '../../components/ui/InfoTip'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import { RISCOS_ESPECIAIS } from '../../utils/anexoB'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
@@ -71,7 +72,7 @@ export default function GerenciamentoRiscoPage() {
         </span>
       </div>
 
-      <FormSection title="Edificação e funcionamento" description="Vizinhança, apoio externo e características de uso — item B.1 do Anexo B.">
+      <FormSection title="Edificação e funcionamento" description="Vizinhança, apoio externo e características de uso — item B.1 do Anexo B. A população fixa é calculada automaticamente a partir da população fixa informada na Brigada de Incêndio.">
         <div className="g2 mb-3">
           <div className="fg">
             <label>Tipo de localização</label>
@@ -95,16 +96,9 @@ export default function GerenciamentoRiscoPage() {
           <input value={pe.meiosAjudaExterna} onChange={e => set({ meiosAjudaExterna: e.target.value })}
             placeholder="Ex.: Posto de Bombeiros do Centro, Brigada de empresa vizinha"/>
         </div>
-        <div className="g2 mb-3">
-          <div className="fg">
-            <label>População fixa</label>
-            <input type="number" value={pe.populacaoFixa} onChange={e => set({ populacaoFixa: e.target.value })}
-              placeholder={state.quantidadePublico ? `Ex.: ${state.quantidadePublico}` : ''}/>
-          </div>
-          <div className="fg">
-            <label>População flutuante</label>
-            <input type="number" value={pe.populacaoFlutuante} onChange={e => set({ populacaoFlutuante: e.target.value })}/>
-          </div>
+        <div className="fg mb-3">
+          <label>População flutuante <InfoTip text="Número de pessoas que não se enquadra no conceito de população fixa, devendo ser calculado pelo número máximo diário ou simultâneo de pessoas que frequentam casualmente uma edificação."/></label>
+          <input type="number" value={pe.populacaoFlutuante} onChange={e => set({ populacaoFlutuante: e.target.value })}/>
         </div>
         <div className="fg mb-3">
           <label>Características de funcionamento</label>
@@ -161,12 +155,8 @@ export default function GerenciamentoRiscoPage() {
         </FormSection>
       )}
 
-      <FormSection title="Recursos humanos e apoio externo" description="Brigada, hospital de referência e telefone de emergência — item B.1.10 do Anexo B.">
-        <div className="g3">
-          <div className="fg">
-            <label>Brigadistas (nº de membros)</label>
-            <input type="number" value={pe.brigadistasQtd} onChange={e => set({ brigadistasQtd: e.target.value })}/>
-          </div>
+      <FormSection title="Recursos humanos e apoio externo" description="Brigadistas profissionais, hospital de referência e telefone de emergência — item B.1.10 do Anexo B. O número total de brigadistas é calculado automaticamente a partir do dimensionamento da Brigada de Incêndio.">
+        <div className="g2">
           <div className="fg">
             <label>Brigadistas profissionais</label>
             <input type="number" value={pe.brigadistasProfissionaisQtd} onChange={e => set({ brigadistasProfissionaisQtd: e.target.value })}/>
@@ -178,8 +168,20 @@ export default function GerenciamentoRiscoPage() {
         </div>
         <div className="fg mt-3">
           <label>Hospital de referência</label>
-          <input value={pe.hospitalReferencia} onChange={e => set({ hospitalReferencia: e.target.value })}
-            placeholder="Ex.: Hospital Municipal, a 2 km"/>
+          <input value={pe.hospitalNome} onChange={e => set({ hospitalNome: e.target.value })}
+            placeholder="Ex.: Hospital Municipal Djalma Marques"/>
+        </div>
+        <div className="g2 mt-3">
+          <div className="fg">
+            <label>Distância do hospital</label>
+            <input value={pe.hospitalDistancia} onChange={e => set({ hospitalDistancia: e.target.value })}
+              placeholder="Ex.: 2 km"/>
+          </div>
+          <div className="fg">
+            <label>Endereço do hospital</label>
+            <input value={pe.hospitalEndereco} onChange={e => set({ hospitalEndereco: e.target.value })}
+              placeholder="Ex.: Av. Example, 123 — Centro"/>
+          </div>
         </div>
       </FormSection>
 
