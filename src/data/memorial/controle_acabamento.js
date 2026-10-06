@@ -38,6 +38,7 @@ function fmtClasse(item) {
 
 function fmtNormasEnsaio(item) {
   if (item?.origem === 'nao_possui') return 'N/A'
+  if (item?.origem === 'incombustivel') return 'Não aplicável — material incombustível'
   return item?.normasEnsaio?.trim() || '—'
 }
 
