@@ -44,11 +44,13 @@ export function faixaAreaIndex(areaTotal, norma) {
   return norma.FAIXAS_AREA.findIndex(f => (f.min == null || a > f.min) && (f.max == null || a <= f.max))
 }
 
-/** Opções de classificação (Tipo + RTI) para uma coluna/faixa, já
- *  aplicando o rebaixamento automático por chuveiros automáticos (Notas 1
- *  e 2 da Tabela 3) quando `possuiSprinklers` é true. Retorna uma lista —
- *  normalmente 1 opção, mas 2 quando a coluna 1 permite ao projetista
- *  escolher entre Tipo 1 e Tipo 2.
+/** Opções de classificação (Tipo + RTI) para uma coluna/faixa, considerando
+ *  chuveiros automáticos (`possuiSprinklers`). Retorna uma lista —
+ *  normalmente 1 opção, mas 2 quando o RT tem uma escolha a fazer: coluna 1
+ *  (Tipo 1 ou Tipo 2, sempre) ou coluna 4 Tipo 5 com sprinklers (Tipo 5 ou,
+ *  por opção do RT via Nota 1 da Tabela 3, Tipo 4 — rebaixamento PERMITIDO,
+ *  nunca imposto automaticamente). Nota 2 (Tipo 4 → Tipo 3) continua
+ *  aplicada direto, sem escolha, como antes desta mudança.
  *
  *  Cada opção: { tipo, rti, origem: 'normal'|'nota1'|'nota2', nota? } —
  *  `nota` traz o texto a exibir/citar no memorial quando o rebaixamento
@@ -84,10 +86,16 @@ export function opcoesClassificacao(coluna, faixaIndex, possuiSprinklers, norma)
     const base = { tipo: linha.col4.tipo, rti: linha.col4.rti, origem: 'normal' }
     if (!possuiSprinklers) return [base]
     if (linha.col4.tipo === 5) {
-      return [{
-        tipo: 4, rti: linha.col3.rti, origem: 'nota1',
-        nota: 'Rebaixado de Tipo 5 para Tipo 4 (Nota 1 da Tabela 3, NT 22) — edificação possui chuveiros automáticos.',
-      }]
+      // Nota 1 só PERMITE o rebaixamento pra Tipo 4 — não impõe: o RT decide
+      // se adota (ver FormularioSistema.jsx, mesmas pills de escolha da
+      // coluna 1). Tipo 5 (base) continua a 1ª opção.
+      return [
+        base,
+        {
+          tipo: 4, rti: linha.col3.rti, origem: 'nota1',
+          nota: 'Rebaixado de Tipo 5 para Tipo 4 (Nota 1 da Tabela 3, NT 22) — edificação possui chuveiros automáticos. O rebaixamento é uma opção do responsável técnico, não uma imposição normativa.',
+        },
+      ]
     }
     // já era Tipo 4 na própria tabela — Nota 2 permite rebaixar mais um nível, pra Tipo 3
     return [{

@@ -120,10 +120,17 @@ export function textoMemorialHidrantes(state, _sistemas, porEstrutura) {
       tipo: 'paragrafo',
       texto: `O sistema possui bomba de incêndio principal${h.bombaAcionamento ? ` acionada por ${LABEL_ACIONAMENTO[h.bombaAcionamento]}` : ''}${extras.length ? `, complementada por ${extras.join(' e ')}` : ''}.`,
     })
-    if (h.bombaAcionamento === 'eletrico' || (h.bombaReserva && h.bombaReservaAcionamento === 'eletrico')) {
+    // Declarativo, não genérico: só afirma o gerador quando o RT de fato
+    // marcou que o projeto o tem (h.bombaGeradorBackup, BombaESuccaoForm.jsx)
+    // — antes dizia "podem ser alimentadas", uma possibilidade normativa
+    // genérica que não afirmava se ESTE projeto realmente tem o gerador.
+    // Sem o toggle marcado, a frase fica de fora — mesmo padrão de
+    // h.bombaAlimentaSprinklers abaixo: nunca afirma um equipamento que não
+    // foi de fato decidido.
+    if (h.bombaGeradorBackup && (h.bombaAcionamento === 'eletrico' || (h.bombaReserva && h.bombaReservaAcionamento === 'eletrico'))) {
       blocos.push({
         tipo: 'paragrafo',
-        texto: `Na falta de energia da concessionária, as bombas de incêndio acionadas por motor elétrico podem ser alimentadas por um gerador diesel, atendendo ao requisito do item C.2.9 da ${norma.NORMA.nome}.`,
+        texto: `Na falta de energia da concessionária, as bombas de incêndio acionadas por motor elétrico são alimentadas por um gerador diesel, atendendo ao requisito do item C.2.9 da ${norma.NORMA.nome}.`,
       })
     }
     if (h.bombaAlimentaSprinklers) {

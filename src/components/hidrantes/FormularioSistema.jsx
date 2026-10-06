@@ -88,8 +88,11 @@ export default function FormularioSistema() {
           </div>
         )}
 
-        {sugestao.opcoes.length === 1 && sugestao.opcoes[0].nota && (
-          <Nota>{sugestao.opcoes[0].nota}</Nota>
+        {/* Nota de rebaixamento (Tabela 3) — aparece tanto quando a norma
+            aplica direto (1 opção só, ex.: Nota 2) quanto quando é uma
+            escolha do RT entre as pills acima (ex.: Nota 1, Tipo 5 → 4). */}
+        {sugestao.opcoes.some(op => op.nota) && (
+          <Nota>{sugestao.opcoes.find(op => op.nota).nota}</Nota>
         )}
 
         {dadosTipo && norma.TIPOS_SISTEMA[tipoAtual]?.variantes.length > 1 && (

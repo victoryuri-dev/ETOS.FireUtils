@@ -157,6 +157,13 @@ export function SelecaoBombas({ vazaoM3h, pressaoMca, eta, onChangeEta, potencia
         </div>
       </div>
 
+      {h.bombaExiste && (h.bombaAcionamento === 'eletrico' || (h.bombaReserva && h.bombaReservaAcionamento === 'eletrico')) && (
+        <div className="mt-3">
+          <CartaoBomba titulo="Gerador diesel de backup" descricao="Na falta de energia da concessionária, um gerador diesel alimenta a(s) bomba(s) elétrica(s)?"
+            checked={h.bombaGeradorBackup} onChange={v => set({ bombaGeradorBackup: v })}/>
+        </div>
+      )}
+
       {h.bombaExiste && temSprinklers && (
         <div className="mt-3">
           <CartaoBomba titulo="Alimenta os chuveiros automáticos" descricao="O sistema de bombeamento também alimenta os sprinklers?"
