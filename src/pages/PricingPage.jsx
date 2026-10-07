@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import logo from '../assets/fireutils-landing.svg'
 import Icon from '../components/ui/Icon'
@@ -6,59 +6,59 @@ import './PricingPage.css'
 
 const PERIODS = [
   { id: 'thirty', label: '30 dias', note: 'Sem permanência' },
-  { id: 'semester', label: 'Semestral', note: '6 meses' },
-  { id: 'annual', label: 'Anual', note: 'Melhor custo' },
+  { id: 'semester', label: 'Semestral', note: 'Compromisso de 6 meses' },
+  { id: 'annual', label: 'Anual', note: '12 meses, pagamento à vista' },
 ]
 
 const PLANS = [
   {
+    id: 'saidas',
+    icon: 'saidaEmergenciaMedida',
+    name: 'Saídas',
+    description: 'Dimensione as saídas de emergência com os recursos necessários ao módulo.',
+    prices: { thirty: 160, semester: 129, annual: 1290 },
+    features: ['População por pavimento e ambiente', 'Larguras e distâncias de percurso', 'Documentação de cálculo', 'Famílias necessárias ao módulo'],
+  },
+  {
     id: 'memorial',
+    icon: 'documentosMedida',
     name: 'Memorial',
-    description: 'Organize os dados técnicos e gere o memorial descritivo no ambiente Web.',
+    description: 'Elabore, organize e revise o memorial descritivo diretamente na plataforma Web.',
     prices: { thirty: 297, semester: 229, annual: 2290 },
     features: ['Cadastro e classificação da edificação', 'Carga de incêndio e medidas de segurança', 'Memorial descritivo', 'Uso independente do Revit'],
   },
   {
-    id: 'bim',
-    name: 'BIM',
-    description: 'Leve produtividade, famílias e integração FireUtils para dentro do Revit.',
-    prices: { thirty: 297, semester: 229, annual: 2290 },
-    features: ['Dockpane integrada ao Revit', 'Biblioteca ampliada de famílias', 'Ferramentas de produtividade', 'Integração entre Revit e Web'],
-  },
-  {
-    id: 'saidas',
-    name: 'Saídas',
-    description: 'Dimensione saídas de emergência com dados conectados ao modelo.',
-    prices: { thirty: 347, semester: 269, annual: 2690 },
-    features: ['População por pavimento e ambiente', 'Larguras necessárias', 'Distâncias máximas de percurso', 'Documentação de cálculo'],
-  },
-  {
     id: 'hidrantes',
+    icon: 'hidranteMedida',
     name: 'Hidrantes',
-    description: 'Modele e dimensione a rede hidráulica diretamente no Revit.',
-    prices: { thirty: 447, semester: 329, annual: 3290 },
-    features: ['Percurso da rede por conectores MEP', 'Perdas de carga e ponto de operação', 'Pressão e vazão do hidrante crítico', 'Memorial de cálculo hidráulico'],
+    description: 'Dimensione hidraulicamente a rede com os recursos necessários ao módulo.',
+    prices: { thirty: 347, semester: 269, annual: 2690 },
+    features: ['Percurso da rede por conectores MEP', 'Perdas de carga e ponto de operação', 'Pressão e vazão do hidrante crítico', 'Famílias necessárias ao módulo'],
   },
 ]
 
 const PRO = {
-  prices: { thirty: 797, semester: 597, annual: 5970 },
-  features: ['Memorial', 'BIM', 'Hidrantes', 'Saídas', 'Biblioteca ampliada de famílias', 'Atualizações durante a licença'],
+  prices: { thirty: 597, semester: 449, annual: 4490 },
+  features: ['Memorial', 'Hidrantes', 'Saídas', 'FireUtils BIM exclusivo'],
 }
 
 const formatPrice = value => new Intl.NumberFormat('pt-BR', {
   style: 'currency', currency: 'BRL', maximumFractionDigits: 0,
 }).format(value)
 
-function Price({ prices, period }) {
-  const value = prices[period]
-  if (period === 'semester') {
-    return <div className="pp-price"><span>6x de</span><strong>{formatPrice(value)}</strong><small>por mês</small></div>
-  }
-  if (period === 'annual') {
-    return <div className="pp-price"><span>12 meses de acesso</span><strong>{formatPrice(value)}</strong><small>pagamento à vista</small></div>
-  }
-  return <div className="pp-price"><span>Acesso flexível</span><strong>{formatPrice(value)}</strong><small>por 30 dias</small></div>
+const periodPayment = (prices, period) => ({
+  value: period === 'semester' ? `6x ${formatPrice(prices[period])}` : formatPrice(prices[period]),
+  detail: period === 'semester' ? `Total de ${formatPrice(prices[period] * 6)}` : period === 'annual' ? 'Pagamento único à vista' : 'Pagamento único',
+})
+
+function PriceOptions({ prices }) {
+  return <div className="pp-price-options" aria-label="Valores por período">{PERIODS.map(item => {
+    const payment = periodPayment(prices, item.id)
+    return <div className={`pp-price-option ${item.id === 'annual' ? 'is-best' : ''}`} key={item.id}>
+      <span><strong>{item.label}</strong><small>{item.note}</small></span>
+      <span><b>{payment.value}</b><small>{payment.detail}</small></span>
+    </div>
+  })}</div>
 }
 
 function FeatureList({ items }) {
@@ -66,20 +66,6 @@ function FeatureList({ items }) {
 }
 
 export default function PricingPage() {
-  const [period, setPeriod] = useState('annual')
-
-  const handlePeriodKey = (event, currentIndex) => {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
-    event.preventDefault()
-    let nextIndex = currentIndex
-    if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + PERIODS.length) % PERIODS.length
-    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % PERIODS.length
-    if (event.key === 'Home') nextIndex = 0
-    if (event.key === 'End') nextIndex = PERIODS.length - 1
-    setPeriod(PERIODS[nextIndex].id)
-    event.currentTarget.parentElement?.children[nextIndex]?.focus()
-  }
-
   useEffect(() => {
     const previous = document.title
     document.title = 'Planos FireUtils — Escolha seu acesso'
@@ -103,55 +89,56 @@ export default function PricingPage() {
         <section className="pp-hero">
           <div className="pp-beams" aria-hidden="true"><i/><i/><i/></div>
           <div className="pp-hero-copy">
-            <h1>Escolha o que precisa.<br/><span>Projete sem limite.</span></h1>
-          </div>
-          <div className="pp-hero-aside">
-            <p>Ative um módulo específico ou use o fluxo completo. Todos os planos permitem trabalhar em projetos ilimitados durante o período contratado.</p>
-            <div className="pp-unlimited"><Icon name="checkCircle" size={18}/><span><strong>Projetos ilimitados</strong><small>Sem cobrança por projeto ou por cálculo</small></span></div>
+            <h1>Planos simples.<br/><span>Escolha pelo seu fluxo.</span></h1>
+            <p className="pp-hero-subtitle">Uma oferta completa ou três módulos específicos. Sem cobrança por projeto ou por cálculo.</p>
+            <div className="pp-hero-facts"><span><Icon name="check" size={13}/> Projetos ilimitados</span><span><Icon name="check" size={13}/> Licença individual</span><span><Icon name="check" size={13}/> Valores em reais</span></div>
           </div>
         </section>
 
         <section className="pp-pricing" id="planos">
-          <div className="pp-period-heading">
-            <div><h2>Defina o período de acesso</h2><p>Compare todos os módulos com a mesma modalidade.</p></div>
-            <div className="pp-periods" role="radiogroup" aria-label="Período da licença">
-              {PERIODS.map((item, index) => (
-                <button type="button" role="radio" aria-checked={period === item.id} tabIndex={period === item.id ? 0 : -1} className={period === item.id ? 'is-active' : ''} onClick={() => setPeriod(item.id)} onKeyDown={event => handlePeriodKey(event, index)} key={item.id}>
-                  <strong>{item.label}</strong><small>{item.note}</small>
-                </button>
-              ))}
-            </div>
+          <div className="pp-offers-heading">
+            <div><span className="pp-section-label">01 / PLANO COMPLETO</span><h2>FireUtils PRO</h2><p>Memorial, Hidrantes, Saídas e FireUtils BIM em uma única licença.</p></div>
+            <div className="pp-heading-includes"><span>TUDO INCLUÍDO</span><FeatureList items={PRO.features}/></div>
           </div>
 
-          <article className="pp-pro-card">
-            <div className="pp-pro-intro">
-              <span className="pp-recommended">RECOMENDADO</span>
-              <h2>FireUtils PRO</h2>
-              <p>O fluxo completo, do modelo BIM ao memorial técnico.</p>
-              <Price prices={PRO.prices} period={period}/>
-              <Link className="pp-primary" to="/login">Começar com o PRO <Icon name="right" size={16}/></Link>
+          <section className="pp-pro-showcase" aria-labelledby="pro-title">
+            <h2 id="pro-title" className="pp-visually-hidden">Modalidades do FireUtils PRO</h2>
+            <div className="pp-pro-period-grid">
+              {PERIODS.map(item => {
+                const payment = periodPayment(PRO.prices, item.id)
+                return <article className={`pp-pro-period-card ${item.id === 'annual' ? 'is-best' : ''}`} key={item.id}>
+                  <span>{item.id === 'annual' ? 'MELHOR CUSTO' : 'FIREUTILS PRO'}</span>
+                  <h3>{item.label}</h3>
+                  <p>{item.note}</p>
+                  <strong>{payment.value}</strong>
+                  <small>{payment.detail}</small>
+                  <Link to="/login">Escolher {item.label} <Icon name="right" size={14}/></Link>
+                </article>
+              })}
             </div>
-            <div className="pp-pro-includes"><span>Tudo em uma licença</span><FeatureList items={PRO.features}/></div>
-          </article>
+            <div className="pp-bim-exclusive">
+              <div className="pp-bim-icon"><Icon name="settings" size={25}/></div>
+              <div><span>EXCLUSIVO FIREUTILS PRO</span><h3>FireUtils BIM</h3><p>Desbloqueie a experiência completa de integração com o Autodesk Revit: biblioteca de famílias, ferramentas de produtividade, automações, quantitativos e integração avançada com o FireUtils Web.</p></div>
+              <div className="pp-bim-tags"><span>FAMÍLIAS</span><span>AUTOMAÇÕES</span><span>QUANTITATIVOS</span><span>REVIT + WEB</span></div>
+            </div>
+          </section>
 
-          <div className="pp-modules-heading"><h2>Ou contrate por módulo</h2><p>Comece pela necessidade atual e adicione novos módulos quando quiser.</p></div>
-          <div className="pp-plan-grid">
+          <div className="pp-module-heading">
+            <div><span className="pp-section-label">02 / MÓDULOS AVULSOS</span><h2>Assinaturas por módulo</h2><p>Para uma necessidade específica, contrate somente a solução necessária.</p></div>
+            <span>OS MÓDULOS NÃO INCLUEM FIREUTILS BIM</span>
+          </div>
+          <div className="pp-module-offer-grid">
             {PLANS.map(plan => (
-              <article className="pp-plan-card" key={plan.id}>
-                <div className="pp-plan-top"><span>FIREUTILS</span><h3>{plan.name}</h3><p>{plan.description}</p></div>
-                <Price prices={plan.prices} period={period}/>
-                <FeatureList items={plan.features}/>
+              <article className="pp-offer-card" key={plan.id}>
+                <div className="pp-offer-icon"><Icon name={plan.icon} size={23}/></div>
+                <span className="pp-offer-label">FIREUTILS / MÓDULO</span>
+                <h3>{plan.name}</h3>
+                <p>{plan.description}</p>
+                <PriceOptions prices={plan.prices}/>
+                <div className="pp-offer-features"><span>Incluído no módulo</span><FeatureList items={plan.features}/></div>
                 <Link to="/login">Escolher {plan.name} <Icon name="right" size={14}/></Link>
               </article>
             ))}
-          </div>
-        </section>
-
-        <section className="pp-bonus">
-          <div className="pp-bonus-heading"><h2>Combine dois módulos.<br/>O BIM entra junto.</h2><p>Enquanto os dois módulos estiverem ativos simultaneamente, o FireUtils BIM fica incluído sem custo adicional.</p></div>
-          <div className="pp-bonus-list">
-            {['Memorial + Hidrantes', 'Memorial + Saídas', 'Hidrantes + Saídas'].map(combo => <div key={combo}><strong>{combo}</strong><span><Icon name="checkCircle" size={16}/> BIM incluído</span></div>)}
-            <p><strong>Exemplo:</strong> no acesso de 30 dias, Memorial + Hidrantes custam R$ 744. Por mais R$ 53, o PRO também libera o módulo Saídas.</p>
           </div>
         </section>
 
@@ -163,7 +150,7 @@ export default function PricingPage() {
             <details><summary>Qual é o compromisso do plano semestral?<span>+</span></summary><p>O plano semestral possui compromisso de seis meses, com seis pagamentos mensais no valor mostrado acima.</p></details>
             <details><summary>O plano anual é parcelado?<span>+</span></summary><p>O valor anual corresponde a 12 meses de acesso e é pago antecipadamente, à vista.</p></details>
             <details><summary>Preciso do Revit para usar o Memorial?<span>+</span></summary><p>Não. O FireUtils Memorial pode ser usado no ambiente Web com preenchimento manual. Os módulos BIM, Hidrantes e Saídas participam do fluxo conectado ao Revit.</p></details>
-            <details><summary>Como funciona o BIM incluído nas combinações?<span>+</span></summary><p>O benefício permanece ativo enquanto os dois módulos elegíveis estiverem simultaneamente ativos. O FireUtils PRO já inclui BIM e todos os demais módulos.</p></details>
+            <details><summary>O FireUtils BIM pode ser contratado separadamente?<span>+</span></summary><p>Não. O FireUtils BIM é uma vantagem exclusiva do PRO e reúne famílias, ferramentas de produtividade, automações, quantitativos e a integração avançada entre Revit e FireUtils Web.</p></details>
           </div>
         </section>
 
