@@ -69,10 +69,22 @@ export function classificacaoHidrantesData(state, norma, extNorma, porEstrutura)
   // rebaixava (Nota 1/2 da Tabela 3) a classificação de um grupo de
   // edificações sem sprinklers só porque outra estrutura qualquer do
   // mesmo projeto tinha.
-  const temSprinklers = estruturasSelecionadas.some(id => {
+  //
+  // Dois sinais separados, não um só: a Nota 1 da Tabela 3 só vale quando
+  // os chuveiros são EXIGIDOS, a Nota 2 só quando NÃO são exigidos mas
+  // foram instalados por conta própria (ver opcoesClassificacao em
+  // hidrantes_calc.js pro porquê). `temSprinklers` (OR dos dois) continua
+  // existindo pros demais consumidores do hook (BombaESuccaoForm etc.),
+  // que só precisam saber "existe sprinklers", não o motivo.
+  const sprinklersObrigatorio = estruturasSelecionadas.some(id => {
     const pe = porEstrutura.find(p => p.estrutura.id === id)
-    return !!(pe?.sistemas?.sprinklers?.ativo || pe?.sistemas?.sprinklers?.obrigatorio)
+    return !!pe?.sistemas?.sprinklers?.obrigatorio
   })
+  const sprinklersAtivo = estruturasSelecionadas.some(id => {
+    const pe = porEstrutura.find(p => p.estrutura.id === id)
+    return !!pe?.sistemas?.sprinklers?.ativo
+  })
+  const temSprinklers = sprinklersObrigatorio || sprinklersAtivo
 
   const areaTotal = infoPorEstrutura.filter(e => estruturasSelecionadas.includes(e.id)).reduce((s, e) => s + e.area, 0)
 
@@ -92,7 +104,7 @@ export function classificacaoHidrantesData(state, norma, extNorma, porEstrutura)
   })
   const divisoesComCarga = [...porDivisao.entries()].map(([divisao, cargaMJm2]) => ({ divisao, cargaMJm2 }))
 
-  const sugestao = sugerirClassificacao(areaTotal, divisoesComCarga, temSprinklers, norma)
+  const sugestao = sugerirClassificacao(areaTotal, divisoesComCarga, sprinklersObrigatorio, sprinklersAtivo, norma)
 
   const maiorCarga = divisoesComCarga.length ? Math.max(...divisoesComCarga.map(d => d.cargaMJm2)) : 0
   const risco = classificarRisco(maiorCarga, extNorma.LIMIARES_RISCO)
