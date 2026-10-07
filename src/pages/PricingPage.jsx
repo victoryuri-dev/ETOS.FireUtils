@@ -103,7 +103,6 @@ export default function PricingPage() {
         <section className="pp-hero">
           <div className="pp-beams" aria-hidden="true"><i/><i/><i/></div>
           <div className="pp-hero-copy">
-            <span className="pp-kicker"><i/> PLANOS FIREUTILS</span>
             <h1>Escolha o que precisa.<br/><span>Projete sem limite.</span></h1>
           </div>
           <div className="pp-hero-aside">
@@ -133,7 +132,6 @@ export default function PricingPage() {
               <Link className="pp-primary" to="/login">Começar com o PRO <Icon name="right" size={16}/></Link>
             </div>
             <div className="pp-pro-includes"><span>Tudo em uma licença</span><FeatureList items={PRO.features}/></div>
-            <div className="pp-pro-mark" aria-hidden="true">PRO</div>
           </article>
 
           <div className="pp-modules-heading"><h2>Ou contrate por módulo</h2><p>Comece pela necessidade atual e adicione novos módulos quando quiser.</p></div>
@@ -150,7 +148,7 @@ export default function PricingPage() {
         </section>
 
         <section className="pp-bonus">
-          <div className="pp-bonus-heading"><span>BÔNUS POR COMBINAÇÃO</span><h2>Combine dois módulos.<br/>O BIM entra junto.</h2><p>Enquanto os dois módulos estiverem ativos simultaneamente, o FireUtils BIM fica incluído sem custo adicional.</p></div>
+          <div className="pp-bonus-heading"><h2>Combine dois módulos.<br/>O BIM entra junto.</h2><p>Enquanto os dois módulos estiverem ativos simultaneamente, o FireUtils BIM fica incluído sem custo adicional.</p></div>
           <div className="pp-bonus-list">
             {['Memorial + Hidrantes', 'Memorial + Saídas', 'Hidrantes + Saídas'].map(combo => <div key={combo}><strong>{combo}</strong><span><Icon name="checkCircle" size={16}/> BIM incluído</span></div>)}
             <p><strong>Exemplo:</strong> no acesso de 30 dias, Memorial + Hidrantes custam R$ 744. Por mais R$ 53, o PRO também libera o módulo Saídas.</p>
@@ -158,7 +156,7 @@ export default function PricingPage() {
         </section>
 
         <section className="pp-faq" id="duvidas">
-          <div><span className="pp-kicker"><i/> CONTRATAÇÃO SEM SURPRESAS</span><h2>O essencial,<br/>antes de escolher.</h2></div>
+          <div><h2>O essencial,<br/>antes de escolher.</h2></div>
           <div>
             <details><summary>Existe limite de projetos?<span>+</span></summary><p>Não. Durante a vigência da licença, você pode trabalhar em quantos projetos precisar, sem cobrança individual por projeto ou por cálculo.</p></details>
             <details><summary>Como funciona o acesso por 30 dias?<span>+</span></summary><p>É uma contratação pontual, sem compromisso de permanência. O módulo escolhido permanece disponível por 30 dias.</p></details>
