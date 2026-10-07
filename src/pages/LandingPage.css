@@ -267,6 +267,34 @@
   .fl-cta p{font-size:16px}
   .fl-footer{margin:0 18px;padding:28px 0}
 }
+
+/* Keep the connected product visible in the first viewport on desktop. */
+@media(min-width:801px){
+  .fl-hero{padding-top:52px}
+  .fl-hero h1{margin:20px 0 18px}
+  .fl-actions{margin:24px 0 18px}
+  .fl-hero-product{max-width:1120px;margin-top:42px}
+  .fl-connected-hero{min-height:630px}
+}
+
+/* Compact the introduction when vertical space is limited, without scaling the previews down. */
+@media(min-width:801px) and (max-height:850px){
+  .fl-hero{padding-top:30px}
+  .fl-hero h1{font-size:clamp(38px,4.7vw,62px);margin:15px 0 14px;line-height:1.03}
+  .fl-hero-copy>p{font-size:14px;line-height:1.55}
+  .fl-actions{margin:17px 0 11px}
+  .fl-primary{padding-block:12px}
+  .fl-hero-product{max-width:1080px;margin-top:22px}
+}
+
+@media(min-width:801px) and (max-height:720px){
+  .fl-hero{padding-top:20px}
+  .fl-hero h1{font-size:clamp(36px,4.3vw,56px);margin:12px 0}
+  .fl-hero-copy>p{font-size:13px}
+  .fl-actions{margin:13px 0 8px}
+  .fl-hero-note{display:none}
+  .fl-hero-product{margin-top:16px}
+}
 @media(max-width:360px){
   .fl-header img{width:104px}
   .fl-login{font-size:10px}
