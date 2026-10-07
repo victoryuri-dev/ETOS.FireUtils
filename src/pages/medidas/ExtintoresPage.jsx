@@ -4,7 +4,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { supabase } from '../../lib/supabase'
-import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica } from '../../data/extintores_calc'
+import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica, capacidadeMinimaPorRisco } from '../../data/extintores_calc'
 import Icon from '../../components/ui/Icon'
 import Checkbox from '../../components/ui/Checkbox'
 import InlineEditableNome from '../../components/ui/InlineEditableNome'
@@ -669,6 +669,39 @@ function RefLabel({ children }) {
   return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">{children}</div>
 }
 
+// Tabelas 4 (classe A) e 5 (classe B) — unidade extintora mínima e
+// distância máxima a percorrer por nível de risco (Tabela 3, mesma
+// classificação de classificarRisco/LIMIARES_RISCO). Nível alto tem duas
+// opções equivalentes — mostradas como duas linhas sob o mesmo rótulo de
+// risco (ver capacidadeMinimaPorRisco em data/extintores_calc.js).
+function TabelaCapacidadePorRisco({ classe }) {
+  return (
+    <table className="w-full border-collapse">
+      <thead>
+        <tr className="bg-surface-2">
+          <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-left border-b border-solid border-border">Risco</th>
+          <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border">Capacidade mínima</th>
+          <th className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium py-2 px-2.5 text-right border-b border-solid border-border">Dist. máxima</th>
+        </tr>
+      </thead>
+      <tbody>
+        {RISCO_ROWS.map(r => {
+          const opcoes = capacidadeMinimaPorRisco(r.key, classe)
+          return opcoes.map((op, i) => (
+            <tr key={`${r.key}-${i}`}>
+              {i === 0 && (
+                <td rowSpan={opcoes.length} className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2 align-top">{r.label}</td>
+              )}
+              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op.capacidade}</td>
+              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op.distanciaMaxima} m</td>
+            </tr>
+          ))
+        })}
+      </tbody>
+    </table>
+  )
+}
+
 function ReferenciaNormativa({ extNorma }) {
   const { TIPOS_PORTATIL, TIPOS_SOBRE_RODAS, DISTANCIA_MAXIMA, ALTURA_INSTALACAO, LOCAIS_RISCO_ESPECIAL, DISTANCIA_ENTRADA_ESCADA } = extNorma
   const [open, setOpen] = useState(false)
@@ -710,6 +743,24 @@ function ReferenciaNormativa({ extNorma }) {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div>
+          <RefLabel>Capacidade extintora mínima por risco de incêndio</RefLabel>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Classe A</div>
+              <div className="border border-solid border-border rounded-md overflow-hidden">
+                <TabelaCapacidadePorRisco classe="A"/>
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Classe B</div>
+              <div className="border border-solid border-border rounded-md overflow-hidden">
+                <TabelaCapacidadePorRisco classe="B"/>
+              </div>
+            </div>
           </div>
         </div>
 
