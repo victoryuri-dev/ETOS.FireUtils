@@ -88,9 +88,9 @@ export default function FormularioSistema() {
           </div>
         )}
 
-        {/* Nota de rebaixamento (Tabela 3) — aparece tanto quando a norma
-            aplica direto (1 opção só, ex.: Nota 2) quanto quando é uma
-            escolha do RT entre as pills acima (ex.: Nota 1, Tipo 5 → 4). */}
+        {/* Nota de rebaixamento (Tabela 3, Nota 1 ou 2) — sempre ao lado das
+            pills acima: o rebaixamento nunca é aplicado sozinho, é sempre
+            uma escolha do RT entre o Tipo da tabela e o Tipo rebaixado. */}
         {sugestao.opcoes.some(op => op.nota) && (
           <Nota>{sugestao.opcoes.find(op => op.nota).nota}</Nota>
         )}

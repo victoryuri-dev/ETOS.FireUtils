@@ -47,10 +47,11 @@ export function faixaAreaIndex(areaTotal, norma) {
 /** Opções de classificação (Tipo + RTI) para uma coluna/faixa, considerando
  *  chuveiros automáticos (`possuiSprinklers`). Retorna uma lista —
  *  normalmente 1 opção, mas 2 quando o RT tem uma escolha a fazer: coluna 1
- *  (Tipo 1 ou Tipo 2, sempre) ou coluna 4 Tipo 5 com sprinklers (Tipo 5 ou,
- *  por opção do RT via Nota 1 da Tabela 3, Tipo 4 — rebaixamento PERMITIDO,
- *  nunca imposto automaticamente). Nota 2 (Tipo 4 → Tipo 3) continua
- *  aplicada direto, sem escolha, como antes desta mudança.
+ *  (Tipo 1 ou Tipo 2, sempre), coluna 3 ou coluna 4 Tipo 4 com sprinklers
+ *  (Tipo 4 ou, por opção do RT via Nota 2 da Tabela 3, Tipo 3), ou coluna 4
+ *  Tipo 5 com sprinklers (Tipo 5 ou, por opção do RT via Nota 1, Tipo 4).
+ *  As Notas 1/2 só PERMITEM o rebaixamento — nunca impõem: por isso sempre
+ *  voltam como uma escolha (pills), nunca aplicadas sozinhas.
  *
  *  Cada opção: { tipo, rti, origem: 'normal'|'nota1'|'nota2', nota? } —
  *  `nota` traz o texto a exibir/citar no memorial quando o rebaixamento
@@ -71,13 +72,12 @@ export function opcoesClassificacao(coluna, faixaIndex, possuiSprinklers, norma)
     return [{ tipo: linha.col2.tipo, rti: linha.col2.rti, origem: 'normal' }]
   }
 
+  const NOTA2 = 'Rebaixado de Tipo 4 para Tipo 3 (Nota 2 da Tabela 3, NT 22) — edificação possui chuveiros automáticos. O rebaixamento é uma opção do responsável técnico, não uma imposição normativa.'
+
   if (coluna === 3) {
     const base = { tipo: linha.col3.tipo, rti: linha.col3.rti, origem: 'normal' }
     if (possuiSprinklers) {
-      return [{
-        tipo: 3, rti: linha.col2.rti, origem: 'nota2',
-        nota: 'Rebaixado de Tipo 4 para Tipo 3 (Nota 2 da Tabela 3, NT 22) — edificação possui chuveiros automáticos.',
-      }]
+      return [base, { tipo: 3, rti: linha.col2.rti, origem: 'nota2', nota: NOTA2 }]
     }
     return [base]
   }
@@ -97,11 +97,9 @@ export function opcoesClassificacao(coluna, faixaIndex, possuiSprinklers, norma)
         },
       ]
     }
-    // já era Tipo 4 na própria tabela — Nota 2 permite rebaixar mais um nível, pra Tipo 3
-    return [{
-      tipo: 3, rti: linha.col2.rti, origem: 'nota2',
-      nota: 'Rebaixado de Tipo 4 para Tipo 3 (Nota 2 da Tabela 3, NT 22) — edificação possui chuveiros automáticos.',
-    }]
+    // já era Tipo 4 na própria tabela — Nota 2 permite rebaixar mais um nível,
+    // pra Tipo 3 — mesma lógica do Tipo 5 acima: opção do RT, não automática.
+    return [base, { tipo: 3, rti: linha.col2.rti, origem: 'nota2', nota: NOTA2 }]
   }
 
   return []
