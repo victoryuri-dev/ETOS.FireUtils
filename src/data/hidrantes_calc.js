@@ -86,7 +86,11 @@ export function opcoesClassificacao(coluna, faixaIndex, sprinklersObrigatorio, s
     return [{ tipo: linha.col2.tipo, rti: linha.col2.rti, origem: 'normal' }]
   }
 
-  const NOTA2 = 'Rebaixado de Tipo 4 para Tipo 3 (Nota 2 da Tabela 3, NT 22) — edificação não exige chuveiros automáticos, mas eles foram instalados por outro motivo. O rebaixamento é uma opção do responsável técnico, não uma imposição normativa.'
+  // Texto literal das Notas 1 e 2 da Tabela 3 (NT 22/2021 CBMMA) — citado
+  // ao pé da letra, sem paráfrase, pra exibir/citar no memorial exatamente
+  // como está na norma.
+  const NOTA1 = 'Nota 1 da Tabela 3, NT 22/2021 CBMMA: "As ocupações enquadradas no sistema tipo 5 que possuírem a exigência de sistema de chuveiros automáticos, podem aplicar o sistema tipo 4." O rebaixamento é uma opção do responsável técnico, não uma imposição normativa.'
+  const NOTA2 = 'Nota 2 da Tabela 3, NT 22/2021 CBMMA: "As ocupações enquadradas no sistema tipo 5 e as ocupações enquadradas no sistema tipo 4, que não possuírem a exigência de sistema de chuveiros automáticos, mas que, por outras circunstâncias, tal sistema for instalado, podem aplicar, respectivamente, o sistema tipo 4 e o sistema tipo 3, com a RTI de um nível inferior no quadro acima." O rebaixamento é uma opção do responsável técnico, não uma imposição normativa.'
 
   if (coluna === 3) {
     const base = { tipo: linha.col3.tipo, rti: linha.col3.rti, origem: 'normal' }
@@ -109,19 +113,13 @@ export function opcoesClassificacao(coluna, faixaIndex, sprinklersObrigatorio, s
       if (sprinklersObrigatorio) {
         return [
           base,
-          {
-            tipo: 4, rti: linha.col3.rti, origem: 'nota1',
-            nota: 'Rebaixado de Tipo 5 para Tipo 4 (Nota 1 da Tabela 3, NT 22) — edificação exige chuveiros automáticos. O rebaixamento é uma opção do responsável técnico, não uma imposição normativa.',
-          },
+          { tipo: 4, rti: linha.col3.rti, origem: 'nota1', nota: NOTA1 },
         ]
       }
       if (sprinklersVoluntario) {
         return [
           base,
-          {
-            tipo: 4, rti: linha.col3.rti, origem: 'nota2',
-            nota: 'Rebaixado de Tipo 5 para Tipo 4 (Nota 2 da Tabela 3, NT 22) — edificação não exige chuveiros automáticos, mas eles foram instalados por outro motivo. O rebaixamento é uma opção do responsável técnico, não uma imposição normativa.',
-          },
+          { tipo: 4, rti: linha.col3.rti, origem: 'nota2', nota: NOTA2 },
         ]
       }
       return [base]
