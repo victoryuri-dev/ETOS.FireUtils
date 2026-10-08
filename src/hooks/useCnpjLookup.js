@@ -57,6 +57,7 @@ export function useCnpjLookup() {
       dispatch({ type: 'SET_FIELD', field: 'respRazaoSocial', value: d.razao_social || '' })
       dispatch({ type: 'SET_FIELD', field: 'respFantasia', value: d.nome_fantasia || d.razao_social || '' })
       if (d.ddd_telefone_1) dispatch({ type: 'SET_FIELD', field: 'respTelefone', value: d.ddd_telefone_1 })
+      if (d.email) dispatch({ type: 'SET_FIELD', field: 'respEmail', value: d.email })
       if (d.cnae_fiscal) {
         dispatch({ type: 'SET_FIELD', field: 'cnaePrincipal', value: maskCNAE(String(d.cnae_fiscal)) })
         dispatch({ type: 'SET_FIELD', field: 'cnaePrincipalDesc', value: d.cnae_fiscal_descricao || '' })
