@@ -159,7 +159,7 @@ function SecaoTitulo({ titulo, tip }) {
 // a base normativa pra sugerir grupo/divisão automaticamente.
 function BuscaCnaePorCnpj({ pav, dispatch }) {
   const { state } = useProjeto()
-  const { buscar, limpar, error, resultado } = useCnaeCnpjLookup()
+  const { buscar, limpar, loading, error, resultado } = useCnaeCnpjLookup()
   const cnpjDigits = (state.respCNPJ || '').replace(/\D/g, '')
 
   useEffect(() => {
@@ -179,6 +179,9 @@ function BuscaCnaePorCnpj({ pav, dispatch }) {
   // Retornos da busca ficam no topo do modal do Térreo (toasts ficam
   // reservados ao retorno das importações do Revit). Sem correspondencia na
   // base normativa nao ha nada pra sugerir, entao nao mostra nada.
+  if (loading) {
+    return <div className="text-xs text-ink-faint mb-5">Buscando CNAE pelo CNPJ da Etapa 1...</div>
+  }
   if (error) {
     return (
       <div className="ibox red mb-5" role="alert">

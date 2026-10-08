@@ -36,7 +36,10 @@ export function useCnaeCnpjLookup() {
     setError('')
     setResultado(null)
     try {
-      const { data: d, error: fnError } = await supabase.functions.invoke('cnpj-lookup', { body: { cnpj: digits } })
+      // incluirEmail:false — esta busca so quer cnae_fiscal; sem isso a
+      // function esperava tambem a consulta complementar de e-mail (CNPJ.ws,
+      // ate ~4s), atraso a toa pra quem nunca usa esse campo.
+      const { data: d, error: fnError } = await supabase.functions.invoke('cnpj-lookup', { body: { cnpj: digits, incluirEmail: false } })
       if (fnError) {
         let msg = 'Nao foi possivel consultar o CNPJ agora. Tente novamente.'
         try {

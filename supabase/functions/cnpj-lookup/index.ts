@@ -66,9 +66,15 @@ Deno.serve(async (req) => {
   const digits = String(body?.cnpj || '').replace(/\D/g, '')
   if (digits.length !== 14) return json({ error: 'CNPJ invalido — informe 14 digitos' }, 400)
 
+  // `incluirEmail: false` pula a busca complementar (useCnaeCnpjLookup.js —
+  // sugestão de CNAE na classificação do Térreo — só quer cnae_fiscal, não
+  // e-mail). Sem isso, toda chamada esperava a resposta do CNPJ.ws mesmo
+  // quando ninguém ia usar o e-mail, até ~4s de atraso à toa.
+  const incluirEmail = body?.incluirEmail !== false
+
   // Dispara a busca complementar de e-mail já aqui (sem await) pra rodar em
   // paralelo com a consulta principal, não em série depois dela.
-  const emailComplementarPromise = buscarEmailComplementar(digits)
+  const emailComplementarPromise = incluirEmail ? buscarEmailComplementar(digits) : Promise.resolve(null)
 
   let res
   try {
@@ -82,7 +88,7 @@ Deno.serve(async (req) => {
   if (!res.ok) return json({ error: 'Nao foi possivel consultar o CNPJ agora. Tente novamente.' }, 502)
 
   const data = await res.json()
-  if (!data.email) data.email = await emailComplementarPromise
+  if (incluirEmail && !data.email) data.email = await emailComplementarPromise
 
   return json(data, 200)
 })
