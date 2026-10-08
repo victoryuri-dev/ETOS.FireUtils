@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useProjeto } from '../context/ProjetoContext'
 import { buscarCNAEExato } from '../data/normas/index'
-
-const CNPJ_API = 'https://brasilapi.com.br/api/cnpj/v1/'
+import { supabase } from '../lib/supabase'
 
 function maskCNAE(raw) {
   const d = (raw || '').replace(/\D/g, '').slice(0, 7)
@@ -11,12 +10,15 @@ function maskCNAE(raw) {
   return `${d.slice(0, 4)}-${d[4]}/${d.slice(5, 7)}`
 }
 
-// Busca o CNAE fiscal de uma empresa pelo CNPJ (mesma API publica de
-// useCnpjLookup) e tenta casar esse CNAE contra a base normativa da UF do
-// projeto, pra sugerir grupo/divisao automaticamente na classificacao de um
-// pavimento (ver PavModal em Step4.jsx). Ao contrario de useCnpjLookup, nao
-// grava nada no projeto sozinho — so devolve o resultado, e quem chamou
-// decide se aplica (ex: so no Terreo).
+// Busca o CNAE fiscal de uma empresa pelo CNPJ (mesma Edge Function
+// cnpj-lookup de useCnpjLookup.js — nunca duas fontes de verdade pra
+// consulta de CNPJ, nem duas formas diferentes de esbarrar no mesmo
+// rate-limit/CORS da BrasilAPI quando chamada direto do navegador) e tenta
+// casar esse CNAE contra a base normativa da UF do projeto, pra sugerir
+// grupo/divisao automaticamente na classificacao de um pavimento (ver
+// PavModal em Step4.jsx). Ao contrario de useCnpjLookup, nao grava nada no
+// projeto sozinho — so devolve o resultado, e quem chamou decide se aplica
+// (ex: so no Terreo).
 export function useCnaeCnpjLookup() {
   const { state } = useProjeto()
   const uf = state.uf || 'MA'
@@ -34,11 +36,15 @@ export function useCnaeCnpjLookup() {
     setError('')
     setResultado(null)
     try {
-      const res = await fetch(`${CNPJ_API}${digits}`)
-      if (res.status === 404) throw new Error('CNPJ nao encontrado na Receita Federal.')
-      if (res.status === 429) throw new Error('Muitas consultas em pouco tempo — aguarde um instante e tente novamente.')
-      if (!res.ok) throw new Error('Nao foi possivel consultar o CNPJ agora. Tente novamente.')
-      const d = await res.json()
+      const { data: d, error: fnError } = await supabase.functions.invoke('cnpj-lookup', { body: { cnpj: digits } })
+      if (fnError) {
+        let msg = 'Nao foi possivel consultar o CNPJ agora. Tente novamente.'
+        try {
+          const corpo = await fnError.context?.json()
+          if (corpo?.error) msg = corpo.error
+        } catch { /* resposta sem corpo JSON — mantem a mensagem generica acima */ }
+        throw new Error(msg)
+      }
 
       if (!d.cnae_fiscal) throw new Error('Este CNPJ nao tem CNAE fiscal cadastrado na Receita Federal.')
 
