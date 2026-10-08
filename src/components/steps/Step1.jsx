@@ -22,51 +22,6 @@ function maskCNPJ(raw) {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
 }
 
-// ── Seletor de "Proprietario do imovel" ─────────────────────────────────
-// Inline (nao e popup): clicar no botao expande essa lista logo abaixo
-// dele, empurrando o resto do formulario — mesma ideia de um accordion.
-// Opcoes: mesmo que o responsavel pelo uso, cada socio do quadro
-// societario (QSA) trazido pela busca de CNPJ em "Responsavel pelo uso"
-// (reaproveita o mesmo CNPJ — o dono do imovel costuma ser a propria
-// empresa ou um dos socios dela), ou preenchimento manual.
-function ProprietarioSeletorInline({ qsa, respRazaoSocial, onEscolherResponsavel, onEscolherSocio, onEscolherManual }) {
-  return (
-    <div className="border border-solid border-border rounded-lg bg-surface-2 py-3 px-3 mb-3 flex flex-col gap-2">
-      <button
-        type="button" onClick={onEscolherResponsavel} disabled={!respRazaoSocial}
-        className="text-left border border-solid border-border rounded-md py-3 px-3.5 bg-surface hover:border-ink-hint transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border"
-      >
-        <div className="text-[13px] font-semibold text-ink">Mesmo que o responsavel pelo uso</div>
-        <div className="text-xs text-ink-faint mt-0.5">{respRazaoSocial || 'Preencha o CNPJ em "Responsavel pelo uso" primeiro'}</div>
-      </button>
-
-      {qsa.length > 0 && (
-        <>
-          <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mt-1 mb-0.5">Quadro societario (do CNPJ buscado)</div>
-          {qsa.map((s, i) => (
-            <button
-              key={i} type="button" onClick={() => onEscolherSocio(i)}
-              className="text-left border border-solid border-border rounded-md py-3 px-3.5 bg-surface hover:border-ink-hint transition-colors"
-            >
-              <div className="text-[13px] font-semibold text-ink">{s.nome_socio}</div>
-              <div className="text-xs text-ink-faint mt-0.5">{[s.qualificacao_socio, s.cnpj_cpf_do_socio].filter(Boolean).join(' — ')}</div>
-            </button>
-          ))}
-        </>
-      )}
-
-      <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mt-1 mb-0.5">Outro</div>
-      <button
-        type="button" onClick={onEscolherManual}
-        className="text-left border border-solid border-border rounded-md py-3 px-3.5 bg-surface hover:border-ink-hint transition-colors"
-      >
-        <div className="text-[13px] font-semibold text-ink">Preencher manualmente</div>
-        <div className="text-xs text-ink-faint mt-0.5">Proprietario diferente dos listados acima</div>
-      </button>
-    </div>
-  )
-}
-
 export default function Step1({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
   const { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco, qsa } = useCnpjLookup()
@@ -76,7 +31,6 @@ export default function Step1({ step, totalSteps }) {
   // 'socio' (preenchido uma vez a partir de qsa[socioIndex], editavel depois).
   const [proprietarioFonte, setProprietarioFonte] = useState('manual')
   const [socioIndex, setSocioIndex] = useState(null)
-  const [seletorAberto, setSeletorAberto] = useState(false)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
   const estadosDisponiveis = getEstadosDisponiveis()
   const setCNPJ = e => dispatch({ type:'SET_FIELD', field:'respCNPJ', value: maskCNPJ(e.target.value) })
@@ -100,7 +54,6 @@ export default function Step1({ step, totalSteps }) {
   function escolherResponsavel() {
     setProprietarioFonte('responsavel')
     setSocioIndex(null)
-    setSeletorAberto(false)
   }
   function escolherSocio(i) {
     const socio = qsa[i]
@@ -110,19 +63,13 @@ export default function Step1({ step, totalSteps }) {
     dispatch({ type:'SET_FIELD', field:'propNome', value: socio.nome_socio || '' })
     dispatch({ type:'SET_FIELD', field:'propDocumento', value: socio.cnpj_cpf_do_socio || '' })
     dispatch({ type:'SET_FIELD', field:'propTelefone', value: '' })
-    setSeletorAberto(false)
-  }
-  function escolherManual() {
-    setProprietarioFonte('manual')
-    setSocioIndex(null)
-    setSeletorAberto(false)
   }
 
-  const textoFonteCnpj = proprietarioFonte === 'responsavel'
-    ? `Mesmo que o responsavel pelo uso: ${state.respRazaoSocial}.`
-    : proprietarioFonte === 'socio' && qsa[socioIndex]
-      ? `Preenchido a partir do quadro societario do CNPJ: ${qsa[socioIndex].nome_socio}.`
-      : ''
+  // Botao "selecionado" (mesmo que o responsavel, ou um socio especifico)
+  // fica destacado dentro da caixa azul — ajuda a ver qual fonte esta
+  // em uso sem precisar de outro texto a parte.
+  const btnQuadro = selecionado => `btn-ghost ${selecionado ? 'border-blue-border bg-blue-dim text-ink font-semibold' : ''}`
+  const mostrarQuadroSocietario = !!state.respRazaoSocial || qsa.length > 0
 
   return (
     <div className={S.section}>
@@ -214,25 +161,26 @@ export default function Step1({ step, totalSteps }) {
       </FormSection>
 
       <FormSection title="Proprietario do imovel">
-        {textoFonteCnpj && (
-          <div className="ibox blue">
-            <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
-            <span>{textoFonteCnpj}</span>
+        {mostrarQuadroSocietario && (
+          <div className="ibox blue flex-col items-stretch gap-2.5">
+            <div className="flex items-start gap-2.5">
+              <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
+              <div className="text-xs leading-[1.6]">
+                <div className="font-semibold text-ink mb-0.5">Quadro societario encontrado pelo CNPJ</div>
+                Selecione quem e o proprietario do imovel.
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 pl-6">
+              <button type="button" onClick={escolherResponsavel} className={btnQuadro(proprietarioFonte === 'responsavel')}>
+                Mesmo que o responsavel pelo uso
+              </button>
+              {qsa.map((s, i) => (
+                <button key={i} type="button" onClick={() => escolherSocio(i)} className={btnQuadro(proprietarioFonte === 'socio' && socioIndex === i)}>
+                  {s.nome_socio}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
-
-        <button type="button" className="btn-ghost mb-3" onClick={() => setSeletorAberto(v => !v)}>
-          <Icon name="search" size={12}/> {seletorAberto ? 'Fechar seletor' : 'Selecionar proprietario'}
-        </button>
-
-        {seletorAberto && (
-          <ProprietarioSeletorInline
-            qsa={qsa}
-            respRazaoSocial={state.respRazaoSocial}
-            onEscolherResponsavel={escolherResponsavel}
-            onEscolherSocio={escolherSocio}
-            onEscolherManual={escolherManual}
-          />
         )}
 
         <div className="g2 mb-3">
