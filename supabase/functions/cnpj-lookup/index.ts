@@ -14,9 +14,14 @@
 // Não usa Supabase (createClient) — não lê nem grava nada no banco, só
 // repassa a consulta pública.
 
+// `x-client-info` é adicionado automaticamente pelo client supabase-js
+// (usado aqui via supabase.functions.invoke, diferente de revit-sync/
+// site-sync, chamadas por HTTP cru do plugin/scripts Python) — sem
+// liberar esse header, o preflight (OPTIONS) do navegador rejeita a
+// chamada antes mesmo do POST sair.
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type, authorization, apikey',
+  'Access-Control-Allow-Headers': 'content-type, authorization, apikey, x-client-info',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
