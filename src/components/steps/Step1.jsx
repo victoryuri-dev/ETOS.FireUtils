@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useCnpjLookup } from '../../hooks/useCnpjLookup'
 import { getEstadosDisponiveis } from '../../data/normas/index'
@@ -25,10 +25,11 @@ function maskCNPJ(raw) {
 export default function Step1({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
   const { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco, qsa } = useCnpjLookup()
-  // Fonte dos dados de "Proprietario do imovel", escolhida no seletor:
-  // 'manual' (padrao — digita livre), 'responsavel' (espelha "Responsavel
-  // pelo uso", mesmo comportamento do checkbox que existia aqui antes) ou
-  // 'socio' (preenchido uma vez a partir de qsa[socioIndex], editavel depois).
+  // Fonte dos dados de "Proprietario do imovel", so pra destacar o botao
+  // escolhido na caixa azul — 'manual' (padrao), 'responsavel' ou 'socio'.
+  // Os dois preenchem os campos uma unica vez (ver escolherResponsavel/
+  // escolherSocio); nenhum trava os campos depois, igual aos demais
+  // inputs do formulario.
   const [proprietarioFonte, setProprietarioFonte] = useState('manual')
   const [socioIndex, setSocioIndex] = useState(null)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
@@ -40,20 +41,12 @@ export default function Step1({ step, totalSteps }) {
   // encontrado fica na seção "Localizacao da obra".
   const mostrarEnderecoFiscal = !!enderecoFiscal
 
-  // Mantem "Proprietario do imovel" espelhando "Responsavel pelo uso" enquanto essa
-  // for a fonte escolhida no seletor — evita digitar os mesmos dados duas vezes
-  // quando e a mesma empresa/pessoa. Socio do quadro societario e um preenchimento
-  // unico (ver escolherSocio), nao fica espelhando nada depois.
-  useEffect(() => {
-    if (proprietarioFonte !== 'responsavel') return
-    dispatch({ type:'SET_FIELD', field:'propNome', value: state.respRazaoSocial })
-    dispatch({ type:'SET_FIELD', field:'propDocumento', value: state.respCNPJ })
-    dispatch({ type:'SET_FIELD', field:'propTelefone', value: state.respTelefone })
-  }, [proprietarioFonte, state.respRazaoSocial, state.respCNPJ, state.respTelefone])
-
   function escolherResponsavel() {
     setProprietarioFonte('responsavel')
     setSocioIndex(null)
+    dispatch({ type:'SET_FIELD', field:'propNome', value: state.respRazaoSocial })
+    dispatch({ type:'SET_FIELD', field:'propDocumento', value: state.respCNPJ })
+    dispatch({ type:'SET_FIELD', field:'propTelefone', value: state.respTelefone })
   }
   function escolherSocio(i) {
     const socio = qsa[i]
@@ -184,11 +177,11 @@ export default function Step1({ step, totalSteps }) {
         )}
 
         <div className="g2 mb-3">
-          <div className="fg"><label>Nome / Razao social <span className="req">*</span></label><input value={state.propNome} onChange={set('propNome')} readOnly={proprietarioFonte === 'responsavel'}/></div>
-          <div className="fg"><label>CPF / CNPJ <span className="req">*</span></label><input value={state.propDocumento} onChange={set('propDocumento')} readOnly={proprietarioFonte === 'responsavel'}/></div>
+          <div className="fg"><label>Nome / Razao social <span className="req">*</span></label><input value={state.propNome} onChange={set('propNome')}/></div>
+          <div className="fg"><label>CPF / CNPJ <span className="req">*</span></label><input value={state.propDocumento} onChange={set('propDocumento')}/></div>
         </div>
         <div className="g2">
-          <div className="fg"><label>Telefone</label><input type="tel" value={state.propTelefone} onChange={set('propTelefone')} placeholder="(99) 99999-9999" readOnly={proprietarioFonte === 'responsavel'}/></div>
+          <div className="fg"><label>Telefone</label><input type="tel" value={state.propTelefone} onChange={set('propTelefone')} placeholder="(99) 99999-9999"/></div>
           <div className="fg"><label>E-mail</label><input type="email" value={state.propEmail} onChange={set('propEmail')}/></div>
         </div>
       </FormSection>
