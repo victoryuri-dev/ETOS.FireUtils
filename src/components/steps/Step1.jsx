@@ -23,52 +23,46 @@ function maskCNPJ(raw) {
 }
 
 // ── Seletor de "Proprietario do imovel" ─────────────────────────────────
-// Janela com as opcoes: mesmo que o responsavel pelo uso, cada socio do
-// quadro societario (QSA) trazido pela busca de CNPJ em "Responsavel pelo
-// uso" (reaproveita o mesmo CNPJ — o dono do imovel costuma ser a propria
+// Inline (nao e popup): clicar no botao expande essa lista logo abaixo
+// dele, empurrando o resto do formulario — mesma ideia de um accordion.
+// Opcoes: mesmo que o responsavel pelo uso, cada socio do quadro
+// societario (QSA) trazido pela busca de CNPJ em "Responsavel pelo uso"
+// (reaproveita o mesmo CNPJ — o dono do imovel costuma ser a propria
 // empresa ou um dos socios dela), ou preenchimento manual.
-function ProprietarioSeletorModal({ qsa, respRazaoSocial, onEscolherResponsavel, onEscolherSocio, onEscolherManual, onClose }) {
+function ProprietarioSeletorInline({ qsa, respRazaoSocial, onEscolherResponsavel, onEscolherSocio, onEscolherManual }) {
   return (
-    <div className="fixed inset-0 z-[500] bg-black/65 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-surface border border-solid border-border rounded-lg w-[480px] max-w-[96vw] max-h-[85vh] flex flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,.55)]">
-        <div className="flex items-center justify-between gap-3 py-[18px] px-[22px] border-b border-solid border-border shrink-0">
-          <div className="text-base font-bold text-ink">Quem e o proprietario do imovel?</div>
-          <button type="button" className="btn-ghost p-1.5 shrink-0" onClick={onClose}><Icon name="x" size={14}/></button>
-        </div>
-        <div className="flex-1 overflow-y-auto py-4 px-[22px] flex flex-col gap-2">
-          <button
-            type="button" onClick={onEscolherResponsavel} disabled={!respRazaoSocial}
-            className="text-left border border-solid border-border rounded-md py-3 px-3.5 hover:border-ink-hint hover:bg-surface-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-transparent"
-          >
-            <div className="text-[13px] font-semibold text-ink">Mesmo que o responsavel pelo uso</div>
-            <div className="text-xs text-ink-faint mt-0.5">{respRazaoSocial || 'Preencha o CNPJ em "Responsavel pelo uso" primeiro'}</div>
-          </button>
+    <div className="border border-solid border-border rounded-lg bg-surface-2 py-3 px-3 mb-3 flex flex-col gap-2">
+      <button
+        type="button" onClick={onEscolherResponsavel} disabled={!respRazaoSocial}
+        className="text-left border border-solid border-border rounded-md py-3 px-3.5 bg-surface hover:border-ink-hint transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border"
+      >
+        <div className="text-[13px] font-semibold text-ink">Mesmo que o responsavel pelo uso</div>
+        <div className="text-xs text-ink-faint mt-0.5">{respRazaoSocial || 'Preencha o CNPJ em "Responsavel pelo uso" primeiro'}</div>
+      </button>
 
-          {qsa.length > 0 && (
-            <>
-              <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mt-2 mb-1">Quadro societario (do CNPJ buscado)</div>
-              {qsa.map((s, i) => (
-                <button
-                  key={i} type="button" onClick={() => onEscolherSocio(i)}
-                  className="text-left border border-solid border-border rounded-md py-3 px-3.5 hover:border-ink-hint hover:bg-surface-2 transition-colors"
-                >
-                  <div className="text-[13px] font-semibold text-ink">{s.nome_socio}</div>
-                  <div className="text-xs text-ink-faint mt-0.5">{[s.qualificacao_socio, s.cnpj_cpf_do_socio].filter(Boolean).join(' — ')}</div>
-                </button>
-              ))}
-            </>
-          )}
+      {qsa.length > 0 && (
+        <>
+          <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mt-1 mb-0.5">Quadro societario (do CNPJ buscado)</div>
+          {qsa.map((s, i) => (
+            <button
+              key={i} type="button" onClick={() => onEscolherSocio(i)}
+              className="text-left border border-solid border-border rounded-md py-3 px-3.5 bg-surface hover:border-ink-hint transition-colors"
+            >
+              <div className="text-[13px] font-semibold text-ink">{s.nome_socio}</div>
+              <div className="text-xs text-ink-faint mt-0.5">{[s.qualificacao_socio, s.cnpj_cpf_do_socio].filter(Boolean).join(' — ')}</div>
+            </button>
+          ))}
+        </>
+      )}
 
-          <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mt-2 mb-1">Outro</div>
-          <button
-            type="button" onClick={onEscolherManual}
-            className="text-left border border-solid border-border rounded-md py-3 px-3.5 hover:border-ink-hint hover:bg-surface-2 transition-colors"
-          >
-            <div className="text-[13px] font-semibold text-ink">Preencher manualmente</div>
-            <div className="text-xs text-ink-faint mt-0.5">Proprietario diferente dos listados acima</div>
-          </button>
-        </div>
-      </div>
+      <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mt-1 mb-0.5">Outro</div>
+      <button
+        type="button" onClick={onEscolherManual}
+        className="text-left border border-solid border-border rounded-md py-3 px-3.5 bg-surface hover:border-ink-hint transition-colors"
+      >
+        <div className="text-[13px] font-semibold text-ink">Preencher manualmente</div>
+        <div className="text-xs text-ink-faint mt-0.5">Proprietario diferente dos listados acima</div>
+      </button>
     </div>
   )
 }
@@ -124,11 +118,11 @@ export default function Step1({ step, totalSteps }) {
     setSeletorAberto(false)
   }
 
-  const resumoProprietarioFonte = proprietarioFonte === 'responsavel'
-    ? 'Mesmo que o responsavel pelo uso.'
+  const textoFonteCnpj = proprietarioFonte === 'responsavel'
+    ? `Mesmo que o responsavel pelo uso: ${state.respRazaoSocial}.`
     : proprietarioFonte === 'socio' && qsa[socioIndex]
-      ? `Do quadro societario: ${qsa[socioIndex].nome_socio}.`
-      : 'Preenchimento manual.'
+      ? `Preenchido a partir do quadro societario do CNPJ: ${qsa[socioIndex].nome_socio}.`
+      : ''
 
   return (
     <div className={S.section}>
@@ -220,12 +214,27 @@ export default function Step1({ step, totalSteps }) {
       </FormSection>
 
       <FormSection title="Proprietario do imovel">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <span className="text-[12px] text-ink-muted">{resumoProprietarioFonte}</span>
-          <button type="button" className="btn-ghost shrink-0" onClick={() => setSeletorAberto(true)}>
-            <Icon name="search" size={12}/> Selecionar proprietario
-          </button>
-        </div>
+        {textoFonteCnpj && (
+          <div className="ibox blue">
+            <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
+            <span>{textoFonteCnpj}</span>
+          </div>
+        )}
+
+        <button type="button" className="btn-ghost mb-3" onClick={() => setSeletorAberto(v => !v)}>
+          <Icon name="search" size={12}/> {seletorAberto ? 'Fechar seletor' : 'Selecionar proprietario'}
+        </button>
+
+        {seletorAberto && (
+          <ProprietarioSeletorInline
+            qsa={qsa}
+            respRazaoSocial={state.respRazaoSocial}
+            onEscolherResponsavel={escolherResponsavel}
+            onEscolherSocio={escolherSocio}
+            onEscolherManual={escolherManual}
+          />
+        )}
+
         <div className="g2 mb-3">
           <div className="fg"><label>Nome / Razao social <span className="req">*</span></label><input value={state.propNome} onChange={set('propNome')} readOnly={proprietarioFonte === 'responsavel'}/></div>
           <div className="fg"><label>CPF / CNPJ <span className="req">*</span></label><input value={state.propDocumento} onChange={set('propDocumento')} readOnly={proprietarioFonte === 'responsavel'}/></div>
@@ -235,17 +244,6 @@ export default function Step1({ step, totalSteps }) {
           <div className="fg"><label>E-mail</label><input type="email" value={state.propEmail} onChange={set('propEmail')}/></div>
         </div>
       </FormSection>
-
-      {seletorAberto && (
-        <ProprietarioSeletorModal
-          qsa={qsa}
-          respRazaoSocial={state.respRazaoSocial}
-          onEscolherResponsavel={escolherResponsavel}
-          onEscolherSocio={escolherSocio}
-          onEscolherManual={escolherManual}
-          onClose={() => setSeletorAberto(false)}
-        />
-      )}
     </div>
   )
 }
