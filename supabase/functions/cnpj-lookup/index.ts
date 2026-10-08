@@ -32,6 +32,26 @@ function json(body, status = 200) {
   })
 }
 
+// Melhor esforço: a BrasilAPI lista "email" no schema dela, mas não
+// preenche esse campo (confirmado testando vários CNPJs, inclusive
+// grandes empresas — sempre null), mesmo quando a Receita Federal tem o
+// dado cadastrado. O CNPJ.ws lê a mesma base pública e traz o e-mail
+// corretamente, só que o plano gratuito é limitado a 3 consultas/minuto —
+// pouco pra ser a fonte principal, mas serve como complemento. Roda em
+// paralelo com a consulta principal (não serializa, pra não atrasar o
+// resto) e qualquer falha aqui (rate-limit, timeout, CNPJ sem e-mail) é
+// silenciosa: a consulta principal nunca depende disso.
+async function buscarEmailComplementar(digits) {
+  try {
+    const res = await fetch(`https://publica.cnpj.ws/cnpj/${digits}`, { signal: AbortSignal.timeout(4000) })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data?.estabelecimento?.email || null
+  } catch {
+    return null
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS })
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
@@ -46,6 +66,10 @@ Deno.serve(async (req) => {
   const digits = String(body?.cnpj || '').replace(/\D/g, '')
   if (digits.length !== 14) return json({ error: 'CNPJ invalido — informe 14 digitos' }, 400)
 
+  // Dispara a busca complementar de e-mail já aqui (sem await) pra rodar em
+  // paralelo com a consulta principal, não em série depois dela.
+  const emailComplementarPromise = buscarEmailComplementar(digits)
+
   let res
   try {
     res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`)
@@ -58,5 +82,7 @@ Deno.serve(async (req) => {
   if (!res.ok) return json({ error: 'Nao foi possivel consultar o CNPJ agora. Tente novamente.' }, 502)
 
   const data = await res.json()
+  if (!data.email) data.email = await emailComplementarPromise
+
   return json(data, 200)
 })
