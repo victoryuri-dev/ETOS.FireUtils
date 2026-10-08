@@ -669,11 +669,10 @@ function RefLabel({ children }) {
   return <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">{children}</div>
 }
 
-// Tabelas 4 (classe A) e 5 (classe B) — unidade extintora mínima e
-// distância máxima a percorrer por nível de risco (Tabela 3, mesma
-// classificação de classificarRisco/LIMIARES_RISCO). Nível alto tem duas
-// opções equivalentes — mostradas como duas linhas sob o mesmo rótulo de
-// risco (ver capacidadeMinimaPorRisco em data/extintores_calc.js).
+// Unidade extintora mínima (extintores portáteis) e distância máxima a
+// percorrer por nível de risco (Tabela 3, mesma classificação de
+// classificarRisco/LIMIARES_RISCO), uma linha por risco — ver
+// capacidadeMinimaPorRisco em data/extintores_calc.js.
 function TabelaCapacidadePorRisco({ classe }) {
   return (
     <table className="w-full border-collapse">
@@ -686,16 +685,14 @@ function TabelaCapacidadePorRisco({ classe }) {
       </thead>
       <tbody>
         {RISCO_ROWS.map(r => {
-          const opcoes = capacidadeMinimaPorRisco(r.key, classe)
-          return opcoes.map((op, i) => (
-            <tr key={`${r.key}-${i}`}>
-              {i === 0 && (
-                <td rowSpan={opcoes.length} className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2 align-top">{r.label}</td>
-              )}
-              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op.capacidade}</td>
-              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op.distanciaMaxima} m</td>
+          const op = capacidadeMinimaPorRisco(r.key, classe)
+          return (
+            <tr key={r.key}>
+              <td className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2">{r.label}</td>
+              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op?.capacidade ?? '—'}</td>
+              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op ? `${op.distanciaMaxima} m` : '—'}</td>
             </tr>
-          ))
+          )
         })}
       </tbody>
     </table>
@@ -747,7 +744,7 @@ function ReferenciaNormativa({ extNorma }) {
         </div>
 
         <div>
-          <RefLabel>Capacidade extintora mínima por risco de incêndio</RefLabel>
+          <RefLabel>Capacidade extintora mínima por risco de incêndio (extintores portáteis)</RefLabel>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Classe A</div>
