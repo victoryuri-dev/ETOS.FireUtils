@@ -13,12 +13,20 @@ function maskCNAE(raw) {
 // Busca o CNAE fiscal de uma empresa pelo CNPJ (mesma Edge Function
 // cnpj-lookup de useCnpjLookup.js — nunca duas fontes de verdade pra
 // consulta de CNPJ, nem duas formas diferentes de esbarrar no mesmo
-// rate-limit/CORS da BrasilAPI quando chamada direto do navegador) e tenta
-// casar esse CNAE contra a base normativa da UF do projeto, pra sugerir
-// grupo/divisao automaticamente na classificacao de um pavimento (ver
-// PavModal em Step4.jsx). Ao contrario de useCnpjLookup, nao grava nada no
-// projeto sozinho — so devolve o resultado, e quem chamou decide se aplica
-// (ex: so no Terreo).
+// rate-limit/CORS da BrasilAPI quando chamada direto do navegador), pra
+// sugerir grupo/divisao na classificacao de um pavimento qualquer (botão
+// "Preencher do CNPJ", ver PavModal em Step4.jsx). Não grava nada no
+// projeto sozinho — só devolve o resultado, e quem chamou decide se aplica.
+//
+// O CNAE PRINCIPAL registrado na Receita nem sempre está cadastrado na
+// base normativa (ex.: empresa com CNAE principal genérico — "Lojas de
+// departamentos" — mas CNAE secundário específico — "Supermercados" — que
+// a norma já cataloga). Por isso o resultado traz dois candidatos
+// separados: `principal` (sempre, usável mesmo sem corresponder a nenhuma
+// carga de incêndio cadastrada — quem aplicar decide se preenche só o CNAE
+// ou também grupo/divisão) e `secundario` (o primeiro CNAE secundário da
+// Receita que bate com a base normativa da UF, só quando o principal não
+// bateu — null se não houver nenhum).
 export function useCnaeCnpjLookup() {
   const { state } = useProjeto()
   const uf = state.uf || 'MA'
@@ -51,25 +59,23 @@ export function useCnaeCnpjLookup() {
 
       if (!d.cnae_fiscal) throw new Error('Este CNPJ nao tem CNAE fiscal cadastrado na Receita Federal.')
 
-      // O CNAE PRINCIPAL registrado na Receita nem sempre e o que esta
-      // cadastrado na base normativa (ex.: empresa com CNAE principal
-      // generico tipo "Lojas de departamentos", mas CNAE secundario
-      // especifico — "Supermercados" — que a norma ja cataloga). Sem
-      // correspondencia no principal, tenta cada CNAE secundario antes de
-      // desistir, usando o primeiro que casar.
       const cnaePrincipal = maskCNAE(String(d.cnae_fiscal))
-      let cnae = cnaePrincipal
-      let descricao = d.cnae_fiscal_descricao || ''
-      let match = buscarCNAEExato(uf, cnaePrincipal)
-      if (!match && Array.isArray(d.cnaes_secundarios)) {
+      const principal = {
+        cnae: cnaePrincipal,
+        descricao: d.cnae_fiscal_descricao || '',
+        match: buscarCNAEExato(uf, cnaePrincipal),
+      }
+
+      let secundario = null
+      if (!principal.match && Array.isArray(d.cnaes_secundarios)) {
         for (const sec of d.cnaes_secundarios) {
           const cnaeSec = maskCNAE(String(sec.codigo))
-          const m = buscarCNAEExato(uf, cnaeSec)
-          if (m) { match = m; cnae = cnaeSec; descricao = sec.descricao || ''; break }
+          const match = buscarCNAEExato(uf, cnaeSec)
+          if (match) { secundario = { cnae: cnaeSec, descricao: sec.descricao || '', match }; break }
         }
       }
 
-      setResultado({ cnae, descricao, razaoSocial: d.razao_social || '', match })
+      setResultado({ principal, secundario, razaoSocial: d.razao_social || '' })
     } catch (e) {
       setError(e.message || 'Erro ao consultar CNPJ.')
     } finally {
