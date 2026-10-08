@@ -6,6 +6,7 @@ import {
 import { ProjetoProvider, useProjeto, newIds } from './context/ProjetoContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabase } from './lib/supabase'
+import { usePerfil } from './hooks/usePerfil'
 import { criarProjetoExemplo } from './data/projetoExemplo'
 import LoginPage      from './pages/LoginPage'
 import LandingPage    from './pages/LandingPage'
@@ -33,7 +34,7 @@ import DeteccaoIncendioPage   from './pages/medidas/DeteccaoIncendioPage'
 import Icon           from './components/ui/Icon'
 import Loader         from './components/ui/Loader'
 import ToastProvider   from './components/ui/ToastProvider'
-import logo           from './assets/fireutils-logo.png'
+import landingLogo    from './assets/fireutils-landing.svg'
 
 // ── SaveStatusIndicator ───────────────────────────────────────────────
 // Mostra se o projeto esta sendo sincronizado com o servidor ou se ja foi
@@ -66,16 +67,22 @@ function SaveStatusIndicator({ status }) {
 // ── AppHeader ─────────────────────────────────────────────────────────
 function AppHeader({ onGoProjetos, isProjectPage }) {
   const { user, signOut } = useAuth()
+  const { perfil } = usePerfil()
   const { state, syncStatus } = useProjeto()
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const profileName = perfil?.nome?.trim()
+    || user?.user_metadata?.full_name
+    || user?.user_metadata?.name
+    || user?.email?.split('@')[0]
+    || 'Perfil'
 
   return (
     <header className="flex items-center justify-between gap-3 px-6 h-16 border-b border-border border-solid shrink-0 z-100">
       {/* Logo — omitida dentro de um projeto, ja mostrada no topo do aside */}
       {!isProjectPage && (
         <div className="flex items-center gap-2.5">
-          <img src={logo} alt="Fire Utils" className="h-11 w-auto"/>
+          <img src={landingLogo} alt="FireUtils" className="w-[126px] h-auto"/>
         </div>
       )}
 
@@ -105,9 +112,12 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
         <button
           onClick={() => setMenuOpen(o => !o)}
           title={user?.email}
-          className="w-[30px] h-[30px] rounded-full bg-surface-2 border border-border border-solid flex items-center justify-center cursor-pointer text-ink-faint hover:text-ink"
+          className="group flex items-center gap-2.5 min-w-0 cursor-pointer text-ink-muted hover:text-ink transition-colors"
         >
-          <Icon name="user" size={13}/>
+          <span className="max-w-[180px] truncate text-[12px]">{profileName}</span>
+          <span className="w-[30px] h-[30px] rounded-full bg-surface-2 flex items-center justify-center shrink-0 text-ink-faint transition-colors group-hover:text-ink">
+            <Icon name="user" size={13}/>
+          </span>
         </button>
         {menuOpen && (
           <>

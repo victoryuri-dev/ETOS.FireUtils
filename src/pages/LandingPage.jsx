@@ -5,6 +5,8 @@ import logo from '../assets/fireutils-landing.svg'
 import revitVideo from '../assets/revit-fireutils.mp4'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
+import { useAuth } from '../context/AuthContext'
+import { usePerfil } from '../hooks/usePerfil'
 import './LandingPage.css'
 import { useBuildingMotion, useLandingMotion } from '../hooks/useLandingMotion'
 
@@ -51,6 +53,12 @@ const networkNodePoints = [
   { x: 1005, y: 145 }, { x: 995, y: 440 }, { x: 460, y: 561 },
 ]
 
+// Pontos distribuídos pelo comprimento real da elipse. Em uma elipse, dividir
+// apenas o ângulo aproxima os módulos nas laterais; estes ângulos preservam um
+// intervalo visual mais constante sem transformar a órbita em um círculo.
+const networkOrbitAngles = [0, 1.135089, 2.006535, Math.PI, 4.276681, 5.148128]
+const networkHighlightSequence = [0, 3, 1, 4, 2, 5]
+
 const networkAuxNodes = [
   { kind: 'label', text: 'PRODUTIVIDADE', x: 290, y: 175, link: 1 },
   { kind: 'label', text: 'NT 11', x: 275, y: 345, link: 2 },
@@ -83,15 +91,19 @@ function Mark() {
   return <svg className="fl-mark" viewBox="0 0 168 216" aria-hidden="true"><path d="M168 0V154.523H121.426V50.9454L168 0Z"/><path d="M103.129 61.4769V216H58.2179V112.422L103.129 61.4769Z"/><path d="M44.9109 112.985H0V164.492L44.9109 112.985Z"/></svg>
 }
 
-function ModuleNetwork() {
+export function ModuleNetwork() {
   const boardRef = useRef(null)
+  const userInteractionRef = useRef(false)
+  const automaticModuleIndexRef = useRef(0)
   const [activeModule, setActiveModule] = useState(null)
   const [decodedDescription, setDecodedDescription] = useState('')
   const activateModule = index => {
+    userInteractionRef.current = true
     setDecodedDescription('')
     setActiveModule(index)
   }
   const deactivateModules = () => {
+    userInteractionRef.current = false
     setDecodedDescription('')
     setActiveModule(null)
   }
@@ -124,7 +136,7 @@ function ModuleNetwork() {
       }
     }
     const updateOrbit = (time = 0) => {
-      const useOrbit = window.innerWidth > 900
+      const useOrbit = window.innerWidth > 900 || Boolean(board.closest('.login-network'))
       if (!useOrbit) {
         if (orbitActive) {
           gsap.set(items, { clearProps: 'left,top' })
@@ -136,10 +148,10 @@ function ModuleNetwork() {
       orbitActive = true
       const motionTime = time * .15
       const modulePoints = items.map((item, index) => {
-        const baseAngle = index / items.length * Math.PI * 2 - Math.PI * .72
-        const angle = baseAngle + motionTime * .105 + Math.sin(motionTime * .16 + index * 1.13) * .16
-        const radiusX = 408 + Math.sin(motionTime * .11 + index * 1.47) * 55
-        const radiusY = 248 + Math.cos(motionTime * .14 + index * 1.21) * 38
+        const baseAngle = networkOrbitAngles[index] - Math.PI * .72
+        const angle = baseAngle + motionTime * .105 + Math.sin(motionTime * .16 + index * 1.13) * .045
+        const radiusX = 408 + Math.sin(motionTime * .11 + index * 1.47) * 18
+        const radiusY = 248 + Math.cos(motionTime * .14 + index * 1.21) * 14
         const x = 580 + Math.cos(angle) * radiusX
         const y = 350 + Math.sin(angle) * radiusY
         gsap.set(item, { left: `${(x - 115) / 11.6}%`, top: `${(y - 36) / 7.2}%` })
@@ -204,6 +216,40 @@ function ModuleNetwork() {
       board.removeEventListener('pointerleave', reset)
       gsap.ticker.remove(updateConnections)
       gsap.killTweensOf([...nodes, ...auxNodes])
+    }
+  }, [])
+
+  useEffect(() => {
+    if (window.innerWidth <= 700 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let cycleTimer
+    let closeTimer
+    let cancelled = false
+    const queueNext = () => {
+      if (cancelled) return
+      const delay = 2500
+      cycleTimer = window.setTimeout(() => {
+        if (userInteractionRef.current) {
+          queueNext()
+          return
+        }
+        const next = networkHighlightSequence[automaticModuleIndexRef.current]
+        automaticModuleIndexRef.current = (automaticModuleIndexRef.current + 1) % networkHighlightSequence.length
+        setDecodedDescription('')
+        setActiveModule(next)
+        closeTimer = window.setTimeout(() => {
+          if (!userInteractionRef.current) {
+            setDecodedDescription('')
+            setActiveModule(null)
+          }
+          queueNext()
+        }, 6000)
+      }, delay)
+    }
+    queueNext()
+    return () => {
+      cancelled = true
+      window.clearTimeout(cycleTimer)
+      window.clearTimeout(closeTimer)
     }
   }, [])
 
@@ -347,6 +393,8 @@ function Preview({ stage, compact = false, view }) {
 
 export default function LandingPage() {
   const landingRef = useRef(null)
+  const { user, loading: authLoading } = useAuth()
+  const { perfil } = usePerfil()
   const [stage, setStage] = useState(0)
   const [videoReady, setVideoReady] = useState(false)
   const [previewReady, setPreviewReady] = useState(false)
@@ -356,6 +404,11 @@ export default function LandingPage() {
   const handlePreviewReady = useCallback(() => setPreviewReady(true), [])
   useLandingMotion(landingRef, stage, setStage, heroReady)
   const [menu, setMenu] = useState(false)
+  const profileName = perfil?.nome?.trim()
+    || user?.user_metadata?.full_name
+    || user?.user_metadata?.name
+    || user?.email?.split('@')[0]
+    || 'Perfil'
   useEffect(() => {
     const fallback = window.setTimeout(() => setLoadTimedOut(true), 3000)
     return () => window.clearTimeout(fallback)
@@ -368,7 +421,7 @@ export default function LandingPage() {
   return <div ref={landingRef} className={`fire-landing ${heroReady ? 'is-ready' : 'is-loading'}`}>
     {!heroReady && <div className="fl-entry-loader" role="status" aria-label="Carregando experiência FireUtils"><Loader size={44}/></div>}
     <a className="fl-skip" href="#conteudo">Ir para o conteúdo</a>
-    <header className="fl-header"><a href="#inicio" aria-label="FireUtils início"><img src={logo} alt="FireUtils"/></a><nav aria-label="Navegação principal" className={menu ? 'is-open' : ''}><a href="#demonstracao" onClick={() => setMenu(false)}>Demonstração</a><a href="#recursos" onClick={() => setMenu(false)}>Recursos</a></nav><button className="fl-menu" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="Abrir menu">{menu ? '✕' : '☰'}</button></header>
+    <header className="fl-header"><a href="#inicio" aria-label="FireUtils início"><img src={logo} alt="FireUtils"/></a><nav aria-label="Navegação principal" className={menu ? 'is-open' : ''}><a href="#demonstracao" onClick={() => setMenu(false)}>Demonstração</a><a href="#recursos" onClick={() => setMenu(false)}>Recursos</a></nav><div className="fl-header-account">{authLoading || (user && !perfil) ? <span className="fl-account-skeleton" aria-hidden="true"/> : user ? <Link className="fl-profile-link" to="/perfil" onClick={() => setMenu(false)} title={profileName}><span>{profileName}</span><span className="fl-profile-icon"><Icon name="user" size={14}/></span></Link> : <Link className="fl-signin-link" to="/login" onClick={() => setMenu(false)}><span>Entrar</span><Icon name="user" size={14}/></Link>}</div><button className="fl-menu" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="Abrir menu">{menu ? '✕' : '☰'}</button></header>
     <main id="conteudo">
       <section className="fl-hero" id="inicio"><div className="fl-beams" aria-hidden="true"><i/><i/><i/></div><div className="fl-hero-copy"><h1>A FERRAMENTA DEFINITIVA PARA <span className="fl-title-accent">PPCI</span></h1><p className="fl-hero-subtitle">Integre projeto, dimensionamento e documentação do seu PPCI em um único fluxo.</p><div className="fl-actions"><Link className="fl-primary" to="/pricing">Ver planos e preços <span>↗</span></Link><a className="fl-secondary" href="#demonstracao"><span className="fl-play">▶</span> Conheça o fluxo</a></div></div><div className="fl-hero-product"><ConnectedHero onVideoReady={handleVideoReady} onPreviewReady={handlePreviewReady}/></div><div className="fl-hero-bottom"><span>PROJETE. CONECTE. DOCUMENTE.</span><a href="#demonstracao">CONTINUE EXPLORANDO ↓</a></div></section>
       <section className="fl-section fl-demo" id="demonstracao"><div className="fl-section-head"><h2>Do modelo ao memorial.<br/><span>Veja o projeto avançar.</span></h2></div><div className="fl-demo-sticky"><div id="fl-demo-panel" className="fl-demo-desktop" aria-live="polite"><div className="fl-demo-stage" key={stage}><div className="fl-demo-caption"><div className="fl-demo-title"><span className="fl-demo-step">#0{stage + 1} {stages[stage].name}</span><h3>{stages[stage].title}</h3></div><p>{stages[stage].description}</p></div><div className="fl-demo-window"><Preview stage={stage}/></div></div></div><div className="fl-demo-mobile">{stages.map((item,index) => <article className={`fl-mobile-stage is-stage-${index + 1}`} key={item.name}><div className="fl-demo-caption"><div className="fl-demo-title"><span className="fl-demo-step">#0{index + 1} {item.name}</span><h3>{item.title}</h3></div><p>{item.description}</p></div><div className="fl-demo-window"><Preview stage={index}/></div></article>)}</div></div></section>

@@ -306,6 +306,17 @@
 
 /* Compact navigation and hero actions. */
 .fl-header{border-bottom:0}
+.fl-header>a:first-child{flex:1}
+.fl-header nav{flex:0 0 auto}
+.fl-header-account{display:flex;flex:1;align-items:center;justify-content:flex-end;min-width:0}
+.fl-profile-link,.fl-signin-link{display:inline-flex;align-items:center;gap:10px;min-height:34px;color:#c7c7ce;font-size:11px;line-height:1;transition:color .2s ease}
+.fl-profile-link:hover,.fl-signin-link:hover{color:var(--fl-white)}
+.fl-profile-link{max-width:210px}
+.fl-profile-link>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-profile-icon{display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;border-radius:50%;background:#ffffff0c;color:var(--fl-white);transition:background .2s ease,color .2s ease}
+.fl-profile-link:hover .fl-profile-icon{background:#ea13301c;color:#ff4159}
+.fl-account-skeleton{width:96px;height:34px;border-radius:5px;background:linear-gradient(100deg,#ffffff08 20%,#ffffff14 45%,#ffffff08 70%);background-size:220% 100%;animation:fl-account-shimmer 1.4s ease-in-out infinite}
+@keyframes fl-account-shimmer{to{background-position:-220% 0}}
 @media(min-width:801px){
   .fl-header{height:72px;padding-inline:32px}
   .fl-header img{width:126px}
@@ -326,6 +337,11 @@
 @media(max-width:600px){
   .fl-header{height:64px}
   .fl-header img{width:104px}
+  .fl-header>a:first-child{flex:0 0 auto}
+  .fl-header-account{flex:0 1 auto;margin-left:auto}
+  .fl-profile-link{max-width:125px;font-size:10px}
+  .fl-signin-link{font-size:10px}
+  .fl-profile-icon{flex-basis:22px;width:22px;height:22px}
   .fl-primary,.fl-secondary{font-size:13px}
   .fl-primary{min-height:44px;padding:10px 16px}
 }
