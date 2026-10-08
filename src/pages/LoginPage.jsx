@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Loader from '../components/ui/Loader'
 import Icon from '../components/ui/Icon'
@@ -6,7 +6,32 @@ import { ModuleNetwork } from './LandingPage'
 import './LoginPage.css'
 
 function LoginNetwork() {
-  return <aside className="login-network" aria-label="Ecossistema de módulos FireUtils"><div className="login-network-stage"><ModuleNetwork/></div></aside>
+  const networkRef = useRef(null)
+  const stageRef = useRef(null)
+
+  useEffect(() => {
+    const network = networkRef.current
+    const stage = stageRef.current
+    if (!network || !stage) return
+    const resize = () => {
+      if (window.innerWidth > 700) {
+        stage.style.setProperty('--login-network-scale', stage.clientWidth / 1160)
+        return
+      }
+      stage.style.removeProperty('--login-network-scale')
+    }
+    resize()
+    const observer = new ResizeObserver(resize)
+    observer.observe(network)
+    observer.observe(stage)
+    window.addEventListener('resize', resize)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
+
+  return <aside ref={networkRef} className="login-network" aria-label="Ecossistema de módulos FireUtils"><div ref={stageRef} className="login-network-stage"><ModuleNetwork/></div></aside>
 }
 
 // O redirecionamento após o login é controlado pelo LoginRoute em App.jsx,

@@ -2,9 +2,9 @@
   position:relative;
   min-height:100dvh;
   display:grid;
-  grid-template-columns:max-content max-content;
+  grid-template-columns:minmax(0,1fr) minmax(380px,430px);
   grid-template-rows:1fr;
-  justify-content:space-evenly;
+  justify-content:stretch;
   overflow:hidden;
   isolation:isolate;
   background:#101014;
@@ -41,16 +41,8 @@
 .login-network *{box-sizing:border-box}
 .login-network h3{margin:0;font-family:'Space Grotesk',sans-serif;font-weight:500;letter-spacing:-.045em}
 .login-network p{margin:0}
-.login-network-stage{position:relative;flex:0 0 840px;width:840px;height:540px}
-.login-network-stage>.fl-network-board{position:absolute;left:50%;top:50%;width:1160px;height:720px;margin:-360px 0 0 -580px;transform:scale(.69);transform-origin:center}
-@media(min-width:1600px) and (min-height:760px){
-  .login-network-stage{flex-basis:1000px;width:1000px;height:620px}
-  .login-network-stage>.fl-network-board{transform:scale(.84)}
-}
-@media(min-width:1900px) and (min-height:850px){
-  .login-network-stage{flex-basis:1160px;width:1160px;height:720px}
-  .login-network-stage>.fl-network-board{transform:scale(1)}
-}
+.login-network-stage{position:relative;flex:0 0 80%;width:80%;height:auto;aspect-ratio:1160/720}
+.login-network-stage>.fl-network-board{position:absolute;left:50%;top:50%;width:1160px;height:720px;margin:-360px 0 0 -580px;transform:scale(var(--login-network-scale,.69));transform-origin:center}
 .login-original-card{
   position:relative;
   z-index:1;
@@ -100,39 +92,30 @@
 }
 .login-mode-toggle:disabled{cursor:wait;opacity:.55}
 @media(min-width:1101px) and (max-width:1360px){
-  .login-network-stage{flex-basis:580px;width:580px;height:430px}
-  .login-network-stage>.fl-network-board{transform:scale(.5)}
   .login-form-pane{width:350px}
 }
 @media(min-width:901px) and (max-width:1100px){
   .login-original{height:100dvh;grid-template-columns:1fr;grid-template-rows:60% 40%;justify-content:stretch;align-content:stretch;row-gap:0;padding:0 20px;overflow:hidden}
   .login-network{display:flex;width:100%;min-height:0}
-  .login-network-stage{flex-basis:720px;width:720px;height:460px}
-  .login-network-stage>.fl-network-board{transform:scale(.6)}
-  .login-form-pane{align-self:stretch;justify-self:center;width:min(100%,380px);padding:8px 0}
+  .login-form-pane{align-self:stretch;justify-self:center;width:min(100%,380px);padding:8px 0;transform:translateY(-28px)}
   .login-original-card{padding:16px 32px}
 }
 @media(min-width:701px) and (max-width:900px){
   .login-original{height:100dvh;grid-template-columns:1fr;grid-template-rows:60% 40%;justify-content:stretch;align-content:stretch;row-gap:0;padding:0 20px;overflow:hidden}
   .login-network{display:flex;width:100%;min-height:0}
-  .login-network-stage{flex-basis:720px;width:720px;height:460px}
-  .login-network-stage>.fl-network-board{display:block;height:720px;overflow:visible;gap:0;padding:0;transform:scale(.6)}
+  .login-network-stage>.fl-network-board{display:block;height:720px;overflow:visible;gap:0;padding:0}
   .login-network .fl-network-lines{display:block}
   .login-network .fl-network-aux-anchor{display:block}
   .login-network .fl-network-core{position:absolute;left:calc(50% - 85px);top:315px;width:170px;height:70px;margin:0}
   .login-network .fl-network-item{position:absolute;width:230px}
   .login-network .fl-network-item-detail{position:absolute;top:calc(100% + 9px);margin-top:0;min-height:74px}
-  .login-form-pane{align-self:stretch;justify-self:center;width:min(100%,380px);padding:8px 0}
+  .login-form-pane{align-self:stretch;justify-self:center;width:min(100%,380px);padding:8px 0;transform:translateY(-28px)}
   .login-original-card{padding:16px 32px}
 }
 @media(max-width:700px){
   .login-original{display:flex;align-items:center;justify-content:center;padding:18px}
   .login-network{display:none}
   .login-form-pane{width:min(100%,380px);padding:0;border:0;background:transparent;box-shadow:none}
-}
-@media(min-width:701px) and (max-width:799px){
-  .login-network-stage{flex-basis:660px;width:660px;height:420px}
-  .login-network-stage>.fl-network-board{transform:scale(.55)}
 }
 @media(max-width:560px){
   .login-original-card{padding:26px}
