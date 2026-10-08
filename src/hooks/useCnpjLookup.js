@@ -39,6 +39,10 @@ export function useCnpjLookup() {
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
   const [enderecoFiscal, setEnderecoFiscal] = useState(null)
+  // Quadro societario (QSA) do CNPJ buscado — usado pelo seletor de
+  // "Proprietario do imovel" (Step1.jsx), pra oferecer cada socio como
+  // opcao alem de "mesmo que o responsavel pelo uso".
+  const [qsa, setQsa] = useState([])
 
   async function buscar(cnpjRaw) {
     const digits = (cnpjRaw || '').replace(/\D/g, '')
@@ -50,6 +54,7 @@ export function useCnpjLookup() {
     setError('')
     setWarning('')
     setEnderecoFiscal(null)
+    setQsa([])
     try {
       const { data: d, error: fnError } = await supabase.functions.invoke('cnpj-lookup', { body: { cnpj: digits } })
       if (fnError) {
@@ -85,6 +90,7 @@ export function useCnpjLookup() {
         uf: d.uf || '',
         ufSuportado: estadoSuportado,
       })
+      setQsa(Array.isArray(d.qsa) ? d.qsa : [])
     } catch (e) {
       setError(e.message || 'Erro ao consultar CNPJ.')
     } finally {
@@ -105,5 +111,5 @@ export function useCnpjLookup() {
     }
   }
 
-  return { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco }
+  return { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco, qsa }
 }
