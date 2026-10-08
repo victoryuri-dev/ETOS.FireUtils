@@ -51,13 +51,25 @@ export function useCnaeCnpjLookup() {
 
       if (!d.cnae_fiscal) throw new Error('Este CNPJ nao tem CNAE fiscal cadastrado na Receita Federal.')
 
-      const cnae = maskCNAE(String(d.cnae_fiscal))
-      setResultado({
-        cnae,
-        descricao: d.cnae_fiscal_descricao || '',
-        razaoSocial: d.razao_social || '',
-        match: buscarCNAEExato(uf, cnae),
-      })
+      // O CNAE PRINCIPAL registrado na Receita nem sempre e o que esta
+      // cadastrado na base normativa (ex.: empresa com CNAE principal
+      // generico tipo "Lojas de departamentos", mas CNAE secundario
+      // especifico — "Supermercados" — que a norma ja cataloga). Sem
+      // correspondencia no principal, tenta cada CNAE secundario antes de
+      // desistir, usando o primeiro que casar.
+      const cnaePrincipal = maskCNAE(String(d.cnae_fiscal))
+      let cnae = cnaePrincipal
+      let descricao = d.cnae_fiscal_descricao || ''
+      let match = buscarCNAEExato(uf, cnaePrincipal)
+      if (!match && Array.isArray(d.cnaes_secundarios)) {
+        for (const sec of d.cnaes_secundarios) {
+          const cnaeSec = maskCNAE(String(sec.codigo))
+          const m = buscarCNAEExato(uf, cnaeSec)
+          if (m) { match = m; cnae = cnaeSec; descricao = sec.descricao || ''; break }
+        }
+      }
+
+      setResultado({ cnae, descricao, razaoSocial: d.razao_social || '', match })
     } catch (e) {
       setError(e.message || 'Erro ao consultar CNPJ.')
     } finally {
