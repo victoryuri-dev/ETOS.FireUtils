@@ -33,13 +33,29 @@ const PRIMEIRA_SECAO_MEDIDA = 6
 const NIVEL_MAXIMO_SUMARIO = 1
 
 // Secoes do memorial fluem livremente pelo Paged.js (ver PreviewPaginado):
-// nao ha mais quebra de pagina forcada por secao — varias secoes pequenas
-// (ex.: medidas de seguranca com pouco texto, caso comum de Acesso de
-// Viatura, Compartimentacao etc.) cabem juntas na mesma folha A4, economizando
-// papel; so quando o conteudo acumulado nao cabe mais e que o Paged.js abre
-// pagina nova, exatamente como um editor de texto comum. Aqui a secao e so
-// um bloco de conteudo, sem largura, sombra ou margem de folha.
+// a maioria das medidas de seguranca (texto curto, caso comum de Acesso de
+// Viatura, Compartimentacao etc.) nao forca quebra de pagina propria e cabe
+// empilhada com a seguinte na mesma folha A4, economizando papel. Um grupo
+// fixo de secoes (ver FOLHA_ISOLADA/ISOLAR_SECOES_MEDIDA abaixo) sempre abre
+// pagina nova, por serem "capitulos" do documento ou secoes longas/complexas
+// que não devem dividir folha com outra coisa. Aqui a secao e so um bloco de
+// conteudo, sem largura, sombra ou margem de folha.
 const FOLHA = 'memorial-secao relative flex flex-col w-full bg-white text-black'
+
+// Secoes que sempre abrem pagina propria (nunca dividem folha com a secao
+// anterior), por serem capitulos do documento (Objetivo+Legislacao, Sobre a
+// Edificacao, Caracterizacao, Medidas Aplicadas) ou medidas de seguranca
+// longas/complexas o bastante pra nao fazer sentido espremidas com outra
+// coisa na mesma folha — ver ISOLAR_SECOES_MEDIDA pra quais medidas entram
+// aqui.
+const FOLHA_ISOLADA = `${FOLHA} memorial-secao-isolada`
+
+// Titulos de SecaoMedida (ver buildMemorial) que, por extensao/complexidade,
+// tambem devem sempre abrir pagina propria — comparado por igualdade
+// (Saída de Emergência) ou prefixo (o memorial de calculo de hidrantes leva
+// o sistema no titulo: "Memorial de Cálculo — Sistema de Hidrantes").
+const ISOLAR_SECOES_MEDIDA = new Set(['Saída de Emergência'])
+const secaoMedidaEhIsolada = titulo => ISOLAR_SECOES_MEDIDA.has(titulo) || titulo.startsWith('Memorial de Cálculo')
 
 // CSS processado pelo Paged.js: pagina A4 com margem de 25mm e numero da
 // pagina no canto inferior direito. Capa e Sumario (pagina nomeada
@@ -47,12 +63,15 @@ const FOLHA = 'memorial-secao relative flex flex-col w-full bg-white text-black'
 //
 // Capa/Sumario continuam cada uma na sua propria pagina (break-after: page),
 // inclusive com altura minima de pagina cheia — a Capa depende disso pra
-// centralizar o titulo verticalmente (my-auto). As demais secoes (Objetivo,
-// Caracterizacao, cada medida de seguranca...) NAO forcam quebra: so pedem
+// centralizar o titulo verticalmente (my-auto). `.memorial-secao-isolada`
+// (ver FOLHA_ISOLADA acima) tambem sempre abre pagina propria. As demais
+// secoes (a maioria das medidas de seguranca) NAO forcam quebra: so pedem
 // break-inside:avoid pra uma secao pequena nao ficar cortada ao meio entre
 // duas paginas (ela inteira pula pra proxima pagina se nao couber no resto
 // da atual) — sem impedir que, quando sobra espaco, a proxima secao comece
-// ali mesmo, embaixo da anterior.
+// ali mesmo, embaixo da anterior; nesse caso, `.memorial-secao-medida` da
+// uma linha em branco de respiro entre as duas (igual ao gap entre
+// titulo/subtitulo), pra nao ficarem coladas uma na outra.
 //
 // A margem inferior do ultimo elemento da secao e zerada de proposito: a secao
 // e flex-col (margens nao colapsam), entao a margem de uma tabela que termina
@@ -64,6 +83,8 @@ const CSS_PAGINA = `
 @page pretextual { @bottom-right { content: none; } }
 .memorial-pretextual { page: pretextual; break-after: page; min-height: 246mm; }
 .memorial-secao:not(.memorial-pretextual) { break-inside: avoid; }
+.memorial-secao-isolada { break-before: page; }
+.memorial-secao-medida { margin-top: 1.5em; }
 tr, td, th { break-inside: avoid; }
 .memorial-secao > :last-child,
 .memorial-secao > :last-child > :last-child,
@@ -215,6 +236,19 @@ function coletarSecoes(destino) {
   })
 }
 
+// Depois que o Paged.js paginou: a margem de cima de `.memorial-secao-medida`
+// (o respiro entre duas medidas empilhadas na mesma folha — ver CSS_PAGINA)
+// não deve sobrar quando essa secao calhar de ser a primeira da pagina (por
+// quebra natural de conteudo, nao por `.memorial-secao-isolada`) — o topo da
+// folha ja separa visualmente, e o Paged.js nao recorta essa margem sozinho
+// (mesmo motivo da margem de baixo, zerada à parte em CSS_PAGINA).
+function zerarMargemTopoDePagina(destino) {
+  destino.querySelectorAll('.pagedjs_page').forEach(pagina => {
+    const primeira = pagina.querySelector('.memorial-secao-medida')
+    if (primeira) primeira.style.marginTop = '0'
+  })
+}
+
 // Depois que o Paged.js paginou: cada linha do Sumario recebe o numero da
 // pagina (contando a capa como 1) em que o titulo dela realmente caiu.
 function preencherPaginasSumario(destino) {
@@ -270,7 +304,7 @@ function Introducao({ sistemas, uf }) {
     .sort((a, b) => parseInt(a.numero.replace(/\D/g, ''), 10) - parseInt(b.numero.replace(/\D/g, ''), 10))
 
   return (
-    <div className={FOLHA}>
+    <div className={FOLHA_ISOLADA}>
       <Titulo nivel={1} numero={String(SECAO_OBJETIVO)}>Objetivo</Titulo>
       <p className={TEXTO}>
         Memorial Técnico Descritivo apresentado ao Corpo de Bombeiros Militar do Estado do Maranhão (CBMMA), como
@@ -361,7 +395,7 @@ function SobreEdificacao({ state }) {
   ].filter(b => b.campos.some(([, v]) => v))
 
   return (
-    <div className={FOLHA}>
+    <div className={FOLHA_ISOLADA}>
       <Titulo nivel={1} numero={String(SECAO_SOBRE_EDIFICACAO)}>Sobre a Edificação</Titulo>
 
       {blocos.map((bloco, i) => (
@@ -380,7 +414,7 @@ function SobreEdificacao({ state }) {
 
 function Caracterizacao({ state, porEstrutura }) {
   return (
-    <div className={FOLHA}>
+    <div className={FOLHA_ISOLADA}>
       <Titulo nivel={1} numero={String(SECAO_CARACTERIZACAO)}>Caracterização da Edificação e do Risco</Titulo>
 
       {porEstrutura.map(({ estrutura: est }, estIdx) => {
@@ -473,7 +507,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
     : []
 
   return (
-    <div className={FOLHA}>
+    <div className={FOLHA_ISOLADA}>
       <Titulo nivel={1} numero={String(SECAO_MEDIDAS_APLICADAS)}>Medidas de Segurança Contra Incêndio e Emergência do Projeto</Titulo>
 
       {multiplasEstruturas ? (
@@ -796,8 +830,9 @@ function Assinatura({ state }) {
 }
 
 function SecaoMedida({ secao, numeroSecao, state, ultima }) {
+  const isolada = secaoMedidaEhIsolada(secao.titulo)
   return (
-    <div className={FOLHA}>
+    <div className={isolada ? FOLHA_ISOLADA : `${FOLHA} memorial-secao-medida`}>
       <Titulo nivel={1} numero={String(numeroSecao)}>{secao.titulo}</Titulo>
 
       {secao.blocos
@@ -838,6 +873,7 @@ export default function MemorialDescritivoPage({ onBack }) {
   const rolagemRef = useRef(null)
   const [indice, setIndice] = useState([])
   const aposPaginar = destino => {
+    zerarMargemTopoDePagina(destino)
     preencherPaginasSumario(destino)
     setIndice(coletarSecoes(destino))
   }
