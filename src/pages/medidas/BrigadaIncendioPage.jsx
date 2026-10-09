@@ -24,7 +24,7 @@ function RiscoBadge({ risco }) {
 // ── Selo de nível de treinamento/instalação ──────────────────────────
 function NivelBadge({ nivel }) {
   if (!nivel) return <span className="text-[11px] text-ink-faint">—</span>
-  const map = { basico: 'low', intermediario: 'med', avancado: 'high' }
+  const map = { basico: 'low', intermediario: 'med', misto: 'med', avancado: 'high' }
   return <span className={`carga-class ${nivel.dinamico ? 'med' : map[nivel.nivel] || ''}`} title={nivel.detalhe || undefined}>{nivel.label}</span>
 }
 
@@ -77,7 +77,7 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
   )
 }
 
-const ORDEM_NIVEL = { basico: 1, intermediario: 2, avancado: 3 }
+const ORDEM_NIVEL = { basico: 1, intermediario: 2, misto: 2, avancado: 3 }
 
 // ── Estrutura (card colapsável) com o dimensionamento da brigada ─────────
 // Mesma estrutura visual da Compartimentação: EstruturaSection com status +
@@ -85,7 +85,7 @@ const ORDEM_NIVEL = { basico: 1, intermediario: 2, avancado: 3 }
 function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, dispatch, exigido }) {
   const linhasCalculadas = pavimentos.map(pav => {
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
-    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela) }
+    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela, estrutura.areaTotal) }
   })
 
   // Pavimento resolvido = tem linha na Tabela A.1 e já saiu número (ou é isento).

@@ -13,7 +13,7 @@ import { classificarRisco } from './extintores_calc'
 
 const num = v => parseFloat(v) || 0
 
-export const NIVEL_LABEL = { basico: 'Básico', intermediario: 'Intermediário', avancado: 'Avançado' }
+export const NIVEL_LABEL = { basico: 'Básico', intermediario: 'Intermediário', avancado: 'Avançado', misto: 'Básico e Intermediário' }
 
 /** Carga de incêndio (MJ/m²) de uma divisão, priorizando o valor resolvido ao
  *  vivo pela tabela normativa (CNAE → carga) e caindo para o valor já gravado
@@ -113,16 +113,26 @@ export function calcularBrigadistas(linha, populacaoFixa) {
 /** Nível de treinamento/instalação exigido (Básico/Intermediário/Avançado),
  *  resolvendo os tokens dinâmicos da Tabela A.1: 'nota8' (>20 brigadistas
  *  eleva o patamar mínimo) e 'nota1' (Divisão C-2, decidido pela área
- *  construída, fora do escopo desta função). `temNota4` habilita a
- *  reclassificação opcional da Nota 4 (edificações ≤ 12 m) — só quando a
- *  linha da Tabela A.1 desta divisão/risco traz a Nota 4 no rodapé para esta
- *  coluna especificamente (ver nota4Aplicavel em calcularBrigadaPavimento);
- *  a redução não é uma regra geral para qualquer nível intermediário. */
-export function calcularNivel(nivelBase, brigadistas, alturaEdificacao, temNota4) {
+ *  construída da estrutura: abaixo de 5.000 m² exige só o nível básico;
+ *  a partir de 5.000 m² a norma mistura básico e intermediário por turno,
+ *  representado aqui como o nível 'misto' — ver NOTAS_TABELA_A1[1]).
+ *  `temNota4` habilita a reclassificação opcional da Nota 4 (edificações
+ *  ≤ 12 m) — só quando a linha da Tabela A.1 desta divisão/risco traz a
+ *  Nota 4 no rodapé para esta coluna especificamente (ver nota4Aplicavel em
+ *  calcularBrigadaPavimento); a redução não é uma regra geral para
+ *  qualquer nível intermediário. */
+export function calcularNivel(nivelBase, brigadistas, alturaEdificacao, temNota4, areaEdificacao) {
   if (!nivelBase) return null
 
   if (nivelBase === 'nota1') {
-    return { nivel: null, dinamico: true, label: 'A confirmar (Nota 1)', detalhe: null, podeReduzirParaBasico: false, notasDinamicas: [1] }
+    const area = areaEdificacao !== '' && areaEdificacao != null ? num(areaEdificacao) : null
+    if (area == null) {
+      return { nivel: null, dinamico: true, label: 'A confirmar (Nota 1)', detalhe: 'Informe a área construída da estrutura para aplicar a Nota 1 (Divisão C-2).', podeReduzirParaBasico: false, notasDinamicas: [1] }
+    }
+    if (area < 5000) {
+      return { nivel: 'basico', dinamico: false, label: NIVEL_LABEL.basico, detalhe: null, podeReduzirParaBasico: false, notasDinamicas: [1] }
+    }
+    return { nivel: 'misto', dinamico: false, label: NIVEL_LABEL.misto, detalhe: null, podeReduzirParaBasico: false, notasDinamicas: [1] }
   }
 
   let nivel = nivelBase
@@ -212,15 +222,15 @@ const NOTAS_SO_DINAMICAS = new Set([1, 4, 5, 8])
  *  de instalação exigidos, e `notasIdentificadas` — a lista exata (e só ela)
  *  das notas do rodapé que se aplicam a este resultado específico, pronta
  *  para render verbatim (ver NOTAS_TABELA_A1). */
-export function calcularBrigadaPavimento(divisao, risco, populacaoFixa, alturaEdificacao, tabela) {
+export function calcularBrigadaPavimento(divisao, risco, populacaoFixa, alturaEdificacao, tabela, areaEdificacao) {
   const linha = linhaTabelaA1(divisao, risco, tabela)
   const resultado = calcularBrigadistas(linha, populacaoFixa)
   // nota4Aplicavel diferencia a coluna: na única linha que hoje cita a Nota 4
   // (M-7 risco médio), ela vale só para o Treinamento — a Instalação não a cita.
   const temNota4Treinamento = linha?.nota4Aplicavel === 'treinamento' || linha?.nota4Aplicavel === 'ambos'
   const temNota4Instalacao  = linha?.nota4Aplicavel === 'instalacao'  || linha?.nota4Aplicavel === 'ambos'
-  const nivelTreinamento = linha ? calcularNivel(linha.nivelTreinamento, resultado.brigadistas, alturaEdificacao, temNota4Treinamento) : null
-  const nivelInstalacao  = linha ? calcularNivel(linha.nivelInstalacao,  resultado.brigadistas, alturaEdificacao, temNota4Instalacao)  : null
+  const nivelTreinamento = linha ? calcularNivel(linha.nivelTreinamento, resultado.brigadistas, alturaEdificacao, temNota4Treinamento, areaEdificacao) : null
+  const nivelInstalacao  = linha ? calcularNivel(linha.nivelInstalacao,  resultado.brigadistas, alturaEdificacao, temNota4Instalacao,  areaEdificacao)  : null
 
   const estaticas = (linha?.notas || []).filter(n => !NOTAS_SO_DINAMICAS.has(n))
   const dinamicas = [

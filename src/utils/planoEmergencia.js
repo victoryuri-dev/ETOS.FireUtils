@@ -98,7 +98,7 @@ function totalBrigadistasDoProjeto(state) {
     const estrutura = (state.estruturas || []).find(e => e.id === pav.estruturaId)
     const cargaEst = state.cargaState[pav.estruturaId] || {}
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, extNorma.LIMIARES_RISCO)
-    const { resultado } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura?.altura, brigNorma.TABELA_A1)
+    const { resultado } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura?.altura, brigNorma.TABELA_A1, estrutura?.areaTotal)
     total += resultado?.brigadistas || 0
   })
   return total
