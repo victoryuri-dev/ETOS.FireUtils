@@ -8,10 +8,6 @@ import FerramentasDisponiveis from '../components/perfil/FerramentasDisponiveis'
 import './PerfilPage.css'
 
 
-const ESPECIALIDADES = [
-  'Engenharia Civil', 'Engenharia Eletrica', 'Arquitetura', 'Engenharia de Seguranca',
-]
-
 export default function PerfilPage() {
   const { user } = useAuth()
   const { perfil, erro, salvar } = usePerfil()
@@ -100,10 +96,8 @@ export default function PerfilPage() {
               <div className="fg"><label>CPF</label>
                 <input value={rt.rtCpf} onChange={setRT('rtCpf')} placeholder="000.000.000-00"/>
               </div>
-              <div className="fg"><label>Especialidade</label>
-                <select value={rt.rtEspecialidade} onChange={setRT('rtEspecialidade')}>
-                  {ESPECIALIDADES.map(e => <option key={e}>{e}</option>)}
-                </select>
+              <div className="fg"><label htmlFor="rt-especialidade">Especialidade</label>
+                <input id="rt-especialidade" type="text" value={rt.rtEspecialidade} onChange={setRT('rtEspecialidade')}/>
               </div>
             </div>
             <div className="fg mb-3">

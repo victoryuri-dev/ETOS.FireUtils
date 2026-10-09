@@ -12,7 +12,7 @@ const CAMPOS_RT = [
   'rtNome', 'rtConselho', 'rtCpf', 'rtEspecialidade', 'rtEmpresa', 'rtEmail', 'rtTelefone',
 ]
 
-// `rtEspecialidade` nasce preenchido (e um select, nao tem opcao vazia), entao
+// `rtEspecialidade` nasce preenchido com o valor padrao, entao
 // nao serve pra dizer se alguem chegou a preencher alguma coisa — daqui sai a
 // pergunta "tem dado de verdade aqui?", usada nos dois lados: pra saber se o
 // perfil tem o que oferecer e se a etapa ainda esta em branco.
