@@ -3,8 +3,8 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial } from '../../data/memorial/registry'
 import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS, estadoMedidaSistema } from '../../utils/anexoB'
-import { getCNAEsDivisao, getNts } from '../../data/normas/index'
-import { edificacaoEhTerrea } from '../../data/trrf_calc'
+import { getCNAEsDivisao, getNts, getCompartimentacao } from '../../data/normas/index'
+import { classificarTipoEdificacao } from '../../data/compart_calc'
 import { fmtNum, fmtUn } from '../../utils/numero'
 import Icon from '../../components/ui/Icon'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
@@ -370,6 +370,7 @@ function SobreEdificacao({ state }) {
 }
 
 function Caracterizacao({ state, porEstrutura }) {
+  const { CLASSES_TIPO_EDIFICACAO } = getCompartimentacao(state.uf)
   return (
     <div className={FOLHA}>
       <Titulo nivel={1} numero={String(SECAO_CARACTERIZACAO)}>Caracterização da Edificação e do Risco</Titulo>
@@ -388,7 +389,13 @@ function Caracterizacao({ state, porEstrutura }) {
           })
         })
 
-        const alturaPisoPisoTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' : `${fmtNum(est.alturaPisoPiso, 2, est.alturaPisoPiso)} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`
+        // "Altura para fins de classificação das medidas de segurança": a
+        // mesma altura piso a piso, mas já narrada com o Tipo de edificação
+        // (Anexo B, NT 09 CBMMA) que ela determina — a classificação que de
+        // fato importa pro resto do documento, em vez do rótulo técnico cru.
+        const tipoEst = classificarTipoEdificacao(est.alturaPisoPiso, CLASSES_TIPO_EDIFICACAO)
+        const alturaClassifTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' :
+          `${fmtNum(est.alturaPisoPiso, 2, est.alturaPisoPiso)} m${tipoEst ? ` – Tipo ${tipoEst.classe} - ${tipoEst.nome}` : ''}`
 
         return (
           <Fragment key={est.id}>
@@ -396,7 +403,7 @@ function Caracterizacao({ state, porEstrutura }) {
 
             <div className={TEXTO_PEQUENO}>
               <div><strong>Área construída:&nbsp;</strong>{est.areaTotal ? fmtUn(est.areaTotal, 'm²', 2, `${est.areaTotal} m²`) : '—'}</div>
-              <div><strong>Altura piso a piso:&nbsp;</strong>{alturaPisoPisoTxt || '—'}</div>
+              <div><strong>Altura para fins de classificação das medidas de segurança:&nbsp;</strong>{alturaClassifTxt || '—'}</div>
               <div><strong>Altura total:&nbsp;</strong>{est.altura ? fmtUn(est.altura, 'm', 2, `${est.altura} m`) : '—'}</div>
             </div>
 
