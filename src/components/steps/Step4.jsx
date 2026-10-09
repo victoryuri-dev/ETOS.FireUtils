@@ -171,9 +171,13 @@ function BuscaCnaePorCnpj({ pav, dispatch }) {
 
   const aplicar = (opcao) => {
     if (!opcao) return
+    // Sem match (CNAE da Receita nao cadastrado na base normativa), Grupo e
+    // Divisao ficam sem selecao — manter o valor anterior (geralmente o
+    // default da primeira divisao) passava a falsa impressao de que o CNAE
+    // bateu com aquela classificacao.
     const changes = opcao.match
       ? { grupo: opcao.match.grupo, divisao: opcao.match.divisao, cnae: opcao.cnae, cnaeDesc: opcao.descricao }
-      : { cnae: opcao.cnae, cnaeDesc: opcao.descricao }
+      : { grupo: '', divisao: '', cnae: opcao.cnae, cnaeDesc: opcao.descricao }
     dispatch({ type: 'UPDATE_PAV', id: pav.id, changes })
     limpar()
   }
