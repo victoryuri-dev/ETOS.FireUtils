@@ -302,10 +302,11 @@ function SobreEdificacao({ state }) {
   // Situação da edificação (Etapa 2): nova ou existente. Os dados legais só
   // entram quando o usuário optou por informá-los (mesma regra da Etapa 2 —
   // projeto com algum desses dados preenchido conta como "sim"); ano de
-  // construção, AVCB e condições atuais só fazem sentido pra existente.
+  // construção e AVCB só fazem sentido pra existente — observações
+  // complementares (state.condicoesAtuais) valem pras duas situações.
   const existente = state.situacao === 'existente'
-  const situacaoTxt = existente ? 'Edificação existente (regularização / adequação)'
-    : state.situacao === 'nova' ? 'Edificação nova (em projeto ou construção)' : ''
+  const situacaoTxt = existente ? 'Edificação existente'
+    : state.situacao === 'nova' ? 'Edificação nova' : ''
   const jaTemDadosLegais = !!(state.numeroAlvara || state.anoConstrucao || state.numeroAVCB || state.validadeAVCB)
   const legais = (state.informarDadosLegais || (jaTemDadosLegais ? 'sim' : '')) === 'sim'
   const fmtData = iso => {
@@ -346,7 +347,7 @@ function SobreEdificacao({ state }) {
       ['Situação perante o CBMMA', legais && existente ? state.situacaoCBM : ''],
       ['Nº do AVCB anterior', legais && existente ? state.numeroAVCB : ''],
       ['Validade do AVCB', legais && existente ? fmtData(state.validadeAVCB) : ''],
-      ['Condições atuais', existente ? state.condicoesAtuais?.trim() : ''],
+      ['Observações complementares', state.condicoesAtuais?.trim()],
     ] },
   ].filter(b => b.campos.some(([, v]) => v))
 
