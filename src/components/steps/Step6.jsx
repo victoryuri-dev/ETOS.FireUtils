@@ -137,6 +137,46 @@ function MedidasGrid({ pe, dispatch, sistConfig }) {
   )
 }
 
+// ── Motivo da isenção de sistemas obrigatórios desativados manualmente ──
+// So aparece pros sistemas que o PROPRIO USUARIO desligou no toggle acima
+// (state.sistemasPorEstrutura[estId][key] === false) — nao pros casos em
+// que `ativo` fica false por outra logica automatica (ex.: isencao de
+// compartimentacao por substituicao/compartimento unico, decidida na
+// propria tela de Compartimentacao, nao aqui). Texto livre, sem validacao:
+// so registra o motivo no projeto pra constar.
+function MotivosIsencao({ pe, state, dispatch, sistConfig }) {
+  const estId = pe.estrutura.id
+  const manuais = state.sistemasPorEstrutura[estId] || {}
+  const motivos = state.motivosIsencaoPorEstrutura[estId] || {}
+  const desativados = sistConfig.filter(s => pe.sistemas[s.key]?.obrigatorio && manuais[s.key] === false)
+
+  if (desativados.length === 0) return null
+
+  return (
+    <div className="ibox amber flex-col items-stretch gap-3">
+      <div className="flex items-start gap-2.5">
+        <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0 mt-0.5"/>
+        <span className="text-xs leading-[1.6]">
+          Sistema(s) obrigatório(s) desativado(s) manualmente nesta estrutura — descreva o motivo da isenção, sob responsabilidade do RT.
+        </span>
+      </div>
+      <div className="flex flex-col gap-2.5 pl-6">
+        {desativados.map(s => (
+          <div key={s.key} className="fg mb-0">
+            <label className="text-[11px]">Motivo da isenção — {s.label}</label>
+            <textarea
+              rows={2}
+              value={motivos[s.key] || ''}
+              onChange={e => dispatch({ type:'SET_MOTIVO_ISENCAO_SISTEMA', estruturaId: estId, key:s.key, value:e.target.value })}
+              placeholder="Ex: medida compensatoria adotada, dispensa em analise junto ao CBMMA..."
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Grid de riscos especiais de uma estrutura ───────────────────────────
 function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
   return (
@@ -221,6 +261,8 @@ export default function Step6({ step, totalSteps }) {
             <div className="mb-6">
               <MedidasGrid pe={pe} dispatch={dispatch} sistConfig={sistConfig}/>
             </div>
+
+            <MotivosIsencao pe={pe} state={state} dispatch={dispatch} sistConfig={sistConfig}/>
 
             {/* Riscos especiais alimentam o Anexo B (NT 01) — sem sentido
                 num projeto "apenas dimensionamento", que nem gera esse
