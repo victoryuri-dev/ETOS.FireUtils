@@ -158,14 +158,30 @@ export function textoMemorialHidrantes(state, _sistemas, porEstrutura) {
     // hidráulico (plugin Revit); potência é a adotada pelo RT na Etapa 3
     // do dashboard (ver BombaESuccaoForm.jsx). Bomba jockey não passa pelo
     // dimensionamento hidráulico principal — potência/vazão são as
-    // informadas diretamente pelo RT.
-    if (resDimensionamento || (h.bombaJockey && (h.bombaJockeyPotencia || h.bombaJockeyVazao))) {
+    // informadas diretamente pelo RT. h.bombaReserva entra na condição pra
+    // a linha "Bomba reserva" aparecer mesmo antes do primeiro
+    // "Dimensionar Hidrantes" (pressão/vazão ficam "—" até lá).
+    if (resDimensionamento || h.bombaReserva || (h.bombaJockey && (h.bombaJockeyPotencia || h.bombaJockeyVazao))) {
       const linhasBomba = []
       if (resDimensionamento) {
         linhasBomba.push([
           'Bomba principal',
           `${f2(resDimensionamento.P_RTI)} mca`,
           `${f2(resDimensionamento.Qt)} L/min`,
+          h.bombaPotenciaAdotada ? `${fmtNum(h.bombaPotenciaAdotada, 2, h.bombaPotenciaAdotada)} cv` : '—',
+        ])
+      }
+      if (h.bombaReserva) {
+        // Bomba reserva assume a mesma vazão/pressão da principal — é um
+        // backup de mesma capacidade (Anexo C.3.12), não um equipamento
+        // dimensionado à parte; só o acionamento pode divergir (ver
+        // parágrafo acima). Sem linha própria, a tabela "Especificações da
+        // Bomba" ficava sem identificar a reserva, mesmo quando o RT a
+        // declarava no sistema (h.bombaReserva, BombaESuccaoForm.jsx).
+        linhasBomba.push([
+          `Bomba reserva${h.bombaReservaAcionamento ? ` (${LABEL_ACIONAMENTO[h.bombaReservaAcionamento]})` : ''}`,
+          resDimensionamento ? `${f2(resDimensionamento.P_RTI)} mca` : '—',
+          resDimensionamento ? `${f2(resDimensionamento.Qt)} L/min` : '—',
           h.bombaPotenciaAdotada ? `${fmtNum(h.bombaPotenciaAdotada, 2, h.bombaPotenciaAdotada)} cv` : '—',
         ])
       }
