@@ -107,16 +107,16 @@ function cargaDaOcupacao(state, estruturaId, divisao, cnae) {
 // Titulo numerado do memorial. `nivel` (1-3) define a tag (h1-h3); `numero`
 // ("4", "4.1", "4.1.1") entra antes do texto com um unico espaco. Titulos com
 // numero ganham data-toc/data-toc-num, que o Sumario usa (montarSumario).
-// `mt-5` abre exatamente uma linha em branco antes do título, zerada pelo
-// `first:mt-0` quando ele é o primeiro elemento da folha (a quebra de
-// página/seção já separa visualmente, sem precisar de espaço extra); `mb-0`
-// garante que nada sobra depois — o espaço até o próximo parágrafo vem só
-// do `mt-5` do PRÓXIMO título, nunca dos dois lados ao mesmo tempo.
+// Sem margem própria aqui de proposito: o espaçamento de uma linha em branco
+// antes de QUALQUER coisa que venha logo depois de um h1/h2/h3 — outro
+// título, parágrafo, campo ou tabela — é regra única em index.css
+// (".memorial-secao ... > h1 + *" etc.), pra nunca precisar lembrar de
+// repetir isso em cada ponto do documento que usa <Titulo>.
 function Titulo({ nivel, numero, children }) {
   const Tag = `h${nivel}`
   return (
     <Tag
-      className="font-heading text-black leading-[1.5] mt-5 mb-0 first:mt-0"
+      className="font-heading text-black leading-[1.5]"
       data-toc={numero ? nivel : undefined}
       data-toc-num={numero || undefined}
     >

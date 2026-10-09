@@ -156,6 +156,32 @@
   font-weight: 700;
 }
 
+/* Espaçamento entre títulos/subtítulos e o que vem depois deles (próximo
+   título, parágrafo, campo, lista ou tabela): exatamente uma linha em
+   branco (1,5em = uma linha inteira, já que a entrelinha do documento é
+   1,5) — e só aí, nunca como margem própria do texto corrido (que fica
+   sempre com margem zero, ver TEXTO/TEXTO_PEQUENO em
+   MemorialDescritivoPage.jsx). Os h1/h2/h3 (<Titulo>) não têm margem
+   própria; o gap mora inteiro em "o que vem logo depois de um título" —
+   isso cobre de uma vez só título→subtítulo, título→corpo de texto e
+   título→tabela, sem precisar repetir a regra em cada bloco do memorial.
+   Escopado a `> h1/h2/h3` (filho direto de `.memorial-secao`, que é como
+   FOLHA é montado) pra não pegar o h1 da Capa/Sumário (`.memorial-pretextual`,
+   excluídos de propósito — são elementos de página de rosto, não corpo do
+   documento) nem títulos de tabela aninhados mais fundo. Como `.memorial-secao`
+   é flex-col (margens não colapsam), só o lado "depois do título" carrega
+   margem — nunca os dois ao mesmo tempo. */
+.print-area-memorial .memorial-secao:not(.memorial-pretextual) > h1,
+.print-area-memorial .memorial-secao:not(.memorial-pretextual) > h2,
+.print-area-memorial .memorial-secao:not(.memorial-pretextual) > h3 {
+  margin: 0;
+}
+.print-area-memorial .memorial-secao:not(.memorial-pretextual) > h1 + *,
+.print-area-memorial .memorial-secao:not(.memorial-pretextual) > h2 + *,
+.print-area-memorial .memorial-secao:not(.memorial-pretextual) > h3 + * {
+  margin-top: 1.5em;
+}
+
 /* Numero da pagina (caixa de margem do Paged.js): 10pt, preto. */
 .print-area-memorial .pagedjs_margin-content {
   font-size: 10pt;
