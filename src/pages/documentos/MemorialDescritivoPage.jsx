@@ -32,16 +32,27 @@ const PRIMEIRA_SECAO_MEDIDA = 6
 // secundarias, 3 = ate as terciarias).
 const NIVEL_MAXIMO_SUMARIO = 1
 
-// Cada secao do memorial comeca numa pagina nova; o Paged.js (ver
-// PreviewPaginado) divide o documento em folhas A4 reais, com margem de 25mm,
-// e parte as secoes longas entre paginas — na tela e na impressao. Aqui a
-// secao e so um bloco de conteudo, sem largura, sombra ou margem de folha.
+// Secoes do memorial fluem livremente pelo Paged.js (ver PreviewPaginado):
+// nao ha mais quebra de pagina forcada por secao — varias secoes pequenas
+// (ex.: medidas de seguranca com pouco texto, caso comum de Acesso de
+// Viatura, Compartimentacao etc.) cabem juntas na mesma folha A4, economizando
+// papel; so quando o conteudo acumulado nao cabe mais e que o Paged.js abre
+// pagina nova, exatamente como um editor de texto comum. Aqui a secao e so
+// um bloco de conteudo, sem largura, sombra ou margem de folha.
 const FOLHA = 'memorial-secao relative flex flex-col w-full bg-white text-black'
 
-// CSS processado pelo Paged.js: pagina A4 com margem de 25mm, quebra de
-// pagina por secao e numero da pagina no canto inferior direito.
-// Capa e Sumario (pagina nomeada "pretextual") contam na numeracao, mas nao
-// exibem o numero.
+// CSS processado pelo Paged.js: pagina A4 com margem de 25mm e numero da
+// pagina no canto inferior direito. Capa e Sumario (pagina nomeada
+// "pretextual") contam na numeracao, mas nao exibem o numero.
+//
+// Capa/Sumario continuam cada uma na sua propria pagina (break-after: page),
+// inclusive com altura minima de pagina cheia — a Capa depende disso pra
+// centralizar o titulo verticalmente (my-auto). As demais secoes (Objetivo,
+// Caracterizacao, cada medida de seguranca...) NAO forcam quebra: so pedem
+// break-inside:avoid pra uma secao pequena nao ficar cortada ao meio entre
+// duas paginas (ela inteira pula pra proxima pagina se nao couber no resto
+// da atual) — sem impedir que, quando sobra espaco, a proxima secao comece
+// ali mesmo, embaixo da anterior.
 //
 // A margem inferior do ultimo elemento da secao e zerada de proposito: a secao
 // e flex-col (margens nao colapsam), entao a margem de uma tabela que termina
@@ -51,9 +62,8 @@ const FOLHA = 'memorial-secao relative flex flex-col w-full bg-white text-black'
 const CSS_PAGINA = `
 @page { size: A4 portrait; margin: 25mm; @bottom-right { content: counter(page); } }
 @page pretextual { @bottom-right { content: none; } }
-.memorial-pretextual { page: pretextual; }
-.memorial-secao { break-after: page; min-height: 246mm; }
-.memorial-secao:last-child { break-after: auto; }
+.memorial-pretextual { page: pretextual; break-after: page; min-height: 246mm; }
+.memorial-secao:not(.memorial-pretextual) { break-inside: avoid; }
 tr, td, th { break-inside: avoid; }
 .memorial-secao > :last-child,
 .memorial-secao > :last-child > :last-child,
@@ -796,11 +806,10 @@ function SecaoMedida({ secao, numeroSecao, state, ultima }) {
             <p key={i} className={`${TEXTO} indent-8 pl-2`}>{p}</p>
           ))}
 
-      {/* Assinatura dentro da última seção (não depois dela) — assim o
-          `.memorial-secao:last-child` continua sendo literalmente esta div,
-          e a regra que dispensa a quebra de página no fim do documento
-          (ver CSS_PAGINA) ainda se aplica: a assinatura fica no fim do
-          fluxo, na mesma última folha, em vez de abrir página nova. */}
+      {/* Assinatura dentro da última seção (não depois dela), pra entrar no
+          fluxo normal do documento — sem seção própria, ela só continua
+          embaixo do conteúdo da última medida, na mesma folha ou na
+          seguinte, conforme o espaço que sobrar (ver CSS_PAGINA). */}
       {ultima && <Assinatura state={state}/>}
     </div>
   )
