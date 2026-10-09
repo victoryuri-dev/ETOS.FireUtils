@@ -3,6 +3,9 @@ import { useProjeto } from '../context/ProjetoContext'
 import AnexoBPage from './documentos/AnexoBPage'
 import MemorialDescritivoPage from './documentos/MemorialDescritivoPage'
 import Icon from '../components/ui/Icon'
+import Loader from '../components/ui/Loader'
+import SemLicenca from '../components/perfil/SemLicenca'
+import { useAcesso } from '../hooks/useLicencas'
 
 const DOCUMENTOS = [
   {
@@ -49,6 +52,8 @@ export default function DocumentosPage() {
   // recarregar a página ou copiar o link mantém o documento aberto.
   const { id, docId } = useParams()
   const navigate = useNavigate()
+  // Memorial Descritivo e Anexo B são o módulo Memorial (ou PRO).
+  const acesso = useAcesso('memorial')
   const base = `/projeto/${id}/documentos`
   const abrir = doc => navigate(`${base}/${doc}`)
   const voltar = () => navigate(base)
@@ -61,6 +66,18 @@ export default function DocumentosPage() {
   const aberto = documentos.some(d => d.id === docId) ? docId : null
   // URL de documento inexistente (ou indisponível neste tipo de projeto): volta pra lista.
   if (docId && !aberto) return <Navigate to={base} replace/>
+
+  if (acesso.carregando) {
+    return <div className="flex-1 flex items-center justify-center"><Loader size={32}/></div>
+  }
+  if (!acesso.liberado) {
+    return (
+      <SemLicenca
+        titulo="Documentos fazem parte do módulo Memorial"
+        texto="Gerar o Memorial Descritivo e o Anexo B exige a licença do módulo Memorial ou do FireUtils PRO."
+      />
+    )
+  }
 
   if (aberto === 'anexo-b') {
     return <AnexoBPage onBack={voltar}/>

@@ -6,7 +6,7 @@ import revitVideo from '../assets/revit-fireutils.mp4'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
 import { useAuth } from '../context/AuthContext'
-import { usePerfil } from '../hooks/usePerfil'
+import { usePerfil, nomeDeUsuario } from '../hooks/usePerfil'
 import './LandingPage.css'
 import { useBuildingMotion, useLandingMotion } from '../hooks/useLandingMotion'
 
@@ -404,11 +404,7 @@ export default function LandingPage() {
   const handlePreviewReady = useCallback(() => setPreviewReady(true), [])
   useLandingMotion(landingRef, stage, setStage, heroReady)
   const [menu, setMenu] = useState(false)
-  const profileName = perfil?.nome?.trim()
-    || user?.user_metadata?.full_name
-    || user?.user_metadata?.name
-    || user?.email?.split('@')[0]
-    || 'Perfil'
+  const profileName = nomeDeUsuario(perfil, user)
   useEffect(() => {
     const fallback = window.setTimeout(() => setLoadTimedOut(true), 3000)
     return () => window.clearTimeout(fallback)

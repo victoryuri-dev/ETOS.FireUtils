@@ -6,11 +6,14 @@ import {
 import { ProjetoProvider, useProjeto, newIds } from './context/ProjetoContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabase } from './lib/supabase'
-import { usePerfil } from './hooks/usePerfil'
+import { usePerfil, nomeDeUsuario } from './hooks/usePerfil'
 import { criarProjetoExemplo } from './data/projetoExemplo'
 import LoginPage      from './pages/LoginPage'
 import LandingPage    from './pages/LandingPage'
 import PricingPage    from './pages/PricingPage'
+import LicencaProvider from './context/LicencaContext'
+import { useAcesso }   from './hooks/useLicencas'
+import SemLicenca     from './components/perfil/SemLicenca'
 import ProjectAside   from './components/layout/ProjectAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
@@ -65,20 +68,16 @@ function SaveStatusIndicator({ status }) {
 }
 
 // ── AppHeader ─────────────────────────────────────────────────────────
-function AppHeader({ onGoProjetos, isProjectPage }) {
+function AppHeader({ onGoProjetos, isProjectPage, showProjectsLink = false }) {
   const { user, signOut } = useAuth()
   const { perfil } = usePerfil()
   const { state, syncStatus } = useProjeto()
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
-  const profileName = perfil?.nome?.trim()
-    || user?.user_metadata?.full_name
-    || user?.user_metadata?.name
-    || user?.email?.split('@')[0]
-    || 'Perfil'
+  const profileName = nomeDeUsuario(perfil, user)
 
   return (
-    <header className="flex items-center justify-between gap-3 px-6 h-16 border-b border-border border-solid shrink-0 z-100">
+    <header className="relative flex items-center justify-between gap-3 px-6 h-16 border-b border-border border-solid shrink-0 z-100">
       {/* Logo — omitida dentro de um projeto, ja mostrada no topo do aside */}
       {!isProjectPage && (
         <div className="flex items-center gap-2.5">
@@ -105,6 +104,16 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
             </span>
           )}
         </nav>
+      )}
+
+      {showProjectsLink && (
+        <button
+          type="button"
+          onClick={onGoProjetos}
+          className="absolute left-1/2 -translate-x-1/2 text-[12px] font-medium text-ink-muted hover:text-ink transition-colors"
+        >
+          Meus projetos
+        </button>
       )}
 
       {/* Direita — conta */}
@@ -224,7 +233,7 @@ function PerfilRoute() {
   const navigate = useNavigate()
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
+      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false} showProjectsLink/>
       <PerfilPage/>
     </div>
   )
@@ -341,8 +350,34 @@ function AuthedLayout() {
   if (!user) return <Navigate to="/login" state={{ from: location }} replace/>
 
   return (
-    <div className="w-screen h-screen flex overflow-hidden bg-bg text-ink">
-      <Outlet/>
+    <LicencaProvider>
+      <div className="w-screen h-screen flex overflow-hidden bg-bg text-ink">
+        <PortaoLicenca/>
+      </div>
+    </LicencaProvider>
+  )
+}
+
+// ── PortaoLicenca ─────────────────────────────────────────────────────
+// Com o bloqueio ligado (VITE_EXIGIR_LICENCA), a conta sem nenhuma licença
+// válida não entra na plataforma. O perfil fica sempre liberado: é lá que
+// ela vê a situação das licenças. Com o bloqueio desligado, não barra nada.
+function PortaoLicenca() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { carregando, liberado } = useAcesso()
+
+  if (liberado || location.pathname === '/perfil') return <Outlet/>
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
+      {carregando
+        ? <div className="flex-1 flex items-center justify-center"><Loader size={32}/></div>
+        : <SemLicenca
+            titulo="Sua conta não tem licença ativa"
+            texto="Para criar e editar projetos é preciso ter uma licença válida de algum módulo do FireUtils."
+          />}
     </div>
   )
 }

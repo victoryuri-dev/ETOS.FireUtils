@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { usePerfil } from '../hooks/usePerfil'
+import { usePerfil, nomeDeUsuario } from '../hooks/usePerfil'
 import FormSection from '../components/ui/FormSection'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
+import FerramentasDisponiveis from '../components/perfil/FerramentasDisponiveis'
+import './PerfilPage.css'
+
 
 const ESPECIALIDADES = [
   'Engenharia Civil', 'Engenharia Eletrica', 'Arquitetura', 'Engenharia de Seguranca',
 ]
 
 export default function PerfilPage() {
-  const navigate = useNavigate()
   const { user } = useAuth()
   const { perfil, erro, salvar } = usePerfil()
   // Copia local pro formulario: o usuario edita a vontade e so o botao grava.
@@ -41,24 +42,28 @@ export default function PerfilPage() {
     setRetorno(r.ok ? { ok: true, texto: 'Perfil salvo.' } : { ok: false, texto: r.erro })
   }
 
-  if (!form) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader size={32}/>
-      </div>
-    )
-  }
-
-  const rt = form.responsavelTecnico
+  const rt = form?.responsavelTecnico
+  // Mesmo nome de usuário do header — o já salvo, não o que está sendo digitado.
+  const nomeSalvo = nomeDeUsuario(perfil, user, 'Usuário')
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-bg">
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[720px] mx-auto pt-8 px-10 pb-[60px]">
+    <div className="profile-overview-shell">
+      <div className="profile-overview-scroll">
+        <main className="profile-overview">
+          <header className="profile-overview-header">
+            <div>
+              <h1>Olá, {nomeSalvo}.</h1>
+            </div>
+          </header>
 
-          <button className="btn-ghost mb-5" onClick={() => navigate('/projetos')}>
-            <Icon name="left" size={13}/> Projetos
-          </button>
+          <div className="profile-overview-grid">
+            <section className="profile-data-column" aria-label="Seus dados">
+
+          {!form && (
+            <div className="flex items-center justify-center py-16"><Loader size={32}/></div>
+          )}
+
+          {form && (<>
 
           {erro && (
             <div className="ibox red mb-5" role="alert">
@@ -67,24 +72,10 @@ export default function PerfilPage() {
             </div>
           )}
 
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-ink mb-1.5">Perfil</h1>
-            <p className="text-[13px] text-ink-faint leading-[1.6] m-0 max-w-[560px]">
-              Dados da sua conta e do responsável técnico que você assina. O responsável técnico
-              é reaproveitado na Etapa 3 de cada projeto novo, em vez de ser redigitado.
-            </p>
-          </div>
-
-          <FormSection title="Conta" description="Como identificamos você no sistema.">
-            {/* Texto, e nao um input desabilitado: o e-mail vem do Supabase
-                Auth e nao se edita por aqui — e o projeto nao tem estilo de
-                input desabilitado, entao um campo travado pareceria editavel. */}
-            <div className="fg mb-3">
-              <label>E-mail</label>
-              <div className="text-[13px] text-ink">{user?.email || '—'}</div>
-              <span className="text-[11px] text-ink-hint">
-                O e-mail de acesso não pode ser alterado por aqui.
-              </span>
+          <FormSection title="Conta">
+            <div className="profile-identity" aria-label="Conta atual">
+              <span className="profile-identity-icon"><Icon name="user" size={18}/></span>
+              <div><strong>{nomeSalvo}</strong><span>{user?.email || '—'}</span></div>
             </div>
             <div className="g2">
               <div className="fg"><label>Nome</label>
@@ -96,10 +87,7 @@ export default function PerfilPage() {
             </div>
           </FormSection>
 
-          <FormSection
-            title="Responsável técnico"
-            description="Usado para preencher a Etapa 3 dos seus projetos. Os dados da ART (número, data, valor da obra) continuam em cada projeto, porque mudam de obra para obra."
-          >
+          <FormSection title="Responsável técnico">
             <div className="g2 mb-3">
               <div className="fg"><label>Nome completo</label>
                 <input value={rt.rtNome} onChange={setRT('rtNome')}/>
@@ -146,7 +134,17 @@ export default function PerfilPage() {
             )}
           </div>
 
-        </div>
+          </>)}
+            </section>
+
+            <section className="profile-tools-column" aria-labelledby="profile-tools-title">
+              <div className="profile-section-heading">
+                <div><h2 id="profile-tools-title">Ferramentas disponíveis</h2></div>
+              </div>
+              <FerramentasDisponiveis/>
+            </section>
+          </div>
+        </main>
       </div>
     </div>
   )
