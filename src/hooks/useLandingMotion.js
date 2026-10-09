@@ -73,9 +73,20 @@ export function useLandingMotion(scope, stage, setStage, ready = true) {
         gsap.to('.fl-revit-layer', { y: -18, ease: 'none', scrollTrigger: { trigger: '.fl-hero-product', scroller: root, start: 'top 75%', end: 'bottom 20%', scrub: 1 } })
         gsap.to('.fl-beams', { y: 90, ease: 'none', scrollTrigger: { trigger: '.fl-hero', scroller: root, start: 'top top', end: 'bottom top', scrub: 1.2 } })
       }
-      select('.fl-section-head, .fl-features article, .fl-audience-grid article, .fl-faq > div, .fl-audience > h2, .fl-cta > h2').forEach(element => {
+      select('.fl-section-head, .fl-features article, .fl-revit-source, .fl-network-core, .fl-audience-grid article, .fl-faq > div, .fl-audience > h2, .fl-cta > h2').forEach(element => {
         gsap.from(element, { y: desktop ? 35 : 16, opacity: 0, duration: .8, ease: 'power3.out', scrollTrigger: { trigger: element, scroller: root, start: 'top 94%', once: true } })
       })
+      const moduleCards = select('.fl-network-item')
+      if (moduleCards.length) {
+        gsap.from(moduleCards, {
+          y: desktop ? 52 : 24,
+          opacity: 0,
+          duration: .85,
+          stagger: .11,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: '.fl-network-board', scroller: root, start: 'top 88%', once: true },
+        })
+      }
 
       if (desktop) {
         let activeDemoStage = 0
@@ -98,12 +109,15 @@ export function useLandingMotion(scope, stage, setStage, ready = true) {
           })
         }
         const demo = root.querySelector('.fl-demo')
+        const demoSticky = root.querySelector('.fl-demo-sticky')
+        const demoHeading = demo?.querySelector(':scope > .fl-section-head')
         let demoFrame
         const updateDemoStage = () => {
           demoFrame = undefined
-          if (!demo) return
-          const travel = Math.max(1, demo.offsetHeight - root.clientHeight)
-          const progress = gsap.utils.clamp(0, 1, -demo.getBoundingClientRect().top / travel)
+          if (!demo || !demoSticky) return
+          const stickyOffset = demoHeading?.offsetHeight ?? 0
+          const travel = Math.max(1, demo.offsetHeight - stickyOffset - root.clientHeight)
+          const progress = gsap.utils.clamp(0, 1, -(demo.getBoundingClientRect().top + stickyOffset) / travel)
           const nextStage = progress < .2 ? 0 : progress < .62 ? 1 : 2
           transitionToStage(nextStage)
         }

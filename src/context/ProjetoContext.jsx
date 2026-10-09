@@ -422,9 +422,14 @@ const INITIAL_STATE = {
   // de cada estrutura, o codigo da divisao (ex: "C-1"). sistemasPorEstrutura
   // guarda so o "ativo" manual (opcional habilitado) — o obrigatorio vem do
   // motor de normas (useMedidasObrigatorias). riscosEspeciaisPorEstrutura
-  // segue o formato de RISCOS_DEFAULT.
+  // segue o formato de RISCOS_DEFAULT. motivosIsencaoPorEstrutura guarda,
+  // por sistema, o motivo digitado pelo RT quando desativa manualmente um
+  // sistema obrigatorio (chave = sistemaKey, ex. 'compart_horizontal') — sem
+  // isso a desativacao ficava sem nenhuma justificativa registrada no
+  // projeto, so sinalizada em vermelho na tela.
   cargaState: {},
   sistemasPorEstrutura: {},
+  motivosIsencaoPorEstrutura: {},
   riscosEspeciaisPorEstrutura: {},
   riscosOutrosDescPorEstrutura: {},
   extintores: [],
@@ -626,6 +631,7 @@ function reducer(state, action) {
         acabamentoAmbientes: state.acabamentoAmbientes.filter(a => a.estruturaId !== action.id),
         cargaState: semChave(state.cargaState, action.id),
         sistemasPorEstrutura: semChave(state.sistemasPorEstrutura, action.id),
+        motivosIsencaoPorEstrutura: semChave(state.motivosIsencaoPorEstrutura, action.id),
         riscosEspeciaisPorEstrutura: semChave(state.riscosEspeciaisPorEstrutura, action.id),
         riscosOutrosDescPorEstrutura: semChave(state.riscosOutrosDescPorEstrutura, action.id),
         iluminacaoSistemaPorEstrutura: semChave(state.iluminacaoSistemaPorEstrutura, action.id),
@@ -1024,6 +1030,19 @@ function reducer(state, action) {
         sistemasPorEstrutura: {
           ...state.sistemasPorEstrutura,
           [estruturaId]: { ...state.sistemasPorEstrutura[estruturaId], [key]: novo },
+        },
+      }
+    }
+    // Motivo que o RT digita ao desativar manualmente um sistema obrigatorio
+    // (ver MedidasGrid em Step6.jsx) — so um texto livre por estrutura+sistema,
+    // sem validacao aqui; quem decide se e obrigatorio preencher e a tela.
+    case 'SET_MOTIVO_ISENCAO_SISTEMA': {
+      const { estruturaId, key, value } = action
+      return {
+        ...state,
+        motivosIsencaoPorEstrutura: {
+          ...state.motivosIsencaoPorEstrutura,
+          [estruturaId]: { ...state.motivosIsencaoPorEstrutura[estruturaId], [key]: value },
         },
       }
     }

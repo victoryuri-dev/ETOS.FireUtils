@@ -44,7 +44,7 @@ function blocosDaEstrutura(est, itensEst, tiposPlaca) {
 
 export function textoMemorialSinalizacao(state) {
   const norma = getSinalizacao(state.uf)
-  const { TIPOS_PLACA, NOTAS } = norma
+  const { TIPOS_PLACA } = norma
   const itensSinalizacao = state.sinalizacao || []
 
   const { porTipo: porTipoProjeto } = calcularSinalizacaoEstrutura(itensSinalizacao, TIPOS_PLACA)
@@ -53,7 +53,7 @@ export function textoMemorialSinalizacao(state) {
   const blocos = [
     {
       tipo: 'paragrafo',
-      texto: `A sinalização de emergência da edificação segue os pictogramas, cores e formas padronizados pela NBR 13434 (partes 1 a 3), abrangendo placas de proibição, alerta, orientação/saída de emergência e indicação de equipamentos de combate a incêndio, conforme NT 20 CBMMA. ${NOTAS.quantidade}`,
+      texto: 'A sinalização de emergência da edificação segue os pictogramas, cores e formas padronizados pela NBR 13434 (partes 1 a 3), abrangendo placas de proibição, alerta, orientação/saída de emergência e indicação de equipamentos de combate a incêndio, conforme NT 20 CBMMA.',
     },
     ...(tiposUsadosProjeto.length > 0 ? [{ tipo: 'campo', label: 'Condições de instalação', valor: CONDICAO_INSTALACAO }] : []),
   ]

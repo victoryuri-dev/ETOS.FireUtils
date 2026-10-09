@@ -4,7 +4,7 @@
 // via CSS `color` (herdada do texto ao redor, ou setada explicitamente),
 // então o mesmo componente funciona em qualquer fundo/tema — preto,
 // cinza, branco, vermelho etc.
-export default function Loader({ size = 16, className = '' }) {
+export default function Loader({ size = 16, className = '', label = 'Carregando' }) {
   return (
     <svg
       viewBox="0 0 168 216"
@@ -12,7 +12,7 @@ export default function Loader({ size = 16, className = '' }) {
       className={`loader-mark ${className}`}
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Carregando"
+      aria-label={label}
     >
       <path className="loader-bar loader-bar-3" d="M168 0V154.523H121.426L121.426 50.9454L168 0Z" fill="currentColor" />
       <path className="loader-bar loader-bar-2" d="M103.129 61.4769V216H58.2179L58.2178 112.422L103.129 61.4769Z" fill="currentColor" />

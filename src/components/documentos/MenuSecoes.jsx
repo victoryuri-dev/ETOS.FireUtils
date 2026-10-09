@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 
 // Menu flutuante de navegação do memorial (lado direito): parado, são só linhas finas (a da
 // seção em leitura é maior e opaca); com o mouse (ou o foco do teclado) em
-// cima — clicar não deixa o menu preso aberto — revelam-se os nomes, com a seção atual em destaque e as vizinhas
-// esmaecendo com a distância. Painel escuro translucido, pra o texto branco
+// cima — clicar não deixa o menu preso aberto — revelam-se os nomes, todos em branco cheio, com a seção atual só em
+// tamanho maior. Painel escuro translucido, pra o texto branco
 // ficar legível mesmo sobre a folha do documento.
 //
 // `secoes`: [{ id, numero, texto, el }] (títulos de nível 1 já paginados);
@@ -46,7 +46,6 @@ export default function MenuSecoes({ secoes, rolagemRef }) {
             <button
               type="button"
               className={`menu-secoes__item${i === ativo ? ' is-ativo' : ''}`}
-              style={{ '--o': i === ativo ? 1 : Math.max(0.16, 0.44 - (Math.abs(i - ativo) - 1) * 0.1) }}
               aria-current={i === ativo ? 'true' : undefined}
               onClick={e => { e.currentTarget.blur(); ir(s) }}
             >

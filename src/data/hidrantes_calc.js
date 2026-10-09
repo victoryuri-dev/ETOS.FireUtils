@@ -44,19 +44,36 @@ export function faixaAreaIndex(areaTotal, norma) {
   return norma.FAIXAS_AREA.findIndex(f => (f.min == null || a > f.min) && (f.max == null || a <= f.max))
 }
 
-/** Opções de classificação (Tipo + RTI) para uma coluna/faixa, já
- *  aplicando o rebaixamento automático por chuveiros automáticos (Notas 1
- *  e 2 da Tabela 3) quando `possuiSprinklers` é true. Retorna uma lista —
- *  normalmente 1 opção, mas 2 quando a coluna 1 permite ao projetista
- *  escolher entre Tipo 1 e Tipo 2.
+/** Opções de classificação (Tipo + RTI) para uma coluna/faixa, considerando
+ *  chuveiros automáticos. A Tabela 3 tem duas notas com condições
+ *  DIFERENTES — por isso dois sinais distintos, não um só:
+ *
+ *  - Nota 1: só vale quando os chuveiros automáticos são EXIGIDOS
+ *    (`sprinklersObrigatorio`) — permite Tipo 5 → Tipo 4, independente de
+ *    o sistema já estar instalado ou não.
+ *  - Nota 2: só vale quando os chuveiros NÃO são exigidos, mas foram
+ *    instalados por outro motivo (`sprinklersAtivo && !sprinklersObrigatorio`,
+ *    aqui `sprinklersVoluntario`) — permite Tipo 5 → Tipo 4 (mesmo
+ *    resultado da Nota 1, só muda a nota citada) e Tipo 4 → Tipo 3.
+ *
+ *  Pra Tipo 4 (coluna 3, ou coluna 4 já Tipo 4), só a Nota 2 se aplica —
+ *  se os chuveiros forem exigidos (`sprinklersObrigatorio`), nenhuma nota
+ *  permite o rebaixamento pra Tipo 3, então a opção nem aparece.
+ *
+ *  Retorna uma lista — normalmente 1 opção, mas 2 quando o RT tem uma
+ *  escolha a fazer: coluna 1 (Tipo 1 ou Tipo 2, sempre) ou um rebaixamento
+ *  permitido por Nota 1/2. As notas só PERMITEM o rebaixamento — nunca
+ *  impõem: por isso sempre voltam como uma escolha (pills), nunca
+ *  aplicadas sozinhas.
  *
  *  Cada opção: { tipo, rti, origem: 'normal'|'nota1'|'nota2', nota? } —
  *  `nota` traz o texto a exibir/citar no memorial quando o rebaixamento
  *  foi aplicado.
  */
-export function opcoesClassificacao(coluna, faixaIndex, possuiSprinklers, norma) {
+export function opcoesClassificacao(coluna, faixaIndex, sprinklersObrigatorio, sprinklersAtivo, norma) {
   if (coluna == null || faixaIndex < 0 || faixaIndex >= norma.TABELA3.length) return []
   const linha = norma.TABELA3[faixaIndex]
+  const sprinklersVoluntario = sprinklersAtivo && !sprinklersObrigatorio
 
   if (coluna === 1) {
     return [
@@ -69,31 +86,50 @@ export function opcoesClassificacao(coluna, faixaIndex, possuiSprinklers, norma)
     return [{ tipo: linha.col2.tipo, rti: linha.col2.rti, origem: 'normal' }]
   }
 
+  // Texto literal das Notas 1 e 2 da Tabela 3 (NT 22/2021 CBMMA) — citado
+  // ao pé da letra, sem paráfrase, pra exibir/citar no memorial exatamente
+  // como está na norma.
+  const NOTA1 = 'Nota 1 da Tabela 3, NT 22/2021 CBMMA: "As ocupações enquadradas no sistema tipo 5 que possuírem a exigência de sistema de chuveiros automáticos, podem aplicar o sistema tipo 4." O rebaixamento é uma opção do responsável técnico, não uma imposição normativa.'
+  const NOTA2 = 'Nota 2 da Tabela 3, NT 22/2021 CBMMA: "As ocupações enquadradas no sistema tipo 5 e as ocupações enquadradas no sistema tipo 4, que não possuírem a exigência de sistema de chuveiros automáticos, mas que, por outras circunstâncias, tal sistema for instalado, podem aplicar, respectivamente, o sistema tipo 4 e o sistema tipo 3, com a RTI de um nível inferior no quadro acima." O rebaixamento é uma opção do responsável técnico, não uma imposição normativa.'
+
   if (coluna === 3) {
     const base = { tipo: linha.col3.tipo, rti: linha.col3.rti, origem: 'normal' }
-    if (possuiSprinklers) {
-      return [{
-        tipo: 3, rti: linha.col2.rti, origem: 'nota2',
-        nota: 'Rebaixado de Tipo 4 para Tipo 3 (Nota 2 da Tabela 3, NT 22) — edificação possui chuveiros automáticos.',
-      }]
+    // Só a Nota 2 se aplica a Tipo 4 — exige que os chuveiros NÃO sejam
+    // exigidos (senão nenhuma nota permite o rebaixamento pra Tipo 3).
+    if (sprinklersVoluntario) {
+      return [base, { tipo: 3, rti: linha.col2.rti, origem: 'nota2', nota: NOTA2 }]
     }
     return [base]
   }
 
   if (coluna === 4) {
     const base = { tipo: linha.col4.tipo, rti: linha.col4.rti, origem: 'normal' }
-    if (!possuiSprinklers) return [base]
     if (linha.col4.tipo === 5) {
-      return [{
-        tipo: 4, rti: linha.col3.rti, origem: 'nota1',
-        nota: 'Rebaixado de Tipo 5 para Tipo 4 (Nota 1 da Tabela 3, NT 22) — edificação possui chuveiros automáticos.',
-      }]
+      // Nota 1 (exigência) ou Nota 2 (instalado por conta própria) — os
+      // dois casos levam ao mesmo Tipo 4, só muda a nota citada. Nota 1
+      // só PERMITE o rebaixamento — não impõe: o RT decide se adota (ver
+      // FormularioSistema.jsx, mesmas pills de escolha da coluna 1). Tipo
+      // 5 (base) continua a 1ª opção.
+      if (sprinklersObrigatorio) {
+        return [
+          base,
+          { tipo: 4, rti: linha.col3.rti, origem: 'nota1', nota: NOTA1 },
+        ]
+      }
+      if (sprinklersVoluntario) {
+        return [
+          base,
+          { tipo: 4, rti: linha.col3.rti, origem: 'nota2', nota: NOTA2 },
+        ]
+      }
+      return [base]
     }
-    // já era Tipo 4 na própria tabela — Nota 2 permite rebaixar mais um nível, pra Tipo 3
-    return [{
-      tipo: 3, rti: linha.col2.rti, origem: 'nota2',
-      nota: 'Rebaixado de Tipo 4 para Tipo 3 (Nota 2 da Tabela 3, NT 22) — edificação possui chuveiros automáticos.',
-    }]
+    // já era Tipo 4 na própria tabela — só a Nota 2 permite rebaixar mais
+    // um nível, pra Tipo 3 (mesma exigência da coluna 3 acima).
+    if (sprinklersVoluntario) {
+      return [base, { tipo: 3, rti: linha.col2.rti, origem: 'nota2', nota: NOTA2 }]
+    }
+    return [base]
   }
 
   return []
@@ -116,10 +152,11 @@ export function divisaoMaiorCarga(divisoesComCarga, norma) {
 
 /** Monta a sugestão completa de classificação pra um projeto: cruza área
  *  total (só das estruturas que exigem hidrantes — ver FormularioSistema)
- *  + divisão de maior carga de incêndio + presença de chuveiros
- *  automáticos, e devolve as opções de Tipo/RTI já prontas pro formulário
- *  exibir. `divisoesComCarga`: [{ divisao, cargaMJm2 }]. */
-export function sugerirClassificacao(areaTotal, divisoesComCarga, possuiSprinklers, norma) {
+ *  + divisão de maior carga de incêndio + chuveiros automáticos (exigidos
+ *  e/ou instalados — ver opcoesClassificacao acima pra por que são dois
+ *  sinais, não um só), e devolve as opções de Tipo/RTI já prontas pro
+ *  formulário exibir. `divisoesComCarga`: [{ divisao, cargaMJm2 }]. */
+export function sugerirClassificacao(areaTotal, divisoesComCarga, sprinklersObrigatorio, sprinklersAtivo, norma) {
   const faixaIndex = faixaAreaIndex(areaTotal, norma)
   if (faixaIndex < 0 || !divisoesComCarga?.length) {
     return { faixaIndex, coluna: null, divisao: null, opcoes: [] }
@@ -128,7 +165,7 @@ export function sugerirClassificacao(areaTotal, divisoesComCarga, possuiSprinkle
   const maiorCarga = divisaoMaiorCarga(divisoesComCarga, norma)
   if (!maiorCarga) return { faixaIndex, coluna: null, divisao: null, opcoes: [] }
 
-  const opcoes = opcoesClassificacao(maiorCarga.coluna, faixaIndex, possuiSprinklers, norma)
+  const opcoes = opcoesClassificacao(maiorCarga.coluna, faixaIndex, sprinklersObrigatorio, sprinklersAtivo, norma)
   return { faixaIndex, coluna: maiorCarga.coluna, divisao: maiorCarga.divisao, opcoes }
 }
 

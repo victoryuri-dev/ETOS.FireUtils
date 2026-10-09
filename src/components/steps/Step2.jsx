@@ -368,10 +368,8 @@ export default function Step2({ step, totalSteps }) {
             </div>
           )}
 
-          {state.situacao === 'existente' && (
+          {state.situacao === 'existente' && informarLegais === 'sim' && (
             <>
-              {informarLegais === 'sim' && (
-              <>
               <div className="fg mb-3 max-w-[calc(50%-8px)]"><label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/></div>
               <div className="g2 mb-3">
                 <div className="fg"><label>Ano de construcao</label><input type="number" value={state.anoConstrucao} onChange={set('anoConstrucao')} placeholder="Ex: 1998"/></div>
@@ -388,14 +386,13 @@ export default function Step2({ step, totalSteps }) {
                 <div className="fg"><label>No do AVCB anterior</label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
                 <div className="fg"><label>Validade do AVCB</label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
               </div>
-              </>
-              )}
-              <div className="fg">
-                <label>Condicoes atuais relevantes para o PPCI</label>
-                <textarea value={state.condicoesAtuais} onChange={set('condicoesAtuais')} placeholder="Descreva brevemente..."/>
-              </div>
             </>
           )}
+
+          <div className="fg">
+            <label>Observações complementares</label>
+            <textarea value={state.condicoesAtuais} onChange={set('condicoesAtuais')} placeholder="Descreva brevemente..."/>
+          </div>
         </FormSection>
       )}
 

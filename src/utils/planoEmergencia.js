@@ -25,8 +25,22 @@ export const PROCEDIMENTOS_PADRAO = {
   respAbandono: 'Caso seja necessário abandonar a edificação, deve ser acionado novamente o alarme de incêndio para que se inicie o abandono geral. Os ocupantes do setor sinistrado, que já devem estar cientes da emergência, devem ser os primeiros a se deslocar, em fila e sem tumulto, após o primeiro toque, com um brigadista liderando a fila e outro encerrando a mesma. Antes do abandono definitivo do setor, um ou dois brigadistas devem verificar se não ficaram ocupantes retardatários e providenciar o fechamento de portas e/ou janelas, se possível. Cada pessoa portadora de deficiência física, permanente ou temporária, deve ser acompanhada por dois brigadistas ou voluntários, previamente designados pelo Chefe da Brigada. Todos os demais ocupantes, após soar o primeiro alarme, devem parar o que estiverem fazendo, pegar apenas seus documentos pessoais e se agruparem em fila organizada e direcionada à saída de emergência. Após o segundo toque do alarme, os ocupantes devem iniciar o deslocamento, dando preferência às demais filas quando cruzarem com as mesmas (como numa rotatória de trânsito), até deixarem a edificação e se dirigirem ao ponto de encontro previamente definido.',
   respIsolamento: 'A área sinistrada deve ser isolada fisicamente, de modo a garantir os trabalhos de emergência e evitar que pessoas não autorizadas adentrem ao local.',
   respConfinamento: 'O incêndio deve ser confinado de modo a evitar a sua propagação e consequências.',
-  respCombate: 'Os demais brigadistas devem iniciar, se necessário e/ou possível, o combate ao fogo sob comando de brigadista profissional, podendo ser auxiliados por outros ocupantes, desde que devidamente treinados, capacitados e protegidos. O combate ao incêndio deve ser efetuado conforme treinamento específico dado aos brigadistas.',
+  respCombate: 'Os demais brigadistas devem iniciar, se necessário e/ou possível, o combate ao fogo sob comando do Chefe da Brigada, podendo ser auxiliados por outros ocupantes, desde que devidamente treinados, capacitados e protegidos. O combate ao incêndio deve ser efetuado conforme treinamento específico dado aos brigadistas.',
   respInvestigacao: 'Após o controle total da emergência e a volta à normalidade, incluindo a liberação da edificação pelas autoridades, o Chefe da Brigada deve iniciar o processo de investigação e elaborar um relatório, por escrito, sobre o sinistro e as ações de controle, para as devidas providências e/ou investigação.',
+}
+
+// Texto padrão de "Combate ao Princípio de Incêndio" (item B.2.g) — o
+// comando citado depende de a edificação ter brigadista(s) profissional(is)
+// cadastrado(s) (pe.brigadistasProfissionaisQtd); gerado à parte de
+// PROCEDIMENTOS_PADRAO.respCombate (usado só como default neutro, sem
+// brigadista profissional, na seed de projeto novo em INITIAL_STATE) pra
+// nunca imprimir "sob comando de brigadista profissional" quando o projeto
+// declara zero — contradição que só o texto fixo não evitava.
+function respCombatePadrao(temBrigadistaProfissional) {
+  const comando = temBrigadistaProfissional
+    ? 'sob comando de brigadista profissional'
+    : 'sob comando do Chefe da Brigada'
+  return `Os demais brigadistas devem iniciar, se necessário e/ou possível, o combate ao fogo ${comando}, podendo ser auxiliados por outros ocupantes, desde que devidamente treinados, capacitados e protegidos. O combate ao incêndio deve ser efetuado conforme treinamento específico dado aos brigadistas.`
 }
 
 function enderecoCompletoDe(state) {
@@ -146,7 +160,7 @@ export function buildPlanoEmergenciaData(state, sistemas) {
     respAbandono: pe.respAbandono || PROCEDIMENTOS_PADRAO.respAbandono,
     respIsolamento: pe.respIsolamento || PROCEDIMENTOS_PADRAO.respIsolamento,
     respConfinamento: pe.respConfinamento || PROCEDIMENTOS_PADRAO.respConfinamento,
-    respCombate: pe.respCombate || PROCEDIMENTOS_PADRAO.respCombate,
+    respCombate: pe.respCombate || respCombatePadrao(parseFloat(pe.brigadistasProfissionaisQtd) > 0),
     respInvestigacao: pe.respInvestigacao || PROCEDIMENTOS_PADRAO.respInvestigacao,
 
     proprietario: b.proprietario,

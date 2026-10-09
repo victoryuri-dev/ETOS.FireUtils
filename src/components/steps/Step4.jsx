@@ -151,56 +151,78 @@ function SecaoTitulo({ titulo, tip }) {
   )
 }
 
-// ── Sugestão de classificação a partir do CNPJ (só no Térreo) ──────────
-// O Térreo carrega a ocupação predominante da edificação — por isso só ele
-// ganha esse atalho. O CNPJ já foi informado na Etapa 1 (Responsável pelo
-// uso), então a busca dispara sozinha ao abrir o modal — sem pedir de novo.
-// Acha o CNAE fiscal da empresa (mesma API de useCnpjLookup) e casa contra
-// a base normativa pra sugerir grupo/divisão automaticamente.
+// ── Preencher a classificação a partir do CNPJ ─────────────────────────
+// Disponível em qualquer pavimento (não só Térreo) — busca manual: o
+// usuário clica "Preencher do CNPJ" (o CNPJ já foi informado na Etapa 1,
+// Responsável pelo uso), e aparecem botões com os candidatos de CNAE
+// encontrados pra escolher qual preencher neste pavimento.
+//
+// O CNAE principal da Receita nem sempre está cadastrado na base normativa
+// (ex.: principal genérico tipo "Lojas de departamentos", mas secundário
+// específico — "Supermercados" — já catalogado): por isso sempre aparece
+// um botão pro principal (preenche só o CNAE quando ele não bate com
+// nenhuma divisão da norma) e, só quando o principal não bateu, um segundo
+// botão com o primeiro CNAE secundário que bateu (preenche grupo, divisão
+// e CNAE de uma vez).
 function BuscaCnaePorCnpj({ pav, dispatch }) {
   const { state } = useProjeto()
-  const { buscar, limpar, error, resultado } = useCnaeCnpjLookup()
+  const { buscar, limpar, loading, error, resultado } = useCnaeCnpjLookup()
   const cnpjDigits = (state.respCNPJ || '').replace(/\D/g, '')
 
-  useEffect(() => {
-    if (cnpjDigits.length === 14) buscar(state.respCNPJ)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cnpjDigits])
-
-  const aplicarClassificacao = () => {
-    if (!resultado?.match) return
-    dispatch({
-      type: 'UPDATE_PAV', id: pav.id,
-      changes: { grupo: resultado.match.grupo, divisao: resultado.match.divisao, cnae: resultado.match.cnae, cnaeDesc: resultado.match.descricao },
-    })
+  const aplicar = (opcao) => {
+    if (!opcao) return
+    const changes = opcao.match
+      ? { grupo: opcao.match.grupo, divisao: opcao.match.divisao, cnae: opcao.cnae, cnaeDesc: opcao.descricao }
+      : { cnae: opcao.cnae, cnaeDesc: opcao.descricao }
+    dispatch({ type: 'UPDATE_PAV', id: pav.id, changes })
     limpar()
   }
 
-  // Retornos da busca ficam no topo do modal do Térreo (toasts ficam
-  // reservados ao retorno das importações do Revit). Sem correspondencia na
-  // base normativa nao ha nada pra sugerir, entao nao mostra nada.
+  if (!resultado && !loading && !error) {
+    return (
+      <div className="mb-5">
+        <button type="button" className="btn-ghost" disabled={cnpjDigits.length !== 14} onClick={() => buscar(state.respCNPJ)}>
+          <Icon name="search" size={12}/> Preencher do CNPJ
+        </button>
+        {cnpjDigits.length !== 14 && (
+          <div className="text-xs text-ink-faint mt-1.5">Informe o CNPJ do responsável na Etapa 1 pra usar este atalho.</div>
+        )}
+      </div>
+    )
+  }
+
+  if (loading) {
+    return <div className="text-xs text-ink-faint mb-5">Buscando CNAE pelo CNPJ da Etapa 1...</div>
+  }
   if (error) {
     return (
       <div className="ibox red mb-5" role="alert">
         <Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/>
-        <span className="text-xs">Nao foi possivel sugerir a classificacao pelo CNPJ da Etapa 1: {error}</span>
+        <span className="text-xs">{error}</span>
+        <button type="button" className="btn-ghost ml-auto shrink-0" onClick={limpar}>Tentar de novo</button>
       </div>
     )
   }
-  if (!resultado?.match) return null
 
+  const { principal, secundario } = resultado
   return (
-    <div className="ibox blue mb-5 flex-col items-stretch gap-3">
+    <div className="ibox blue mb-5 flex-col items-stretch gap-2.5">
       <div className="flex items-start gap-2.5">
         <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
         <div className="text-xs leading-[1.6]">
           <div className="font-semibold text-ink mb-0.5">CNAE encontrado pelo CNPJ da Etapa 1</div>
-          {resultado.cnae} — {resultado.descricao}. Corresponde a {resultado.match.divisao} — {resultado.match.descricao} na norma.
-          {' '}Pode ser diferente da ocupacao real do Terreo — confirme antes de usar.
+          Escolha qual CNAE preencher neste pavimento. Pode ser diferente da ocupação real — confirme antes de usar.
         </div>
       </div>
-      <div className="flex gap-2 pl-6">
-        <button type="button" className="btn-ghost" onClick={aplicarClassificacao}>Usar esta classificacao no Terreo</button>
+      <div className="flex flex-wrap gap-2 pl-6">
+        <button type="button" className="btn-ghost" onClick={() => aplicar(principal)}>
+          {principal.cnae} — {principal.descricao}{!principal.match ? ' (sem carga de incêndio cadastrada)' : ''}
+        </button>
+        {secundario && (
+          <button type="button" className="btn-ghost" onClick={() => aplicar(secundario)}>
+            {secundario.cnae} — {secundario.descricao}
+          </button>
+        )}
         <button type="button" className="btn-ghost" onClick={limpar}>Descartar</button>
       </div>
     </div>
@@ -328,7 +350,7 @@ function PavModal({ pav, onClose }) {
         {/* Body */}
         <div className="flex-1 overflow-y-auto py-6 px-[24px]">
 
-          {pav.tipo === 'terreo' && <BuscaCnaePorCnpj pav={pav} dispatch={dispatch}/>}
+          <BuscaCnaePorCnpj pav={pav} dispatch={dispatch}/>
 
           {/* Ocupação principal */}
           <div className="mb-8">

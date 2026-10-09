@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useCnpjLookup } from '../../hooks/useCnpjLookup'
 import { getEstadosDisponiveis } from '../../data/normas/index'
@@ -24,8 +24,14 @@ function maskCNPJ(raw) {
 
 export default function Step1({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
-  const { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco } = useCnpjLookup()
-  const [mesmoResponsavel, setMesmoResponsavel] = useState(false)
+  const { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco, qsa } = useCnpjLookup()
+  // Fonte dos dados de "Proprietario do imovel", so pra destacar o botao
+  // escolhido na caixa azul — 'manual' (padrao), 'responsavel' ou 'socio'.
+  // Os dois preenchem os campos uma unica vez (ver escolherResponsavel/
+  // escolherSocio); nenhum trava os campos depois, igual aos demais
+  // inputs do formulario.
+  const [proprietarioFonte, setProprietarioFonte] = useState('manual')
+  const [socioIndex, setSocioIndex] = useState(null)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
   const estadosDisponiveis = getEstadosDisponiveis()
   const setCNPJ = e => dispatch({ type:'SET_FIELD', field:'respCNPJ', value: maskCNPJ(e.target.value) })
@@ -35,14 +41,28 @@ export default function Step1({ step, totalSteps }) {
   // encontrado fica na seção "Localizacao da obra".
   const mostrarEnderecoFiscal = !!enderecoFiscal
 
-  // Mantem "Proprietario do imovel" espelhando "Responsavel pelo uso" enquanto marcado —
-  // evita digitar os mesmos dados duas vezes quando e a mesma empresa/pessoa.
-  useEffect(() => {
-    if (!mesmoResponsavel) return
+  function escolherResponsavel() {
+    setProprietarioFonte('responsavel')
+    setSocioIndex(null)
     dispatch({ type:'SET_FIELD', field:'propNome', value: state.respRazaoSocial })
     dispatch({ type:'SET_FIELD', field:'propDocumento', value: state.respCNPJ })
     dispatch({ type:'SET_FIELD', field:'propTelefone', value: state.respTelefone })
-  }, [mesmoResponsavel, state.respRazaoSocial, state.respCNPJ, state.respTelefone])
+  }
+  function escolherSocio(i) {
+    const socio = qsa[i]
+    if (!socio) return
+    setProprietarioFonte('socio')
+    setSocioIndex(i)
+    dispatch({ type:'SET_FIELD', field:'propNome', value: socio.nome_socio || '' })
+    dispatch({ type:'SET_FIELD', field:'propDocumento', value: socio.cnpj_cpf_do_socio || '' })
+    dispatch({ type:'SET_FIELD', field:'propTelefone', value: '' })
+  }
+
+  // Botao "selecionado" (mesmo que o responsavel, ou um socio especifico)
+  // fica destacado dentro da caixa azul — ajuda a ver qual fonte esta
+  // em uso sem precisar de outro texto a parte.
+  const btnQuadro = selecionado => `btn-ghost ${selecionado ? 'border-blue-border bg-blue-dim text-ink font-semibold' : ''}`
+  const mostrarQuadroSocietario = !!state.respRazaoSocial || qsa.length > 0
 
   return (
     <div className={S.section}>
@@ -134,16 +154,34 @@ export default function Step1({ step, totalSteps }) {
       </FormSection>
 
       <FormSection title="Proprietario do imovel">
-        <label className="flex items-center gap-2 mb-3 text-[12px] text-ink-muted cursor-pointer">
-          <input type="checkbox" checked={mesmoResponsavel} onChange={e => setMesmoResponsavel(e.target.checked)} className="w-auto"/>
-          Proprietario e o mesmo que o responsavel pelo uso
-        </label>
+        {mostrarQuadroSocietario && (
+          <div className="ibox blue flex-col items-stretch gap-2.5">
+            <div className="flex items-start gap-2.5">
+              <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
+              <div className="text-xs leading-[1.6]">
+                <div className="font-semibold text-ink mb-0.5">Quadro societario encontrado pelo CNPJ</div>
+                Selecione quem e o proprietario do imovel.
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 pl-6">
+              <button type="button" onClick={escolherResponsavel} className={btnQuadro(proprietarioFonte === 'responsavel')}>
+                Mesmo que o responsavel pelo uso
+              </button>
+              {qsa.map((s, i) => (
+                <button key={i} type="button" onClick={() => escolherSocio(i)} className={btnQuadro(proprietarioFonte === 'socio' && socioIndex === i)}>
+                  {s.nome_socio}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="g2 mb-3">
-          <div className="fg"><label>Nome / Razao social <span className="req">*</span></label><input value={state.propNome} onChange={set('propNome')} readOnly={mesmoResponsavel}/></div>
-          <div className="fg"><label>CPF / CNPJ <span className="req">*</span></label><input value={state.propDocumento} onChange={set('propDocumento')} readOnly={mesmoResponsavel}/></div>
+          <div className="fg"><label>Nome / Razao social <span className="req">*</span></label><input value={state.propNome} onChange={set('propNome')}/></div>
+          <div className="fg"><label>CPF / CNPJ <span className="req">*</span></label><input value={state.propDocumento} onChange={set('propDocumento')}/></div>
         </div>
         <div className="g2">
-          <div className="fg"><label>Telefone</label><input type="tel" value={state.propTelefone} onChange={set('propTelefone')} placeholder="(99) 99999-9999" readOnly={mesmoResponsavel}/></div>
+          <div className="fg"><label>Telefone</label><input type="tel" value={state.propTelefone} onChange={set('propTelefone')} placeholder="(99) 99999-9999"/></div>
           <div className="fg"><label>E-mail</label><input type="email" value={state.propEmail} onChange={set('propEmail')}/></div>
         </div>
       </FormSection>

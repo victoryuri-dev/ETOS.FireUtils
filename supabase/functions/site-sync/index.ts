@@ -36,6 +36,7 @@
 // sensíveis (CPF, dados de proprietário/responsável).
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { donoTemLicenca, ERRO_SEM_LICENCA } from '../_shared/licenca.ts'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -85,9 +86,16 @@ Deno.serve(async (req) => {
   )
 
   const { data: projeto } = await supabase
-    .from('projetos').select('nome, dados').eq('id', projetoId).maybeSingle()
+    .from('projetos').select('nome, user_id, dados').eq('id', projetoId).maybeSingle()
 
   if (!projeto) return json({ error: 'projetoId invalido' }, 401)
+
+  // População dos ambientes é do módulo Saídas (ou PRO); listar estruturas e
+  // ocupação/área servem a qualquer módulo, então basta ter alguma licença.
+  const modulos = acao === 'populacao_ambientes' ? ['saidas'] : null
+  if (!await donoTemLicenca(supabase, projeto.user_id, modulos)) {
+    return json(ERRO_SEM_LICENCA, 403)
+  }
 
   const dados = projeto.dados || {}
   const estruturas = dados.estruturas || []

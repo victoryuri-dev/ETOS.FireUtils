@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useProjeto } from '../context/ProjetoContext'
 import { getEstadosDisponiveis } from '../data/normas/index'
-
-const CNPJ_API = 'https://brasilapi.com.br/api/cnpj/v1/'
+import { supabase } from '../lib/supabase'
 
 function maskCNPJ(raw) {
   const d = (raw || '').replace(/\D/g, '').slice(0, 14)
@@ -25,7 +24,12 @@ function maskCNAE(raw) {
   return `${d.slice(0, 4)}-${d[4]}/${d.slice(5, 7)}`
 }
 
-// Consulta pública de CNPJ (BrasilAPI, dados da Receita Federal) — sem necessidade de backend.
+// Consulta pública de CNPJ (BrasilAPI, dados da Receita Federal) — via a
+// Edge Function cnpj-lookup (supabase/functions/cnpj-lookup), que repassa
+// a consulta pelo servidor. Chamar a BrasilAPI direto do navegador
+// esbarrava com frequência em rate-limit da Cloudflare dela, cuja resposta
+// de bloqueio não vem com header de CORS — o navegador relata isso como
+// "blocked by CORS policy", mascarando que o problema real é rate-limit.
 // Dados da empresa (razao social, CNAE...) sao aplicados direto. O endereco fica em
 // espera — e o endereco fiscal da empresa, que pode nao ser o endereco da obra — e so
 // e copiado para o projeto se o usuario confirmar em aplicarEndereco().
@@ -35,6 +39,10 @@ export function useCnpjLookup() {
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
   const [enderecoFiscal, setEnderecoFiscal] = useState(null)
+  // Quadro societario (QSA) do CNPJ buscado — usado pelo seletor de
+  // "Proprietario do imovel" (Step1.jsx), pra oferecer cada socio como
+  // opcao alem de "mesmo que o responsavel pelo uso".
+  const [qsa, setQsa] = useState([])
 
   async function buscar(cnpjRaw) {
     const digits = (cnpjRaw || '').replace(/\D/g, '')
@@ -46,17 +54,23 @@ export function useCnpjLookup() {
     setError('')
     setWarning('')
     setEnderecoFiscal(null)
+    setQsa([])
     try {
-      const res = await fetch(`${CNPJ_API}${digits}`)
-      if (res.status === 404) throw new Error('CNPJ nao encontrado na Receita Federal.')
-      if (res.status === 429) throw new Error('Muitas consultas em pouco tempo — aguarde um instante e tente novamente.')
-      if (!res.ok) throw new Error('Nao foi possivel consultar o CNPJ agora. Tente novamente.')
-      const d = await res.json()
+      const { data: d, error: fnError } = await supabase.functions.invoke('cnpj-lookup', { body: { cnpj: digits } })
+      if (fnError) {
+        let msg = 'Nao foi possivel consultar o CNPJ agora. Tente novamente.'
+        try {
+          const corpo = await fnError.context?.json()
+          if (corpo?.error) msg = corpo.error
+        } catch { /* resposta sem corpo JSON — mantem a mensagem generica acima */ }
+        throw new Error(msg)
+      }
 
       dispatch({ type: 'SET_FIELD', field: 'respCNPJ', value: maskCNPJ(digits) })
       dispatch({ type: 'SET_FIELD', field: 'respRazaoSocial', value: d.razao_social || '' })
       dispatch({ type: 'SET_FIELD', field: 'respFantasia', value: d.nome_fantasia || d.razao_social || '' })
       if (d.ddd_telefone_1) dispatch({ type: 'SET_FIELD', field: 'respTelefone', value: d.ddd_telefone_1 })
+      if (d.email) dispatch({ type: 'SET_FIELD', field: 'respEmail', value: d.email })
       if (d.cnae_fiscal) {
         dispatch({ type: 'SET_FIELD', field: 'cnaePrincipal', value: maskCNAE(String(d.cnae_fiscal)) })
         dispatch({ type: 'SET_FIELD', field: 'cnaePrincipalDesc', value: d.cnae_fiscal_descricao || '' })
@@ -76,6 +90,7 @@ export function useCnpjLookup() {
         uf: d.uf || '',
         ufSuportado: estadoSuportado,
       })
+      setQsa(Array.isArray(d.qsa) ? d.qsa : [])
     } catch (e) {
       setError(e.message || 'Erro ao consultar CNPJ.')
     } finally {
@@ -96,5 +111,5 @@ export function useCnpjLookup() {
     }
   }
 
-  return { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco }
+  return { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco, qsa }
 }

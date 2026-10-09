@@ -4,8 +4,9 @@
 // nada, só formata o que já foi definido. O dimensionamento hidráulico
 // (memorial de cálculo) é responsabilidade do plugin Revit e entra depois.
 
-import { getHidrantes } from '../normas/index'
+import { getHidrantes, getExtintores } from '../normas/index'
 import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
+import { classificacaoHidrantesData } from '../../hooks/useClassificacaoHidrantes'
 import { fmtNum } from '../../utils/numero'
 
 const f2 = (n) => fmtNum(n, 2)
@@ -17,8 +18,12 @@ const LABEL_RECALQUE = {
   passeio: 'instalado no passeio público',
 }
 const LABEL_VALVULA_BLOQUEIO = { gaveta: 'gaveta', gaveta_os_y: 'gaveta de haste ascendente (OS&Y)' }
+const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 
-export function textoMemorialHidrantes(state) {
+// `porEstrutura` vem de useMedidasObrigatorias() (ver buildMemorial em
+// registry.js, que já o calcula uma vez pra todas as seções) — repassado
+// aqui pra classificacaoHidrantesData() sem recalcular.
+export function textoMemorialHidrantes(state, _sistemas, porEstrutura) {
   const norma = getHidrantes(state.uf)
   const h = state.hidrantes || {}
   const blocos = []
@@ -33,32 +38,74 @@ export function textoMemorialHidrantes(state) {
   const dadosTipo = dadosDoTipo(h.tipo, h.tipoVariante || 0, norma)
   const material = norma.MATERIAIS_TUBULACAO.find(m => m.key === h.redeMaterial)
 
+  // Classificação (Tipo/RTI, Tabela 3) recalculada aqui — MESMA lógica de
+  // useClassificacaoHidrantes.js (Etapa 1/3 do dashboard: área total das
+  // estruturas selecionadas + divisão de maior carga de incêndio + presença
+  // de sprinklers nessas estruturas), só sem hooks (classificacaoHidrantesData
+  // é o núcleo puro do hook, reaproveitado aqui pra nunca duplicar a lógica —
+  // ver o próprio hook). NUNCA recalcula a RTI adotada por h.rti (mostrada à
+  // parte, no bloco "Reservatório") — só narra de onde ela deveria vir
+  // (edificações consideradas, área, ocupação de maior risco, RTI mínima
+  // tabelada).
+  const extNorma = getExtintores(state.uf)
+  const classificacao = classificacaoHidrantesData(state, norma, extNorma, porEstrutura)
+  const opcaoDoTipo = classificacao.sugestao.opcoes.find(o => String(o.tipo) === String(h.tipo))
+  const rtiMinima = opcaoDoTipo?.rti ?? null
+  // Só as estruturas de fato aplicáveis (consideradas na área/ocupação da
+  // classificação) — as demais (sem exigência de hidrantes, ou excluídas
+  // manualmente pelo RT) não aparecem aqui.
+  const estruturasAplicaveis = classificacao.infoPorEstrutura.filter(e => classificacao.estruturasSelecionadas.includes(e.id))
+
+  blocos.push({ tipo: 'titulo2', texto: 'Tipo do Sistema e Volume de Reserva de Incêndio Mínima' })
   blocos.push({
     tipo: 'paragrafo',
-    texto: `A edificação será protegida por Sistema de Proteção por Hidrantes e Mangotinhos ${dadosTipo.label}, dimensionado conforme a ${norma.NORMA.nome}, com vazão mínima de ${dadosTipo.vazaoMin} L/min e pressão mínima de ${dadosTipo.pressaoMin} mca na válvula do hidrante mais desfavorável (Tabela 2, ${norma.NORMA.nome}).`,
+    texto: 'Edificações/estruturas do projeto consideradas para o dimensionamento do Sistema de Hidrantes — a área construída somada e a ocupação de maior risco entre elas definem a coluna da Tabela 3 e, por ela, o Tipo de sistema exigido.',
+  })
+  blocos.push({
+    tipo: 'tabela',
+    colunas: ['Estrutura', 'Área Construída', 'Ocupação', 'Risco'],
+    linhas: estruturasAplicaveis.map(e => [
+      e.nome,
+      `${fmtNum(e.area, 2, e.area)} m²`,
+      e.divisaoLabel || '—',
+      e.risco ? RISCO_LABEL[e.risco] : '—',
+    ]),
+  })
+  blocos.push({
+    tipo: 'tabela',
+    colunas: ['Critério de Classificação (Tabela 3)', 'Valor Adotado'],
+    linhas: [
+      ['Área construída total considerada', `${fmtNum(classificacao.areaTotal, 2, classificacao.areaTotal)} m²`],
+      ['Ocupação de maior risco considerada', classificacao.sugestao.divisao || '—'],
+      ['Risco', classificacao.risco ? RISCO_LABEL[classificacao.risco] : '—'],
+      ['Chuveiros automáticos (sprinklers) nas estruturas consideradas', classificacao.temSprinklers ? 'Sim' : 'Não'],
+      ['Tipo de sistema escolhido', dadosTipo.label],
+      ['Vazão mínima exigida', `${dadosTipo.vazaoMin} L/min`],
+      ['Pressão mínima exigida', `${dadosTipo.pressaoMin} mca`],
+      ['RTI mínima', rtiMinima != null ? `${fmtNum(rtiMinima, 2, rtiMinima)} m³` : '—'],
+    ],
   })
 
   blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
-  if (h.rti) {
-    blocos.push({
-      tipo: 'campo', label: 'Reserva Técnica de Incêndio (RTI)',
-      valor: `${fmtNum(h.rti, 2, h.rti)} m³ — mínimo normativo conforme Tabela 3, ${norma.NORMA.nome}`,
-    })
-  }
   const materialReservatorio = norma.MATERIAIS_RESERVATORIO.find(m => m.key === h.reservatorioMaterial)
   const posicaoReservatorio = POSICOES_RESERVATORIO.find(p => p.key === h.reservatorioPosicao)
-  if (materialReservatorio) {
-    blocos.push({ tipo: 'paragrafo', texto: `O reservatório de incêndio será construído em ${materialReservatorio.label.toLowerCase()}.` })
-  }
+  blocos.push({ tipo: 'campo', label: 'Material do reservatório', valor: materialReservatorio?.label || '—' })
   if (posicaoReservatorio) {
     blocos.push({ tipo: 'campo', label: 'Posição do reservatório', valor: posicaoReservatorio.label })
   }
+  blocos.push({ tipo: 'campo', label: 'RTI adotada', valor: h.rti ? `${fmtNum(h.rti, 2, h.rti)} m³` : '—' })
   blocos.push({
     tipo: 'paragrafo',
     texto: h.reservatorioExclusivo
       ? 'O reservatório é de uso exclusivo para combate a incêndio.'
-      : `O reservatório é compartilhado com o consumo normal da edificação${h.reservatorioVolumeTotal ? `, com volume total de ${fmtNum(h.reservatorioVolumeTotal, 2, h.reservatorioVolumeTotal)} m³` : ''}, garantida a reserva efetiva de incêndio permanentemente (${norma.NORMA.nome}).`,
+      : `O reservatório é compartilhado com o consumo normal da edificação, garantida a reserva efetiva de incêndio permanentemente (${norma.NORMA.nome}).`,
   })
+  if (!h.reservatorioExclusivo) {
+    blocos.push({
+      tipo: 'campo', label: 'Volume total do reservatório',
+      valor: h.reservatorioVolumeTotal ? `${fmtNum(h.reservatorioVolumeTotal, 2, h.reservatorioVolumeTotal)} m³` : '—',
+    })
+  }
 
   blocos.push({ tipo: 'titulo2', texto: 'Bomba de Incêndio' })
   if (!h.bombaExiste) {
@@ -73,10 +120,17 @@ export function textoMemorialHidrantes(state) {
       tipo: 'paragrafo',
       texto: `O sistema possui bomba de incêndio principal${h.bombaAcionamento ? ` acionada por ${LABEL_ACIONAMENTO[h.bombaAcionamento]}` : ''}${extras.length ? `, complementada por ${extras.join(' e ')}` : ''}.`,
     })
-    if (h.bombaAcionamento === 'eletrico' || (h.bombaReserva && h.bombaReservaAcionamento === 'eletrico')) {
+    // Declarativo, não genérico: só afirma o gerador quando o RT de fato
+    // marcou que o projeto o tem (h.bombaGeradorBackup, BombaESuccaoForm.jsx)
+    // — antes dizia "podem ser alimentadas", uma possibilidade normativa
+    // genérica que não afirmava se ESTE projeto realmente tem o gerador.
+    // Sem o toggle marcado, a frase fica de fora — mesmo padrão de
+    // h.bombaAlimentaSprinklers abaixo: nunca afirma um equipamento que não
+    // foi de fato decidido.
+    if (h.bombaGeradorBackup && (h.bombaAcionamento === 'eletrico' || (h.bombaReserva && h.bombaReservaAcionamento === 'eletrico'))) {
       blocos.push({
         tipo: 'paragrafo',
-        texto: `Na falta de energia da concessionária, as bombas de incêndio acionadas por motor elétrico podem ser alimentadas por um gerador diesel, atendendo ao requisito do item C.2.9 da ${norma.NORMA.nome}.`,
+        texto: `Na falta de energia da concessionária, as bombas de incêndio acionadas por motor elétrico são alimentadas por um gerador diesel, atendendo ao requisito do item C.2.9 da ${norma.NORMA.nome}.`,
       })
     }
     if (h.bombaAlimentaSprinklers) {
@@ -104,14 +158,30 @@ export function textoMemorialHidrantes(state) {
     // hidráulico (plugin Revit); potência é a adotada pelo RT na Etapa 3
     // do dashboard (ver BombaESuccaoForm.jsx). Bomba jockey não passa pelo
     // dimensionamento hidráulico principal — potência/vazão são as
-    // informadas diretamente pelo RT.
-    if (resDimensionamento || (h.bombaJockey && (h.bombaJockeyPotencia || h.bombaJockeyVazao))) {
+    // informadas diretamente pelo RT. h.bombaReserva entra na condição pra
+    // a linha "Bomba reserva" aparecer mesmo antes do primeiro
+    // "Dimensionar Hidrantes" (pressão/vazão ficam "—" até lá).
+    if (resDimensionamento || h.bombaReserva || (h.bombaJockey && (h.bombaJockeyPotencia || h.bombaJockeyVazao))) {
       const linhasBomba = []
       if (resDimensionamento) {
         linhasBomba.push([
           'Bomba principal',
           `${f2(resDimensionamento.P_RTI)} mca`,
           `${f2(resDimensionamento.Qt)} L/min`,
+          h.bombaPotenciaAdotada ? `${fmtNum(h.bombaPotenciaAdotada, 2, h.bombaPotenciaAdotada)} cv` : '—',
+        ])
+      }
+      if (h.bombaReserva) {
+        // Bomba reserva assume a mesma vazão/pressão da principal — é um
+        // backup de mesma capacidade (Anexo C.3.12), não um equipamento
+        // dimensionado à parte; só o acionamento pode divergir (ver
+        // parágrafo acima). Sem linha própria, a tabela "Especificações da
+        // Bomba" ficava sem identificar a reserva, mesmo quando o RT a
+        // declarava no sistema (h.bombaReserva, BombaESuccaoForm.jsx).
+        linhasBomba.push([
+          `Bomba reserva${h.bombaReservaAcionamento ? ` (${LABEL_ACIONAMENTO[h.bombaReservaAcionamento]})` : ''}`,
+          resDimensionamento ? `${f2(resDimensionamento.P_RTI)} mca` : '—',
+          resDimensionamento ? `${f2(resDimensionamento.Qt)} L/min` : '—',
           h.bombaPotenciaAdotada ? `${fmtNum(h.bombaPotenciaAdotada, 2, h.bombaPotenciaAdotada)} cv` : '—',
         ])
       }

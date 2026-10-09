@@ -1,7 +1,7 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
-import { calcularTRRF, metodologiaDosMateriais, alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
+import { calcularTRRF, alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
@@ -36,18 +36,16 @@ function LinhaPavimento({ linha }) {
   )
 }
 
-function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao, materiaisMapa, dispatch, exigido }) {
+function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao, dispatch, exigido }) {
   const sub = parseInt(est.nSubsolos) || 0
   const resultado = calcularTRRF(pavimentos, est, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao)
-  const metodologias = metodologiaDosMateriais(est.estrutura, materiaisMapa)
 
   const setObs = (v) => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'obsSegEstrutural', value: v })
 
-  const faltando = [!resultado.classeAltura, sub > 0 && !est.profundidadeSubsolo, metodologias.length === 0].filter(Boolean).length
   const status = !exigido
     ? statusEstrutura('concluido', 'Não exigida')
-    : faltando === 3 || (faltando > 0 && !resultado.classeAltura) ? statusEstrutura('pendente', 'Dados pendentes')
-    : faltando > 0 ? statusEstrutura('andamento', 'Em andamento')
+    : !resultado.classeAltura ? statusEstrutura('pendente', 'Dados pendentes')
+    : sub > 0 && !est.profundidadeSubsolo ? statusEstrutura('andamento', 'Em andamento')
     : resultado.pendenciasNaoRegressao.length > 0 ? statusEstrutura('atencao', 'Revisar TRRF')
     : resultado.avisos.length > 0 ? statusEstrutura('andamento', 'Consultar SSCI')
     : statusEstrutura('concluido', 'TRRF definido')
@@ -129,23 +127,6 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
         </div>
       )}
 
-      <Card className="mb-3">
-        <div className="py-3.5 px-[18px]">
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Metodologia de comprovação (por material estrutural)</div>
-          {metodologias.length === 0 ? (
-            <div className="text-xs text-amber">Selecione o(s) material(is) estrutural(is) na Etapa 2 (Edificação).</div>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {metodologias.map(m => (
-                <li key={m.material} className="text-xs text-ink-faint">
-                  <strong className="text-ink">{m.material}</strong> — {m.norma}: {m.metodologia}.
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </Card>
-
       <Card>
         <div className="py-3.5 px-[18px]">
           <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Observações do responsável técnico</div>
@@ -167,7 +148,7 @@ export default function SegurancaEstruturalPage() {
   const { state, dispatch } = useProjeto()
   const { trrf } = useNorma()
   const { porEstrutura } = useMedidasObrigatorias()
-  const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO, METODOLOGIA_POR_MATERIAL } = trrf
+  const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO } = trrf
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -195,7 +176,6 @@ export default function SegurancaEstruturalPage() {
               classesAltura={CLASSES_ALTURA}
               classesSubsolo={CLASSES_SUBSOLO}
               divisoesSemOcupacao={DIVISOES_SEM_OCUPACAO_SUBSOLO}
-              materiaisMapa={METODOLOGIA_POR_MATERIAL}
               dispatch={dispatch}
               exigido={!!pe?.sistemas?.seg_estrutural?.ativo}
             />

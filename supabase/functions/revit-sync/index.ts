@@ -21,9 +21,20 @@
 // `projetoId` corresponda a um projeto existente, sem segredo adicional.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { donoTemLicenca, ERRO_SEM_LICENCA } from '../_shared/licenca.ts'
 
 const MEDIDAS_VALIDAS = ['extintores', 'hidrantes', 'saidas_emergencia', 'sinalizacao', 'iluminacao']
 const MEDIDAS_SEM_ESTRUTURA = ['hidrantes']
+
+// Módulo contratado que libera o envio de cada medida. O PRO libera todas;
+// lista vazia = só o PRO (os quantitativos fazem parte do FireUtils BIM).
+const MODULOS_DA_MEDIDA = {
+  hidrantes: ['hidrantes'],
+  saidas_emergencia: ['saidas'],
+  extintores: [],
+  sinalizacao: [],
+  iluminacao: [],
+}
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -66,11 +77,15 @@ Deno.serve(async (req) => {
   )
 
   const { data: projeto } = await supabase
-    .from('projetos').select('id, dados').eq('id', projetoId).maybeSingle()
+    .from('projetos').select('id, user_id, dados').eq('id', projetoId).maybeSingle()
   // Qualquer falha aqui — projeto não encontrado — é tratada como falha de
   // autenticação, não erro de servidor.
 
   if (!projeto) return json({ error: 'projetoId invalido' }, 401)
+
+  if (!await donoTemLicenca(supabase, projeto.user_id, MODULOS_DA_MEDIDA[medida])) {
+    return json(ERRO_SEM_LICENCA, 403)
+  }
 
   let estrutura_id = ''
   let estrutura_nome = null

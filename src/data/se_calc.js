@@ -313,10 +313,13 @@ export function tipoEscadaEstrutura(estrutura, divisoes, tiposEscada) {
 
   const idx = faixaAlturaEscada(estrutura.alturaPisoPiso, tiposEscada.faixas_altura)
   if (idx < 0) return { status: 'sem_altura' }
-  const divs = [...new Set((divisoes || []).filter(Boolean))].filter(d => tiposEscada.tabela[d])
+  // Chave da divisão na tabela: a própria divisão ("E-1") ou, quando a norma
+  // só traz a linha do grupo inteiro ("D"), o grupo.
+  const chaveDe = d => (tiposEscada.tabela[d] ? d : d.split('-')[0])
+  const divs = [...new Set((divisoes || []).filter(Boolean))].filter(d => tiposEscada.tabela[chaveDe(d)])
   if (divs.length === 0) return { status: 'sem_divisao', faixa: tiposEscada.faixas_altura[idx] }
 
-  const porDivisao = divs.map(d => ({ divisao: d, tipo: tiposEscada.tabela[d][idx] }))
+  const porDivisao = divs.map(d => ({ divisao: d, tipo: tiposEscada.tabela[chaveDe(d)][idx] }))
   const ranks = porDivisao.map(p => tiposEscada.tipos[p.tipo]?.rank).filter(r => r != null)
   const maxRank = ranks.length ? Math.max(...ranks) : null
   // Mais restritivo entre os que têm ranking; sem nenhum, mostra o símbolo
@@ -328,7 +331,7 @@ export function tipoEscadaEstrutura(estrutura, divisoes, tiposEscada) {
 
   // Notas: as específicas das divisões presentes + as gerais.
   const chaves = [
-    ...divs.flatMap(d => tiposEscada.notas_por_divisao?.[d] || []),
+    ...divs.flatMap(d => tiposEscada.notas_por_divisao?.[d] || tiposEscada.notas_por_divisao?.[chaveDe(d)] || []),
     ...(tiposEscada.notas_gerais || []),
   ]
   const notas = [...new Set(chaves)].map(k => ({ chave: k, texto: tiposEscada.notas[k] }))

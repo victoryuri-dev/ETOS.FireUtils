@@ -56,6 +56,35 @@ export function classesAtendidas(extintores, tiposPortatil, tiposSobreRodas) {
   return [...classes]
 }
 
+// ── Capacidade extintora mínima por risco de incêndio (extintores
+// portáteis) — tabela de referência comum a vários Corpos de Bombeiros
+// estaduais (mesmo texto-base citado pela NT 21 CBMMA e pela NBR 12693),
+// valores gerais, não variam por estado. Classifica o nível (baixo/médio/
+// alto) a partir da mesma carga de incêndio já usada em classificarRisco/
+// LIMIARES_RISCO, e dá a unidade extintora mínima + distância máxima a
+// percorrer por classe de incêndio A e B. A distância da classe A coincide
+// com DISTANCIA_MAXIMA.portatil (mesma tabela, vista por dois ângulos); a
+// da classe B é fixa em 15 m, independente do risco.
+export const CAPACIDADE_MINIMA_POR_RISCO = {
+  A: {
+    baixo: { capacidade: '2-A',  distanciaMaxima: 25 },
+    medio: { capacidade: '3-A',  distanciaMaxima: 20 },
+    alto:  { capacidade: '4-A',  distanciaMaxima: 15 },
+  },
+  B: {
+    baixo: { capacidade: '20-B', distanciaMaxima: 15 },
+    medio: { capacidade: '40-B', distanciaMaxima: 15 },
+    alto:  { capacidade: '80-B', distanciaMaxima: 15 },
+  },
+}
+
+/** Capacidade extintora mínima (+ distância máxima a percorrer) para a
+ *  classe de incêndio informada ('A' ou 'B'), dado o risco predominante do
+ *  pavimento — ver CAPACIDADE_MINIMA_POR_RISCO acima. */
+export function capacidadeMinimaPorRisco(risco, classeIncendio) {
+  return CAPACIDADE_MINIMA_POR_RISCO[classeIncendio]?.[risco] ?? null
+}
+
 /** Resultado completo da verificação de um pavimento: classes atendidas,
  *  se o mínimo do item 5.2.1.4 está satisfeito (ou a exceção de unidade
  *  única do item 5.2.1.4.2) e total de unidades. A distância máxima a

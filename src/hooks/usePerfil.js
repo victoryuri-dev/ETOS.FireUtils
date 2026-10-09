@@ -12,7 +12,7 @@ const CAMPOS_RT = [
   'rtNome', 'rtConselho', 'rtCpf', 'rtEspecialidade', 'rtEmpresa', 'rtEmail', 'rtTelefone',
 ]
 
-// `rtEspecialidade` nasce preenchido (e um select, nao tem opcao vazia), entao
+// `rtEspecialidade` nasce preenchido com o valor padrao, entao
 // nao serve pra dizer se alguem chegou a preencher alguma coisa — daqui sai a
 // pergunta "tem dado de verdade aqui?", usada nos dois lados: pra saber se o
 // perfil tem o que oferecer e se a etapa ainda esta em branco.
@@ -40,6 +40,21 @@ function normalizarRT(bruto) {
   }
   return rt
 }
+
+// Nome de usuário exibido pelo app (header, saudação do perfil, landing): o
+// nome salvo no perfil; sem ele, o nome que veio do provedor de login; por
+// último, o início do e-mail. Uma função só, pra todos mostrarem o mesmo.
+export function nomeDeUsuario(perfil, user, padrao = 'Perfil') {
+  return perfil?.nome?.trim()
+    || user?.user_metadata?.full_name
+    || user?.user_metadata?.name
+    || user?.email?.split('@')[0]
+    || padrao
+}
+
+// Salvar o perfil numa tela avisa as outras instâncias do hook (o header fica
+// montado ao lado da página de perfil) pra o nome atualizar sem recarregar.
+const EVENTO_PERFIL = 'fireutils:perfil-salvo'
 
 // Perfil da conta logada. `perfil` e null enquanto carrega; sem usuario ou sem
 // linha no banco, vem PERFIL_VAZIO — "ainda nao preencheu" nao e erro.
@@ -79,6 +94,12 @@ export function usePerfil() {
     return () => { cancelado = true }
   }, [user])
 
+  useEffect(() => {
+    const aoSalvar = e => setPerfil(e.detail)
+    window.addEventListener(EVENTO_PERFIL, aoSalvar)
+    return () => window.removeEventListener(EVENTO_PERFIL, aoSalvar)
+  }, [])
+
   const salvar = useCallback(async (novo) => {
     if (!user) return { ok: false, erro: 'Você precisa estar logado para salvar o perfil.' }
 
@@ -92,6 +113,7 @@ export function usePerfil() {
     if (error) return { ok: false, erro: 'Não foi possível salvar. Tente de novo.' }
 
     setPerfil(novo)
+    window.dispatchEvent(new CustomEvent(EVENTO_PERFIL, { detail: novo }))
     return { ok: true }
   }, [user])
 

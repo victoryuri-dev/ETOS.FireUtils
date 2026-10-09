@@ -88,8 +88,11 @@ export default function FormularioSistema() {
           </div>
         )}
 
-        {sugestao.opcoes.length === 1 && sugestao.opcoes[0].nota && (
-          <Nota>{sugestao.opcoes[0].nota}</Nota>
+        {/* Nota de rebaixamento (Tabela 3, Nota 1 ou 2) — sempre ao lado das
+            pills acima: o rebaixamento nunca é aplicado sozinho, é sempre
+            uma escolha do RT entre o Tipo da tabela e o Tipo rebaixado. */}
+        {sugestao.opcoes.some(op => op.nota) && (
+          <Nota>{sugestao.opcoes.find(op => op.nota).nota}</Nota>
         )}
 
         {dadosTipo && norma.TIPOS_SISTEMA[tipoAtual]?.variantes.length > 1 && (

@@ -8,7 +8,7 @@
 // tabela é mais fácil de achar um número do que um parágrafo de texto.
 
 import { getTRRF } from '../normas/index'
-import { calcularTRRF, metodologiaDosMateriais, alturaEdificacaoBase, edificacaoEhTerrea } from '../trrf_calc'
+import { calcularTRRF, alturaEdificacaoBase, edificacaoEhTerrea } from '../trrf_calc'
 import { fmtNum } from '../../utils/numero'
 
 function fmtTRRF(linha) {
@@ -27,7 +27,7 @@ function textoAviso(l) {
   return `${id}: combinação não enquadrada no Anexo B — casos não enquadrados são definidos pelo SSCI do CBMMA (nota 1).`
 }
 
-function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao, materiaisMapa) {
+function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao) {
   const pavimentos = state.pavimentos.filter(p => p.estruturaId === est.id)
   const r = calcularTRRF(pavimentos, est, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao)
   const nomeEst = est.nome || 'Estrutura'
@@ -71,17 +71,6 @@ function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, di
     blocos.push({ tipo: 'lista', estilo: 'alerta', itens: [...pendencias, ...avisos] })
   }
 
-  const metodologias = metodologiaDosMateriais(est.estrutura, materiaisMapa)
-  if (metodologias.length > 0) {
-    blocos.push({
-      tipo: 'tabela',
-      colunas: ['Material estrutural', 'Norma', 'Metodologia de comprovação'],
-      linhas: metodologias.map(m => [m.material, m.norma, m.metodologia]),
-    })
-  } else {
-    blocos.push({ tipo: 'paragrafo', texto: `Material estrutural de ${nomeEst} ainda não informado — pendente de definição.` })
-  }
-
   if (est.obsSegEstrutural?.trim()) {
     blocos.push({ tipo: 'campo', label: 'Observações do responsável técnico', valor: est.obsSegEstrutural.trim() })
   }
@@ -90,10 +79,10 @@ function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, di
 }
 
 export function textoMemorialSegEstrutural(state) {
-  const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO, METODOLOGIA_POR_MATERIAL } = getTRRF(state.uf)
+  const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO } = getTRRF(state.uf)
 
   const blocos = (state.estruturas || []).flatMap(est =>
-    blocosDaEstrutura(state, est, TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO, METODOLOGIA_POR_MATERIAL)
+    blocosDaEstrutura(state, est, TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO)
   )
 
   if (blocos.length === 0) {

@@ -6,9 +6,14 @@ import {
 import { ProjetoProvider, useProjeto, newIds } from './context/ProjetoContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabase } from './lib/supabase'
+import { usePerfil, nomeDeUsuario } from './hooks/usePerfil'
 import { criarProjetoExemplo } from './data/projetoExemplo'
 import LoginPage      from './pages/LoginPage'
 import LandingPage    from './pages/LandingPage'
+import PricingPage    from './pages/PricingPage'
+import LicencaProvider from './context/LicencaContext'
+import { useAcesso }   from './hooks/useLicencas'
+import SemLicenca     from './components/perfil/SemLicenca'
 import ProjectAside   from './components/layout/ProjectAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
@@ -32,7 +37,7 @@ import DeteccaoIncendioPage   from './pages/medidas/DeteccaoIncendioPage'
 import Icon           from './components/ui/Icon'
 import Loader         from './components/ui/Loader'
 import ToastProvider   from './components/ui/ToastProvider'
-import logo           from './assets/fireutils-logo.png'
+import landingLogo    from './assets/fireutils-landing.svg'
 
 // ── SaveStatusIndicator ───────────────────────────────────────────────
 // Mostra se o projeto esta sendo sincronizado com o servidor ou se ja foi
@@ -63,18 +68,20 @@ function SaveStatusIndicator({ status }) {
 }
 
 // ── AppHeader ─────────────────────────────────────────────────────────
-function AppHeader({ onGoProjetos, isProjectPage }) {
+function AppHeader({ onGoProjetos, isProjectPage, showProjectsLink = false }) {
   const { user, signOut } = useAuth()
+  const { perfil } = usePerfil()
   const { state, syncStatus } = useProjeto()
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const profileName = nomeDeUsuario(perfil, user)
 
   return (
-    <header className="flex items-center justify-between gap-3 px-6 h-16 border-b border-border border-solid shrink-0 z-100">
+    <header className="relative flex items-center justify-between gap-3 px-6 h-16 border-b border-border border-solid shrink-0 z-100">
       {/* Logo — omitida dentro de um projeto, ja mostrada no topo do aside */}
       {!isProjectPage && (
         <div className="flex items-center gap-2.5">
-          <img src={logo} alt="Fire Utils" className="h-11 w-auto"/>
+          <img src={landingLogo} alt="FireUtils" className="w-[126px] h-auto"/>
         </div>
       )}
 
@@ -99,14 +106,27 @@ function AppHeader({ onGoProjetos, isProjectPage }) {
         </nav>
       )}
 
+      {showProjectsLink && (
+        <button
+          type="button"
+          onClick={onGoProjetos}
+          className="absolute left-1/2 -translate-x-1/2 text-[12px] font-medium text-ink-muted hover:text-ink transition-colors"
+        >
+          Meus projetos
+        </button>
+      )}
+
       {/* Direita — conta */}
       <div className="flex items-center gap-2 relative shrink-0">
         <button
           onClick={() => setMenuOpen(o => !o)}
           title={user?.email}
-          className="w-[30px] h-[30px] rounded-full bg-surface-2 border border-border border-solid flex items-center justify-center cursor-pointer text-ink-faint hover:text-ink"
+          className="group flex items-center gap-2.5 min-w-0 cursor-pointer text-ink-muted hover:text-ink transition-colors"
         >
-          <Icon name="user" size={13}/>
+          <span className="max-w-[180px] truncate text-[12px]">{profileName}</span>
+          <span className="w-[30px] h-[30px] rounded-full bg-surface-2 flex items-center justify-center shrink-0 text-ink-faint transition-colors group-hover:text-ink">
+            <Icon name="user" size={13}/>
+          </span>
         </button>
         {menuOpen && (
           <>
@@ -213,7 +233,7 @@ function PerfilRoute() {
   const navigate = useNavigate()
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
+      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false} showProjectsLink/>
       <PerfilPage/>
     </div>
   )
@@ -330,8 +350,34 @@ function AuthedLayout() {
   if (!user) return <Navigate to="/login" state={{ from: location }} replace/>
 
   return (
-    <div className="w-screen h-screen flex overflow-hidden bg-bg text-ink">
-      <Outlet/>
+    <LicencaProvider>
+      <div className="w-screen h-screen flex overflow-hidden bg-bg text-ink">
+        <PortaoLicenca/>
+      </div>
+    </LicencaProvider>
+  )
+}
+
+// ── PortaoLicenca ─────────────────────────────────────────────────────
+// Com o bloqueio ligado (VITE_EXIGIR_LICENCA), a conta sem nenhuma licença
+// válida não entra na plataforma. O perfil fica sempre liberado: é lá que
+// ela vê a situação das licenças. Com o bloqueio desligado, não barra nada.
+function PortaoLicenca() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { carregando, liberado } = useAcesso()
+
+  if (liberado || location.pathname === '/perfil') return <Outlet/>
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
+      {carregando
+        ? <div className="flex-1 flex items-center justify-center"><Loader size={32}/></div>
+        : <SemLicenca
+            titulo="Sua conta não tem licença ativa"
+            texto="Para criar e editar projetos é preciso ter uma licença válida de algum módulo do FireUtils."
+          />}
     </div>
   )
 }
@@ -366,6 +412,7 @@ function AppInner() {
   return (
     <Routes>
       <Route path="/landing" element={<LandingPage/>}/>
+      <Route path="/pricing" element={<PricingPage/>}/>
       <Route path="/login" element={<LoginRoute/>}/>
 
       <Route element={<AuthedLayout/>}>
