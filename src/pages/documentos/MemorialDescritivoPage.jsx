@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial } from '../../data/memorial/registry'
@@ -69,6 +69,15 @@ const TABELA_TH = 'border border-solid border-[#d1d5db] px-2.5 py-2 font-bold'
 const TABELA_TD = 'border border-solid border-[#d1d5db] px-2.5 py-2'
 const zebra = i => (i % 2 === 0 ? 'bg-white' : 'bg-[#fafbfc]')
 
+// Texto corrido do documento inteiro — sempre 1,5 de entrelinha e sem margem
+// (nenhum espaço extra antes/depois de parágrafo, item de lista ou campo: só
+// a quebra do próprio bloco separa um do outro, como "Antes: 0pt / Depois:
+// 0pt / Entrelinhas: 1,5" no Word). Centralizado aqui pra nunca divergir
+// entre as seções do memorial — ver Titulo (abaixo) pro espaçamento de
+// título/subtítulo, que é a única folga deliberada.
+const TEXTO = 'text-[12.5px] text-black leading-[1.5] text-justify'
+const TEXTO_PEQUENO = 'text-[12px] text-black leading-[1.5]'
+
 // Mesmos limiares de classificacao de risco usados no dashboard do projeto
 // (DashboardPage.jsx: getCargaCls/getCargaLbl) — mantidos aqui com a
 // redacao curta que o memorial usa ("Baixo Risco" em vez de "Risco baixo · Classe I").
@@ -98,11 +107,16 @@ function cargaDaOcupacao(state, estruturaId, divisao, cnae) {
 // Titulo numerado do memorial. `nivel` (1-3) define a tag (h1-h3); `numero`
 // ("4", "4.1", "4.1.1") entra antes do texto com um unico espaco. Titulos com
 // numero ganham data-toc/data-toc-num, que o Sumario usa (montarSumario).
-function Titulo({ nivel, numero, className = '', children }) {
+// `mt-5` abre exatamente uma linha em branco antes do título, zerada pelo
+// `first:mt-0` quando ele é o primeiro elemento da folha (a quebra de
+// página/seção já separa visualmente, sem precisar de espaço extra); `mb-0`
+// garante que nada sobra depois — o espaço até o próximo parágrafo vem só
+// do `mt-5` do PRÓXIMO título, nunca dos dois lados ao mesmo tempo.
+function Titulo({ nivel, numero, children }) {
   const Tag = `h${nivel}`
   return (
     <Tag
-      className={`font-heading text-black ${className}`}
+      className="font-heading text-black leading-[1.5] mt-5 mb-0 first:mt-0"
       data-toc={numero ? nivel : undefined}
       data-toc-num={numero || undefined}
     >
@@ -248,34 +262,28 @@ function Introducao({ sistemas, uf }) {
 
   return (
     <div className={FOLHA}>
-      <div className="mb-8">
-        <Titulo nivel={1} numero={String(SECAO_OBJETIVO)} className="mb-3">Objetivo</Titulo>
-        <p className="text-[12.5px] text-black leading-[1.85] text-justify">
-          Memorial Técnico Descritivo apresentado ao Corpo de Bombeiros Militar do Estado do Maranhão (CBMMA), como
-          requisito legal para análise, aprovação e regularização do Projeto de Segurança Contra Incêndio e Pânico da
-          edificação.
-        </p>
-      </div>
+      <Titulo nivel={1} numero={String(SECAO_OBJETIVO)}>Objetivo</Titulo>
+      <p className={TEXTO}>
+        Memorial Técnico Descritivo apresentado ao Corpo de Bombeiros Militar do Estado do Maranhão (CBMMA), como
+        requisito legal para análise, aprovação e regularização do Projeto de Segurança Contra Incêndio e Pânico da
+        edificação.
+      </p>
 
-      <div>
-        <Titulo nivel={1} numero={String(SECAO_LEGISLACAO)} className="mb-3">Sobre a Legislação</Titulo>
-        <div>
-          <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3">
-            O projeto foi desenvolvido atendendo as determinações do Decreto Estadual, que regulamenta a Lei, e que, por
-            sua vez, dispõe sobre a segurança contra incêndio e pânico e dá outras providências. O projeto atende também
-            as Normas Brasileiras (NBR&apos;s) da Associação Brasileira de Normas Técnicas (ABNT), assim como as
-            seguintes instruções técnicas:
-          </p>
-          <ul className="text-[12px] text-black leading-[1.8] list-none pl-2">
-            {NTS_PADRAO_MA.map(nt => (
-              <li key={nt.numero} className="mb-1"><strong>{nt.numero}</strong> — {nt.nome}</li>
-            ))}
-            {nts.map(nt => (
-              <li key={nt.numero} className="mb-1"><strong>{nt.numero}</strong> — {nt.nome}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      <Titulo nivel={1} numero={String(SECAO_LEGISLACAO)}>Sobre a Legislação</Titulo>
+      <p className={TEXTO}>
+        O projeto foi desenvolvido atendendo as determinações do Decreto Estadual, que regulamenta a Lei, e que, por
+        sua vez, dispõe sobre a segurança contra incêndio e pânico e dá outras providências. O projeto atende também
+        as Normas Brasileiras (NBR&apos;s) da Associação Brasileira de Normas Técnicas (ABNT), assim como as
+        seguintes instruções técnicas:
+      </p>
+      <ul className={`${TEXTO_PEQUENO} list-none pl-2`}>
+        {NTS_PADRAO_MA.map(nt => (
+          <li key={nt.numero}><strong>{nt.numero}</strong> — {nt.nome}</li>
+        ))}
+        {nts.map(nt => (
+          <li key={nt.numero}><strong>{nt.numero}</strong> — {nt.nome}</li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -344,17 +352,17 @@ function SobreEdificacao({ state }) {
 
   return (
     <div className={FOLHA}>
-      <Titulo nivel={1} numero={String(SECAO_SOBRE_EDIFICACAO)} className="mb-6">Sobre a Edificação</Titulo>
+      <Titulo nivel={1} numero={String(SECAO_SOBRE_EDIFICACAO)}>Sobre a Edificação</Titulo>
 
       {blocos.map((bloco, i) => (
-        <div key={bloco.titulo} className="mb-5 last:mb-0">
-          <Titulo nivel={2} numero={`${SECAO_SOBRE_EDIFICACAO}.${i + 1}`} className="mb-2">{tituloCase(bloco.titulo)}</Titulo>
-          <div className="text-[12px] text-black leading-[1.9] pl-6">
+        <Fragment key={bloco.titulo}>
+          <Titulo nivel={2} numero={`${SECAO_SOBRE_EDIFICACAO}.${i + 1}`}>{tituloCase(bloco.titulo)}</Titulo>
+          <div className={`${TEXTO_PEQUENO} pl-6`}>
             {bloco.campos.map(([label, value]) => (
               <CampoDiscriminado key={label} label={label} value={value}/>
             ))}
           </div>
-        </div>
+        </Fragment>
       ))}
     </div>
   )
@@ -363,7 +371,7 @@ function SobreEdificacao({ state }) {
 function Caracterizacao({ state, porEstrutura }) {
   return (
     <div className={FOLHA}>
-      <Titulo nivel={1} numero={String(SECAO_CARACTERIZACAO)} className="mb-8">Caracterização da Edificação e do Risco</Titulo>
+      <Titulo nivel={1} numero={String(SECAO_CARACTERIZACAO)}>Caracterização da Edificação e do Risco</Titulo>
 
       {porEstrutura.map(({ estrutura: est }, estIdx) => {
         const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
@@ -382,50 +390,48 @@ function Caracterizacao({ state, porEstrutura }) {
         const alturaPisoPisoTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' : `${fmtNum(est.alturaPisoPiso, 2, est.alturaPisoPiso)} m${edificacaoEhTerrea(est) ? ' (Edificação Térrea)' : ''}`
 
         return (
-          <div key={est.id} className="mb-7">
-            <Titulo nivel={2} numero={`${SECAO_CARACTERIZACAO}.${estIdx + 1}`} className="mb-2">{tituloCase(est.nome)}</Titulo>
+          <Fragment key={est.id}>
+            <Titulo nivel={2} numero={`${SECAO_CARACTERIZACAO}.${estIdx + 1}`}>{tituloCase(est.nome)}</Titulo>
 
-            <div className="mb-4">
-              <div className="text-black leading-[1.9]">
-                <div><strong>Área construída:&nbsp;</strong>{est.areaTotal ? fmtUn(est.areaTotal, 'm²', 2, `${est.areaTotal} m²`) : '—'}</div>
-                <div><strong>Altura piso a piso:&nbsp;</strong>{alturaPisoPisoTxt || '—'}</div>
-                <div><strong>Altura total:&nbsp;</strong>{est.altura ? fmtUn(est.altura, 'm', 2, `${est.altura} m`) : '—'}</div>
-              </div>
-
-              <p className="titulo-tabela mt-4 mb-2.5">Ocupações por pavimento</p>
-              <table className={`${TABELA} table-fixed`}>
-                <colgroup>
-                  <col style={{ width: '30mm' }}/>
-                  <col style={{ width: '20mm' }}/>
-                  <col/>
-                  <col style={{ width: '28mm' }}/>
-                </colgroup>
-                <thead>
-                  <tr className={TABELA_THEAD}>
-                    <th className={`${TABELA_TH} text-left`}>Pavimento</th>
-                    <th className={`${TABELA_TH} text-left`}>Divisão</th>
-                    <th className={`${TABELA_TH} text-left`}>CNAE / Atividade</th>
-                    <th className={`${TABELA_TH} text-center`}>Carga de Incêndio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {linhas.length === 0 ? (
-                    <tr><td colSpan={4} className={`${TABELA_TD} text-center text-[#9ca3af]`}>Nenhuma ocupação classificada</td></tr>
-                  ) : linhas.map((l, i) => {
-                    const cargaQ = cargaDaOcupacao(state, est.id, l.divisao, l.cnae)
-                    return (
-                      <tr key={i} className={zebra(i)}>
-                        <td className={TABELA_TD}>{l.pavimento}</td>
-                        <td className={TABELA_TD}>{l.divisao}</td>
-                        <td className={TABELA_TD}>{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
-                        <td className={`${TABELA_TD} text-center`}>{cargaQ ? <>{fmtUn(cargaQ, 'MJ/m²')}<br/>{classificarCarga(cargaQ)}</> : '—'}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+            <div className={TEXTO_PEQUENO}>
+              <div><strong>Área construída:&nbsp;</strong>{est.areaTotal ? fmtUn(est.areaTotal, 'm²', 2, `${est.areaTotal} m²`) : '—'}</div>
+              <div><strong>Altura piso a piso:&nbsp;</strong>{alturaPisoPisoTxt || '—'}</div>
+              <div><strong>Altura total:&nbsp;</strong>{est.altura ? fmtUn(est.altura, 'm', 2, `${est.altura} m`) : '—'}</div>
             </div>
-          </div>
+
+            <p className="titulo-tabela">Ocupações por pavimento</p>
+            <table className={`${TABELA} table-fixed`}>
+              <colgroup>
+                <col style={{ width: '30mm' }}/>
+                <col style={{ width: '20mm' }}/>
+                <col/>
+                <col style={{ width: '28mm' }}/>
+              </colgroup>
+              <thead>
+                <tr className={TABELA_THEAD}>
+                  <th className={`${TABELA_TH} text-left`}>Pavimento</th>
+                  <th className={`${TABELA_TH} text-left`}>Divisão</th>
+                  <th className={`${TABELA_TH} text-left`}>CNAE / Atividade</th>
+                  <th className={`${TABELA_TH} text-center`}>Carga de Incêndio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linhas.length === 0 ? (
+                  <tr><td colSpan={4} className={`${TABELA_TD} text-center text-[#9ca3af]`}>Nenhuma ocupação classificada</td></tr>
+                ) : linhas.map((l, i) => {
+                  const cargaQ = cargaDaOcupacao(state, est.id, l.divisao, l.cnae)
+                  return (
+                    <tr key={i} className={zebra(i)}>
+                      <td className={TABELA_TD}>{l.pavimento}</td>
+                      <td className={TABELA_TD}>{l.divisao}</td>
+                      <td className={TABELA_TD}>{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
+                      <td className={`${TABELA_TD} text-center`}>{cargaQ ? <>{fmtUn(cargaQ, 'MJ/m²')}<br/>{classificarCarga(cargaQ)}</> : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </Fragment>
         )
       })}
     </div>
@@ -458,10 +464,10 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
 
   return (
     <div className={FOLHA}>
-      <Titulo nivel={1} numero={String(SECAO_MEDIDAS_APLICADAS)} className="mb-8 leading-[1.3]">Medidas de Segurança Contra Incêndio e Emergência do Projeto</Titulo>
+      <Titulo nivel={1} numero={String(SECAO_MEDIDAS_APLICADAS)}>Medidas de Segurança Contra Incêndio e Emergência do Projeto</Titulo>
 
       {multiplasEstruturas ? (
-        <table className={`${TABELA} mb-8`}>
+        <table className={TABELA}>
           <thead>
             <tr className={TABELA_THEAD}>
               <th className={`${TABELA_TH} text-left`}>Medidas de Segurança Aplicadas</th>
@@ -487,7 +493,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
           </tbody>
         </table>
       ) : (
-        <table className={`${TABELA} mb-8`}>
+        <table className={TABELA}>
           <thead>
             <tr className={TABELA_THEAD}>
               <th className={`${TABELA_TH} text-left`}>Medidas de Segurança Aplicadas</th>
@@ -508,14 +514,14 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
       )}
 
       {temIsenta && (
-        <p className="text-[10px] text-black/60 -mt-6 mb-8">
+        <p className="text-[10px] text-black/60">
           <strong>-</strong>: Medida de segurança isenta. Ver motivo na seção dedicada.
         </p>
       )}
 
       {riscosAtivosGlobal.length > 0 && (
         <>
-          <Titulo nivel={2} numero={`${SECAO_MEDIDAS_APLICADAS}.1`} className="mb-2">Riscos Especiais</Titulo>
+          <Titulo nivel={2} numero={`${SECAO_MEDIDAS_APLICADAS}.1`}>Riscos Especiais</Titulo>
           {multiplasEstruturas ? (
             <table className={TABELA}>
               <thead>
@@ -556,7 +562,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
             </table>
           )}
           {outrosDescsMultiplas.length > 0 && (
-            <p className="text-[10.5px] text-black leading-[1.6] mt-1.5 mb-0">
+            <p className="text-[10.5px] text-black leading-[1.5]">
               <strong>Outros (por estrutura):&nbsp;</strong>{outrosDescsMultiplas.join(' · ')}
             </p>
           )}
@@ -606,16 +612,16 @@ function ListaLi({ item, estilo }) {
   return (
     <li className={
       estilo === 'alerta'
-        ? 'text-[12px] text-black leading-[1.6] mb-1.5 pl-2.5 border-l-2 border-solid border-black font-medium'
+        ? 'text-[12px] text-black leading-[1.5] pl-2.5 border-l-2 border-solid border-black font-medium'
         // 'lettered': o próprio texto já traz o prefixo ("a) ..." — ver
         // memorial/saida_emergencia.js), então sem marcador "•" duplicado.
         : estilo === 'lettered'
-        ? 'text-[12px] text-black leading-[1.6] mb-1 pl-4'
-        : "text-[12px] text-black leading-[1.6] mb-1 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
+        ? 'text-[12px] text-black leading-[1.5] pl-4'
+        : "text-[12px] text-black leading-[1.5] pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#8a8a8c]"
     }>
       <ListaItemTexto item={item}/>
       {item?.sub?.length > 0 && (
-        <ul className="list-none mt-1 ml-2">
+        <ul className="list-none ml-2">
           {item.sub.map((s, j) => <ListaLi key={j} item={s} estilo={estilo}/>)}
         </ul>
       )}
@@ -651,11 +657,11 @@ function BlocoMedida({ bloco }) {
   switch (bloco.tipo) {
     // O numero ja vem calculado em `bloco.numero` (ver numerarBlocos).
     case 'titulo2':
-      return <Titulo nivel={2} numero={bloco.numero} className="mt-5 mb-2 first:mt-0">{tituloCase(bloco.texto)}</Titulo>
+      return <Titulo nivel={2} numero={bloco.numero}>{tituloCase(bloco.texto)}</Titulo>
     case 'titulo3':
-      return <Titulo nivel={3} numero={bloco.numero} className="mt-4 mb-2">{bloco.texto}</Titulo>
+      return <Titulo nivel={3} numero={bloco.numero}>{bloco.texto}</Titulo>
     case 'paragrafo':
-      return <p className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8">{bloco.texto}</p>
+      return <p className={`${TEXTO} indent-8`}>{bloco.texto}</p>
     // Equação em destaque (memorial/hidrantesCalculo.js) — texto em notação
     // de engenharia (Q^1,85, P_hd01 etc.), convertido pra sobrescrito/
     // subscrito de verdade (formatarFormula) — sem fração renderizada
@@ -664,12 +670,12 @@ function BlocoMedida({ bloco }) {
     case 'formula':
       return (
         <div
-          className="text-[12px] text-black font-mono leading-[1.6] mb-3 pl-3 border-l-2 border-solid border-[#c9c9cb] whitespace-pre-line"
+          className="text-[12px] text-black font-mono leading-[1.5] pl-3 border-l-2 border-solid border-[#c9c9cb] whitespace-pre-line"
           dangerouslySetInnerHTML={{ __html: formatarFormula(bloco.texto) }}
         />
       )
     case 'campo':
-      return <div className="text-[12px] text-black leading-[1.7] mb-1.5"><strong>{bloco.label}:&nbsp;</strong><span className="whitespace-pre-line">{bloco.valor}</span></div>
+      return <div className={TEXTO_PEQUENO}><strong>{bloco.label}:&nbsp;</strong><span className="whitespace-pre-line">{bloco.valor}</span></div>
     case 'tabela': {
       // th/td alinhados ao centro quando a tabela é majoritariamente
       // numérica (ex.: dimensionamento de Acesso/Saída) — colunas de
@@ -681,7 +687,7 @@ function BlocoMedida({ bloco }) {
       const alinhamento = bloco.centralizado ? 'text-center' : 'text-left'
       const alinhaCol = i => (bloco.alinhas ? `text-${bloco.alinhas[i] || 'left'}` : alinhamento)
       return (
-        <table className={`${TABELA} mb-4`} style={bloco.larguras ? { tableLayout: 'fixed' } : undefined}>
+        <table className={TABELA} style={bloco.larguras ? { tableLayout: 'fixed' } : undefined}>
           {bloco.larguras && (
             <colgroup>
               {bloco.larguras.map((w, i) => <col key={i} style={{ width: w }}/>)}
@@ -737,17 +743,19 @@ function BlocoMedida({ bloco }) {
     }
     case 'lista':
       return (
-        <ul className="list-none mb-4">
+        <ul className="list-none">
           {bloco.itens.map((item, i) => <ListaLi key={i} item={item} estilo={bloco.estilo}/>)}
         </ul>
       )
     case 'organograma':
       return (
-        <div className="mb-4">
+        <div>
           {/* mb-5 aqui (em vez de deixar só o mb-1 do próprio OrganogramaNo)
               separa uma árvore (Saída/Escada-Rampa raiz) da próxima com uma
               linha em branco — sem isso, a última Circulação de uma árvore
-              encosta direto na raiz seguinte. */}
+              encosta direto na raiz seguinte. Exceção deliberada à regra de
+              "sem margem": aqui não é texto corrido, é separador visual
+              entre diagramas de árvore distintos. */}
           {bloco.nos.map((no, i) => (
             <div key={i} className="mb-5 last:mb-0">
               <OrganogramaNo no={no}/>
@@ -780,12 +788,12 @@ function Assinatura({ state }) {
 function SecaoMedida({ secao, numeroSecao, state, ultima }) {
   return (
     <div className={FOLHA}>
-      <Titulo nivel={1} numero={String(numeroSecao)} className="mb-8">{secao.titulo}</Titulo>
+      <Titulo nivel={1} numero={String(numeroSecao)}>{secao.titulo}</Titulo>
 
       {secao.blocos
         ? numerarBlocos(secao.blocos, numeroSecao).map((b, i) => <BlocoMedida key={i} bloco={b}/>)
         : secao.paragrafos.map((p, i) => (
-            <p key={i} className="text-[12.5px] text-black leading-[1.85] text-justify mb-3 indent-8 pl-2">{p}</p>
+            <p key={i} className={`${TEXTO} indent-8 pl-2`}>{p}</p>
           ))}
 
       {/* Assinatura dentro da última seção (não depois dela) — assim o
