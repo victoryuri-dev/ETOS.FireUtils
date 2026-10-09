@@ -63,7 +63,7 @@ tr, td, th { break-inside: avoid; }
 // Estilo unico de tabela do memorial — cabecalho cinza, zebra nas linhas e
 // borda clara. Centralizado aqui pra que as tabelas das medidas, do Anexo de
 // medidas aplicadas e da caracterizacao nao divirjam com o tempo.
-const TABELA = 'w-full border-collapse text-[10.5px] text-black'
+const TABELA = 'w-full border-collapse text-[10.5px] text-black mt-4 mb-2'
 const TABELA_THEAD = 'bg-[#f3f4f6]'
 const TABELA_TH = 'border border-solid border-[#d1d5db] px-2.5 py-2 font-bold'
 const TABELA_TD = 'border border-solid border-[#d1d5db] px-2.5 py-2'
@@ -107,16 +107,15 @@ function cargaDaOcupacao(state, estruturaId, divisao, cnae) {
 // Titulo numerado do memorial. `nivel` (1-3) define a tag (h1-h3); `numero`
 // ("4", "4.1", "4.1.1") entra antes do texto com um unico espaco. Titulos com
 // numero ganham data-toc/data-toc-num, que o Sumario usa (montarSumario).
-// Sem margem própria aqui de proposito: o espaçamento de uma linha em branco
-// antes de QUALQUER coisa que venha logo depois de um h1/h2/h3 — outro
-// título, parágrafo, campo ou tabela — é regra única em index.css
-// (".memorial-secao ... > h1 + *" etc.), pra nunca precisar lembrar de
-// repetir isso em cada ponto do documento que usa <Titulo>.
+// Espaçamento antes E depois do próprio título/subtítulo (não uma linha em
+// branco inteira — só o respiro visual de separação); `first:mt-0` zera a
+// margem de cima quando é o primeiro elemento da folha, já separado pela
+// quebra de página/seção.
 function Titulo({ nivel, numero, children }) {
   const Tag = `h${nivel}`
   return (
     <Tag
-      className="font-heading text-black leading-[1.5]"
+      className="font-heading text-black leading-[1.5] mt-4 mb-2 first:mt-0"
       data-toc={numero ? nivel : undefined}
       data-toc-num={numero || undefined}
     >
