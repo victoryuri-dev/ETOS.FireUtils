@@ -96,11 +96,17 @@ export function medidasObrigatorias(state) {
       }
       const obrigatorio = !!medidas[k]
       const manual = state.sistemasPorEstrutura[est.id]?.[k]
-      let ativo = manual !== undefined ? manual : obrigatorio
-      if (manual === undefined) {
-        if (k === 'compart_horizontal' && isentoCompartHorizontal) ativo = false
-        if (k === 'compart_vertical' && isentoCompartVertical) ativo = false
-      }
+      // Isenção por área (compartimento único, Anexo B) ou substituição por
+      // sistema alternativo SEMPRE vence, mesmo com toggle manual ligado —
+      // são fatos calculados (compart_calc.js), não uma opinião do RT, e o
+      // texto do memorial (compartimentacao.js) já narra a dispensa de
+      // forma incondicional nesse caso. Deixar o manual vencer aqui criava
+      // uma contradição: o memorial dizia "dispensada" mas a tabela de
+      // medidas aplicadas e o Anexo B mostravam "X" (ativo).
+      let ativo
+      if (k === 'compart_horizontal' && isentoCompartHorizontal) ativo = false
+      else if (k === 'compart_vertical' && isentoCompartVertical) ativo = false
+      else ativo = manual !== undefined ? manual : obrigatorio
       sistemas[k] = { obrigatorio, ativo }
     })
 
