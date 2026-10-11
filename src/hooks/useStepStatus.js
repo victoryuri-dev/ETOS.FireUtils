@@ -1,6 +1,8 @@
 import { useProjeto } from '../context/ProjetoContext'
+import { useMedidasObrigatorias } from './useMedidasObrigatorias'
+import { divisoesDaEstrutura } from '../utils/classificacao'
 
-function getStatus(n, state) {
+function getStatus(n, state, medidas) {
   switch (n) {
     case 1: {
       const campos = [state.nome, state.endereco, state.cidade, state.propNome, state.propDocumento, state.respRazaoSocial, state.respCNPJ]
@@ -29,16 +31,44 @@ function getStatus(n, state) {
       if (pavs.every(p => p.divisao && p.cnae)) return 'done'
       return 'partial'
     }
+    // Confere toda divisão de cada estrutura (não só as que já têm entrada
+    // em cargaState) — uma divisão nova sem carga lançada ainda deixa a
+    // etapa como 'partial', nunca 'done' por omissão (mesma lógica do
+    // teste "Carga de incêndio" em DashboardPage.jsx).
     case 5: {
-      const entradas = Object.values(state.cargaState).flatMap(porEst => Object.values(porEst || {}))
-      if (!entradas.length) return 'empty'
-      const allHave = entradas.every(c => c?.metodo === 'levantamento' ? !!c.valorManual : !!c.cargaIncendio)
-      if (allHave) return 'done'
-      return 'partial'
+      const estruturas = state.estruturas || []
+      if (!estruturas.length) return 'empty'
+      const porEstrutura = estruturas.map(est => ({
+        est, divisoes: divisoesDaEstrutura((state.pavimentos || []).filter(p => p.estruturaId === est.id)),
+      }))
+      if (!porEstrutura.some(d => d.divisoes.length > 0)) return 'empty'
+      const completo = porEstrutura.every(({ est, divisoes }) => {
+        const cargaEst = state.cargaState[est.id] || {}
+        return divisoes.every(code => {
+          const c = cargaEst[code]
+          return c?.metodo === 'levantamento' ? !!c.valorManual : !!c?.cargaIncendio
+        })
+      })
+      return completo ? 'done' : 'partial'
     }
+    // Antes nunca retornava 'done' (só 'empty'/'partial', fixo) — agora usa
+    // a mesma condição do teste "Medidas de segurança" em DashboardPage.jsx:
+    // precisa ter sistema ativo/obrigatório identificado, e todo sistema
+    // obrigatório desligado manualmente (não a isenção automática da
+    // Compartimentação) precisa do motivo da isenção preenchido.
     case 6: {
       if (!state.pavimentos.length) return 'empty'
-      return 'partial'
+      const { porEstrutura, sistemas } = medidas
+      const activeSystems = Object.values(sistemas || {}).filter(s => s.ativo || s.obrigatorio)
+      if (!activeSystems.length) return 'empty'
+      const completo = (porEstrutura || []).every(pe => {
+        const estId = pe.estrutura.id
+        const manuais = state.sistemasPorEstrutura[estId] || {}
+        const motivos = state.motivosIsencaoPorEstrutura[estId] || {}
+        return Object.keys(pe.sistemas).every(key =>
+          !(pe.sistemas[key]?.obrigatorio && manuais[key] === false) || !!motivos[key])
+      })
+      return completo ? 'done' : 'partial'
     }
     case 7:
       return 'empty'
@@ -49,5 +79,6 @@ function getStatus(n, state) {
 
 export function useStepStatus() {
   const { state } = useProjeto()
-  return (n) => getStatus(n, state)
+  const { porEstrutura, sistemas } = useMedidasObrigatorias()
+  return (n) => getStatus(n, state, { porEstrutura, sistemas })
 }
