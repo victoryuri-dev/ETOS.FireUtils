@@ -75,9 +75,13 @@ const zebra = i => (i % 2 === 0 ? 'bg-white' : 'bg-[#fafbfc]')
 // a quebra do próprio bloco separa um do outro, como "Antes: 0pt / Depois:
 // 0pt / Entrelinhas: 1,5" no Word). Centralizado aqui pra nunca divergir
 // entre as seções do memorial — ver Titulo (abaixo) pro espaçamento de
-// título/subtítulo, que é a única folga deliberada.
-const TEXTO = 'text-[12.5px] text-black leading-[1.5] text-justify'
-const TEXTO_PEQUENO = 'text-[12px] text-black leading-[1.5]'
+// título/subtítulo, que é a única folga deliberada. `whitespace-pre-line`
+// preserva quebra de linha de texto livre digitado pelo usuário (textareas
+// como motivo de isenção, observações etc.) embutido nessas frases — sem
+// isso o HTML colapsa "\n" num espaço e o texto sai corrido no memorial,
+// mesmo com a quebra visível no formulário de origem.
+const TEXTO = 'text-[12.5px] text-black leading-[1.5] text-justify whitespace-pre-line'
+const TEXTO_PEQUENO = 'text-[12px] text-black leading-[1.5] whitespace-pre-line'
 
 // Mesmos limiares de classificacao de risco usados no dashboard do projeto
 // (DashboardPage.jsx: getCargaCls/getCargaLbl) — mantidos aqui com a
@@ -290,10 +294,13 @@ function Introducao({ sistemas, uf }) {
 
 // Sem valor, o campo nem aparece — evita linhas tipo "Endereço: " em
 // branco num documento que projetos "apenas dimensionamento" nunca
-// preenchem (ver ProjetoContext.jsx tipoProjeto).
+// preenchem (ver ProjetoContext.jsx tipoProjeto). `whitespace-pre-line`
+// preserva quebra de linha digitada pelo usuário (ex.: Observações
+// complementares) — sem isso o HTML colapsa "\n" num espaço e o texto sai
+// corrido no memorial, mesmo que o campo de origem seja um textarea.
 function CampoDiscriminado({ label, value }) {
   if (!value) return null
-  return <div><strong>{label}:&nbsp;</strong>{value}</div>
+  return <div><strong>{label}:&nbsp;</strong><span className="whitespace-pre-line">{value}</span></div>
 }
 
 function SobreEdificacao({ state }) {
