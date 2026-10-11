@@ -8,6 +8,7 @@ import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
 import { supabase } from '../lib/supabase'
 import { getCompartimentacao } from '../data/normas/index'
 import { classificarTipoEdificacao } from '../data/compart_calc'
+import { divisoesDaEstrutura } from '../utils/classificacao'
 import Icon from '../components/ui/Icon'
 import InlineEditableNome from '../components/ui/InlineEditableNome'
 import { fmtNum } from '../utils/numero'
@@ -456,11 +457,43 @@ const COMPLETE_CONFIG_STEPS = [
   { label: 'Edificação', test: s => (s.estruturas || []).length > 0 && s.estruturas.every(e => e.areaTotal && e.altura) },
   { label: 'Responsável técnico', test: s => Boolean(s.rtNome && (!s.usaArt || s.artNumero)) },
   { label: 'Classificação', test: s => (s.pavimentos || []).length > 0 && s.pavimentos.every(p => p.divisao && p.cnae) },
+  // Antes só conferia as entradas que já existiam em cargaState — uma
+  // divisão nova (estrutura adicionada depois, por exemplo) sem entrada
+  // nenhuma passava batido, como se a etapa já estivesse completa. Agora
+  // recalcula, a partir das estruturas/pavimentos atuais, toda divisão que
+  // deveria ter carga lançada e confere cada uma.
   { label: 'Carga de incêndio', test: s => {
-    const values = Object.values(s.cargaState || {}).flatMap(item => Object.values(item || {}))
-    return values.length > 0 && values.every(c => c?.metodo === 'levantamento' ? c.valorManual : c?.cargaIncendio)
+    const estruturas = s.estruturas || []
+    if (estruturas.length === 0) return false
+    const divisoesPorEstrutura = estruturas.map(est => ({
+      est, divisoes: divisoesDaEstrutura((s.pavimentos || []).filter(p => p.estruturaId === est.id)),
+    }))
+    if (!divisoesPorEstrutura.some(d => d.divisoes.length > 0)) return false
+    return divisoesPorEstrutura.every(({ est, divisoes }) => {
+      const cargaEst = s.cargaState?.[est.id] || {}
+      return divisoes.every(code => {
+        const c = cargaEst[code]
+        return c?.metodo === 'levantamento' ? Boolean(c.valorManual) : Boolean(c?.cargaIncendio)
+      })
+    })
   } },
-  { label: 'Medidas de segurança', test: (_s, activeSystems) => activeSystems.length > 0 },
+  // Além de ter sistemas identificados, todo sistema obrigatório que o
+  // próprio usuário desligou manualmente no toggle (ver MotivosIsencao em
+  // Step6.jsx) precisa do motivo da isenção preenchido. Confere
+  // sistemasPorEstrutura === false (o toggle manual de verdade), não só
+  // `ativo` — isso deixa de fora as isenções automáticas da
+  // Compartimentação (substituição/compartimento único), que já têm
+  // motivo e fluxo próprios na tela de Compartimentação.
+  { label: 'Medidas de segurança', test: (s, activeSystems, porEstrutura) => {
+    if (activeSystems.length === 0) return false
+    return (porEstrutura || []).every(pe => {
+      const estId = pe.estrutura.id
+      const manuais = s.sistemasPorEstrutura?.[estId] || {}
+      const motivos = s.motivosIsencaoPorEstrutura?.[estId] || {}
+      return Object.keys(pe.sistemas).every(key =>
+        !(pe.sistemas[key]?.obrigatorio && manuais[key] === false) || Boolean(motivos[key]))
+    })
+  } },
 ]
 
 const DIMENSIONING_CONFIG_STEPS = [
@@ -707,7 +740,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       })
       .sort((a, b) => Number(b.required) - Number(a.required))
     const configSteps = state.tipoProjeto === 'dimensionamento' ? DIMENSIONING_CONFIG_STEPS : COMPLETE_CONFIG_STEPS
-    const configuredSteps = configSteps.filter(step => step.test(state, activeSystems))
+    const configuredSteps = configSteps.filter(step => step.test(state, activeSystems, porEstrutura))
     const groups = [...new Set((state.pavimentos || []).map(p => p.grupo).filter(Boolean))].sort()
     const divisions = [...new Set((state.pavimentos || []).map(p => p.divisao).filter(Boolean))].sort()
     // Pavimentos = acima do solo + subsolos. Visão geral: vale a estrutura com mais pavimentos (não a soma entre estruturas)
