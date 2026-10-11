@@ -36,11 +36,11 @@ const m2 = v => fmtUn(v, 'm²', 2, `${v} m²`)
 // toggle manualmente em Configuração (useMedidasObrigatorias: `ativo` segue
 // o override quando ele existe) — nunca narrar isso como "dispensada pela
 // norma", que seria factualmente errado: a norma exige, a desativação foi
-// uma decisão do RT, sob sua responsabilidade.
-function textoDesativadaManualmente(medida, pe) {
-  const divisoes = pe?.divisoes?.length ? pe.divisoes.join(', ') : 'desta estrutura'
-  const altura = pe?.alturaEstrutura ? `${pe.alturaEstrutura} m` : 'atual'
-  return `${medida} desativada manualmente pelo responsável técnico nesta estrutura. A NT 01 CBMMA exige ${medida.toLowerCase()} para a(s) divisão(ões) ${divisoes} na altura de ${altura} — a desativação é uma decisão do responsável técnico, sob sua responsabilidade, e deve ser justificada tecnicamente perante o Corpo de Bombeiros.`
+// uma decisão do RT, sob sua responsabilidade. A seção mostra só a
+// justificativa (o motivo digitado em Configuração — ver MotivosIsencao em
+// Step6.jsx), não o dimensionamento normal, que deixou de valer.
+function textoDesativadaManualmente(medida, motivo) {
+  return `${medida} dispensada mediante justificativa do responsável técnico: ${motivo || 'motivo da isenção não informado pelo responsável técnico.'}`
 }
 
 // Único parágrafo mostrado quando a edificação se enquadra inteira num
@@ -89,7 +89,7 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
       // pela norma" nem confundido com as isenções por nota abaixo.
       blocos.push({
         tipo: 'paragrafo',
-        texto: textoDesativadaManualmente('Compartimentação horizontal', pe),
+        texto: textoDesativadaManualmente('Compartimentação horizontal', state.motivosIsencaoPorEstrutura?.[est.id]?.compart_horizontal?.trim()),
       })
       return
     }
@@ -192,11 +192,12 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
     blocos.push({ tipo: 'titulo2', texto: est.nome || 'Estrutura' })
 
     if (manual === false) {
+      // Só a justificativa — o dimensionamento normal (elementos, TRRF etc.)
+      // deixou de valer com a medida desativada.
       blocos.push({
         tipo: 'paragrafo',
-        texto: textoDesativadaManualmente('Compartimentação vertical', pe),
+        texto: textoDesativadaManualmente('Compartimentação vertical', state.motivosIsencaoPorEstrutura?.[est.id]?.compart_vertical?.trim()),
       })
-      blocos.push({ tipo: 'paragrafo', texto: 'Atenção (item 6.1.1, NT 09 CBMMA): a inexistência ou a quebra da compartimentação vertical, por qualquer meio, implica na somatória das áreas dos pavimentos interligados para fins de cálculo da área máxima de compartimentação horizontal.' })
       return
     }
 

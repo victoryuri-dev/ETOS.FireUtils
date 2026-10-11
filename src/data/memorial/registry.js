@@ -74,6 +74,51 @@ const ORDEM_SECOES = [
 // o que narrar pra cada uma.
 const SECOES_SEMPRE_QUANDO_OBRIGATORIO = new Set(['compart_horizontal', 'compart_vertical'])
 
+// Título "oficial" de cada medida (o mesmo que MEMORIAL_BUILDERS[key]
+// devolveria em `titulo`), pra secaoIsencaoGenerica abaixo — duplicado aqui
+// de propósito: chamar o builder de verdade pra uma medida desativada
+// rodaria o dimensionamento dela sobre dados que deixaram de fazer sentido
+// (o RT decidiu não instalar o sistema).
+const TITULO_MEDIDA = {
+  acesso_viatura: 'Acesso de Viatura',
+  seg_estrutural: 'Segurança Estrutural Contra Incêndio',
+  controle_acabamento: 'Controle de Material de Acabamento e Revestimento',
+  saida_emergencia: 'Saída de Emergência',
+  gerenciamento_risco: 'Gerenciamento de Risco — Plano de Emergência',
+  brigada: 'Brigada de Incêndio',
+  iluminacao: 'Sistema de Iluminação de Emergência',
+  sinalizacao: 'Sinalização de Emergência',
+  extintores: 'Sistema de Proteção por Extintores de Incêndio',
+  hidrantes: 'Sistema de Proteção por Hidrantes e Mangotinhos',
+  alarme: 'Alarme de Incêndio',
+  deteccao: 'Detecção de Incêndio',
+}
+
+// Seção genérica de isenção: quando uma medida obrigatória foi desativada
+// manualmente (ver MotivosIsencao em Step6.jsx) em TODAS as estruturas que a
+// exigiam, `ativo` cai pra false no projeto inteiro e o builder normal da
+// medida nunca roda (ver `ativa` abaixo) — mas ela ainda precisa constar no
+// memorial, só que narrando apenas a isenção (a justificativa do RT), nunca
+// o dimensionamento normal, que deixou de valer. compart_horizontal/vertical
+// ficam de fora (SECOES_SEMPRE_QUANDO_OBRIGATORIO): já têm narração própria,
+// calculada (memorial/compartimentacao.js), não um texto genérico daqui.
+function secaoIsencaoGenerica(key, state, porEstrutura) {
+  const titulo = TITULO_MEDIDA[key]
+  if (!titulo) return null
+  const isentas = (porEstrutura || []).filter(pe => pe.sistemas[key]?.obrigatorio && !pe.sistemas[key]?.ativo)
+  if (isentas.length === 0) return null
+  const multiplas = porEstrutura.length > 1
+  const blocos = isentas.map(pe => {
+    const motivo = state.motivosIsencaoPorEstrutura?.[pe.estrutura.id]?.[key]?.trim()
+    const justificativa = `${titulo} dispensada mediante justificativa do responsável técnico: ${motivo || 'motivo da isenção não informado pelo responsável técnico.'}`
+    return {
+      tipo: 'paragrafo',
+      texto: multiplas ? `${pe.estrutura.nome}: ${justificativa}` : justificativa,
+    }
+  })
+  return { titulo, blocos }
+}
+
 /**
  * Monta as seções do memorial a partir das medidas ativas/obrigatórias do
  * projeto. `sistemas` é o resultado derivado de useMedidasObrigatorias() —
@@ -101,6 +146,11 @@ export function buildMemorial(state, sistemas, porEstrutura) {
   // do memorial, porque `obrigatorio` (a norma, sem o override) continuava
   // true e vencia no OR. Exceção: compart_horizontal/vertical (ver acima).
   const ativa = key => !!src[key]?.ativo || (SECOES_SEMPRE_QUANDO_OBRIGATORIO.has(key) && !!src[key]?.obrigatorio)
+  // Obrigatória em alguma estrutura, mas desativada manualmente em TODAS
+  // elas (o builder normal nunca roda — ver `ativa` acima): ainda entra no
+  // documento, só que com a seção genérica de isenção (ver
+  // secaoIsencaoGenerica) em vez do builder de verdade.
+  const isenta = key => !ativa(key) && !!src[key]?.obrigatorio && !SECOES_SEMPRE_QUANDO_OBRIGATORIO.has(key)
 
   // Uma medida com builder que ninguem lembrou de colocar em ORDEM_SECOES
   // entra no fim, em vez de sumir do documento sem aviso — omitir uma secao
@@ -108,8 +158,8 @@ export function buildMemorial(state, sistemas, porEstrutura) {
   const restantes = Object.keys(MEMORIAL_BUILDERS).filter(k => !ORDEM_SECOES.includes(k))
 
   const secoes = [...ORDEM_SECOES, ...restantes]
-    .filter(ativa)
-    .map(key => MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura))
+    .filter(key => ativa(key) || isenta(key))
+    .map(key => (ativa(key) ? MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura) : secaoIsencaoGenerica(key, state, porEstrutura)))
     .filter(Boolean)
 
   if (src.hidrantes?.ativo) {
