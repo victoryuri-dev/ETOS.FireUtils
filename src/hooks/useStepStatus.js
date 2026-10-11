@@ -70,8 +70,6 @@ function getStatus(n, state, medidas) {
       })
       return completo ? 'done' : 'partial'
     }
-    case 7:
-      return 'empty'
     default:
       return 'empty'
   }

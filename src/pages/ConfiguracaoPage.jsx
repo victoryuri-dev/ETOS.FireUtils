@@ -9,7 +9,6 @@ import Step3 from '../components/steps/Step3'
 import Step4 from '../components/steps/Step4'
 import Step5 from '../components/steps/Step5'
 import Step6 from '../components/steps/Step6'
-import Step7 from '../components/steps/Step7'
 
 const STEPS_CONFIG_COMPLETO = [
   { label:'Identificacao',       sub:'Local, norma, proprietario e empresa' },
@@ -18,16 +17,15 @@ const STEPS_CONFIG_COMPLETO = [
   { label:'Classificacao',       sub:'Ocupacao por pavimento' },
   { label:'Carga de Incendio',   sub:'CNAE e carga por divisao' },
   { label:'Medidas de seguranca',sub:'Sistemas exigidos' },
-  { label:'Revisao final',       sub:'Confirmar e salvar' },
 ]
 
 // Projeto "apenas dimensionamento" (ver ProjetosPage.jsx/ProjetoContext.jsx
 // tipoProjeto) pula Identificacao/Responsavel tecnico (Steps 1 e 3 —
-// responsavel pelo uso, localizacao, responsavel tecnico) e Revisao final
-// (Step 7) — so o necessario pra dimensionar Saida de Emergencia,
-// Hidrantes e Chuveiros Automaticos fica no wizard. "Nome do projeto"
-// (unico campo do Step1 que ainda e obrigatorio aqui) entra no topo do
-// Step2 nesse modo — ver Step2.jsx.
+// responsavel pelo uso, localizacao, responsavel tecnico) — so o
+// necessario pra dimensionar Saida de Emergencia, Hidrantes e Chuveiros
+// Automaticos fica no wizard. "Nome do projeto" (unico campo do Step1 que
+// ainda e obrigatorio aqui) entra no topo do Step2 nesse modo — ver
+// Step2.jsx.
 const STEPS_CONFIG_DIMENSIONAMENTO = [
   { label:'Edificacao',           sub:'Nome, estado, dimensoes, estrutura' },
   { label:'Classificacao',        sub:'Ocupacao por pavimento' },
@@ -35,17 +33,17 @@ const STEPS_CONFIG_DIMENSIONAMENTO = [
   { label:'Medidas de seguranca', sub:'Saida de emergencia, hidrantes, chuveiros' },
 ]
 
-const STEPS = { 1:Step1, 2:Step2, 3:Step3, 4:Step4, 5:Step5, 6:Step6, 7:Step7 }
+const STEPS = { 1:Step1, 2:Step2, 3:Step3, 4:Step4, 5:Step5, 6:Step6 }
 
 // Mapeia posicao de exibicao (1..N, a que StepsNav/useWizard enxergam) pra
 // chave "real" do Step/status — useStepStatus.js e keyed pelos numeros
-// originais de 1 a 7 (2=Edificacao, 4=Classificacao, etc.), entao o modo
+// originais de 1 a 6 (2=Edificacao, 4=Classificacao, etc.), entao o modo
 // dimensionamento so precisa dizer "na posicao 1, mostra o Step/status 2"
 // em vez de duplicar aquela logica com numeros novos.
 // Responsavel tecnico (Step3) exibido na posicao 2, antes de Edificacao
 // (Step2) — so a ordem de exibicao muda, os numeros originais dos steps
 // (usados por useStepStatus.js) continuam os mesmos.
-const ORDEM_COMPLETO = [1, 3, 2, 4, 5, 6, 7]
+const ORDEM_COMPLETO = [1, 3, 2, 4, 5, 6]
 const ORDEM_DIMENSIONAMENTO = [2, 4, 5, 6]
 
 export default function ConfiguracaoPage({ onGoDashboard }) {

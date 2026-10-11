@@ -14,7 +14,11 @@ export function useWizard(total = 8) {
   const { id, step: stepParam } = useParams()
   const navigate = useNavigate()
 
-  const unlocked = state.configUnlocked || 1
+  // Math.min(..., total) protege projetos salvos com configUnlocked/
+  // configStep de antes de uma etapa ser removida do wizard (ex.: Step7)
+  // — sem isso, um projeto que já tinha chegado na etapa removida ficaria
+  // preso numa posição que não existe mais.
+  const unlocked = Math.min(state.configUnlocked || 1, total)
   const parsed = parseInt(stepParam, 10)
   // URL sem número (primeiro acesso) ou fora do intervalo liberado: usa a
   // última etapa conhecida do projeto como ponto de partida — o efeito
