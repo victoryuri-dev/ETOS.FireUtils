@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useEffect, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
@@ -301,9 +302,10 @@ export default function ControleAcabamentoPage() {
 
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+          <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
             <Icon name={SISTEMA_ICON.controle_acabamento} size={20} color="var(--color-red)" className="shrink-0"/>
             Controle de Materiais de Acabamento e Revestimento
+          <LinkNorma sistema="controle_acabamento"/>
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
             Quadro Resumo de Controle de Materiais de Acabamento por estrutura — um ambiente por caixa (nome livre, editável), com piso, parede/divisórias, teto/forro, cobertura e isolamento térmico acústico cada um. Materiais incombustíveis recebem Classe I automaticamente, e produtos do catálogo de materiais já ensaiados (piso, parede e teto) têm a classe preenchida direto do ensaio; qualquer outro material exige fabricante e nº do laudo para a classe ser considerada comprovada.

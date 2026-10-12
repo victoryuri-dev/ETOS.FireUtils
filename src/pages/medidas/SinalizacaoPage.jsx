@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useLocation } from 'react-router-dom'
 import { useRef, useState } from 'react'
@@ -366,10 +367,11 @@ export default function SinalizacaoPage() {
         <div className="flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-            <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+            <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
               <Icon name={SISTEMA_ICON.sinalizacao} size={20} color="var(--color-red)" className="shrink-0"/>
               Sinalização de Emergência
-            </h2>
+            <LinkNorma sistema="sinalizacao"/>
+          </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
               Cadastre as placas de sinalização de emergência utilizadas em cada estrutura, conforme a NT 20 CBMMA / NBR 13434 — proibição, alerta, orientação/saída e equipamentos de combate a incêndio.
             </p>

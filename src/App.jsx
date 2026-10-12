@@ -119,9 +119,9 @@ function AppHeader({ onGoProjetos, isProjectPage, showProjectsLink = false }) {
       )}
 
       {/* Direita — conta */}
-      <div className="flex items-center gap-2 relative shrink-0">
+      <div className="flex items-center gap-4 sm:gap-6 relative shrink-0">
         {isProjectPage && <button type="button" className="btn-ghost text-xs" onClick={() => navigate(`/projeto/${state.id}/auditoria`)}>
-          <Icon name="checkCircle" size={14}/><span className="hidden sm:inline">Auditar projeto</span>
+          <Icon name="search" size={14}/><span className="hidden sm:inline">Auditar projeto</span>
           <span className="sm:hidden">Auditar</span>
         </button>}
         <button

@@ -1,3 +1,4 @@
+import LinkNorma from '../components/ui/LinkNorma'
 import Icon from '../components/ui/Icon'
 import { SISTEMA_ICON } from '../data/sistemasIcons'
 
@@ -31,9 +32,10 @@ export default function MedidaPage({ sistKey }) {
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">
           Medidas de segurança
         </div>
-        <h2 className="flex items-center gap-2 text-[22px] font-semibold text-ink mb-[5px]">
+        <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-semibold text-ink mb-[5px]">
           <Icon name={SISTEMA_ICON[sistKey]} size={20} color="var(--color-red)" className="shrink-0"/>
           {label}
+          <LinkNorma sistema={sistKey}/>
         </h2>
         <p className="text-[13px] text-ink-faint leading-[1.6]">
           Dimensionamento e especificações técnicas do sistema conforme NT 42/2019 CBMMA.

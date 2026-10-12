@@ -17,5 +17,6 @@ export default function Obrigatorio({ id }) {
     input?.focus({ preventScroll:true })
   },[id,alvo])
   if (id && !porId.has(id)) return null
+  if (id && porId.get(id).obrigatorio === false) return <span ref={ref} className="hidden" aria-hidden="true" data-audit-id={id}/>
   return <span ref={ref} className="req shrink-0" title="Campo obrigatório" aria-label="obrigatório" data-audit-id={id}> *</span>
 }

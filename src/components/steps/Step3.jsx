@@ -60,7 +60,7 @@ export default function Step3({ step, totalSteps }) {
           <div className="fg"><label>CREA / CAU <Obrigatorio id={'rtConselho'}/></label><input value={state.rtConselho} onChange={set('rtConselho')} placeholder="CREA-MA MA00000000/D"/></div>
         </div>
         <div className="g2 mb-3">
-          <div className="fg"><label>CPF</label><input value={state.rtCpf} onChange={set('rtCpf')} placeholder="000.000.000-00"/></div>
+          <div className="fg"><label>CPF <Obrigatorio id="rtCpf"/></label><input value={state.rtCpf} onChange={set('rtCpf')} placeholder="000.000.000-00"/></div>
           <div className="fg"><label>Especialidade <Obrigatorio id={'rtEspecialidade'}/></label>
             <select value={state.rtEspecialidade} onChange={set('rtEspecialidade')}>
               <option>Engenharia Civil</option><option>Engenharia Eletrica</option><option>Arquitetura</option><option>Engenharia de Seguranca</option>
@@ -68,11 +68,11 @@ export default function Step3({ step, totalSteps }) {
           </div>
         </div>
         <div className="fg mb-3">
-          <label>Empresa / Escritorio</label><input value={state.rtEmpresa} onChange={set('rtEmpresa')}/>
+          <label>Empresa / Escritorio <Obrigatorio id="rtEmpresa"/></label><input value={state.rtEmpresa} onChange={set('rtEmpresa')}/>
         </div>
         <div className="g2">
-          <div className="fg"><label>E-mail</label><input type="email" value={state.rtEmail} onChange={set('rtEmail')}/></div>
-          <div className="fg"><label>Telefone</label><input type="tel" value={state.rtTelefone} onChange={set('rtTelefone')}/></div>
+          <div className="fg"><label>E-mail <Obrigatorio id="rtEmail"/></label><input type="email" value={state.rtEmail} onChange={set('rtEmail')}/></div>
+          <div className="fg"><label>Telefone <Obrigatorio id="rtTelefone"/></label><input type="tel" value={state.rtTelefone} onChange={set('rtTelefone')}/></div>
         </div>
       </FormSection>
       <FormSection
@@ -89,15 +89,15 @@ export default function Step3({ step, totalSteps }) {
           <>
             <div className="g2 mb-3">
               <div className="fg"><label>Numero da ART <Obrigatorio id={'artNumero'}/></label><input value={state.artNumero} onChange={set('artNumero')}/></div>
-              <div className="fg"><label>Data de emissao</label><input type="date" value={state.artData} onChange={set('artData')}/></div>
+              <div className="fg"><label>Data de emissao <Obrigatorio id="artData"/></label><input type="date" value={state.artData} onChange={set('artData')}/></div>
             </div>
             <div className="g2">
-              <div className="fg"><label>Tipo de servico</label>
+              <div className="fg"><label>Tipo de servico <Obrigatorio id="artTipoServico"/></label>
                 <select value={state.artTipoServico} onChange={set('artTipoServico')}>
                   <option>Projeto</option><option>Execucao</option><option>Projeto e execucao</option><option>Consultoria / Laudo</option>
                 </select>
               </div>
-              <div className="fg"><label>Valor da obra (R$)</label><input value={state.artValorObra} onChange={set('artValorObra')} placeholder="R$ 0,00"/></div>
+              <div className="fg"><label>Valor da obra (R$) <Obrigatorio id="artValorObra"/></label><input value={state.artValorObra} onChange={set('artValorObra')} placeholder="R$ 0,00"/></div>
             </div>
           </>
         )}

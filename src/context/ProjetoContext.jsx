@@ -399,7 +399,7 @@ const INITIAL_STATE = {
   areaMaiorPav: '', peDireito: '',
   usoSubsolo: '', coberturaHabitavel: 'Nao',
   compartVertical: 'Sem compartimentacao',
-  fachada: 'Convencional', cobertura: 'Laje impermeabilizada',
+  caracteristicasEstrutura: '', fachada: '', cobertura: '',
   estruturas: [{
     id: 'est-1', nome: 'Estrutura 1', areaTotal: '', altura: '', alturaPisoPiso: 0,
     nPavimentos: 1, nSubsolos: 0, profundidadeSubsolo: '', alturaEdificacao: '',

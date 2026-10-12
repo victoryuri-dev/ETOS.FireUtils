@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
@@ -97,9 +98,10 @@ export default function AcessoViaturaPage() {
         {/* Header */}
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+          <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
             <Icon name={SISTEMA_ICON.acesso_viatura} size={20} color="var(--color-red)" className="shrink-0"/>
             Acesso de Viatura
+          <LinkNorma sistema="acesso_viatura"/>
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
             Dimensionamento conforme item 5.1 (Anexo A e Anexo B) da NT 06/2021 CBMMA — Acesso de Viaturas nas Edificações e Áreas de Risco.

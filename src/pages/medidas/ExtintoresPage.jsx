@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import Obrigatorio from '../../components/ui/Obrigatorio'
 import { preenchido, inteiroPositivo } from '../../data/auditoriaProjeto'
 import { useLocation } from 'react-router-dom'
@@ -938,10 +939,11 @@ export default function ExtintoresPage() {
         <div className="flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-            <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+            <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
               <Icon name={SISTEMA_ICON.extintores} size={20} color="var(--color-red)" className="shrink-0"/>
               Sistema de Proteção por Extintores de Incêndio
-            </h2>
+            <LinkNorma sistema="extintores"/>
+          </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
               Distribuição de extintores por estrutura, pavimento e ambiente conforme a NT 21 CBMMA. Cadastre manualmente ou importe do plugin Revit — o risco predominante (que define a área-limite para unidade única) vem da carga de incêndio classificada na Etapa 5.
             </p>

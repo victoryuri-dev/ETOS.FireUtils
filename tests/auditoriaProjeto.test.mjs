@@ -4,10 +4,11 @@ import { createServer } from 'vite'
 
 const server = await createServer({ server:{ middlewareMode:true }, appType:'custom' })
 after(() => server.close())
-const { camposObrigatorios, etapaExibida } = await server.ssrLoadModule('/src/data/auditoriaProjeto.js')
+const { camposObrigatorios, camposOpcionais, etapaExibida } = await server.ssrLoadModule('/src/data/auditoriaProjeto.js')
 
 function projeto() {
   return { uf:'MA', tipoProjeto:'completo', nome:'Projeto', endereco:'Rua A', cidade:'São Luís', respCNPJ:'123', respRazaoSocial:'Empresa', propNome:'Proprietário', propDocumento:'123', rtNome:'Responsável', rtConselho:'CREA 123', rtEspecialidade:'Engenharia', usaArt:false, areaConstruidaTotal:'100',
+    caracteristicasEstrutura:'Concreto armado', cobertura:'Telha metálica', fachada:'Alvenaria',
     estruturas:[{ id:'e1', nome:'Indústria', areaTotal:'100', altura:'5', nPavimentos:1, nSubsolos:0, estrutura:['Concreto armado'] }],
     pavimentos:[{ id:'p1', estruturaId:'e1', label:'Térreo', grupo:'J', divisao:'J-1', area:'100', ambientes:[], acess:[] }],
     cargaState:{ e1:{ 'J-1':{ metodo:'levantamento', valorManual:'100' } } }, sistemasPorEstrutura:{}, hidrantes:{}, extintores:[], iluminacao:[], sinalizacao:[], acabamentos:[], acabamentoAmbientes:[] }
@@ -21,10 +22,33 @@ test('projeto base preenchido não cobra opcionais ou CNAE inexistente',() => {
   assert.equal(campo(campos,'p1.cnae'),undefined)
   assert.equal(campo(campos,'rtEmail'),undefined)
 })
+test('características construtivas são obrigatórias e pertencem à etapa de edificação',() => {
+  const s = projeto()
+  for (const id of ['caracteristicasEstrutura','cobertura','fachada']) s[id] = '  '
+  const c = camposObrigatorios(s)
+  for (const id of ['caracteristicasEstrutura','cobertura','fachada']) {
+    assert.equal(campo(c,id).pendente,true)
+    assert.equal(campo(c,id).etapa,2)
+  }
+})
 test('ignora espaços e rejeita dimensões zero, negativas e não numéricas',() => {
   const s = projeto(); s.nome='  '; s.estruturas[0].areaTotal='0'; s.estruturas[0].altura='-2'; s.pavimentos[0].area='abc'
   const c = camposObrigatorios(s)
-  for (const id of ['nome','e1.areaTotal','e1.altura','p1.area']) assert.equal(campo(c,id).pendente,true)
+  for (const id of ['nome','e1.areaTotal','e1.altura']) assert.equal(campo(c,id).pendente,true)
+})
+test('áreas das ocupações são opcionais e não bloqueiam a auditoria obrigatória',() => {
+  const s = projeto(); s.pavimentos[0].area=''
+  s.pavimentos[0].acess=[{ divisao:'J-1', grupo:'J', area:'' }]
+  assert.equal(campo(camposObrigatorios(s),'p1.area'),undefined)
+  assert.equal(campo(camposObrigatorios(s),'p1.acess.0.area'),undefined)
+  for (const id of ['p1.area','p1.acess.0.area']) {
+    const c = campo(camposOpcionais(s),id)
+    assert.equal(c.obrigatorio,false)
+    assert.equal(c.pendente,true)
+    assert.equal(c.etapa,4)
+  }
+  s.pavimentos[0].area='50'
+  assert.equal(campo(camposOpcionais(s),'p1.area').pendente,false)
 })
 test('ART e dimensões condicionais só entram quando aplicáveis',() => {
   const s = projeto(); s.usaArt=true; s.estruturas[0].nPavimentos=2; s.estruturas[0].nSubsolos=1

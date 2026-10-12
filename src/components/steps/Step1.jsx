@@ -105,11 +105,11 @@ export default function Step1({ step, totalSteps }) {
 
         <div className="g2 mb-3">
           <div className="fg"><label>Razao social <Obrigatorio id={'respRazaoSocial'}/></label><input value={state.respRazaoSocial} onChange={set('respRazaoSocial')}/></div>
-          <div className="fg"><label>Nome fantasia</label><input value={state.respFantasia} onChange={set('respFantasia')}/></div>
+          <div className="fg"><label>Nome fantasia <Obrigatorio id="respFantasia"/></label><input value={state.respFantasia} onChange={set('respFantasia')}/></div>
         </div>
         <div className="g2 mb-3">
-          <div className="fg"><label>Telefone</label><input type="tel" value={state.respTelefone} onChange={set('respTelefone')}/></div>
-          <div className="fg"><label>E-mail</label><input type="email" value={state.respEmail} onChange={set('respEmail')}/></div>
+          <div className="fg"><label>Telefone <Obrigatorio id="respTelefone"/></label><input type="tel" value={state.respTelefone} onChange={set('respTelefone')}/></div>
+          <div className="fg"><label>E-mail <Obrigatorio id="respEmail"/></label><input type="email" value={state.respEmail} onChange={set('respEmail')}/></div>
         </div>
       </FormSection>
 
@@ -132,12 +132,12 @@ export default function Step1({ step, totalSteps }) {
 
         <div className="g3 mb-3">
           <div className="fg col-span-2"><label>Logradouro (rua, avenida...) <Obrigatorio id={'endereco'}/></label><input value={state.endereco} onChange={set('endereco')} placeholder="Rua Grande"/></div>
-          <div className="fg"><label>Numero</label><input value={state.numero} onChange={set('numero')} placeholder="123"/></div>
+          <div className="fg"><label>Numero <Obrigatorio id="numero"/></label><input value={state.numero} onChange={set('numero')} placeholder="123"/></div>
         </div>
         <div className="g3 mb-3">
-          <div className="fg"><label>Complemento</label><input value={state.complemento} onChange={set('complemento')} placeholder="Sala, andar..."/></div>
-          <div className="fg"><label>Bairro</label><input value={state.bairro} onChange={set('bairro')} placeholder="Centro"/></div>
-          <div className="fg"><label>CEP</label><input value={state.cep} onChange={set('cep')} placeholder="65000-000"/></div>
+          <div className="fg"><label>Complemento <Obrigatorio id="complemento"/></label><input value={state.complemento} onChange={set('complemento')} placeholder="Sala, andar..."/></div>
+          <div className="fg"><label>Bairro <Obrigatorio id="bairro"/></label><input value={state.bairro} onChange={set('bairro')} placeholder="Centro"/></div>
+          <div className="fg"><label>CEP <Obrigatorio id="cep"/></label><input value={state.cep} onChange={set('cep')} placeholder="65000-000"/></div>
         </div>
         <div className="g3">
           <div className="fg"><label>Cidade <Obrigatorio id={'cidade'}/></label><input value={state.cidade} onChange={set('cidade')} placeholder="Sao Luis"/></div>
@@ -182,8 +182,8 @@ export default function Step1({ step, totalSteps }) {
           <div className="fg"><label>CPF / CNPJ <Obrigatorio id={'propDocumento'}/></label><input value={state.propDocumento} onChange={set('propDocumento')}/></div>
         </div>
         <div className="g2">
-          <div className="fg"><label>Telefone</label><input type="tel" value={state.propTelefone} onChange={set('propTelefone')} placeholder="(99) 99999-9999"/></div>
-          <div className="fg"><label>E-mail</label><input type="email" value={state.propEmail} onChange={set('propEmail')}/></div>
+          <div className="fg"><label>Telefone <Obrigatorio id="propTelefone"/></label><input type="tel" value={state.propTelefone} onChange={set('propTelefone')} placeholder="(99) 99999-9999"/></div>
+          <div className="fg"><label>E-mail <Obrigatorio id="propEmail"/></label><input type="email" value={state.propEmail} onChange={set('propEmail')}/></div>
         </div>
       </FormSection>
     </div>

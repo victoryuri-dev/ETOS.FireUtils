@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import FormSection from '../../components/ui/FormSection'
@@ -54,10 +55,11 @@ export default function GerenciamentoRiscoPage() {
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">
           Medidas de segurança
         </div>
-        <h2 className="flex items-center gap-2 text-[22px] font-semibold text-ink mb-[5px]">
+        <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-semibold text-ink mb-[5px]">
           <Icon name={SISTEMA_ICON.gerenciamento_risco} size={20} color="var(--color-red)" className="shrink-0"/>
           Gerenciamento de Risco de Incêndio
-        </h2>
+        <LinkNorma sistema="gerenciamento_risco"/>
+          </h2>
         <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
           Plano de Emergência Contra Incêndio conforme NT 16/2021 CBMMA (Anexo B) — vira um capítulo do Memorial Descritivo.
         </p>

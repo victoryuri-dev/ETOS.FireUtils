@@ -2,19 +2,23 @@
 // ocupacao principal/mista e ocupacoes subsidiarias, conforme regra dos 10%
 // da area construida da propria estrutura.
 export function classificarPavimentos(pavimentos, areaEstrutura) {
-  const threshold = areaEstrutura * 0.10
+  const areaTotal = Number(String(areaEstrutura ?? '').replace(',', '.')) || 0
+  const threshold = areaTotal * 0.10
 
   const principaisDivs = [...new Set(pavimentos.map(p => p.divisao).filter(Boolean))]
 
-  const subsidiariasRaw = []
+  const areasAdicionais = new Map()
   pavimentos.forEach(p => {
-    p.acess.forEach(a => {
+    ;(p.acess || []).forEach(a => {
       if (!a.divisao) return
-      const area    = parseFloat(a.area) || 0
-      const isMista = areaEstrutura > 0 && area > threshold
-      subsidiariasRaw.push({ divisao: a.divisao, isMista })
+      const area = Number(String(a.area ?? '').replace(',', '.')) || 0
+      areasAdicionais.set(a.divisao, (areasAdicionais.get(a.divisao) || 0) + area)
     })
   })
+  const subsidiariasRaw = [...areasAdicionais].map(([divisao, area]) => ({
+    divisao, area, percentual: areaTotal > 0 ? area / areaTotal * 100 : null,
+    isMista: areaTotal > 0 && area > threshold,
+  }))
 
   const principaisSet = new Set(principaisDivs)
   const mistasExtra   = [...new Set(subsidiariasRaw.filter(s => s.isMista && !principaisSet.has(s.divisao)).map(s => s.divisao))]
@@ -32,6 +36,6 @@ export function classificarPavimentos(pavimentos, areaEstrutura) {
 // presente na estrutura.
 export function divisoesDaEstrutura(pavimentos) {
   return [...new Set(
-    pavimentos.flatMap(p => [p.divisao, ...p.acess.map(a => a.divisao)]).filter(Boolean)
+    pavimentos.flatMap(p => [p.divisao, ...(p.acess || []).map(a => a.divisao)]).filter(Boolean)
   )]
 }

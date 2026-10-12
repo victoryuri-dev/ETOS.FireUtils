@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
@@ -271,9 +272,10 @@ export default function BrigadaIncendioPage() {
 
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+          <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
             <Icon name={SISTEMA_ICON.brigada} size={20} color="var(--color-red)" className="shrink-0"/>
             Brigada de Incêndio
+          <LinkNorma sistema="brigada"/>
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[650px] m-0">
             Dimensionamento da brigada de incêndio orgânica por pavimento, conforme o Anexo A (Tabela A.1) da {brigNorma.NORMA.nome}. Divisão de ocupação e grau de risco vêm automaticamente da classificação já feita nas Etapas 4 e 5 — informe apenas a população fixa de cada pavimento.

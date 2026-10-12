@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import { useState, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
@@ -546,10 +547,11 @@ export default function HidrantesPage() {
         <div className="flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-            <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+            <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
               <Icon name={SISTEMA_ICON.hidrantes} size={20} color="var(--color-red)" className="shrink-0"/>
               Hidrantes / Mangotinho
-            </h2>
+            <LinkNorma sistema="hidrantes"/>
+          </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
               Classificação conforme {norma.NORMA.nome} / NBR 13714 — o dimensionamento hidráulico é calculado pelo plugin Revit a partir dela.
             </p>

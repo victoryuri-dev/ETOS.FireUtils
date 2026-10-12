@@ -30,11 +30,12 @@ export function camposObrigatorios(state, porEstrutura = []) {
     if (state.usaArt) root([['artNumero','Número da ART']], config(3))
   }
   root([['areaConstruidaTotal','Área construída total',positivo]], config(2))
+  root([['caracteristicasEstrutura','Características construtivas · Estrutura'], ['cobertura','Elementos de cobertura'], ['fachada','Elementos de vedação']], config(2))
   add('estruturas', 'Cadastrar uma estrutura', state.estruturas, config(2))
   for (const est of state.estruturas || []) {
     estruturaId = est.id
     const destino = config(2, est.nome)
-    for (const [key, label, validar] of [['nome','Nome da estrutura'], ['areaTotal','Área construída da estrutura',positivo], ['altura','Altura total',positivo], ['nPavimentos','Número de pavimentos acima do solo',inteiro], ['estrutura','Estrutura principal']]) add(campoId(est.id,key),label,est[key],destino,validar)
+    for (const [key, label, validar] of [['nome','Nome da estrutura'], ['areaTotal','Área construída da estrutura',positivo], ['altura','Altura total',positivo], ['nPavimentos','Número de pavimentos acima do solo',inteiro]]) add(campoId(est.id,key),label,est[key],destino,validar)
     if (numero(est.nPavimentos) > 1) add(campoId(est.id,'alturaEdificacao'),'Altura da edificação',est.alturaEdificacao,destino,positivo)
     if (numero(est.nSubsolos) > 0) add(campoId(est.id,'profundidadeSubsolo'),'Profundidade do subsolo',est.profundidadeSubsolo,destino,positivo)
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
@@ -47,7 +48,6 @@ export function camposObrigatorios(state, porEstrutura = []) {
         add(campoId(oc.prefix,'grupo'),'Grupo',oc.grupo || oc.divisao?.charAt(0),dest)
         // Grupos sem subdivisões não pedem uma divisão inexistente.
         if (Object.keys(getOcupacoes(state.uf)[oc.grupo || oc.divisao?.charAt(0)]?.divisoes || {}).length) add(campoId(oc.prefix,'divisao'),'Divisão',oc.divisao,dest)
-        add(campoId(oc.prefix,'area'),'Área do pavimento / ocupação',oc.area,dest,positivo)
         if (oc.divisao) {
           const carga = state.cargaState?.[est.id]?.[oc.divisao]
           const cnaes = getCNAEsDivisao(state.uf,oc.divisao)
@@ -177,4 +177,33 @@ export function camposObrigatorios(state, porEstrutura = []) {
 
 export function etapaExibida(etapa, dimensionamento) {
   return (dimensionamento ? [2,4,5,6] : [1,3,2,4,5,6]).indexOf(etapa) + 1
+}
+
+// Campos vazios que podem complementar o projeto, sem bloquear o avanço.
+export function camposOpcionais(state, porEstrutura = []) {
+  const campos = []
+  const add = (id, rotulo, valor, destino) => campos.push({ id, rotulo, ...destino, obrigatorio:false, pendente:!preenchido(valor) })
+  const config = (etapa, secao, contexto = '') => ({ etapa, secao, contexto, rota:'config' })
+  const root = (itens, destino) => itens.forEach(([id, rotulo]) => add(id, rotulo, state[id], destino))
+  if (state.tipoProjeto !== 'dimensionamento') {
+    root([['respFantasia','Nome fantasia'], ['respTelefone','Telefone do responsável pelo uso'], ['respEmail','E-mail do responsável pelo uso'], ['numero','Número do endereço'], ['complemento','Complemento'], ['bairro','Bairro'], ['cep','CEP'], ['propTelefone','Telefone do proprietário'], ['propEmail','E-mail do proprietário']], config(1,'Identificação'))
+    root([['rtCpf','CPF do responsável técnico'], ['rtEmpresa','Empresa / escritório'], ['rtEmail','E-mail do responsável técnico'], ['rtTelefone','Telefone do responsável técnico']], config(3,'Responsável técnico'))
+    if (state.usaArt) root([['artData','Data de emissão da ART'], ['artTipoServico','Tipo de serviço'], ['artValorObra','Valor da obra']],config(3,'Responsável técnico'))
+    root([['areaTerreno','Área do terreno'], ['quantidadePublico','Quantidade de público'], ['areaComplementar','Área complementar'], ['condicoesAtuais','Observações complementares']],config(2,'Edificação'))
+    if (state.informarDadosLegais === 'sim' || state.numeroAlvara || state.anoConstrucao || state.numeroAVCB || state.validadeAVCB) {
+      root([['numeroAlvara','Número do alvará']],config(2,'Edificação'))
+      if (state.situacao === 'existente') root([['anoConstrucao','Ano de construção'], ['numeroAVCB','Nº do AVCB anterior'], ['validadeAVCB','Validade do AVCB']],config(2,'Edificação'))
+    }
+  }
+  for (const est of state.estruturas || []) {
+    for (const pav of (state.pavimentos || []).filter(p => p.estruturaId === est.id)) {
+      add(campoId(pav.id,'area'),'Área dedicada à ocupação principal',pav.area,config(4,'Classificação',`${est.nome} · ${pav.label}`))
+      ;(pav.acess || []).forEach((a,i) => add(campoId(pav.id,'acess',i,'area'),`Área dedicada à ocupação ${i+2}`,a.area,config(4,'Classificação',`${est.nome} · ${pav.label}`)))
+    }
+    const sistemas = porEstrutura.find(pe => pe.estrutura.id === est.id)?.sistemas || {}
+    if (sistemas.seg_estrutural?.ativo) add(campoId(est.id,'obsSegEstrutural'),'Observações do responsável técnico',est.obsSegEstrutural,{rota:'medida/seg_estrutural',secao:'Segurança estrutural',contexto:est.nome,estruturaId:est.id})
+    if (sistemas.compart_horizontal?.ativo || sistemas.compart_vertical?.ativo) add(campoId(est.id,'obsCompartimentacao'),'Observações do responsável técnico',est.obsCompartimentacao,{rota:`medida/${sistemas.compart_horizontal?.ativo ? 'compart_horizontal' : 'compart_vertical'}`,secao:'Compartimentação',contexto:est.nome,estruturaId:est.id})
+    if (sistemas.iluminacao?.ativo) for (const item of (state.iluminacao || []).filter(i => i.estruturaId === est.id)) add(campoId(item.id,'identificacao'),'Identificação do equipamento',item.identificacao,{rota:'medida/iluminacao',secao:'Iluminação',contexto:est.nome,estruturaId:est.id})
+  }
+  return campos
 }

@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import { getEstadosDisponiveis } from '../../data/normas/index'
-import { alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
+import { alturaEdificacaoBase } from '../../data/trrf_calc'
+import { resumoEstrutura } from '../../data/resumoEstrutura'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
 import SwitchToggle from '../ui/SwitchToggle'
@@ -19,37 +20,15 @@ const S = {
   desc: 'text-[13px] text-ink-faint leading-[1.6]',
 }
 
-const ALERTAS = (h, sub, terrea) => {
-  const m = []
-  if (terrea)            m.push({ t:'green', i:'check', txt:'0 m (Edificação Térrea).' })
-  if (h > 0  && h <= 6)  m.push({ t:'green', i:'check', txt:'Edificacao terrea — Classe: Terrea.' })
-  if (h > 6  && h <= 12) m.push({ t:'green', i:'check', txt:'Altura 6-12 m — Classe: Baixa altura.' })
-  if (h > 12 && h <= 23) m.push({ t:'amber', i:'warn',  txt:'Altura acima de 12 m — Classe: Media altura. Verifique exigencia de escada enclausurada.' })
-  if (h > 23 && h <= 30) m.push({ t:'amber', i:'warn',  txt:'Altura acima de 23 m — Classe: Media-alta. Escada pressurizada geralmente exigida.' })
-  if (h > 30)            m.push({ t:'red',   i:'warn',  txt:'Altura acima de 30 m — Classe: Alta. Exigencias maximas.' })
-  if (sub > 0)           m.push({ t:'amber', i:'warn',  txt:'Subsolo(s) declarado(s) — a classificacao de uso sera feita no Step 5.' })
-  return m
-}
-
-const MATERIAIS_ESTRUTURA = ['Concreto armado', 'Estrutura metalica', 'Alvenaria estrutural', 'Madeira']
-
 // ── Modal de edicao de uma Estrutura (torre/bloco) ─────────────────────
 function EstruturaModal({ est, index, dispatch, onClose }) {
   const set = f => e => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field: f, value: e.target.value })
 
   const nPav   = parseInt(est.nPavimentos) || 1
   const sub    = parseInt(est.nSubsolos)   || 0
-  const h      = alturaEdificacaoBase(est)
-  const terrea = edificacaoEhTerrea(est)
+  const resumo = resumoEstrutura(est)
 
-  // Normaliza dado antigo (string unica) salvo antes do campo virar multi-selecao.
-  const materiais = Array.isArray(est.estrutura) ? est.estrutura : [est.estrutura].filter(Boolean)
-  const toggleMaterial = (m) => {
-    const next = materiais.includes(m) ? materiais.filter(x => x !== m) : [...materiais, m]
-    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'estrutura', value: next })
-  }
-
-  // "Altura piso a piso" e sempre bloqueada — soma Profundidade do subsolo +
+  // Altura calculada e sempre bloqueada — soma Profundidade do subsolo +
   // Altura da edificacao. Predio terreo (1 pavimento acima do solo) nao tem
   // o campo "Altura da edificacao" na tela (o proprio terreo e o "ultimo
   // pavimento"): a soma vira so a profundidade do subsolo, ou 0 sem subsolo
@@ -115,16 +94,13 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
         <div className="flex-1 overflow-y-auto py-5 px-[22px]">
           <div className="mb-3.5">
             <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Dimensoes</div>
-            <div className="g3 mb-3">
+            <div className="g2 mb-3">
               <div className="fg"><label>Area construida total (m2) <Obrigatorio id={`${est.id}.areaTotal`}/></label><input type="number" value={est.areaTotal} onChange={set('areaTotal')}/></div>
               <div className="fg">
                 <label>Altura total (m) <Obrigatorio id={`${est.id}.altura`}/><InfoTip text="medida entre o nível do solo ao ponto mais alto da edificação"/></label>
                 <input type="number" step="0.1" value={est.altura} onChange={set('altura')}/>
               </div>
-              <div className="fg">
-                <label>Altura piso a piso (m){terrea && <span className="fhint">— Edificação Térrea</span>}</label>
-                <input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} readOnly/>
-              </div>
+
             </div>
             <div className="g2">
               <div className="fg"><label>No de pavimentos acima do solo <Obrigatorio id={`${est.id}.nPavimentos`}/></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
@@ -148,32 +124,12 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
             )}
           </div>
 
-          {ALERTAS(h, sub, terrea).map((m, i) => (
-            <div key={i} className={`ibox ${m.t} mb-2.5`}>
-              <Icon name={m.i} size={14} color={`var(--color-${m.t})`} className="shrink-0"/>
-              <span>{m.txt}</span>
-            </div>
-          ))}
-
-          <div>
-            <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Sistema construtivo</div>
-            <div className="fg">
-              <label>Estrutura principal <Obrigatorio id={`${est.id}.estrutura`}/></label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {MATERIAIS_ESTRUTURA.map(m => (
-                  <button key={m} type="button" onClick={() => toggleMaterial(m)}
-                    className={`text-xs py-1.5 px-3 rounded-md border border-solid cursor-pointer ${materiais.includes(m) ? 'border-red-border bg-red-dim text-red font-semibold' : 'border-border bg-transparent text-ink-faint'}`}>
-                    {m}
-                  </button>
-                ))}
-              </div>
-              {materiais.length > 1 && (
-                <div className="text-[11px] text-ink-faint mt-1.5">Estrutura mista — a metodologia de cada material sera citada no memorial.</div>
-              )}
-              {materiais.length === 0 && (
-                <div className="text-[11px] text-amber mt-1.5">Selecione ao menos um material estrutural.</div>
-              )}
-            </div>
+          <div className="rounded-md border border-solid border-border bg-surface-2 p-4 mt-4">
+            <dl className="space-y-3 text-xs">
+              <div><dt className="text-ink-muted">Quantidade de pavimentos (subsolos + pavimentos)</dt><dd className="text-ink font-semibold mt-1">{resumo.pavimentos ?? 'Preencha os pavimentos'}</dd></div>
+              <div><dt className="text-ink-muted">Altura para fins de medidas de segurança</dt><dd className="text-ink font-semibold mt-1">{resumo.altura == null ? 'Preencha as alturas' : fmtUn(resumo.altura, 'm')}</dd></div>
+              <div><dt className="text-ink-muted">Classificação quanto à altura</dt><dd className="text-ink font-semibold mt-1">{resumo.classificacao || 'Preencha as alturas'}</dd></div>
+            </dl>
           </div>
         </div>
 
@@ -368,15 +324,15 @@ export default function Step2({ step, totalSteps }) {
 
           {informarLegais === 'sim' && state.situacao === 'nova' && (
             <div className="fg">
-              <label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/>
+              <label>Numero do alvara <Obrigatorio id="numeroAlvara"/></label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/>
             </div>
           )}
 
           {state.situacao === 'existente' && informarLegais === 'sim' && (
             <>
-              <div className="fg mb-3 max-w-[calc(50%-8px)]"><label>Numero do alvara</label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/></div>
+              <div className="fg mb-3 max-w-[calc(50%-8px)]"><label>Numero do alvara <Obrigatorio id="numeroAlvara"/></label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/></div>
               <div className="g2 mb-3">
-                <div className="fg"><label>Ano de construcao</label><input type="number" value={state.anoConstrucao} onChange={set('anoConstrucao')} placeholder="Ex: 1998"/></div>
+                <div className="fg"><label>Ano de construcao <Obrigatorio id="anoConstrucao"/></label><input type="number" value={state.anoConstrucao} onChange={set('anoConstrucao')} placeholder="Ex: 1998"/></div>
                 <div className="fg"><label>Situacao perante o CBMMA</label>
                   <select value={state.situacaoCBM} onChange={set('situacaoCBM')}>
                     <option>Sem AVCB anterior</option>
@@ -387,14 +343,14 @@ export default function Step2({ step, totalSteps }) {
                 </div>
               </div>
               <div className="g2 mb-3">
-                <div className="fg"><label>No do AVCB anterior</label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
-                <div className="fg"><label>Validade do AVCB</label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
+                <div className="fg"><label>No do AVCB anterior <Obrigatorio id="numeroAVCB"/></label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
+                <div className="fg"><label>Validade do AVCB <Obrigatorio id="validadeAVCB"/></label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
               </div>
             </>
           )}
 
           <div className="fg">
-            <label>Observações complementares</label>
+            <label>Observações complementares <Obrigatorio id="condicoesAtuais"/></label>
             <textarea value={state.condicoesAtuais} onChange={set('condicoesAtuais')} placeholder="Descreva brevemente..."/>
           </div>
         </FormSection>
@@ -407,7 +363,7 @@ export default function Step2({ step, totalSteps }) {
       <FormSection title={dimensionamento ? 'Area construida' : 'Terreno e area construida'}>
         <div className={dimensionamento ? '' : 'g2 mb-3'}>
           {!dimensionamento && (
-            <div className="fg"><label>Area do terreno (m2)</label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
+            <div className="fg"><label>Area do terreno (m2) <Obrigatorio id="areaTerreno"/></label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
           )}
           <div className="fg">
             <label>
@@ -429,8 +385,8 @@ export default function Step2({ step, totalSteps }) {
         </div>
         {!dimensionamento && (
           <div className="g2">
-            <div className="fg"><label>Quantidade de publico</label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
-            <div className="fg"><label>Area complementar (m2)</label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
+            <div className="fg"><label>Quantidade de publico <Obrigatorio id="quantidadePublico"/></label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
+            <div className="fg"><label>Area complementar (m2) <Obrigatorio id="areaComplementar"/></label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
           </div>
         )}
       </FormSection>
@@ -443,6 +399,25 @@ export default function Step2({ step, totalSteps }) {
         <button className="btn-add" onClick={() => dispatch({ type:'ADD_ESTRUTURA' })}>
           <Icon name="plus" size={11}/> Adicionar estrutura
         </button>
+      </FormSection>
+
+      <FormSection title="Características construtivas">
+        <div className="space-y-5">
+          {[
+            { field:'caracteristicasEstrutura', label:'Estrutura', placeholder:'Descreva os materiais da estrutura', opcoes:['Concreto armado', 'Estrutura metálica', 'Alvenaria estrutural', 'Madeira'] },
+            { field:'cobertura', label:'Elementos de cobertura', placeholder:'Descreva os materiais da cobertura', opcoes:['Laje impermeabilizada', 'Telha metálica', 'Telha de fibrocimento', 'Telha cerâmica'] },
+            { field:'fachada', label:'Elementos de vedação', placeholder:'Descreva os materiais de vedação', opcoes:['Alvenaria de blocos cerâmicos', 'Alvenaria de blocos de concreto', 'Painéis metálicos', 'Vidro'] },
+          ].map(c => <div key={c.field} className="fg">
+            <label htmlFor={`construtiva-${c.field}`}>{c.label} <Obrigatorio id={c.field}/></label>
+            <input id={`construtiva-${c.field}`} required value={state[c.field] || ''} onChange={set(c.field)} placeholder={c.placeholder}/>
+            <div className="flex flex-wrap gap-2 mt-2" aria-label={`Preenchimento rápido: ${c.label}`}>
+              {c.opcoes.map(value => <button key={value} type="button" className="btn-ghost text-xs" onClick={() => {
+                const atual = (state[c.field] || '').trim()
+                dispatch({ type:'SET_FIELD', field:c.field, value: atual ? `${atual}, ${value}` : value })
+              }}>{value}</button>)}
+            </div>
+          </div>)}
+        </div>
       </FormSection>
 
       {openEst && <EstruturaModal est={openEst} index={openIndex} dispatch={dispatch} onClose={() => setOpenId(null)}/>}

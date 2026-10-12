@@ -58,7 +58,7 @@ function textoDentroDoLimite(r) {
 
 export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   const blocos = []
-  const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS } = getCompartimentacao(state.uf)
+  const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO } = getCompartimentacao(state.uf)
 
   ;(state.estruturas || []).forEach(est => {
     // `ativo` já respeita o toggle manual de Configuração E as isenções de
@@ -124,30 +124,30 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
     if (r.linhas.length > 0) {
       blocos.push({
         tipo: 'tabela',
-        colunas: ['Pavimento', 'Divisão', 'Área do pavimento', 'Área de compartimentação (item 5.1.2)', 'Área máxima permitida', 'Situação'],
+        colunas: ['Pavimento', 'Divisão', 'Área do pavimento', 'Área de compartimentação', 'Área máxima permitida'],
         linhas: r.linhas.map(l => [
           l.pavimento.label,
           l.pavimento.divisao || '—',
           l.areaPavimento ? m2(l.areaPavimento) : '—',
-          l.area ? `${m2(l.area)}${l.overrideAtivo ? ' (com interligação declarada)' : ''}` : '—',
+          l.area ? m2(l.area) : '—',
           !l.encontrado ? '—' : fmtArea(l.valor),
-          !l.area ? 'Pendente' : l.excede ? 'Excede — subdividir compartimento' : 'Conforme',
         ]),
       })
     }
 
-    if (r.pavimentosExcedentes.length > 0) {
+    for (const l of r.pavimentosExcedentes) {
       blocos.push({
-        tipo: 'lista', estilo: 'alerta',
-        itens: r.pavimentosExcedentes.map(l => `ATENÇÃO: ${l.pavimento.label} (${m2(l.area)}) excede a área máxima de compartimentação (${fmtArea(l.valor)}) para a divisão ${l.pavimento.divisao} no Tipo ${r.tipo} — subdividir em mais de um compartimento ou substituir por sistema alternativo (chuveiros automáticos e/ou detecção de incêndio, conforme nota de rodapé da Tabela 6 da NT 01 CBMMA aplicável).`),
+        tipo: 'paragrafo',
+        texto: `A área de compartimentação considerada para o pavimento ${l.pavimento.label} é de ${m2(l.area)}, superior à área máxima de compartimentação de ${fmtArea(l.valor)} permitida pela norma para a divisão ${l.pavimento.divisao}, em edificação do Tipo ${r.tipo}. O dimensionamento exige sua subdivisão em compartimentos com área máxima de ${fmtArea(l.valor)}, conforme o Anexo B da NT 09 CBMMA.`,
       })
     }
 
-    blocos.push({ tipo: 'campo', label: 'TRRF mínimo da parede de compartimentação', valor: `EI-${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} (portas/vedadores/registros podem ter até ${TRRF_REDUCAO_MAXIMA_ABERTURAS} min a menos, nunca abaixo de ${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min)` })
+    blocos.push({ tipo: 'campo', recuo:true, label: 'TRRF mínimo da parede de compartimentação', valor: `EI-${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}` })
 
     const elementos = labelsMarcados(ELEMENTOS_COMPART_HORIZONTAL, est.elementosCompartHorizontal)
     if (elementos.length > 0) {
-      blocos.push({ tipo: 'lista', itens: elementos })
+      blocos.push({ tipo: 'paragrafo', texto: 'A compartimentação horizontal é composta pelos seguintes elementos de proteção:' })
+      blocos.push({ tipo: 'lista', recuo:true, itens: elementos })
     } else {
       blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
     }
@@ -214,7 +214,8 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
     // isenta por substituição) — mostra elementos, condições e TRRF.
     const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical)
     if (elementos.length > 0) {
-      blocos.push({ tipo: 'lista', itens: elementos })
+      blocos.push({ tipo: 'paragrafo', texto: 'A compartimentação vertical é composta pelos seguintes elementos de proteção:' })
+      blocos.push({ tipo: 'lista', recuo:true, itens: elementos })
     } else {
       blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
     }

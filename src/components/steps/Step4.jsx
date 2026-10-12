@@ -8,9 +8,11 @@ import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 import InfoTip from '../ui/InfoTip'
-import { fmtUn } from '../../utils/numero'
+import { fmtUn, fmtNum } from '../../utils/numero'
+import { classificarPavimentos } from '../../utils/classificacao'
 
 const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border flex items-center justify-between'
+const AREA_OCUPACAO_TIP = 'Informe a área dedicada a esta atividade neste pavimento. Esse valor ajuda a identificar as ocupações principal, secundária e subsidiária. A área informada aqui não aparece no memorial; nele é apresentada a área construída da estrutura.'
 
 function maskCNAE(raw) {
   const d = raw.replace(/\D/g, '').slice(0, 7)
@@ -143,16 +145,6 @@ function CnaeBusca({ auditPrefix, divisao, value, descValue, onSelect, onDescCha
   )
 }
 
-// ── Título de seção do modal; o texto normativo fica num "(?)" com hover ──
-function SecaoTitulo({ titulo, tip }) {
-  return (
-    <div className="flex items-center gap-2 mb-4 pb-2.5 border-b border-solid border-border-2">
-      <h4 className="m-0 font-heading text-[14px] font-semibold text-ink">{titulo}</h4>
-      {tip && <InfoTip text={tip} side="bottom" align="start"/>}
-    </div>
-  )
-}
-
 // ── Preencher a classificação a partir do CNPJ ─────────────────────────
 // Disponível em qualquer pavimento (não só Térreo) — busca manual: o
 // usuário clica "Preencher do CNPJ" (o CNPJ já foi informado na Etapa 1,
@@ -236,9 +228,10 @@ function BuscaCnaePorCnpj({ pav, dispatch }) {
 }
 
 // ── Linha de ocupação subsidiária ─────────────────────────────────────
-function AcessRow({ pav, acess, index, usadas }) {
+function AcessRow({ pav, acess, index, usadas, classificacao }) {
   const { dispatch } = useProjeto()
   const { ocupacoes, grupos } = useNorma()
+  const areaPreenchida = Number(String(acess.area || '').replace(',', '.')) > 0
 
   const grupoAtual  = acess.divisao?.charAt(0) || Object.keys(ocupacoes)[0] || 'A'
   const divisoesGrp = ocupacoes[grupoAtual]?.divisoes || {}
@@ -260,12 +253,21 @@ function AcessRow({ pav, acess, index, usadas }) {
   return (
     <div className="border border-solid border-border rounded-lg p-4 bg-bg">
       <div className="flex items-center justify-between mb-3.5">
-        <span className="text-[12px] font-medium text-ink-muted">Ocupação subsidiária {index + 1}</span>
-        <button className="btn-del" title="Remover ocupação subsidiária" aria-label="Remover ocupação subsidiária"
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[12px] font-medium text-ink">Ocupação {index + 2}</span>
+          <span className={`text-[11px] rounded-full px-2 py-1 border border-solid ${classificacao?.isMista ? 'text-amber border-amber-border bg-amber-dim' : 'text-ink-muted border-border'}`}>
+            {classificacao?.percentual == null || !areaPreenchida ? 'Classificação a definir' : classificacao.isMista ? 'Secundária' : 'Subsidiária'}
+          </span>
+          <InfoTip text="A classificação é automática: até 10% da área construída da estrutura, este uso é subsidiário; acima de 10%, é secundário e entra na ocupação mista."/>
+        </div>
+        <button className="btn-del" title="Remover ocupação adicional" aria-label="Remover ocupação adicional"
           onClick={() => dispatch({ type:'REMOVE_ACESS', id:pav.id, index })}>
           <Icon name="trash" size={13}/>
         </button>
       </div>
+      {areaPreenchida && classificacao?.percentual != null && <p className={`text-xs mb-3 ${classificacao.isMista ? 'text-amber' : 'text-ink-muted'}`}>
+        Esta atividade ocupa {fmtNum(classificacao.percentual)}% da área construída da estrutura, somando todos os pavimentos.{classificacao.isMista ? ' Como ocupa mais de 10%, é uma ocupação secundária: a edificação passa a ser classificada pelos seus diferentes usos (ocupação mista).' : ' Como ocupa até 10%, é uma ocupação subsidiária: um uso de apoio à atividade principal.'}
+      </p>}
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-3 mb-3.5">
         <div className="fg">
           <label>Grupo <Obrigatorio id={`${pav.id}.acess.${index}.grupo`}/></label>
@@ -289,7 +291,7 @@ function AcessRow({ pav, acess, index, usadas }) {
         <CnaeBusca auditPrefix={`${pav.id}.acess.${index}`} divisao={acess.divisao} value={acess.cnae || ''} descValue={acess.cnaeDesc || ''}
           onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
         <div className="fg">
-          <label>Área (m²) <Obrigatorio id={`${pav.id}.acess.${index}.area`}/></label>
+          <label>Área (m²) <Obrigatorio id={`${pav.id}.acess.${index}.area`}/><InfoTip text={AREA_OCUPACAO_TIP}/></label>
           <input type="number" value={acess.area} onChange={e => setArea(e.target.value)} placeholder="0"/>
         </div>
       </div>
@@ -302,6 +304,7 @@ function PavModal({ pav, onClose }) {
   const { state, dispatch } = useProjeto()
   const { ocupacoes, grupos } = useNorma()
   const estrutura = state.estruturas.find(e => e.id === pav.estruturaId)
+  const classificacao = classificarPavimentos(state.pavimentos.filter(p => p.estruturaId === pav.estruturaId), estrutura?.areaTotal)
 
   const gruposKeys = Object.keys(ocupacoes)
   const divisoes   = ocupacoes[pav.grupo]?.divisoes || {}
@@ -359,11 +362,12 @@ function PavModal({ pav, onClose }) {
           <BuscaCnaePorCnpj pav={pav} dispatch={dispatch}/>
 
           {/* Ocupação principal */}
-          <div className="mb-8">
-            <SecaoTitulo
-              titulo={<>Ocupação principal <Obrigatorio id={`${pav.estruturaId}.pavimentos`}/></>}
-              tip="Atividade ou uso principal exercido na edificação ou área de risco (ocupação predominante)."
-            />
+          <div className="flex flex-col gap-3">
+          <div className="border border-solid border-border rounded-lg p-4 bg-bg">
+            <div className="flex items-center gap-2 mb-3.5">
+              <span className="text-[12px] font-medium text-ink">Ocupação principal <Obrigatorio id={`${pav.estruturaId}.pavimentos`}/></span>
+              <InfoTip text="Atividade ou uso principal exercido na edificação ou área de risco (ocupação predominante)."/>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-3 mb-3.5">
               <div className="fg">
@@ -389,29 +393,19 @@ function PavModal({ pav, onClose }) {
               <CnaeBusca auditPrefix={pav.id} divisao={pav.divisao} value={pav.cnae} descValue={pav.cnaeDesc}
                 onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
               <div className="fg">
-                <label>Área (m²) <Obrigatorio id={`${pav.id}.area`}/></label>
+                <label>Área (m²) <Obrigatorio id={`${pav.id}.area`}/><InfoTip text={AREA_OCUPACAO_TIP}/></label>
                 <input type="number" value={pav.area} onChange={e => setArea(e.target.value)} placeholder="0"/>
               </div>
             </div>
           </div>
 
-          {/* Ocupações subsidiárias */}
-          <div>
-            <SecaoTitulo
-              titulo="Ocupações subsidiárias"
-              tip="Atividade ou uso de apoio ou suporte, vinculada à atividade ou uso principal da ocupação predominante. Quando a ocupação subsidiária ultrapassa 10% da área construída da estrutura, ela passa a ser tratada como ocupação mista ou secundária."
-            />
-
-            {pav.acess.length > 0 && (
-              <div className="flex flex-col gap-3 mb-3">
+          {/* Cada ocupação adicional é um box da mesma lista. */}
                 {pav.acess.map((a, i) => (
-                  <AcessRow key={i} pav={pav} acess={a} index={i} usadas={usadas}/>
+                  <AcessRow key={i} pav={pav} acess={a} index={i} usadas={usadas} classificacao={classificacao.subsidiariasRaw.find(c => c.divisao === a.divisao)}/>
                 ))}
-              </div>
-            )}
             <button className="btn-add"
               onClick={() => dispatch({ type:'ADD_ACESS', id:pav.id })}>
-              <Icon name="plus" size={11}/> Adicionar ocupação subsidiária
+              <Icon name="plus" size={11}/> Adicionar ocupação
             </button>
           </div>
         </div>
@@ -534,7 +528,7 @@ export default function Step4({ step, totalSteps }) {
             const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
             if (!pavsEst.length) return null
             return (
-              <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} apenasOcupacao/>}>
+              <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} mostrar={['area', 'ocupacao']}/> }>
                 <div>
                   <div className={blockTitle}>Pavimentos</div>
                   {pavsEst.map(pav => (

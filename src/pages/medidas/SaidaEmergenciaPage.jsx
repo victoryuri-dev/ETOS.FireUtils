@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import { useState, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import Obrigatorio from '../../components/ui/Obrigatorio'
@@ -396,10 +397,11 @@ export default function SaidaEmergenciaPage() {
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-              <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+              <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
                 <Icon name={SISTEMA_ICON.saida_emergencia} size={20} color="var(--color-red)" className="shrink-0"/>
                 Saídas de Emergência
-              </h2>
+              <LinkNorma sistema="saida_emergencia"/>
+          </h2>
               <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
                 Clique em um pavimento para cadastrar os ambientes e montar a árvore de acessos, saídas e escadas/rampas, conforme {info?.nome || 'NT vigente'} / NBR 9077.
               </p>

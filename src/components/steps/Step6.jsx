@@ -154,10 +154,10 @@ function MotivosIsencao({ pe, state, dispatch, sistConfig }) {
   if (desativados.length === 0) return null
 
   return (
-    <div className="ibox amber flex-col items-stretch gap-3">
+    <div className="flex flex-col gap-3 rounded-md border border-solid border-border bg-surface p-4 mb-4">
       <div className="flex items-start gap-2.5">
         <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0 mt-0.5"/>
-        <span className="text-xs leading-[1.6]">
+        <span className="text-xs text-amber leading-[1.6]">
           Sistema(s) obrigatório(s) desativado(s) manualmente nesta estrutura — descreva o motivo da isenção, sob responsabilidade do RT.
         </span>
       </div>

@@ -3,6 +3,8 @@
 // no app ficam em branco — nunca inventamos valor.
 
 import { fmtNum, fmtUn } from './numero'
+import { classificarRisco } from '../data/extintores_calc'
+import { getExtintores, getOcupacoes } from '../data/normas/index'
 
 // Mesma lista/ordem do formulario oficial. `key` aponta para state.sistemas —
 // quando null, a medida ainda nao e rastreada pelo app.
@@ -41,7 +43,7 @@ export const RISCOS_ESPECIAIS = [
   { key: 'glp',                  label: 'Uso de Gás Liquefeito de Petróleo' },
   { key: 'vasos_pressao',        label: 'Vasos sob pressão (caldeiras)' },
   { key: 'produtos_perigosos',   label: 'Armazenamento de produtos perigosos' },
-  { key: 'outros',               label: 'Outros (especificar)' },
+  { key: 'outros',               label: 'Outros (especificar):' },
 ]
 
 // 'x' = medida adotada (ativo); 'isenta' = a norma exige mas a medida foi
@@ -50,7 +52,8 @@ export const RISCOS_ESPECIAIS = [
 // seção dedicada no memorial); 'none' = a norma nem exige essa medida.
 // Mesma função usada pelo Anexo B e pelo resumo "Medidas de Segurança
 // Aplicadas" do memorial (MemorialDescritivoPage.jsx) — nunca duas fontes
-// de verdade pro que conta como X/-/em branco.
+// de verdade para as medidas adotadas/isentas. O Anexo B só marca as
+// adotadas com X; as demais ficam em branco.
 export function estadoMedidaSistema(sistemas, key) {
   if (!key) return 'none'
   if (sistemas?.[key]?.ativo) return 'x'
@@ -61,10 +64,14 @@ export function estadoMedidaSistema(sistemas, key) {
 export function buildAnexoBData(state, sistemas) {
   const divisoesSet = new Set()
   ;(state.pavimentos || []).forEach(p => {
-    if (p.divisao) divisoesSet.add(p.divisao)
-    p.acess?.forEach(a => { if (a.divisao) divisoesSet.add(a.divisao) })
+    if (p.divisao || p.grupo) divisoesSet.add(p.divisao || p.grupo)
+    p.acess?.forEach(a => { if (a.divisao || a.grupo) divisoesSet.add(a.divisao || a.grupo) })
   })
-  const classificacaoOcupacao = [...divisoesSet].sort().join(', ')
+  const ocupacoes = getOcupacoes(state.uf)
+  const classificacaoOcupacao = [...divisoesSet].sort().map(divisao => {
+    const descricao = ocupacoes[divisao.charAt(0)]?.descricao
+    return descricao ? `${divisao} - ${descricao}` : divisao
+  }).join('; ')
 
   const estruturas     = state.estruturas || []
   const areaTotalSum   = estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
@@ -74,7 +81,6 @@ export function buildAnexoBData(state, sistemas) {
   const areaConstruida = parseFloat(state.areaConstruidaTotal) || areaTotalSum
   const alturaNum      = estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
   const subsolosSum    = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
-  const estruturaTipos = [...new Set(estruturas.flatMap(e => Array.isArray(e.estrutura) ? e.estrutura : [e.estrutura]).filter(Boolean))].join(', ')
 
   const maxQ = Object.values(state.cargaState || {}).flatMap(porEst => Object.values(porEst || {})).reduce((acc, c) => {
     const q = c?.metodo === 'levantamento' ? parseFloat(c?.valorManual) || 0 : c?.cargaIncendio || 0
@@ -107,6 +113,7 @@ export function buildAnexoBData(state, sistemas) {
     areaComplementar: state.areaComplementar ? fmtUn(state.areaComplementar, 'm²', 2, `${state.areaComplementar} m²`) : '',
     altura: alturaNum ? fmtUn(alturaNum, 'm') : '',
     cargaIncendio: maxQ ? fmtUn(maxQ, 'MJ/m²') : '',
+    riscoCargaIncendio: maxQ ? ({ baixo:'Baixo', medio:'Médio', alto:'Alto' })[classificarRisco(maxQ, getExtintores(state.uf).LIMIARES_RISCO)] : '',
     // "Forma de apresentacao" — o app so trata processo tecnico novo hoje.
     processoTecnico: true,
     responsavelTecnico: state.rtNome || '',
@@ -114,13 +121,13 @@ export function buildAnexoBData(state, sistemas) {
     rtConselho: state.rtConselho || '',
     rtEmail: state.rtEmail || '',
     rtFone: state.rtTelefone || '',
-    estrutura: estruturaTipos,
+    estrutura: state.caracteristicasEstrutura || '',
     cobertura: state.cobertura || '',
     vedacao: state.fachada || '',
     // `ativo` continua estritamente a medida realmente instalada (usado por
     // planoEmergencia.js pra listar sistemasAtivos) — uma medida isenta não
     // entra ali, mesmo exigida pela norma. `estado` é só pra exibição no
-    // Anexo B (X / - / em branco).
+    // Anexo B (X para ativo; em branco nos demais casos).
     medidasCol1: MEDIDAS_ANEXO_B_COL1.map(m => ({ label: m.label, estado: estadoMedidaSistema(sistemas, m.key), ativo: !!sistemas?.[m.key]?.ativo })),
     medidasCol2: MEDIDAS_ANEXO_B_COL2.map(m => ({ label: m.label, estado: estadoMedidaSistema(sistemas, m.key), ativo: !!sistemas?.[m.key]?.ativo })),
     // Anexo B e um formulario unico pra edificacao/area de risco toda —
@@ -134,7 +141,7 @@ export function buildAnexoBData(state, sistemas) {
         : ''
       // Riscos especiais nao tem conceito de isencao (sao so marcados ou
       // nao) — estado e sempre 'x' ou 'none', nunca 'isenta'.
-      return { label: outrosDesc ? `${r.label}: ${outrosDesc}` : r.label, ativo, estado: ativo ? 'x' : 'none' }
+      return { label: outrosDesc ? `${r.label}${r.label.endsWith(':') ? '' : ':'} ${outrosDesc}` : r.label, ativo, estado: ativo ? 'x' : 'none' }
     }),
   }
 }

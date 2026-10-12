@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
@@ -248,9 +249,10 @@ export default function AlarmeIncendioPage() {
       <div className="max-w-[980px] mx-auto pt-8 px-10 pb-20">
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+          <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
             <Icon name={SISTEMA_ICON.alarme} size={20} color="var(--color-red)" className="shrink-0"/>
             Alarme de Incêndio
+          <LinkNorma sistema="alarme"/>
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[650px] m-0">
             Central, alimentação, acionadores manuais e avisadores conforme a {nrm.sigla} ({nrm.base_tecnica}). Os mínimos da norma já vêm preenchidos como referência e podem ser substituídos; valores abaixo do mínimo são corrigidos.

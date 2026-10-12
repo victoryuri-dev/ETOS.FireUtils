@@ -114,9 +114,52 @@
    nomeada via .print-area-anexob) — nao afeta o Memorial Descritivo. */
 @page anexob {
   size: A4 portrait;
-  margin: 6mm;
+  margin: 20mm;
 }
-.print-area-anexob { page: anexob; }
+.print-area-anexob {
+  page: anexob;
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 20mm;
+  background: white;
+  color: black;
+  box-shadow: 0 4px 24px rgba(0,0,0,.35);
+}
+.anexob-content {
+  --anexob-fit: 1;
+  font-family: Arial, sans-serif;
+  font-size: calc(10pt * var(--anexob-fit));
+  line-height: 1.1;
+}
+.anexob-heading { text-align: center; font-weight: 700; margin-bottom: calc(3mm * var(--anexob-fit)); }
+.anexob-heading > div + div { margin-top: calc(1.5mm * var(--anexob-fit)); }
+.anexob-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.anexob-table td, .anexob-table th {
+  border: .5pt solid #000;
+  padding: calc(.45mm * var(--anexob-fit)) 1.1mm;
+  height: calc(4.8mm * var(--anexob-fit) + var(--anexob-row-extra, 0px));
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  font-size: inherit;
+  line-height: inherit;
+}
+.anexob-table .anexob-section { background: #a6a6a6; color: #1f3864; text-align: center; font-weight: 700; }
+.anexob-label { font-weight: 700; }
+.anexob-value { font-weight: 400; }
+.anexob-accent { color: #c00000; }
+.anexob-table .anexob-check { text-align: center; padding-inline: 0; font-weight: 700; }
+.anexob-center, .anexob-carga { text-align: center; }
+.anexob-carga .anexob-value { margin-top: calc(3mm * var(--anexob-fit)); }
+.anexob-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; text-align: center; font-weight: 700; padding-top: 24mm; }
+.anexob-signature-line { width: 100%; border-top: .5pt solid #000; margin: 0 auto 1mm; }
+@media print {
+  body:has(.print-area-anexob) { margin: 0; background: #fff !important; }
+  body:has(.print-area-anexob) #root *:not(:has(.print-area-anexob)):not(.print-area-anexob):not(.print-area-anexob *) { display: none !important; }
+  body:has(.print-area-anexob) *:has(.print-area-anexob) { height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important; position: static !important; padding: 0 !important; background: transparent !important; }
+  .print-area.print-area-anexob { width: 170mm; min-height: 0; padding: 0; position: static; margin: 0; box-shadow: none; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
 
 /* Memorial Descritivo: paginacao pelo Paged.js (ver PreviewPaginado). O
    @page A4 com margem de 25mm vive no CSS entregue ao Paged.js, junto com a

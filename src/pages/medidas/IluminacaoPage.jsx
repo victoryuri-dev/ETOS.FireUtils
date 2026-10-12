@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
@@ -243,7 +244,7 @@ function EquipamentoCard({ item, equipamentosDef, campos, dispatch, defaultAbert
       {aberto && (
         <div className="pb-3 px-3 pt-2.5 border-t border-solid border-border">
           <div className="mb-2.5">
-            <Label>Identificação</Label>
+            <Label>Identificação <Obrigatorio id={`${item.id}.identificacao`}/></Label>
             <input className={inputClass} placeholder={nomeEspecificacao({ ...item, identificacao: '' }, eqLabel)}
               value={item.identificacao} onChange={e => setField('identificacao', e.target.value)}/>
           </div>
@@ -561,10 +562,11 @@ export default function IluminacaoPage() {
         <div className="flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-            <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+            <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
               <Icon name={SISTEMA_ICON.iluminacao} size={20} color="var(--color-red)" className="shrink-0"/>
               Sistema de Iluminação de Emergência
-            </h2>
+            <LinkNorma sistema="iluminacao"/>
+          </h2>
             <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
               Escolha o sistema utilizado e os equipamentos de aclaramento, e depois cadastre as quantidades por pavimento, conforme a NT 18 CBMMA / NBR 10898.
             </p>

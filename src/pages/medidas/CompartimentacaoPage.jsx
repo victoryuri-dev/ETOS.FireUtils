@@ -1,3 +1,4 @@
+import LinkNorma from '../../components/ui/LinkNorma'
 import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
@@ -413,7 +414,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
 
       <Card>
         <div className="py-3.5 px-[18px]">
-          <SectionLabel>Observações do responsável técnico</SectionLabel>
+          <SectionLabel>Observações do responsável técnico <Obrigatorio id={`${est.id}.obsCompartimentacao`}/></SectionLabel>
           <textarea
             value={est.obsCompartimentacao || ''}
             onChange={e => setObs(e.target.value)}
@@ -437,9 +438,10 @@ export default function CompartimentacaoPage() {
 
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="flex items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+          <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
             <Icon name={SISTEMA_ICON.compart_horizontal} size={20} color="var(--color-red)" className="shrink-0"/>
             Compartimentação Horizontal e Vertical
+          <LinkNorma sistema="compart_horizontal"/>
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
             Verificação de exigibilidade (NT 01 CBMMA) e de área máxima de compartimentação (Anexo B, NT 09 CBMMA), por estrutura, a partir da ocupação, altura e área de cada pavimento.

@@ -5,6 +5,7 @@ import { buildMemorial } from '../../data/memorial/registry'
 import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS, estadoMedidaSistema } from '../../utils/anexoB'
 import { getCNAEsDivisao, getNts, getCompartimentacao } from '../../data/normas/index'
 import { classificarTipoEdificacao } from '../../data/compart_calc'
+import { classificarPavimentos } from '../../utils/classificacao'
 import { fmtNum, fmtUn } from '../../utils/numero'
 import Icon from '../../components/ui/Icon'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
@@ -384,34 +385,38 @@ function Caracterizacao({ state, porEstrutura }) {
 
       {porEstrutura.map(({ estrutura: est }, estIdx) => {
         const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
+        const classificacao = classificarPavimentos(pavsEst, est.areaTotal)
 
-        // Uma linha por ocupacao: a principal de cada pavimento, mais uma
-        // por uso adicional (p.acess) — uma estrutura pode ter varios
-        // pavimentos e cada pavimento pode ter mais de uma ocupacao.
+        // Apenas ocupações principais e secundárias; subsidiárias não
+        // entram nesta tabela de caracterização.
         const linhas = []
         pavsEst.forEach(p => {
+          const inicio = linhas.length
           if (p.divisao) linhas.push({ pavimento: p.label, divisao: p.divisao, cnae: p.cnae, cnaeDesc: p.cnaeDesc })
           p.acess?.forEach(a => {
-            if (a.divisao) linhas.push({ pavimento: `${p.label} (uso adicional)`, divisao: a.divisao, cnae: a.cnae, cnaeDesc: a.cnaeDesc })
+            if (a.divisao && classificacao.subsidiariasRaw.some(c => c.divisao === a.divisao && c.isMista)) linhas.push({ pavimento: p.label, divisao: a.divisao, cnae: a.cnae, cnaeDesc: a.cnaeDesc })
           })
+          for (let i = inicio; i < linhas.length; i++) linhas[i].pavimentoSpan = i === inicio ? linhas.length - inicio : 0
         })
 
-        // "Altura para fins de classificação das medidas de segurança": a
-        // mesma altura piso a piso, mas já narrada com o Tipo de edificação
-        // (Anexo B, NT 09 CBMMA) que ela determina — a classificação que de
-        // fato importa pro resto do documento, em vez do rótulo técnico cru.
+        // Altura e tipo de edificação são apresentados em linhas separadas.
         const tipoEst = classificarTipoEdificacao(est.alturaPisoPiso, CLASSES_TIPO_EDIFICACAO)
         const alturaClassifTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' :
-          `${fmtNum(est.alturaPisoPiso, 2, est.alturaPisoPiso)} m${tipoEst ? ` – Tipo ${tipoEst.classe} - ${tipoEst.nome}` : ''}`
+          fmtUn(est.alturaPisoPiso, 'm')
+        const subsolos = parseInt(est.nSubsolos) || 0
+        const pavimentos = (parseInt(est.nPavimentos) || 1) + subsolos
 
         return (
           <Fragment key={est.id}>
             <Titulo nivel={2} numero={`${SECAO_CARACTERIZACAO}.${estIdx + 1}`}>{tituloCase(est.nome)}</Titulo>
 
             <div className={TEXTO_PEQUENO}>
+              <div><strong>Quantidade de pavimentos:&nbsp;</strong>{fmtNum(pavimentos, 0)}</div>
               <div><strong>Área construída:&nbsp;</strong>{est.areaTotal ? fmtUn(est.areaTotal, 'm²', 2, `${est.areaTotal} m²`) : '—'}</div>
               <div><strong>Altura para fins de classificação das medidas de segurança:&nbsp;</strong>{alturaClassifTxt || '—'}</div>
+              <div><strong>Classificação quanto à altura:&nbsp;</strong>{tipoEst ? `Tipo ${tipoEst.classe} - ${tipoEst.nome}` : '—'}</div>
               <div><strong>Altura total:&nbsp;</strong>{est.altura ? fmtUn(est.altura, 'm', 2, `${est.altura} m`) : '—'}</div>
+              {subsolos > 0 && <div><strong>Profundidade do subsolo:&nbsp;</strong>{est.profundidadeSubsolo !== '' && est.profundidadeSubsolo != null ? fmtUn(est.profundidadeSubsolo, 'm') : '—'}</div>}
             </div>
 
             <p className="titulo-tabela">Ocupações por pavimento</p>
@@ -437,7 +442,7 @@ function Caracterizacao({ state, porEstrutura }) {
                   const cargaQ = cargaDaOcupacao(state, est.id, l.divisao, l.cnae)
                   return (
                     <tr key={i} className={zebra(i)}>
-                      <td className={TABELA_TD}>{l.pavimento}</td>
+                      {l.pavimentoSpan > 0 && <td rowSpan={l.pavimentoSpan} className={TABELA_TD}>{l.pavimento}</td>}
                       <td className={TABELA_TD}>{l.divisao}</td>
                       <td className={TABELA_TD}>{[l.cnae, l.cnaeDesc].filter(Boolean).join(' — ')}</td>
                       <td className={`${TABELA_TD} text-center`}>{cargaQ ? <>{fmtUn(cargaQ, 'MJ/m²')}<br/>{classificarCarga(cargaQ)}</> : '—'}</td>
@@ -676,7 +681,7 @@ function BlocoMedida({ bloco }) {
     case 'titulo3':
       return <Titulo nivel={3} numero={bloco.numero}>{bloco.texto}</Titulo>
     case 'paragrafo':
-      return <p className={`${TEXTO} indent-8`}>{bloco.texto}</p>
+      return <p className={`${TEXTO} indent-8 mb-3`}>{bloco.texto}</p>
     // Equação em destaque (memorial/hidrantesCalculo.js) — texto em notação
     // de engenharia (Q^1,85, P_hd01 etc.), convertido pra sobrescrito/
     // subscrito de verdade (formatarFormula) — sem fração renderizada
@@ -690,7 +695,7 @@ function BlocoMedida({ bloco }) {
         />
       )
     case 'campo':
-      return <div className={TEXTO_PEQUENO}><strong>{bloco.label}:&nbsp;</strong><span className="whitespace-pre-line">{bloco.valor}</span></div>
+      return <div className={`${TEXTO_PEQUENO} mb-3 ${bloco.recuo ? 'indent-8' : ''}`}><strong>{bloco.label}:&nbsp;</strong><span className="whitespace-pre-line">{bloco.valor}</span></div>
     case 'tabela': {
       // th/td alinhados ao centro quando a tabela é majoritariamente
       // numérica (ex.: dimensionamento de Acesso/Saída) — colunas de
@@ -758,7 +763,7 @@ function BlocoMedida({ bloco }) {
     }
     case 'lista':
       return (
-        <ul className="list-none">
+        <ul className={`list-none ${bloco.recuo ? 'ml-8 mb-3' : ''}`}>
           {bloco.itens.map((item, i) => <ListaLi key={i} item={item} estilo={bloco.estilo}/>)}
         </ul>
       )
@@ -808,7 +813,7 @@ function SecaoMedida({ secao, numeroSecao, state, ultima }) {
       {secao.blocos
         ? numerarBlocos(secao.blocos, numeroSecao).map((b, i) => <BlocoMedida key={i} bloco={b}/>)
         : secao.paragrafos.map((p, i) => (
-            <p key={i} className={`${TEXTO} indent-8 pl-2`}>{p}</p>
+            <p key={i} className={`${TEXTO} indent-8 pl-2 mb-3`}>{p}</p>
           ))}
 
       {/* Assinatura dentro da última seção (não depois dela) — assim o

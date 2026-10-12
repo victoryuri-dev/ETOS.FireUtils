@@ -209,7 +209,7 @@ export default function Step5({ step, totalSteps }) {
     <div className={S.section}>
       <div className={S.header}>
         <div className={S.stepLbl}>Etapa {step} de {totalSteps}</div>
-        <h2 className={S.title}>Carga de Incendio</h2>
+        <h2 className={`${S.title} flex flex-wrap items-center gap-2`}>Carga de Incendio <LinkNorma sistema="carga_incendio"/></h2>
         <p className={S.desc}>A carga de incendio de cada divisao e determinada pelo CNAE configurado na etapa anterior, classificada por estrutura. Por tabela: valor normativo automatico. Por levantamento: campo livre.</p>
       </div>
 
@@ -239,3 +239,4 @@ export default function Step5({ step, totalSteps }) {
     </div>
   )
 }
+import LinkNorma from '../ui/LinkNorma'
