@@ -1,3 +1,4 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { calcGatilho, calcAcessoViatura } from '../../data/av_calc'
@@ -113,7 +114,7 @@ export default function AcessoViaturaPage() {
               <Field label="Maior altura piso a piso">
                 <div className={`${inputClass} bg-surface-2 flex items-center font-bold text-ink`}>{fmt(altura)} m</div>
               </Field>
-              <Field label="Afastamento da edificação até o meio-fio da via pública">
+              <Field label={<>Afastamento da edificação até o meio-fio da via pública <Obrigatorio id="acessoViatura.afastamentoMeioFio"/></>}>
                 <NumberInput value={inputs.afastamentoMeioFio} onChange={v => set({ afastamentoMeioFio: v })} suffix="m" required/>
               </Field>
               <Field label="Condomínio de residências uni/multifamiliares?">
@@ -213,7 +214,7 @@ export default function AcessoViaturaPage() {
               <SectionTitle n={6} label="Retorno de Viatura"/>
               <Card className="mb-3">
                 <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5 items-end">
-                  <Field label="Extensão da via de acesso"><NumberInput value={inputs.extensaoVia} onChange={v => set({ extensaoVia: v })} suffix="m"/></Field>
+                  <Field label={<>Extensão da via de acesso <Obrigatorio id="acessoViatura.extensaoVia"/></>}><NumberInput value={inputs.extensaoVia} onChange={v => set({ extensaoVia: v })} suffix="m"/></Field>
                   <div className="text-xs text-ink-faint">
                     {r.retorno.exigeRetorno
                       ? <span className="text-red font-medium">Extensão &gt; {r.retorno.gatilho} m — retorno obrigatório.</span>
@@ -225,7 +226,7 @@ export default function AcessoViaturaPage() {
               {r.retorno.exigeRetorno && (
                 <Card className="mb-3">
                   <div className="py-3.5 px-[18px]">
-                    <Label>Tipo de retorno adotado</Label>
+                    <Label>Tipo de retorno adotado <Obrigatorio id="acessoViatura.tipoRetorno"/></Label>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       {r.retorno.tipos.map(t => (
                         <button key={t} onClick={() => set({ tipoRetorno: t })}
@@ -238,10 +239,10 @@ export default function AcessoViaturaPage() {
                         Outro
                       </button>
                       {inputs.tipoRetorno === 'outro' && (
-                        <input type="text" autoFocus placeholder="Especifique o tipo de retorno adotado"
+                        <><Obrigatorio id="acessoViatura.tipoRetornoOutroDesc"/><input type="text" autoFocus placeholder="Especifique o tipo de retorno adotado"
                           value={inputs.tipoRetornoOutroDesc}
                           onChange={e => set({ tipoRetornoOutroDesc: e.target.value })}
-                          className={`${inputs.tipoRetornoOutroDesc ? inputClass : inputWarnClass} flex-1 min-w-[220px] w-auto`}/>
+                          className={`${inputs.tipoRetornoOutroDesc ? inputClass : inputWarnClass} flex-1 min-w-[220px] w-auto`}/></>
                       )}
                     </div>
                     {!inputs.tipoRetorno && (

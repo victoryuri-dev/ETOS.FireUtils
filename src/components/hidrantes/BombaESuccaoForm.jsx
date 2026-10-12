@@ -1,3 +1,4 @@
+import Obrigatorio from '../ui/Obrigatorio'
 // BombaESuccaoForm.jsx — Etapa 3 (Dimensionamento da Bomba de Incêndio, ver
 // HidrantesPage.jsx). Duas partes:
 //   - SelecaoBombas: um botão por bomba (principal / reserva / jockey); ao
@@ -37,10 +38,10 @@ function CartaoBomba({ titulo, descricao, checked, onChange, bloqueado }) {
 }
 
 // Escolha do acionamento (motor elétrico / combustão) — botões empilhados.
-function Acionamento({ opcoes, valor, onChange }) {
+function Acionamento({ opcoes, valor, onChange, auditId }) {
   return (
     <div>
-      <Field label="Tipo de acionamento"/>
+      <Field label={<>Tipo de acionamento <Obrigatorio id={auditId}/></>}/>
       <div className="flex flex-col gap-2 mt-1">
         {opcoes.map(op => (
           <Pill key={op.key} active={valor === op.key} onClick={() => onChange(op.key)}>{op.label}</Pill>
@@ -115,12 +116,12 @@ export function SelecaoBombas({ vazaoM3h, pressaoMca, eta, onChangeEta, potencia
             checked={h.bombaExiste} onChange={v => set({ bombaExiste: v })}/>
           {h.bombaExiste && (
             <EspecBomba>
-              <Acionamento opcoes={norma.ACIONAMENTOS_BOMBA} valor={h.bombaAcionamento} onChange={v => set({ bombaAcionamento: v })}/>
+              <Acionamento opcoes={norma.ACIONAMENTOS_BOMBA} auditId="hidrantes.bombaAcionamento" valor={h.bombaAcionamento} onChange={v => set({ bombaAcionamento: v })}/>
               <Dado rotulo="Vazão" valor={f2(vazaoM3h)} unidade="m³/h" conversao={lpm(vazaoM3h)}/>
               <Dado rotulo="Pressão" valor={f2(pressaoMca)} unidade="mca" conversao={kpa(pressaoMca)}/>
-              <CampoNumero rotulo="Eficiência global (η)" valor={eta} onChange={onChangeEta} unidade="%" step="1" min={1} max={100}/>
+              <CampoNumero rotulo={<>Eficiência global (η) <Obrigatorio id="hidrantes.bombaEficiencia"/></>} valor={eta} onChange={onChangeEta} unidade="%" step="1" min={1} max={100}/>
               <Dado rotulo="Potência calculada" valor={potCv != null ? f2(potCv) : '—'} unidade={potCv != null ? 'cv' : 'informe a eficiência'} tom="text-amber"/>
-              <CampoNumero rotulo="Potência adotada" valor={potenciaAdotada} onChange={editarPotencia} onBlur={validarPotencia} unidade="cv" step="0.5"/>
+              <CampoNumero rotulo={<>Potência adotada <Obrigatorio id="hidrantes.bombaPotenciaAdotada"/></>} valor={potenciaAdotada} onChange={editarPotencia} onBlur={validarPotencia} unidade="cv" step="0.5"/>
               {(abaixo || corrigida) && (
                 <div className="text-[11px] leading-[1.5] text-red">
                   A potência adotada não pode ser inferior à potência calculada ({f2(potCv)} cv).{corrigida ? ' O valor foi ajustado automaticamente.' : ''}
@@ -135,7 +136,7 @@ export function SelecaoBombas({ vazaoM3h, pressaoMca, eta, onChangeEta, potencia
             checked={reservaAtiva} onChange={v => set({ bombaReserva: v })}/>
           {reservaAtiva && (
             <EspecBomba>
-              <Acionamento opcoes={norma.ACIONAMENTOS_BOMBA} valor={h.bombaReservaAcionamento} onChange={v => set({ bombaReservaAcionamento: v })}/>
+              <Acionamento opcoes={norma.ACIONAMENTOS_BOMBA} auditId="hidrantes.bombaReservaAcionamento" valor={h.bombaReservaAcionamento} onChange={v => set({ bombaReservaAcionamento: v })}/>
               <Dado rotulo="Vazão" valor={f2(vazaoM3h)} unidade="m³/h" conversao={lpm(vazaoM3h)}/>
               <Dado rotulo="Pressão" valor={f2(pressaoMca)} unidade="mca" conversao={kpa(pressaoMca)}/>
               <Dado rotulo="Eficiência global (η)" valor={eta !== '' ? eta : '—'} unidade={eta !== '' ? '%' : ''}/>
@@ -149,9 +150,9 @@ export function SelecaoBombas({ vazaoM3h, pressaoMca, eta, onChangeEta, potencia
             checked={jockeyAtiva} onChange={v => set({ bombaJockey: v })}/>
           {jockeyAtiva && (
             <EspecBomba>
-              <CampoNumero rotulo="Vazão" valor={h.bombaJockeyVazao} onChange={v => set({ bombaJockeyVazao: v })} unidade="L/min" step="1"/>
-              <CampoNumero rotulo="Pressão" valor={h.bombaJockeyPressao ?? ''} onChange={v => set({ bombaJockeyPressao: v })} unidade="mca" step="0.1"/>
-              <CampoNumero rotulo="Potência" valor={h.bombaJockeyPotencia} onChange={v => set({ bombaJockeyPotencia: v })} unidade="cv"/>
+              <CampoNumero rotulo={<>Vazão <Obrigatorio id="hidrantes.bombaJockeyVazao"/></>} valor={h.bombaJockeyVazao} onChange={v => set({ bombaJockeyVazao: v })} unidade="L/min" step="1"/>
+              <CampoNumero rotulo={<>Pressão <Obrigatorio id="hidrantes.bombaJockeyPressao"/></>} valor={h.bombaJockeyPressao ?? ''} onChange={v => set({ bombaJockeyPressao: v })} unidade="mca" step="0.1"/>
+              <CampoNumero rotulo={<>Potência <Obrigatorio id="hidrantes.bombaJockeyPotencia"/></>} valor={h.bombaJockeyPotencia} onChange={v => set({ bombaJockeyPotencia: v })} unidade="cv"/>
             </EspecBomba>
           )}
         </div>

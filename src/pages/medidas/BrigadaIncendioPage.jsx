@@ -1,3 +1,4 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
@@ -46,8 +47,7 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
       <td className={`${TD} text-ink-faint`}>{divisao || '—'}</td>
       <td className={TD}><RiscoBadge risco={risco}/></td>
       <td className={TD}>
-        <input
-          type="number" min="0" step="1"
+        <Obrigatorio id={`${pavimento.id}.populacaoFixa`}/><input type="number" min="0" step="1"
           value={isento ? '' : (pavimento.populacaoFixa ?? '')}
           onChange={e => setPopulacao(e.target.value)}
           placeholder={isento ? '—' : '0'}

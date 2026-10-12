@@ -1,3 +1,4 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
@@ -319,7 +320,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
             <div className={precisaElementosH ? 'grid grid-cols-2 gap-6' : ''}>
               {precisaElementosH && (
                 <Checklist
-                  titulo="Elementos de proteção adotados"
+                  titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartHorizontal`}/></>}
                   tip="Itens 5.1.3 e 5.1.5, NT 09 CBMMA — a solução adotada deve constar no memorial descritivo."
                   opcoes={ELEMENTOS_COMPART_HORIZONTAL}
                   valores={elementosH}
@@ -381,7 +382,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
             <div className={precisaElementosV ? 'grid grid-cols-2 gap-6' : ''}>
               {precisaElementosV && (
                 <Checklist
-                  titulo="Elementos de proteção adotados"
+                  titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartVertical`}/></>}
                   tip="Itens 6.1.2 e 6.1.5, NT 09 CBMMA — a solução adotada deve constar no memorial descritivo."
                   opcoes={ELEMENTOS_COMPART_VERTICAL}
                   valores={elementosV}

@@ -1,3 +1,6 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
+import { preenchido, inteiroPositivo } from '../../data/auditoriaProjeto'
+import { useLocation } from 'react-router-dom'
 import { useRef, useState } from 'react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import { useProjeto } from '../../context/ProjetoContext'
@@ -295,10 +298,11 @@ function ExtintorForm({ ext, tiposPortatil, tiposSobreRodas, onSave, onCancel })
   })
   const setTipo = tipo => setForm(f => ({ ...f, tipo, capacidade: catalogo.find(t => t.key === tipo)?.capacidadeMinima || '' }))
 
-  const salvar = () => onSave({
+  const podeSalvar = preenchido(form.tipo) && preenchido(form.capacidade) && inteiroPositivo(form.quantidade)
+  const salvar = () => { if (!podeSalvar) return; onSave({
     sobreRodas: form.sobreRodas, tipo: form.tipo, capacidade: form.capacidade.trim(),
     carga: form.carga, quantidade: Math.max(1, form.quantidade),
-  })
+  }) }
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -311,7 +315,7 @@ function ExtintorForm({ ext, tiposPortatil, tiposSobreRodas, onSave, onCancel })
           </select>
         </div>
         <div>
-          <Label>Tipo</Label>
+          <Label>Tipo <Obrigatorio/></Label>
           <select className={inputClass} value={form.tipo} onChange={e => setTipo(e.target.value)}>
             {catalogo.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
           </select>
@@ -320,7 +324,7 @@ function ExtintorForm({ ext, tiposPortatil, tiposSobreRodas, onSave, onCancel })
 
       <div className="grid grid-cols-2 gap-3.5">
         <div>
-          <Label>Capacidade</Label>
+          <Label>Capacidade <Obrigatorio/></Label>
           <input className={`${inputClass} font-mono`} value={form.capacidade}
             onChange={e => setForm(f => ({ ...f, capacidade: e.target.value }))} onKeyDown={e => e.key === 'Enter' && salvar()}/>
         </div>
@@ -332,14 +336,14 @@ function ExtintorForm({ ext, tiposPortatil, tiposSobreRodas, onSave, onCancel })
       </div>
 
       <div>
-        <Label>Quantidade</Label>
+        <Label>Quantidade <Obrigatorio/></Label>
         <QuantityStepper value={form.quantidade} min={1} onChange={v => setForm(f => ({ ...f, quantidade: v }))}/>
       </div>
 
       <div className="flex items-center justify-end pt-3 mt-1 border-t border-solid border-border-2">
         <div className="flex gap-1.5">
           <button className="btn-ghost" onClick={onCancel}><Icon name="x" size={12}/> Cancelar</button>
-          <button className="btn-primary" onClick={salvar}><Icon name="check" size={12}/> Salvar</button>
+          <button className="btn-primary" onClick={salvar} disabled={!podeSalvar}><Icon name="check" size={12}/> Salvar</button>
         </div>
       </div>
     </div>
@@ -440,7 +444,9 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
   // nunca troca de pavimento — só de ambiente dentro dele.
   const [selecionados, setSelecionados] = useState(() => new Set())
   const [alvoSelecao, setAlvoSelecao] = useState('')
-  const [editandoId, setEditandoId] = useState(null)
+  const { search } = useLocation()
+  const alvoAudit = new URLSearchParams(search).get('audit') || ''
+  const [editandoId, setEditandoId] = useState(() => extintoresDoPav.find(e => alvoAudit.startsWith(`${e.id}.`))?.id || null)
   // Recolhido, o conteúdo só fica escondido (`hidden`), não desmontado — a
   // seleção e o retraído/expandido de cada ambiente sobrevivem ao fechar.
   const [aberto, setAberto] = useState(true)
@@ -527,7 +533,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
     <Card className="mb-4">
       <CardHeader aberto={aberto} onClick={() => setAberto(a => !a)}>
         <Icon name={aberto ? 'chevD' : 'chevR'} size={15} className="text-ink-faint shrink-0"/>
-        <span className="text-[13px] font-semibold text-ink">{pavimento.label}</span>
+        <span className="text-[13px] font-semibold text-ink">{pavimento.label} <Obrigatorio id={`${pavimento.id}.extintores`}/></span>
         <RiscoBadge risco={risco}/>
         <span className="text-[11px] text-ink-faint ml-auto flex items-center gap-3">
           {!aberto && <span>{resultado.totalUnidades} unidade{resultado.totalUnidades !== 1 ? 's' : ''} extintora{resultado.totalUnidades !== 1 ? 's' : ''}</span>}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import Icon from '../../components/ui/Icon'
 import Checkbox from '../../components/ui/Checkbox'
@@ -314,7 +315,9 @@ export default function AcessosDescargasView({ pav, seNorma, ocupacoes, dispatch
   const { TAXA_POPULACIONAL, LARGURAS_MINIMAS } = seNorma
   const ambientes = pav.ambientes || []
   const acessos = pav.acessos || []
-  const [editAmb, setEditAmb] = useState(null)
+  const { search } = useLocation()
+  const alvoAudit = new URLSearchParams(search).get('audit') || ''
+  const [editAmb, setEditAmb] = useState(() => ambientes.find(a => alvoAudit.startsWith(`${a.id}.`)) || null)
   const [colapsados, setColapsados] = useState({})
   const toggleColapsado = id => setColapsados(prev => ({ ...prev, [id]: !prev[id] }))
 

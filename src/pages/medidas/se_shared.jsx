@@ -1,3 +1,5 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
+import { numeroPositivo, inteiroPositivo } from '../../data/auditoriaProjeto'
 // ─────────────────────────────────────────────────────────────────────────────
 // se_shared.jsx — UI compartilhada entre SaidaEmergenciaPage.jsx e
 // AcessosDescargasView.jsx (formulário de ambiente, badges, toggle,
@@ -88,9 +90,9 @@ export function AmbienteForm({ initial, onSave, onCancel, seNorma, ocupacoes, la
 
   const canSave = () => {
     if (!form.divisao) return false
-    if (isArea && !form.area) return false
-    if (isFixo && !form.assentos) return false
-    if (isManual && !form.popManual) return false
+    if (isArea && !numeroPositivo(form.area)) return false
+    if (isFixo && !inteiroPositivo(form.assentos)) return false
+    if (isManual && !inteiroPositivo(form.popManual)) return false
     return true
   }
 
@@ -106,14 +108,14 @@ export function AmbienteForm({ initial, onSave, onCancel, seNorma, ocupacoes, la
   return (
     <div className="flex flex-col gap-3.5">
       <div>
-        <Label>Divisão</Label>
+        <Label>Divisão <Obrigatorio/></Label>
         <DivisaoSelect value={form.divisao} onChange={setDivisao} ocupacoes={ocupacoes}/>
       </div>
 
       {form.divisao && (
         <div className="grid grid-cols-2 gap-3.5">
           <div>
-            <Label>Taxa normativa</Label>
+            <Label>Taxa normativa <Obrigatorio/></Label>
             {opcoes.length > 1 ? (
               <select className={inputClass} value={form.popTipo} onChange={e => setTipo(e.target.value)}>
                 {opcoes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -125,7 +127,7 @@ export function AmbienteForm({ initial, onSave, onCancel, seNorma, ocupacoes, la
             )}
           </div>
           <div>
-            <Label>{inputLabel}</Label>
+            <Label>{inputLabel} <Obrigatorio/></Label>
             {isArea   && <input className={inputClass} type="number" min="0" placeholder="ex.: 64,5" value={form.area}     onChange={e => setForm(f=>({...f,area:e.target.value}))}     onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
             {isFixo   && <input className={inputClass} type="number" min="0" placeholder="ex.: 120"  value={form.assentos} onChange={e => setForm(f=>({...f,assentos:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}
             {isManual && <input className={inputClass} type="number" min="0" placeholder="ex.: 8"    value={form.popManual} onChange={e => setForm(f=>({...f,popManual:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&handleSave()}/>}

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import { supabase } from '../../lib/supabase'
 import Icon from '../../components/ui/Icon'
@@ -468,7 +469,8 @@ export default function HidrantesPage() {
   const norma = getHidrantes(state.uf)
   const toast = useToast()
   const [buscando,   setBuscando]   = useState(false)
-  const [etapa, setEtapa] = useState(1)
+  const { search } = useLocation()
+  const [etapa, setEtapa] = useState(() => Number(new URLSearchParams(search).get('etapa')) === 3 ? 3 : 1)
   const fileInputRef = useRef(null)
 
   const aplicarHidrantes = payload => {

@@ -1,4 +1,6 @@
+import Obrigatorio from '../ui/Obrigatorio'
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import { getEstadosDisponiveis } from '../../data/normas/index'
 import { alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
@@ -102,7 +104,7 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
               title="Clique para renomear a estrutura"
               className="bg-transparent border-0 border-b border-dashed border-border-2 hover:border-ink-hint focus:border-red-border outline-none text-base font-bold text-ink px-0 py-0.5 w-auto min-w-0 flex-1 transition-colors"
             />
-            <Icon name="edit" size={12} className="text-ink-hint shrink-0"/>
+            <Obrigatorio id={`${est.id}.nome`}/><Icon name="edit" size={12} className="text-ink-hint shrink-0"/>
           </div>
           <button className="btn-ghost p-1.5 shrink-0" onClick={onClose}>
             <Icon name="x" size={14}/>
@@ -114,31 +116,31 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
           <div className="mb-3.5">
             <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Dimensoes</div>
             <div className="g3 mb-3">
-              <div className="fg"><label>Area construida total (m2) <span className="req">*</span></label><input type="number" value={est.areaTotal} onChange={set('areaTotal')}/></div>
+              <div className="fg"><label>Area construida total (m2) <Obrigatorio id={`${est.id}.areaTotal`}/></label><input type="number" value={est.areaTotal} onChange={set('areaTotal')}/></div>
               <div className="fg">
-                <label>Altura total (m) <span className="req">*</span><InfoTip text="medida entre o nível do solo ao ponto mais alto da edificação"/></label>
+                <label>Altura total (m) <Obrigatorio id={`${est.id}.altura`}/><InfoTip text="medida entre o nível do solo ao ponto mais alto da edificação"/></label>
                 <input type="number" step="0.1" value={est.altura} onChange={set('altura')}/>
               </div>
               <div className="fg">
-                <label>Altura piso a piso (m) <span className="req">*</span>{terrea && <span className="fhint">— Edificação Térrea</span>}</label>
+                <label>Altura piso a piso (m){terrea && <span className="fhint">— Edificação Térrea</span>}</label>
                 <input type="number" step="0.1" value={est.alturaPisoPiso ?? ''} readOnly/>
               </div>
             </div>
             <div className="g2">
-              <div className="fg"><label>No de pavimentos acima do solo <span className="req">*</span></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
+              <div className="fg"><label>No de pavimentos acima do solo <Obrigatorio id={`${est.id}.nPavimentos`}/></label><input type="number" min="1" max="50" value={est.nPavimentos} onChange={handleNPav}/></div>
               <div className="fg"><label>No de subsolos</label><input type="number" min="0" value={est.nSubsolos} onChange={handleNSub}/></div>
             </div>
             {(sub > 0 || nPav > 1) && (
               <div className="g2 mt-3">
                 {sub > 0 && (
                   <div className="fg">
-                    <label>Profundidade do subsolo (m) <span className="req">*</span><InfoTip text="medida entre o piso de descarga da edificação ao piso do subsolo"/></label>
+                    <label>Profundidade do subsolo (m) <Obrigatorio id={`${est.id}.profundidadeSubsolo`}/><InfoTip text="medida entre o piso de descarga da edificação ao piso do subsolo"/></label>
                     <input type="number" step="0.1" min="0" value={est.profundidadeSubsolo ?? ''} onChange={handleProfundidade}/>
                   </div>
                 )}
                 {nPav > 1 && (
                   <div className="fg">
-                    <label>Altura da edificação (m) <span className="req">*</span><InfoTip text="medida entre o nível do piso de descarga ao piso do último pavimento"/></label>
+                    <label>Altura da edificação (m) <Obrigatorio id={`${est.id}.alturaEdificacao`}/><InfoTip text="medida entre o nível do piso de descarga ao piso do último pavimento"/></label>
                     <input type="number" step="0.1" min="0" value={est.alturaEdificacao ?? ''} onChange={handleAlturaEdificacao}/>
                   </div>
                 )}
@@ -156,7 +158,7 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
           <div>
             <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.06em] mb-2">Sistema construtivo</div>
             <div className="fg">
-              <label>Estrutura principal <span className="req">*</span></label>
+              <label>Estrutura principal <Obrigatorio id={`${est.id}.estrutura`}/></label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {MATERIAIS_ESTRUTURA.map(m => (
                   <button key={m} type="button" onClick={() => toggleMaterial(m)}
@@ -242,7 +244,9 @@ function EstruturaCard({ est, index, canRemove, dispatch, onOpen }) {
 export default function Step2({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
   const dimensionamento = state.tipoProjeto === 'dimensionamento'
-  const [openId, setOpenId] = useState(null)
+  const { search } = useLocation()
+  const alvoAudit = new URLSearchParams(search).get('audit') || ''
+  const [openId, setOpenId] = useState(() => state.estruturas.find(e => alvoAudit.startsWith(`${e.id}.`))?.id || null)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
   const estadosDisponiveis = getEstadosDisponiveis()
 
@@ -296,11 +300,11 @@ export default function Step2({ step, totalSteps }) {
         <FormSection title="Identificacao">
           <div className="g2 mb-3">
             <div className="fg">
-              <label>Nome do projeto <span className="req">*</span></label>
+              <label>Nome do projeto <Obrigatorio id={'nome'}/></label>
               <input value={state.nome} onChange={set('nome')} placeholder="Ex: Edificio Comercial Centro"/>
             </div>
             <div className="fg">
-              <label>Estado <span className="req">*</span></label>
+              <label>Estado <Obrigatorio id={'uf'}/></label>
               <select value={state.uf} onChange={set('uf')}>
                 {estadosDisponiveis.map(e => {
                   const habilitado = e.ativo || e.ativoDimensionamento
@@ -407,7 +411,7 @@ export default function Step2({ step, totalSteps }) {
           )}
           <div className="fg">
             <label>
-              Area construida total (m2)
+              Area construida total (m2) <Obrigatorio id="areaConstruidaTotal"/>
               <span className="ml-auto flex items-center gap-1.5">
                 <span className="text-[10px] text-ink-faint normal-case font-normal whitespace-nowrap">Somar das estruturas</span>
                 <SwitchToggle checked={areaAuto} onChange={setAreaAuto}/>
@@ -432,7 +436,7 @@ export default function Step2({ step, totalSteps }) {
       </FormSection>
 
       {/* Estruturas */}
-      <FormSection title="Estruturas">
+      <FormSection title={<>Estruturas <Obrigatorio id="estruturas"/></>}>
         {state.estruturas.map((est, i) => (
           <EstruturaCard key={est.id} est={est} index={i} canRemove={state.estruturas.length > 1} dispatch={dispatch} onOpen={() => setOpenId(est.id)}/>
         ))}

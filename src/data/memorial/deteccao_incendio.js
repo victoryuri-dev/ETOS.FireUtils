@@ -118,7 +118,7 @@ export function textoMemorialDeteccaoIncendio(state, sistemas, porEstrutura) {
     { tipo: 'titulo2', texto: 'Concepção do sistema' },
     {
       tipo: 'paragrafo',
-      texto: `O sistema de detecção é composto por central de detecção e alarme, detectores automáticos de incêndio distribuídos pelos pavimentos e acionadores manuais, interligados ao sistema de alarme de incêndio (${cita(norma, 'projeto')}).${base ? ` O posicionamento e a cobertura dos detectores seguem a ${base}.` : ''}`,
+      texto: `O sistema de detecção é composto por central de alarme, detectores automáticos de incêndio distribuídos pelos pavimentos e acionadores manuais, interligados ao sistema de alarme de incêndio (${cita(norma, 'projeto')}).${base ? ` O posicionamento e a cobertura dos detectores seguem a ${base}.` : ''}`,
     },
     {
       tipo: 'paragrafo',

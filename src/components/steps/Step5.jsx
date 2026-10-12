@@ -1,3 +1,4 @@
+import Obrigatorio from '../ui/Obrigatorio'
 import { useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
@@ -96,7 +97,7 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
                 {/* Identificacao: divisao (principal), CNAE e pavimentos (apoio) */}
                 <div className="min-w-0">
                   <div className="text-[14px] font-semibold text-ink leading-[1.35]">
-                    <span className="font-mono text-[12px] text-ink-faint mr-2">{code}</span>{getDivLabel(code)}
+                    <span className="font-mono text-[12px] text-ink-faint mr-2">{code}</span>{getDivLabel(code)} <Obrigatorio id={`${est.id}.carga.${code}`}/>
                   </div>
                   {cnae ? (
                     <div className="text-[12px] text-ink-muted leading-[1.5] mt-1.5">
@@ -129,8 +130,8 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
                     {cls && <span className={`carga-class ${cls}`}>{getLbl(porLevantamento ? (parseFloat(st.valorManual) || 0) : (q || 0))}</span>}
                     <div className="flex items-baseline gap-1.5">
                       {porLevantamento ? (
-                        <input type="number" value={st.valorManual} onChange={e => setValor(code, e.target.value)}
-                          className="w-[96px] text-right" placeholder="0" aria-label={`Carga de incêndio de ${code}`}/>
+                        <><Obrigatorio id={`${est.id}.carga.${code}`}/><input type="number" value={st.valorManual} onChange={e => setValor(code, e.target.value)}
+                          className="w-[96px] text-right" placeholder="0" aria-label={`Carga de incêndio de ${code}`}/></>
                       ) : (
                         <span className={`text-[22px] font-bold leading-none tabular-nums ${!cls ? 'text-ink-faint' : cls === 'low' ? 'text-green' : cls === 'med' ? 'text-amber' : 'text-red'} ${semCNAE ? 'opacity-50' : ''}`}>{q != null ? fmtNum(q, 2, q) : '—'}</span>
                       )}

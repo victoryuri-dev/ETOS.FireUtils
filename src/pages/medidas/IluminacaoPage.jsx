@@ -1,3 +1,5 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
+import { useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useProjeto } from '../../context/ProjetoContext'
@@ -166,14 +168,14 @@ function MesmoSistemaPergunta({ mesmoSistema, dispatch }) {
 }
 
 // ── Sistema utilizado (no projeto todo, ou numa estrutura) ───────────────
-function SistemaSelecionado({ titulo, sistema, tiposSistema, onChange }) {
+function SistemaSelecionado({ auditPrefix, titulo, sistema, tiposSistema, onChange }) {
   const setTipo         = tipo   => onChange({ tipo })
   const setLocalizacao  = valor  => onChange({ localizacaoFonte: valor })
   const precisaLocalizacao = sistema.tipo === 'central' || sistema.tipo === 'motogerador'
 
   return (
     <Card className="mb-8">
-      <CardHeader><span className="text-[13px] font-semibold text-ink">{titulo}</span></CardHeader>
+      <CardHeader><span className="text-[13px] font-semibold text-ink">{titulo} <Obrigatorio id={`${auditPrefix}.sistema.tipo`}/></span></CardHeader>
       <div className="py-3.5 px-[18px]">
         <div className="grid grid-cols-3 gap-3 mb-3">
           {tiposSistema.map(t => {
@@ -190,7 +192,7 @@ function SistemaSelecionado({ titulo, sistema, tiposSistema, onChange }) {
         </div>
         {precisaLocalizacao && (
           <div className="max-w-[420px]">
-            <Label>Localização da fonte ({sistema.tipo === 'motogerador' ? 'grupo motogerador' : 'central de baterias'})</Label>
+            <Label>Localização da fonte ({sistema.tipo === 'motogerador' ? 'grupo motogerador' : 'central de baterias'}) <Obrigatorio id={`${auditPrefix}.sistema.localizacaoFonte`}/></Label>
             <input className={inputClass} placeholder="ex.: Casa de máquinas, Térreo, Depósito..."
               value={sistema.localizacaoFonte} onChange={e => setLocalizacao(e.target.value)}/>
           </div>
@@ -212,7 +214,9 @@ function SistemaSelecionado({ titulo, sistema, tiposSistema, onChange }) {
 // própria lista independente (duas estruturas, ou dois andares, usando o
 // "mesmo modelo" cadastram cada um a sua cópia — sem catálogo compartilhado).
 function EquipamentoCard({ item, equipamentosDef, campos, dispatch, defaultAberto }) {
-  const [aberto, setAberto] = useState(!!defaultAberto)
+  const { search } = useLocation()
+  const alvoAudit = new URLSearchParams(search).get('audit') || ''
+  const [aberto, setAberto] = useState(!!defaultAberto || alvoAudit.startsWith(`${item.id}.`))
   const eqLabel = equipamentosDef.find(eq => eq.key === item.tipoBase)?.label || item.tipoBase
   const nome = nomeEspecificacao(item, eqLabel)
   const resumo = [item.tipoLampada, item.fluxoLuminosoLm && fmtUn(item.fluxoLuminosoLm, 'lm', 2, `${item.fluxoLuminosoLm} lm`)].filter(Boolean).join(' · ')
@@ -231,7 +235,7 @@ function EquipamentoCard({ item, equipamentosDef, campos, dispatch, defaultAbert
             {!aberto && resumo && <div className="text-[10px] text-ink-faint truncate">{resumo}</div>}
           </div>
         </button>
-        <QuantityStepper value={item.quantidade || 0} onChange={v => setField('quantidade', v)}/>
+        <Obrigatorio id={`${item.id}.quantidade`}/><QuantityStepper value={item.quantidade || 0} onChange={v => setField('quantidade', v)}/>
         <button type="button" onClick={() => dispatch({ type: 'REMOVE_ILUMINACAO', id: item.id })} className="btn-del shrink-0">
           <Icon name="trash" size={12}/>
         </button>
@@ -246,7 +250,7 @@ function EquipamentoCard({ item, equipamentosDef, campos, dispatch, defaultAbert
           <div className="grid grid-cols-2 gap-2.5">
             {campos.map(c => (
               <div key={c.key}>
-                <Label>{c.label}{c.unidade ? ` (${c.unidade})` : ''}</Label>
+                <Label>{c.label}{c.unidade ? ` (${c.unidade})` : ''} <Obrigatorio id={`${item.id}.${c.key}`}/></Label>
                 <input className={inputClass} value={item[c.key]} onChange={e => setField(c.key, e.target.value)}/>
               </div>
             ))}
@@ -383,7 +387,7 @@ function PavimentoCard({ pavimento, estruturaId, alturaPisoPiso, itensAclarament
   return (
     <Card className="mb-4">
       <CardHeader>
-        <span className="text-[13px] font-semibold text-ink">{pavimento.label}</span>
+        <span className="text-[13px] font-semibold text-ink">{pavimento.label} <Obrigatorio id={`${pavimento.id}.iluminacao`}/></span>
         {pavimento.area && <span className="text-[11px] text-ink-faint">{fmtUn(pavimento.area, 'm²', 2, `${pavimento.area} m²`)}</span>}
         {alturaPisoPiso > 0 && <span className="text-[11px] text-ink-faint">· pé-direito {alturaPisoPiso} m</span>}
       </CardHeader>
@@ -582,7 +586,7 @@ export default function IluminacaoPage() {
         <MesmoSistemaPergunta mesmoSistema={mesmoSistema} dispatch={dispatch}/>
 
         {mesmoSistema && (
-          <SistemaSelecionado titulo="Sistema utilizado no projeto" sistema={state.iluminacaoSistema} tiposSistema={TIPOS_SISTEMA}
+          <SistemaSelecionado auditPrefix="iluminacao" titulo="Sistema utilizado no projeto" sistema={state.iluminacaoSistema} tiposSistema={TIPOS_SISTEMA}
             onChange={changes => dispatch({ type: 'SET_ILUMINACAO_SISTEMA', changes })}/>
         )}
 
@@ -630,7 +634,7 @@ export default function IluminacaoPage() {
                 ) : (
                   <>
                     {!mesmoSistema && (
-                      <SistemaSelecionado titulo="Sistema utilizado nesta edificação" sistema={sistemaDaEstrutura} tiposSistema={TIPOS_SISTEMA}
+                      <SistemaSelecionado auditPrefix={est.id} titulo="Sistema utilizado nesta edificação" sistema={sistemaDaEstrutura} tiposSistema={TIPOS_SISTEMA}
                         onChange={changes => dispatch({ type: 'SET_ILUMINACAO_SISTEMA_ESTRUTURA', estruturaId: est.id, changes })}/>
                     )}
 

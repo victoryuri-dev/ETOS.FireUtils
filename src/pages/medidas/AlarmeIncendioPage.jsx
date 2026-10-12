@@ -1,3 +1,4 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
@@ -79,10 +80,10 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
       <>
       <div className="flex flex-col gap-3">
         {/* Central */}
-        <Card titulo="Central de detecção e alarme" icone={SISTEMA_ICON.alarme}>
+        <Card titulo="Central de Alarme" icone={SISTEMA_ICON.alarme}>
           <div className="grid grid-cols-2 gap-3 mb-3.5 items-start">
             <div className="py-3 px-3.5 border border-solid border-border rounded-md bg-surface-2">
-              <div className="text-[13px] text-ink font-medium mb-2.5">Tipo de Central de Alarme</div>
+              <div className="text-[13px] text-ink font-medium mb-2.5">Tipo de Central de Alarme <Obrigatorio id={`${estrutura.id}.alarme.central`}/></div>
               <div className="flex gap-2">
                 {central.tipos.map(t => (
                   <BotaoOpcao key={t.key} ativo={cfg.central === t.key} onClick={() => setCfg({ central: t.key })}>{t.label}</BotaoOpcao>
@@ -90,7 +91,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
               </div>
               {cfg.central === 'enderecavel' && (
                 <div className="mt-3">
-                  <div className="text-[13px] text-ink font-medium mb-2.5">Tipo de Circuito</div>
+                  <div className="text-[13px] text-ink font-medium mb-2.5">Tipo de Circuito <Obrigatorio id={`${estrutura.id}.alarme.circuito`}/></div>
                   <div className="flex gap-2">
                     <BotaoOpcao ativo={cfg.circuito === 'A'} onClick={() => setCfg({ circuito: 'A' })} tip={CIRCUITO_TIP.A}>Classe A</BotaoOpcao>
                     <BotaoOpcao ativo={cfg.circuito === 'B'} onClick={() => setCfg({ circuito: 'B' })} tip={CIRCUITO_TIP.B}>Classe B</BotaoOpcao>
@@ -100,7 +101,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
             </div>
 
             <div className="py-3 px-3.5 border border-solid border-border rounded-md bg-surface-2">
-              <div className="text-[13px] text-ink font-medium mb-2.5">Localização da Central de Alarme</div>
+              <div className="text-[13px] text-ink font-medium mb-2.5">Localização da Central de Alarme <Obrigatorio id={`${estrutura.id}.alarme.centralLocal`}/></div>
               <CampoComSugestoes id={`central-local-${estrutura.id}`} valor={cfg.centralLocal}
                 onChange={v => setCfg({ centralLocal: v })} opcoes={central.locais}
                 placeholder="Ex.: salas de controle, salas de segurança, portaria principal, entrada do edifício..."/>
@@ -129,7 +130,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
                 checked={cfg.subcentral} onChange={v => setCfg({ subcentral: v })}/>
               {cfg.subcentral && (
                 <div className="pb-2.5 max-w-[240px]">
-                  <CampoNum rotulo="Quantidade de subcentrais" valor={cfg.subcentralQtd} placeholder="1" min={1} step="1"
+                  <CampoNum rotulo={<>Quantidade de subcentrais <Obrigatorio id={`${estrutura.id}.alarme.subcentralQtd`}/></>} valor={cfg.subcentralQtd} placeholder="1" min={1} step="1"
                     onChange={v => setCfg({ subcentralQtd: v })}/>
                 </div>
               )}
@@ -139,7 +140,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
         </Card>
 
         {/* Alimentação */}
-        <Card titulo="Fonte de alimentação auxiliar" icone="warn">
+        <Card titulo={<>Fonte de alimentação auxiliar <Obrigatorio id={`${estrutura.id}.alarme.fonteAuxiliar`}/></>} icone="warn">
           <div className="flex gap-2">
             {alim.auxiliar.map(a => (
               <BotaoOpcao key={a} ativo={cfg.fonteAuxiliar === a} onClick={() => setCfg({ fonteAuxiliar: a })}>
@@ -148,7 +149,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
             ))}
           </div>
           <div className="mt-3.5">
-            <div className="text-[13px] text-ink font-medium mb-2">Localização da fonte auxiliar</div>
+            <div className="text-[13px] text-ink font-medium mb-2">Localização da fonte auxiliar <Obrigatorio id={`${estrutura.id}.alarme.fonteAuxiliarLocal`}/></div>
             <input className={inputBase} value={cfg.fonteAuxiliarLocal || ''}
               placeholder="Ex.: junto à central, sala técnica, casa de máquinas..."
               onChange={e => setCfg({ fonteAuxiliarLocal: e.target.value })}/>
@@ -157,7 +158,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
 
         {/* Acionadores e avisadores */}
         <Card titulo="Acionadores manuais e avisadores" icone="alarmeMedida">
-          <div className="text-[13px] text-ink font-medium mb-1">Tipos de avisador utilizados</div>
+          <div className="text-[13px] text-ink font-medium mb-1">Tipos de avisador utilizados <Obrigatorio id={`${estrutura.id}.alarme.avisadores`}/></div>
           <div className="text-[11px] text-ink-faint mb-2.5">Selecione um ou mais — cada tipo ativo libera a sua coluna de quantidade por pavimento.</div>
           <div className="flex gap-2 mb-3.5">
             {TIPOS_AVISADOR.map(t => (

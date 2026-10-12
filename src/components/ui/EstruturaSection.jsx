@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import { useAuditoria } from '../../context/AuditoriaContext'
 import Icon from './Icon'
 import { useProjeto } from '../../context/ProjetoContext'
 import { statusEstrutura } from '../../utils/statusEstrutura'
@@ -70,15 +72,15 @@ function useConclusao(conclusao, status) {
   return { status: efetivo, concluida, automatica: escolha === undefined && concluida, definir }
 }
 
-function BarraConclusao({ concluida, automatica, definir }) {
+function BarraConclusao({ concluida, automatica, definir, pendencias = [] }) {
   return (
     <div className="flex items-center justify-between gap-3 mt-4 pt-3.5 border-t border-solid border-border">
       <span className="text-[11px] text-ink-faint leading-[1.5]">
         {concluida
           ? (automatica ? 'Concluída com os dados sincronizados do Revit. Reabra se precisar revisar.' : 'Estrutura marcada como concluída. Reabra para voltar a acompanhar o status.')
-          : 'Enquanto não for marcada como concluída, a estrutura permanece em amarelo.'}
+          : pendencias.length ? `Preencha os campos obrigatórios antes de concluir: ${pendencias.map(p => p.rotulo).join('; ')}.` : 'Enquanto não for marcada como concluída, a estrutura permanece em amarelo.'}
       </span>
-      <button type="button" onClick={() => definir(!concluida)} className={concluida ? 'btn-ghost shrink-0' : 'btn-success shrink-0'}>
+      <button type="button" disabled={!concluida && pendencias.length > 0} onClick={() => definir(!concluida)} className={concluida ? 'btn-ghost shrink-0' : 'btn-success shrink-0'}>
         <Icon name={concluida ? 'edit' : 'check'} size={13}/>
         {concluida ? 'Reabrir' : 'Marcar como concluída'}
       </button>
@@ -87,8 +89,12 @@ function BarraConclusao({ concluida, automatica, definir }) {
 }
 
 export default function EstruturaSection({ titulo, extra, status: statusBase, conclusao, defaultOpen = true, children }) {
-  const [open, setOpen] = useState(defaultOpen)
+  const { search } = useLocation()
+  const [open, setOpen] = useState(defaultOpen || new URLSearchParams(search).has('audit'))
   const c = useConclusao(conclusao, statusBase)
+  const { pendencias } = useAuditoria()
+  const rota = conclusao?.medida === 'compartimentacao' ? ['medida/compart_horizontal','medida/compart_vertical'] : [`medida/${conclusao?.medida}`]
+  const pendenciasMedida = pendencias.filter(p => (!p.estruturaId || p.estruturaId === conclusao?.estruturaId) && rota.includes(p.rota))
   const status = c.status
   const bar = status ? (STATUS_TONE[status.tone] || STATUS_TONE.pendente).bar : null
 
@@ -109,7 +115,7 @@ export default function EstruturaSection({ titulo, extra, status: statusBase, co
         <div className="flex-1"/>
         <div className="min-w-0">{extra}</div>
       </div>
-      {open && <div className="p-4">{children}{conclusao && <BarraConclusao {...c}/>}</div>}
+      {open && <div className="p-4">{children}{conclusao && <BarraConclusao {...c} pendencias={pendenciasMedida}/>}</div>}
     </div>
   )
 }

@@ -36,6 +36,8 @@ import AlarmeIncendioPage     from './pages/medidas/AlarmeIncendioPage'
 import DeteccaoIncendioPage   from './pages/medidas/DeteccaoIncendioPage'
 import Icon           from './components/ui/Icon'
 import Loader         from './components/ui/Loader'
+import { AuditoriaProvider } from './context/AuditoriaContext'
+import AuditoriaPage from './pages/AuditoriaPage'
 import ToastProvider   from './components/ui/ToastProvider'
 import landingLogo    from './assets/fireutils-landing.svg'
 
@@ -118,6 +120,10 @@ function AppHeader({ onGoProjetos, isProjectPage, showProjectsLink = false }) {
 
       {/* Direita — conta */}
       <div className="flex items-center gap-2 relative shrink-0">
+        {isProjectPage && <button type="button" className="btn-ghost text-xs" onClick={() => navigate(`/projeto/${state.id}/auditoria`)}>
+          <Icon name="checkCircle" size={14}/><span className="hidden sm:inline">Auditar projeto</span>
+          <span className="sm:hidden">Auditar</span>
+        </button>}
         <button
           onClick={() => setMenuOpen(o => !o)}
           title={user?.email}
@@ -423,6 +429,7 @@ function AppInner() {
         <Route path="/projeto/:id" element={<ProjectLayout/>}>
           <Route index element={<Navigate to="dashboard" replace/>}/>
           <Route path="dashboard" element={<DashboardRoute/>}/>
+          <Route path="auditoria" element={<AuditoriaPage/>}/>
           <Route path="config/:step?" element={<ConfigRoute/>}/>
           <Route path="documentos" element={<DocumentosPage/>}/>
           <Route path="documentos/:docId" element={<DocumentosPage/>}/>
@@ -440,7 +447,7 @@ export default function App() {
     <AuthProvider>
       <ToastProvider>
         <ProjetoProvider>
-          <AppInner/>
+          <AuditoriaProvider><AppInner/></AuditoriaProvider>
         </ProjetoProvider>
       </ToastProvider>
     </AuthProvider>

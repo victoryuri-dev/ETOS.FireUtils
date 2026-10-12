@@ -21,7 +21,7 @@ function blocosConcepcao(norma) {
   })
   paragrafos.push({
     tipo: 'paragrafo',
-    texto: `A central de detecção e alarme possui dispositivo de teste dos indicadores luminosos e dos sinalizadores acústicos (${cita(norma, 'teste_indicadores')}) e é instalada em local com constante vigilância humana e de fácil visualização (${cita(norma, 'vigilancia')}). Aciona o alarme geral da edificação, que é audível em toda a edificação${c.alarme_sem_interferir_comunicacao_verbal ? ', sem interferir na comunicação verbal' : ''} (${cita(norma, 'alarme_geral')}), e contém painel ou esquema ilustrativo indicando a localização dos acionadores manuais e detectores (${cita(norma, 'painel_esquema')}).`,
+    texto: `A central de alarme possui dispositivo de teste dos indicadores luminosos e dos sinalizadores acústicos (${cita(norma, 'teste_indicadores')}) e é instalada em local com constante vigilância humana e de fácil visualização (${cita(norma, 'vigilancia')}). Aciona o alarme geral da edificação, que é audível em toda a edificação${c.alarme_sem_interferir_comunicacao_verbal ? ', sem interferir na comunicação verbal' : ''} (${cita(norma, 'alarme_geral')}), e contém painel ou esquema ilustrativo indicando a localização dos acionadores manuais e detectores (${cita(norma, 'painel_esquema')}).`,
   })
   paragrafos.push({
     tipo: 'paragrafo',
@@ -48,8 +48,8 @@ function blocosEstrutura(norma, { est, pavs: pavsBrutos }) {
   const local = cfg.centralLocal
   const partes = []
   partes.push(tipo && local
-    ? `A central de detecção e alarme é do tipo ${tipo.toLowerCase()} e fica instalada em ${local} — área de fácil acesso, com vigilância humana constante e fácil visualização`
-    : 'A central de detecção e alarme ainda não teve tipo e local definidos, e ficará, em conformidade com a norma, em área de fácil acesso, com vigilância humana constante e fácil visualização')
+    ? `A central de alarme é do tipo ${tipo.toLowerCase()} e fica instalada em ${local} — área de fácil acesso, com vigilância humana constante e fácil visualização`
+    : 'A central de alarme ainda não teve tipo e local definidos, e ficará, em conformidade com a norma, em área de fácil acesso, com vigilância humana constante e fácil visualização')
   if (cfg.centralLocal && !cfg.monitoramentoRemoto) partes.push(`fora do período de vigilância, recomenda-se o monitoramento local ou remoto da central (${cita(norma, 'central_local')})`)
   let txt = partes.join(', ') + '.'
   if (cfg.central === 'enderecavel' && cfg.circuito) {

@@ -1,3 +1,4 @@
+import Obrigatorio from '../ui/Obrigatorio'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import Icon from '../ui/Icon'
@@ -163,7 +164,7 @@ function MotivosIsencao({ pe, state, dispatch, sistConfig }) {
       <div className="flex flex-col gap-2.5 pl-6">
         {desativados.map(s => (
           <div key={s.key} className="fg mb-0">
-            <label className="text-[11px]">Motivo da isenção — {s.label}</label>
+            <label className="text-[11px]">Motivo da isenção — {s.label} <Obrigatorio id={`${estId}.isencao.${s.key}`}/></label>
             <textarea
               rows={2}
               value={motivos[s.key] || ''}
@@ -206,7 +207,7 @@ function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
       </div>
       {riscos.outros && (
         <div className="fg mt-3">
-          <label>Descreva o risco especial</label>
+          <label>Descreva o risco especial <Obrigatorio id={`${estruturaId}.riscoOutros`}/></label>
           <input value={outrosDesc} onChange={e => dispatch({ type:'SET_RISCO_OUTROS_DESC', estruturaId, value:e.target.value })}/>
         </div>
       )}

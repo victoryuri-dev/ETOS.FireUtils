@@ -1,3 +1,5 @@
+import Obrigatorio from '../ui/Obrigatorio'
+import { useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
@@ -25,7 +27,7 @@ function findGlobally(cargaMap, cnae) {
 }
 
 // ── CNAE Autocomplete ─────────────────────────────────────────────────
-function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFill }) {
+function CnaeBusca({ auditPrefix, divisao, value, descValue, onSelect, onDescChange, onAutoFill }) {
   const { cnaesDiv, cargaMap } = useNorma()
   const [query, setQuery]     = useState(value || '')
   const [open, setOpen]       = useState(false)
@@ -92,7 +94,7 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
     <div ref={ref} className="relative">
       <div className="fg">
         <label>
-          CNAE <span className="req">*</span>
+          CNAE <Obrigatorio id={`${auditPrefix}.cnae`}/>
           <InfoTip side="bottom" align="start" text="Clique no campo para ver todos os CNAEs desta divisão, ou digite o número ou parte da descrição para filtrar."/>
         </label>
         <div className="relative">
@@ -133,7 +135,7 @@ function CnaeBusca({ divisao, value, descValue, onSelect, onDescChange, onAutoFi
       )}
       {naoEncontrado && (
         <div className="fg mt-2">
-          <label>CNAE não encontrado — descreva a atividade</label>
+          <label>CNAE não encontrado — descreva a atividade <Obrigatorio id={`${auditPrefix}.cnaeDesc`}/></label>
           <input value={descValue || ''} onChange={e => onDescChange(e.target.value)} placeholder="Descreva a atividade para referencia no memorial"/>
         </div>
       )}
@@ -266,7 +268,7 @@ function AcessRow({ pav, acess, index, usadas }) {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-3 mb-3.5">
         <div className="fg">
-          <label>Grupo</label>
+          <label>Grupo <Obrigatorio id={`${pav.id}.acess.${index}.grupo`}/></label>
           <select value={grupoAtual} onChange={e => setGrupo(e.target.value)}>
             {gruposKeys.map(g => (
               <option key={g} value={g}>{g} — {grupos[g] || g}</option>
@@ -274,7 +276,7 @@ function AcessRow({ pav, acess, index, usadas }) {
           </select>
         </div>
         <div className="fg">
-          <label>Divisão</label>
+          <label>Divisão <Obrigatorio id={`${pav.id}.acess.${index}.divisao`}/></label>
           <select value={acess.divisao} onChange={e => setDivisao(e.target.value)} title={divisoesGrp[acess.divisao] ? `${acess.divisao} — ${divisoesGrp[acess.divisao]}` : undefined}>
             {Object.entries(divisoesGrp).map(([code, label]) => {
               const jaUsada = usadas.has(code) && code !== acess.divisao
@@ -284,10 +286,10 @@ function AcessRow({ pav, acess, index, usadas }) {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3 items-start">
-        <CnaeBusca divisao={acess.divisao} value={acess.cnae || ''} descValue={acess.cnaeDesc || ''}
+        <CnaeBusca auditPrefix={`${pav.id}.acess.${index}`} divisao={acess.divisao} value={acess.cnae || ''} descValue={acess.cnaeDesc || ''}
           onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
         <div className="fg">
-          <label>Área (m²)</label>
+          <label>Área (m²) <Obrigatorio id={`${pav.id}.acess.${index}.area`}/></label>
           <input type="number" value={acess.area} onChange={e => setArea(e.target.value)} placeholder="0"/>
         </div>
       </div>
@@ -359,13 +361,13 @@ function PavModal({ pav, onClose }) {
           {/* Ocupação principal */}
           <div className="mb-8">
             <SecaoTitulo
-              titulo="Ocupação principal"
+              titulo={<>Ocupação principal <Obrigatorio id={`${pav.estruturaId}.pavimentos`}/></>}
               tip="Atividade ou uso principal exercido na edificação ou área de risco (ocupação predominante)."
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-3 mb-3.5">
               <div className="fg">
-                <label>Grupo</label>
+                <label>Grupo <Obrigatorio id={`${pav.id}.grupo`}/></label>
                 <select value={pav.grupo} onChange={e => setGrupo(e.target.value)}>
                   {gruposKeys.map(g => (
                     <option key={g} value={g}>{g} — {grupos[g] || g}</option>
@@ -373,7 +375,7 @@ function PavModal({ pav, onClose }) {
                 </select>
               </div>
               <div className="fg">
-                <label>Divisão</label>
+                <label>Divisão <Obrigatorio id={`${pav.id}.divisao`}/></label>
                 <select value={pav.divisao} onChange={e => setDivisao(e.target.value)} title={divisoes[pav.divisao] ? `${pav.divisao} — ${divisoes[pav.divisao]}` : undefined}>
                   {Object.entries(divisoes).map(([code, label]) => {
                     const jaUsada = pav.acess.some(a => a.divisao === code)
@@ -384,10 +386,10 @@ function PavModal({ pav, onClose }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3 items-start">
-              <CnaeBusca divisao={pav.divisao} value={pav.cnae} descValue={pav.cnaeDesc}
+              <CnaeBusca auditPrefix={pav.id} divisao={pav.divisao} value={pav.cnae} descValue={pav.cnaeDesc}
                 onSelect={setCNAE} onDescChange={setCnaeDesc} onAutoFill={handleAutoFill}/>
               <div className="fg">
-                <label>Área (m²)</label>
+                <label>Área (m²) <Obrigatorio id={`${pav.id}.area`}/></label>
                 <input type="number" value={pav.area} onChange={e => setArea(e.target.value)} placeholder="0"/>
               </div>
             </div>
@@ -512,7 +514,9 @@ function PavCard({ pav, onOpen }) {
 // ── Step 4 principal ──────────────────────────────────────────────────
 export default function Step4({ step, totalSteps }) {
   const { state }    = useProjeto()
-  const [openId, setOpenId] = useState(null)
+  const { search } = useLocation()
+  const alvoAudit = new URLSearchParams(search).get('audit') || ''
+  const [openId, setOpenId] = useState(() => state.pavimentos.find(p => alvoAudit.startsWith(`${p.id}.`))?.id || null)
 
   const openPav = state.pavimentos.find(p => p.id === openId)
 

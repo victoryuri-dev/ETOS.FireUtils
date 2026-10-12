@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
+import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
@@ -265,7 +267,9 @@ export default function SaidaEmergenciaPage() {
   // Pavimento cujo popup de Acessos e Descargas está aberto — null = fechado.
   // Ambientes, acessos/saídas e piso de descarga são todos editados ali
   // dentro; esta página só lista os pavimentos.
-  const [viewPavId,    setViewPavId]    = useState(null)
+  const { search } = useLocation()
+  const alvoAudit = new URLSearchParams(search).get('audit') || ''
+  const [viewPavId, setViewPavId] = useState(() => state.pavimentos.find(p => alvoAudit.startsWith(`${p.id}.`) || p.ambientes?.some(a => alvoAudit.startsWith(`${a.id}.`)))?.id || null)
   // Colapso dos cards é só desta aba/sessão.
   const toast = useToast()
 
@@ -458,7 +462,7 @@ export default function SaidaEmergenciaPage() {
                             {pav.pisoDescarga && <span className="ml-1.5 align-middle text-[9px] py-0.5 px-1.5 rounded bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>}
                           </TD>
                           <TD center muted>
-                            {pav.ambientes.length}
+                            {pav.ambientes.length} <Obrigatorio id={`${pav.id}.ambientes`}/>
                             
                           </TD>
                           <TD center red bold>{pop}</TD>

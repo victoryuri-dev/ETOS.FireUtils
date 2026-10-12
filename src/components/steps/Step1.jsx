@@ -1,3 +1,4 @@
+import Obrigatorio from '../ui/Obrigatorio'
 import { useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useCnpjLookup } from '../../hooks/useCnpjLookup'
@@ -73,7 +74,7 @@ export default function Step1({ step, totalSteps }) {
       </div>
 
       <div className="fg mb-6">
-        <label className="text-[13px]">Nome do projeto <span className="req">*</span></label>
+        <label className="text-[13px]">Nome do projeto <Obrigatorio id={'nome'}/></label>
         <input value={state.nome} onChange={set('nome')} placeholder="Ex: Edificio Comercial Centro" className="text-[15px] py-3"/>
       </div>
 
@@ -81,7 +82,7 @@ export default function Step1({ step, totalSteps }) {
         <div className="ibox blue"><Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/><span>Buscar pelo CNPJ preenche os dados abaixo automaticamente.</span></div>
 
         <div className="fg mb-3">
-          <label>CNPJ <span className="req">*</span></label>
+          <label>CNPJ <Obrigatorio id={'respCNPJ'}/></label>
           <div className="flex gap-2 items-start">
             <input value={state.respCNPJ} onChange={setCNPJ} placeholder="00.000.000/0000-00" className="flex-1"/>
             <button type="button" className="btn-ghost shrink-0" disabled={loading} onClick={() => buscar(state.respCNPJ)}>
@@ -103,7 +104,7 @@ export default function Step1({ step, totalSteps }) {
         </div>
 
         <div className="g2 mb-3">
-          <div className="fg"><label>Razao social <span className="req">*</span></label><input value={state.respRazaoSocial} onChange={set('respRazaoSocial')}/></div>
+          <div className="fg"><label>Razao social <Obrigatorio id={'respRazaoSocial'}/></label><input value={state.respRazaoSocial} onChange={set('respRazaoSocial')}/></div>
           <div className="fg"><label>Nome fantasia</label><input value={state.respFantasia} onChange={set('respFantasia')}/></div>
         </div>
         <div className="g2 mb-3">
@@ -130,7 +131,7 @@ export default function Step1({ step, totalSteps }) {
         )}
 
         <div className="g3 mb-3">
-          <div className="fg col-span-2"><label>Logradouro (rua, avenida...) <span className="req">*</span></label><input value={state.endereco} onChange={set('endereco')} placeholder="Rua Grande"/></div>
+          <div className="fg col-span-2"><label>Logradouro (rua, avenida...) <Obrigatorio id={'endereco'}/></label><input value={state.endereco} onChange={set('endereco')} placeholder="Rua Grande"/></div>
           <div className="fg"><label>Numero</label><input value={state.numero} onChange={set('numero')} placeholder="123"/></div>
         </div>
         <div className="g3 mb-3">
@@ -139,9 +140,9 @@ export default function Step1({ step, totalSteps }) {
           <div className="fg"><label>CEP</label><input value={state.cep} onChange={set('cep')} placeholder="65000-000"/></div>
         </div>
         <div className="g3">
-          <div className="fg"><label>Cidade <span className="req">*</span></label><input value={state.cidade} onChange={set('cidade')} placeholder="Sao Luis"/></div>
+          <div className="fg"><label>Cidade <Obrigatorio id={'cidade'}/></label><input value={state.cidade} onChange={set('cidade')} placeholder="Sao Luis"/></div>
           <div className="fg">
-            <label>Estado <span className="req">*</span></label>
+            <label>Estado <Obrigatorio id={'uf'}/></label>
             <select value={state.uf} onChange={set('uf')}>
               {estadosDisponiveis.map(e => (
                 <option key={e.uf} value={e.uf} disabled={!e.ativo}>
@@ -177,8 +178,8 @@ export default function Step1({ step, totalSteps }) {
         )}
 
         <div className="g2 mb-3">
-          <div className="fg"><label>Nome / Razao social <span className="req">*</span></label><input value={state.propNome} onChange={set('propNome')}/></div>
-          <div className="fg"><label>CPF / CNPJ <span className="req">*</span></label><input value={state.propDocumento} onChange={set('propDocumento')}/></div>
+          <div className="fg"><label>Nome / Razao social <Obrigatorio id={'propNome'}/></label><input value={state.propNome} onChange={set('propNome')}/></div>
+          <div className="fg"><label>CPF / CNPJ <Obrigatorio id={'propDocumento'}/></label><input value={state.propDocumento} onChange={set('propDocumento')}/></div>
         </div>
         <div className="g2">
           <div className="fg"><label>Telefone</label><input type="tel" value={state.propTelefone} onChange={set('propTelefone')} placeholder="(99) 99999-9999"/></div>

@@ -1,3 +1,4 @@
+import Obrigatorio from '../ui/Obrigatorio'
 // FormularioSistema.jsx — classificação do Sistema de Hidrantes/Mangotinhos
 // (NT 22 CBMMA) pro memorial descritivo. Registro único por projeto (ver
 // comentário de state.hidrantes em ProjetoContext.jsx) — o dimensionamento
@@ -125,13 +126,13 @@ export default function FormularioSistema() {
       {/* B — Reservatório e RTI */}
       <FormSection title="Reservatório">
         <div className="grid grid-cols-2 gap-4 mb-3">
-          <Field label="Material do reservatório">
+          <Field label={<>Material do reservatório <Obrigatorio id="hidrantes.reservatorioMaterial"/></>}>
             <select className={inputClass} value={h.reservatorioMaterial} onChange={e => set({ reservatorioMaterial: e.target.value })}>
               <option value="">Selecione...</option>
               {norma.MATERIAIS_RESERVATORIO.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
             </select>
           </Field>
-          <Field label="Posição do reservatório">
+          <Field label={<>Posição do reservatório <Obrigatorio id="hidrantes.reservatorioPosicao"/></>}>
             <select className={inputClass} value={h.reservatorioPosicao} onChange={e => set({ reservatorioPosicao: e.target.value })}>
               <option value="">Selecione...</option>
               {POSICOES_RESERVATORIO.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
@@ -141,7 +142,7 @@ export default function FormularioSistema() {
         <ToggleRow label="Reservatório exclusivo para combate a incêndio?" checked={h.reservatorioExclusivo} onChange={v => set({ reservatorioExclusivo: v })}/>
         {!h.reservatorioExclusivo && (
           <div className="mt-3">
-            <Field label="Volume total do reservatório (incêndio + outros usos)" hint="a reserva efetiva de incêndio deve ficar sempre garantida dentro desse total">
+            <Field label={<>Volume total do reservatório (incêndio + outros usos) <Obrigatorio id="hidrantes.reservatorioVolumeTotal"/></>} hint="a reserva efetiva de incêndio deve ficar sempre garantida dentro desse total">
               <div className="relative">
                 <input type="number" step="0.5" min={0} className={inputClass + ' pr-10'}
                   value={h.reservatorioVolumeTotal} onChange={e => set({ reservatorioVolumeTotal: e.target.value })}/>
@@ -158,7 +159,7 @@ export default function FormularioSistema() {
       {/* C — Rede de tubulação */}
       <FormSection title="Rede de Tubulação">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Material">
+          <Field label={<>Material <Obrigatorio id="hidrantes.redeMaterial"/></>}>
             <select className={inputClass} value={h.redeMaterial} onChange={e => set({ redeMaterial: e.target.value })}>
               <option value="">Selecione...</option>
               {norma.MATERIAIS_TUBULACAO.map(m => (
@@ -173,7 +174,7 @@ export default function FormularioSistema() {
       </FormSection>
 
       {/* D — Dispositivo de recalque */}
-      <FormSection title="Dispositivo de Recalque (Corpo de Bombeiros)">
+      <FormSection title={<>Dispositivo de Recalque (Corpo de Bombeiros) <Obrigatorio id="hidrantes.recalqueTipo"/></>}>
         <div className="flex flex-wrap gap-2 mb-3">
           {norma.TIPOS_RECALQUE.map(op => (
             <Pill key={op.key} active={h.recalqueTipo === op.key} onClick={() => set({ recalqueTipo: op.key })}>
@@ -182,7 +183,7 @@ export default function FormularioSistema() {
           ))}
         </div>
         {h.recalqueTipo === 'passeio' && (
-          <Field label="Justificativa técnica de impossibilidade">
+          <Field label={<>Justificativa técnica de impossibilidade <Obrigatorio id="hidrantes.recalqueJustificativaPasseio"/></>}>
             <textarea className={inputClass + ' min-h-[70px] resize-y'} value={h.recalqueJustificativaPasseio}
               onChange={e => set({ recalqueJustificativaPasseio: e.target.value })}/>
           </Field>

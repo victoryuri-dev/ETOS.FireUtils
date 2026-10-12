@@ -1,3 +1,4 @@
+import Obrigatorio from '../ui/Obrigatorio'
 import { useEffect, useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { usePerfil, temDadosRT } from '../../hooks/usePerfil'
@@ -55,12 +56,12 @@ export default function Step3({ step, totalSteps }) {
 
       <FormSection title="Projetista" extra={botaoPerfil}>
         <div className="g2 mb-3">
-          <div className="fg"><label>Nome completo <span className="req">*</span></label><input value={state.rtNome} onChange={set('rtNome')}/></div>
-          <div className="fg"><label>CREA / CAU <span className="req">*</span></label><input value={state.rtConselho} onChange={set('rtConselho')} placeholder="CREA-MA MA00000000/D"/></div>
+          <div className="fg"><label>Nome completo <Obrigatorio id={'rtNome'}/></label><input value={state.rtNome} onChange={set('rtNome')}/></div>
+          <div className="fg"><label>CREA / CAU <Obrigatorio id={'rtConselho'}/></label><input value={state.rtConselho} onChange={set('rtConselho')} placeholder="CREA-MA MA00000000/D"/></div>
         </div>
         <div className="g2 mb-3">
           <div className="fg"><label>CPF</label><input value={state.rtCpf} onChange={set('rtCpf')} placeholder="000.000.000-00"/></div>
-          <div className="fg"><label>Especialidade</label>
+          <div className="fg"><label>Especialidade <Obrigatorio id={'rtEspecialidade'}/></label>
             <select value={state.rtEspecialidade} onChange={set('rtEspecialidade')}>
               <option>Engenharia Civil</option><option>Engenharia Eletrica</option><option>Arquitetura</option><option>Engenharia de Seguranca</option>
             </select>
@@ -87,7 +88,7 @@ export default function Step3({ step, totalSteps }) {
         {state.usaArt && (
           <>
             <div className="g2 mb-3">
-              <div className="fg"><label>Numero da ART <span className="req">*</span></label><input value={state.artNumero} onChange={set('artNumero')}/></div>
+              <div className="fg"><label>Numero da ART <Obrigatorio id={'artNumero'}/></label><input value={state.artNumero} onChange={set('artNumero')}/></div>
               <div className="fg"><label>Data de emissao</label><input type="date" value={state.artData} onChange={set('artData')}/></div>
             </div>
             <div className="g2">

@@ -1,3 +1,4 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
@@ -68,7 +69,7 @@ function EstruturaDeteccao({ estrutura, pavimentos, norma, exigido }) {
       <div className="flex flex-col gap-3">
         <Card titulo="Detectores por pavimento" icone={SISTEMA_ICON.deteccao}
           direita={<span className="text-[11px] text-ink-faint">Total da estrutura: <strong className="text-ink">{fmtNum(totalDetectores, 0)}</strong></span>}>
-          <div className="text-[13px] text-ink font-medium mb-1">Tipos de detector utilizados</div>
+          <div className="text-[13px] text-ink font-medium mb-1">Tipos de detector utilizados <Obrigatorio id={`${estrutura.id}.deteccao.tiposDetector`}/></div>
           <div className="text-[11px] text-ink-faint mb-2.5">Selecione um ou mais — cada tipo ativo libera a sua coluna de quantidade por pavimento. Pavimento sem aquele tipo fica em branco.</div>
           <div className="flex gap-2 mb-3.5">
             {TIPOS_DETECTOR.map(t => (
@@ -91,7 +92,7 @@ function EstruturaDeteccao({ estrutura, pavimentos, norma, exigido }) {
                   <thead>
                     <tr className="border-b border-solid border-border">
                       <th className={TH}>Pavimento</th>
-                      {ativos.map(t => <th key={t.key} className={TH}>{t.label}</th>)}
+                      {ativos.map(t => <th key={t.key} className={TH}>{t.label} <Obrigatorio id={`${estrutura.id}.deteccao.${t.key}`}/></th>)}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-solid divide-border">
@@ -128,7 +129,7 @@ function EstruturaDeteccao({ estrutura, pavimentos, norma, exigido }) {
           {cfg.entreforros && (
             <div className="pb-2.5">
               <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Onde e quais instalações</div>
-              <input className={inputBase} value={cfg.entreforrosDescricao} placeholder="Ex.: forro do 1º pavimento com eletrocalhas e cabos elétricos"
+              <Obrigatorio id={`${estrutura.id}.deteccao.entreforrosDescricao`}/><input className={inputBase} value={cfg.entreforrosDescricao} placeholder="Ex.: forro do 1º pavimento com eletrocalhas e cabos elétricos"
                 onChange={e => setCfg({ entreforrosDescricao: e.target.value })}/>
             </div>
           )}

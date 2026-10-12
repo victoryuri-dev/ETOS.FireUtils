@@ -1,3 +1,5 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
+import { useLocation } from 'react-router-dom'
 import { useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
@@ -110,7 +112,8 @@ function StepperButton({ onClick, title, children }) {
 
 // ── Uma categoria de placas dentro de uma estrutura (acordeão) ─────────
 function CategoriaAccordion({ categoria, tipos, itens, estruturaId, dispatch, defaultOpen = false }) {
-  const [open, setOpen] = useState(defaultOpen)
+  const { search } = useLocation()
+  const [open, setOpen] = useState(defaultOpen || new URLSearchParams(search).has('audit'))
 
   const setQuantidade = (tipoPlaca, valorRaw) => {
     const valor = parseInt(valorRaw) || 0
@@ -168,7 +171,7 @@ function CategoriaAccordion({ categoria, tipos, itens, estruturaId, dispatch, de
                         <StepperButton title="Remover uma" onClick={() => setQuantidade(t.key, item.quantidade - 1)}>
                           <Icon name="minus" size={12}/>
                         </StepperButton>
-                        <input type="number" min="0" value={item.quantidade}
+                        <Obrigatorio id={`${item.id}.quantidade`}/><input type="number" min="0" value={item.quantidade}
                           onChange={e => setQuantidade(t.key, e.target.value)}
                           className="w-12 text-right px-1.5"/>
                         <StepperButton title="Adicionar uma" onClick={() => setQuantidade(t.key, item.quantidade + 1)}>
@@ -392,7 +395,7 @@ export default function SinalizacaoPage() {
             ? statusSinalizacao(state.sinalizacao.filter(i => i.estruturaId === est.id).length)
             : statusEstrutura('concluido', 'Não exigida')
           return (
-            <EstruturaSection key={est.id} titulo={est.nome} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'sinalizacao', auto: !!est.origemRevit?.sinalizacao && state.sinalizacao.some(i => i.estruturaId === est.id) } : null} defaultOpen={false} extra={
+            <EstruturaSection key={est.id} titulo={<>{est.nome} <Obrigatorio id={`${est.id}.sinalizacao`}/></>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'sinalizacao', auto: !!est.origemRevit?.sinalizacao && state.sinalizacao.some(i => i.estruturaId === est.id) } : null} defaultOpen={false} extra={
               <div className="flex items-center gap-2">
                 <EstruturaHeaderInfo estrutura={est} semArea/>
                 {exigido && (

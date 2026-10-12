@@ -1,3 +1,4 @@
+import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useEffect, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
@@ -153,13 +154,13 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
         <tr className="border-b border-solid border-border last:border-b-0">
           <td colSpan={4} className="py-3 px-3 bg-surface-2">
             <div className="grid grid-cols-4 gap-2">
-              <input placeholder="Nome do material" value={item.materialNome} onChange={e => set({ materialNome: e.target.value })} className={input}/>
-              <select value={item.classeAdotada} onChange={e => set({ classeAdotada: e.target.value })} className={input}>
+              <label className="fg">Nome do material <Obrigatorio id={`${estruturaId}.${linha.chave}.materialNome`}/><input placeholder="Nome do material" value={item.materialNome} onChange={e => set({ materialNome: e.target.value })} className={input}/></label>
+              <label className="fg">Classe <Obrigatorio id={`${estruturaId}.${linha.chave}.classeAdotada`}/><select value={item.classeAdotada} onChange={e => set({ classeAdotada: e.target.value })} className={input}>
                 <option value="">Classe (aguardando laudo)</option>
                 {ORDEM_CLASSE.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <input placeholder="Fabricante / modelo" value={item.fabricante} onChange={e => set({ fabricante: e.target.value })} className={input}/>
-              <input placeholder="Nº do laudo / ensaio" value={item.laudoNumero} onChange={e => set({ laudoNumero: e.target.value })} className={input}/>
+              </select></label>
+              <label className="fg">Fabricante / modelo <Obrigatorio id={`${estruturaId}.${linha.chave}.fabricante`}/><input placeholder="Fabricante / modelo" value={item.fabricante} onChange={e => set({ fabricante: e.target.value })} className={input}/></label>
+              <label className="fg">Nº do laudo / ensaio <Obrigatorio id={`${estruturaId}.${linha.chave}.laudoNumero`}/><input placeholder="Nº do laudo / ensaio" value={item.laudoNumero} onChange={e => set({ laudoNumero: e.target.value })} className={input}/></label>
             </div>
             <div className="text-[10px] text-ink-faint mt-1.5 leading-[1.5]">
               A classe só é considerada comprovada com fabricante/modelo e nº do laudo preenchidos — conforme a NT 10/2021 CBMMA, a classe de reação ao fogo não pode ser presumida sem documentação técnica do produto.
@@ -236,7 +237,7 @@ function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido }) {
   const adicionarAmbiente = () => dispatch({ type: 'ADD_AMBIENTE_ACABAMENTO', estruturaId: est.id, nome: `Ambiente ${ambientes.length + 1}` })
 
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'controle_acabamento' } : null} defaultOpen={false}>
+    <EstruturaSection titulo={<>{est.nome} <Obrigatorio id={`${est.id}.acabamentoAmbientes`}/></>} extra={<EstruturaHeaderInfo estrutura={est} semArea/>} status={status} conclusao={exigido ? { estruturaId: est.id, medida: 'controle_acabamento' } : null} defaultOpen={false}>
       {!exigido ? (
         <div className="ibox green">
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>

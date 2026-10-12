@@ -3,6 +3,8 @@ import StepsNav from '../components/layout/StepsNav'
 import Icon     from '../components/ui/Icon'
 import { useWizard } from '../hooks/useWizard'
 import { useStepStatus } from '../hooks/useStepStatus'
+import { useAuditoria } from '../context/AuditoriaContext'
+import { useState } from 'react'
 import Step1 from '../components/steps/Step1'
 import Step2 from '../components/steps/Step2'
 import Step3 from '../components/steps/Step3'
@@ -54,6 +56,18 @@ export default function ConfiguracaoPage({ onGoDashboard }) {
 
   const { step, totalSteps, unlocked, next, prev, goTo, isUnlocked } = useWizard(STEPS_CONFIG.length)
   const getStatus = useStepStatus()
+  const { pendencias } = useAuditoria()
+  const [tentouAvancar, setTentouAvancar] = useState(false)
+  const pendenciasEtapa = pendencias.filter(c => step === totalSteps ? !!c.etapa : c.etapa === ordem[step - 1])
+  const avancar = () => {
+    if (pendenciasEtapa.length) { setTentouAvancar(true); return }
+    setTentouAvancar(false)
+    next()
+  }
+  const finalizar = () => {
+    if (pendenciasEtapa.length) { setTentouAvancar(true); return }
+    onGoDashboard()
+  }
   const ActiveStep = STEPS[ordem[step - 1]]
 
   return (
@@ -68,6 +82,9 @@ export default function ConfiguracaoPage({ onGoDashboard }) {
       <div className="flex-1 overflow-y-auto">
         {ActiveStep && <ActiveStep step={step} totalSteps={totalSteps}/>}
 
+        {tentouAvancar && pendenciasEtapa.length > 0 && <div className="max-w-[980px] mx-auto px-10 mb-20" role="alert">
+          <div className="ibox red"><Icon name="warn" size={14}/><span>Preencha os campos obrigatórios desta etapa para avançar: {pendenciasEtapa.map(c => `${c.rotulo}${c.contexto ? ` (${c.contexto})` : ''}`).join('; ')}.</span></div>
+        </div>}
         {/* Navegação do wizard — no fim do formulário, rola junto com o conteúdo */}
         <div className="max-w-[980px] mx-auto px-10 pb-16 -mt-16 flex items-center justify-between border-t border-solid border-border pt-6">
           <div className="text-xs text-ink-faint flex items-center gap-1.5">
@@ -81,10 +98,10 @@ export default function ConfiguracaoPage({ onGoDashboard }) {
               </button>
             )}
             {step < totalSteps
-              ? <button className="btn-primary" onClick={next}>
+              ? <button className="btn-primary" onClick={avancar}>
                   Proximo <Icon name="right" size={13}/>
                 </button>
-              : <button className="btn-success" onClick={onGoDashboard}>
+              : <button className="btn-success" onClick={finalizar}>
                   <Icon name="save" size={13}/> Salvar e ver resumo
                 </button>
             }
