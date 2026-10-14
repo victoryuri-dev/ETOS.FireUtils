@@ -1,6 +1,7 @@
 import { MODULOS, formatarData, situacaoLicenca, temAcesso, useLicencas } from '../../hooks/useLicencas'
 import Icon from '../ui/Icon'
 import Loader from '../ui/Loader'
+import fireutilsMark from '../../assets/fireutils-mark-red.svg'
 
 const TOM = {
   green:  'border-green-border bg-green-dim text-green',
@@ -38,7 +39,10 @@ function CartaoModulo({ modulo, licencas }) {
     <article className={`profile-tool-card ${modulo.key === 'pro' ? 'is-pro' : ''}`}>
       <div className="profile-tool-main">
         <div className="profile-tool-icon">
-          <Icon name={modulo.icon} size={18}/>
+          {modulo.key === 'pro'
+            ? <img src={fireutilsMark} alt="" className="profile-tool-brand-mark"/>
+            : <Icon name={modulo.icon} size={18}/>
+          }
         </div>
         <div className="profile-tool-copy">
           <div className="profile-tool-title-row">
@@ -63,9 +67,11 @@ function CartaoModulo({ modulo, licencas }) {
             <Campo rotulo="Validade">{licenca.expira_em ? formatarData(licenca.expira_em) : 'Sem data de término'}</Campo>
           </div>
         )}
-        <p className="text-[12px] leading-[1.5] m-0 text-ink-muted">
-          {peloPro ? 'Liberado pela licença do FireUtils PRO desta conta.' : s.detalhe}
-        </p>
+        {modulo.key !== 'pro' && (
+          <p className="text-[12px] leading-[1.5] m-0 text-ink-muted">
+            {peloPro ? 'Liberado pela licença do FireUtils PRO desta conta.' : s.detalhe}
+          </p>
+        )}
       </div>
     </article>
   )
