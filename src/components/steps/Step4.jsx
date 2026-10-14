@@ -420,7 +420,7 @@ function PavModal({ pav, onClose }) {
 }
 
 // ── Card resumo do pavimento ──────────────────────────────────────────
-function PavCard({ pav, onOpen }) {
+function PavCard({ pav, classificacao, onOpen }) {
   const { ocupacoes, temCNAE, cnaesDiv, grupos } = useNorma()
   const divisoes = ocupacoes[pav.grupo]?.divisoes || {}
   const divLabel = divisoes[pav.divisao] || pav.divisao || '—'
@@ -429,6 +429,8 @@ function PavCard({ pav, onOpen }) {
   const configured = !!(pav.divisao && (pav.cnae || !temCNAE(pav.divisao)))
   const grupoLabel = grupos?.[pav.divisao?.charAt(0) || pav.grupo] || ''
   const cnaeDesc = pav.cnae ? (pav.cnaeDesc || cnaesDiv(pav.divisao)[pav.cnae]?.descricao || '') : ''
+  // So ocupacoes secundarias (>10% da area construida) aparecem no card; subsidiarias ficam ocultas aqui.
+  const acessSecundarias = pav.acess.filter(a => classificacao?.subsidiariasRaw?.find(c => c.divisao === a.divisao)?.isMista)
 
   return (
     <div
@@ -461,23 +463,23 @@ function PavCard({ pav, onOpen }) {
             <div className="text-[13px] text-ink-faint">Clique para classificar</div>
           )}
 
-          {/* Ocupacoes subsidiarias */}
-          {pav.acess.length > 0 && (
+          {/* Ocupacoes secundarias (subsidiarias ficam ocultas no card) */}
+          {acessSecundarias.length > 0 && (
             <div className="mt-3 pt-2.5 border-t border-solid border-border-2 flex flex-col gap-2">
               <div className="text-[10px] font-medium text-ink-faint uppercase tracking-[.08em]">
-                {pav.acess.length === 1 ? 'Ocupação subsidiária' : 'Ocupações subsidiárias'}
+                {acessSecundarias.length === 1 ? 'Ocupação secundária' : 'Ocupações secundárias'}
               </div>
-              {pav.acess.map((a, i) => {
+              {acessSecundarias.map((a, i) => {
                 const aDivLabel = (ocupacoes[a.divisao?.charAt(0)]?.divisoes || {})[a.divisao]
                 const aCnaeDesc = a.cnae ? (a.cnaeDesc || cnaesDiv(a.divisao)[a.cnae]?.descricao || '') : ''
                 return (
                   <div key={i} className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 text-[13px] text-ink-muted leading-[1.4]">
+                    <div className="min-w-0 text-[14px] font-semibold text-ink leading-[1.4]">
                       {aCnaeDesc || aDivLabel || a.divisao}
-                      <div className="text-[11px] text-ink-faint mt-0.5">
-                        {a.cnae && <>CNAE <span className="font-mono">{a.cnae}</span></>}
-                        {a.cnae && a.area && ' · '}
-                        {a.area && fmtUn(a.area, 'm²', 2, `${a.area} m²`)}
+                      <div className="flex flex-wrap items-center gap-x-2 text-[12px] text-ink-faint mt-1.5">
+                        {a.cnae && <span>CNAE <span className="font-mono text-ink-muted">{a.cnae}</span></span>}
+                        {a.cnae && a.area && <span aria-hidden="true">·</span>}
+                        {a.area && <span>{fmtUn(a.area, 'm²', 2, `${a.area} m²`)}</span>}
                       </div>
                     </div>
                     <span className="font-mono text-[11px] font-semibold text-ink-muted py-0.5 px-2 rounded bg-white/[.05] border border-solid border-border shrink-0">{a.divisao}</span>
@@ -527,12 +529,13 @@ export default function Step4({ step, totalSteps }) {
         : state.estruturas.map(est => {
             const pavsEst = state.pavimentos.filter(p => p.estruturaId === est.id)
             if (!pavsEst.length) return null
+            const classificacaoEst = classificarPavimentos(pavsEst, est.areaTotal)
             return (
               <EstruturaSection key={est.id} titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est} mostrar={['area', 'ocupacao']}/> }>
                 <div>
                   <div className={blockTitle}>Pavimentos</div>
                   {pavsEst.map(pav => (
-                    <PavCard key={pav.id} pav={pav} onOpen={() => setOpenId(pav.id)}/>
+                    <PavCard key={pav.id} pav={pav} classificacao={classificacaoEst} onOpen={() => setOpenId(pav.id)}/>
                   ))}
                 </div>
               </EstruturaSection>
