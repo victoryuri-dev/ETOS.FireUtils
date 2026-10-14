@@ -5,6 +5,8 @@
   --color-red: #C0152A; --color-red-dim: rgba(192,21,42,.08); --color-red-border: rgba(192,21,42,.30);
   --color-green: #087A55; --color-green-dim: rgba(8,122,85,.14); --color-green-border: rgba(8,122,85,.38);
   --color-amber: #9A5900; --color-amber-dim: rgba(154,89,0,.14); --color-amber-border: rgba(154,89,0,.38);
+  --project-ring-green: #12a978;
+  --project-ring-amber: #d99116;
   --color-blue: #1D5FA7; --color-blue-dim: rgba(29,95,167,.12); --color-blue-border: rgba(29,95,167,.36);
   --color-bg: #f5f6f8;
   --color-surface: #ffffff;
@@ -44,6 +46,8 @@
   --color-amber:#f2b84b;
   --color-amber-dim:rgba(242,184,75,.13);
   --color-amber-border:rgba(242,184,75,.36);
+  --project-ring-green:var(--color-green);
+  --project-ring-amber:var(--color-amber);
   --color-blue:#69aef5;
   --color-blue-dim:rgba(105,174,245,.13);
   --color-blue-border:rgba(105,174,245,.34);

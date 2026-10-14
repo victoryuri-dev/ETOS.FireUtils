@@ -58,9 +58,9 @@ function calcCompletude(s) {
 }
 
 function barToneClasses(pct) {
-  if (pct === 100) return { text:'text-green', bg:'bg-green' }
-  if (pct >= 30)   return { text:'text-amber', bg:'bg-amber' }
-  return { text:'text-red', bg:'bg-red' }
+  if (pct === 100) return { text:'text-green', bg:'bg-green', ring:'var(--project-ring-green)' }
+  if (pct >= 30)   return { text:'text-amber', bg:'bg-amber', ring:'var(--project-ring-amber)' }
+  return { text:'text-red', bg:'bg-red', ring:'var(--color-red)' }
 }
 
 function timeAgo(iso) {
@@ -162,7 +162,7 @@ function StatusPill({ dot, tone, label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 text-[11px] py-1 px-2.5 rounded-[20px] border border-solid whitespace-nowrap cursor-pointer transition-colors duration-150 ${active ? activeClass : 'border-border bg-transparent text-ink-faint hover:border-ink-hint hover:text-ink-muted'}`}
+      className={`inline-flex items-center gap-1.5 text-[11px] py-1 px-2.5 rounded-[20px] border border-solid whitespace-nowrap cursor-pointer transition-colors duration-150 ${active ? activeClass : 'border-border bg-surface text-ink-faint hover:border-ink-hint hover:text-ink-muted'}`}
     >
       <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${dot}`}/>
       {label}
@@ -245,7 +245,7 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
 
       {/* Nome — exatamente como foi digitado, sem forçar caixa alta */}
       <div className="flex items-center gap-2.5 pr-7 min-w-0">
-        <ProgressoAnel pct={pct} textClass={bar.text} replay={replay}/>
+        <ProgressoAnel pct={pct} color={bar.ring} replay={replay}/>
         <div className="font-heading text-[15px] font-bold text-ink leading-[1.3] truncate">
           {proj.nome || <span className="text-ink-faint font-normal">Sem nome</span>}
         </div>
@@ -259,9 +259,10 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
       </div>
 
       {/* Números-chave */}
-      <dl className="m-0 grid grid-cols-[auto_auto] justify-start gap-x-8">
+      <dl className="m-0 grid grid-cols-[auto_auto_auto] justify-start gap-x-6">
         <StatBloco label="UF" value={proj.uf || '—'}/>
         <StatBloco label="Projeto" value={proj.tipoProjeto === 'dimensionamento' ? 'Dimensionamento' : 'Técnico'}/>
+        <StatBloco label="A.C.T." value={fmtArea(totalArea(proj))}/>
       </dl>
 
       {/* Rodapé */}
@@ -274,10 +275,10 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
 }
 
 // Anel de completude do projeto; 100% vira um check.
-function ProgressoAnel({ pct, textClass, replay = 0 }) {
+function ProgressoAnel({ pct, color, replay = 0 }) {
   const r = 9.5, c = 2 * Math.PI * r
   return (
-    <span className={`relative shrink-0 w-5 h-5 ${textClass}`} title={`Completude: ${pct}%`} role="img" aria-label={`Completude ${pct}%`}>
+    <span className="relative shrink-0 w-5 h-5" style={{ color }} title={`Completude: ${pct}%`} role="img" aria-label={`Completude ${pct}%`}>
       <svg width="20" height="20" viewBox="0 0 24 24" className="-rotate-90">
         <circle cx="12" cy="12" r={r} fill="none" stroke="currentColor" strokeOpacity=".2" strokeWidth="1.5"/>
         <circle key={replay} cx="12" cy="12" r={r} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
@@ -502,7 +503,7 @@ function FilterDropdown({ prefix, value, options, onChange }) {
       <button
         type="button"
         onClick={() => setAberto(v => !v)}
-        className="flex items-center gap-2 bg-surface-2 border border-solid border-border text-ink text-[13px] py-[9px] px-3 rounded-md cursor-pointer whitespace-nowrap"
+        className="flex items-center gap-2 bg-surface border border-solid border-border text-ink text-[13px] py-[9px] px-3 rounded-md cursor-pointer whitespace-nowrap"
       >
         {prefix}: {atual.label}
         <Icon name="chevD" size={11} className="text-ink-faint"/>
@@ -666,10 +667,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
 
           {/* Título + botão */}
           <div className="flex items-start justify-between mb-6">
-            <div>
-              <h1 className="font-heading text-2xl font-bold text-ink mb-1">Meus projetos</h1>
-              <p className="text-[13px] text-ink-faint">Todos os memoriais descritivos e dimensionamentos</p>
-            </div>
+            <h1 className="font-heading text-2xl font-bold text-ink">Meus projetos</h1>
             <div className="flex gap-2">
               {onNovoProjetoExemplo && (
                 <button className="btn-ghost" onClick={onNovoProjetoExemplo} title="Cria um projeto com todos os campos preenchidos, para testes">
@@ -730,18 +728,6 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
               ]}
             />
 
-            {/* Separador */}
-            <div className="w-px h-6 bg-border shrink-0"/>
-
-            {/* View toggle */}
-            <div className="flex gap-0.5">
-              <button className={viewBtnClass(view === 'grid')} onClick={() => setView('grid')} title="Grade">
-                <IcoGrid active={view === 'grid'}/>
-              </button>
-              <button className={viewBtnClass(view === 'list')} onClick={() => setView('list')} title="Lista">
-                <IcoList active={view === 'list'}/>
-              </button>
-            </div>
           </div>
 
           {/* Contagem + filtros ativos + filtro de status */}
@@ -780,6 +766,15 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
                   onClick={() => toggleFilterStatus('rascunhos')}
                 />
               )}
+              <div className="w-px h-6 bg-border shrink-0 mx-1"/>
+              <div className="flex gap-0.5">
+                <button className={viewBtnClass(view === 'grid')} onClick={() => setView('grid')} title="Grade">
+                  <IcoGrid active={view === 'grid'}/>
+                </button>
+                <button className={viewBtnClass(view === 'list')} onClick={() => setView('list')} title="Lista">
+                  <IcoList active={view === 'list'}/>
+                </button>
+              </div>
             </div>
           </div>
 
