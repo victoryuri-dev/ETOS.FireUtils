@@ -13,7 +13,6 @@ import LandingPage    from './pages/LandingPage'
 import PricingPage    from './pages/PricingPage'
 import LicencaProvider from './context/LicencaContext'
 import { useAcesso }   from './hooks/useLicencas'
-import SemLicenca     from './components/perfil/SemLicenca'
 import ProjectAside   from './components/layout/ProjectAside'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
@@ -416,26 +415,16 @@ function AuthedLayout() {
 
 // ── PortaoLicenca ─────────────────────────────────────────────────────
 // Com o bloqueio ligado (VITE_EXIGIR_LICENCA), a conta sem nenhuma licença
-// válida não entra na plataforma. O perfil fica sempre liberado: é lá que
-// ela vê a situação das licenças. Com o bloqueio desligado, não barra nada.
+// válida não entra na plataforma: qualquer rota vai direto pro perfil, que é
+// a única liberada — lá ela vê a situação das licenças. Com o bloqueio
+// desligado, não barra nada.
 function PortaoLicenca() {
   const location = useLocation()
-  const navigate = useNavigate()
   const { carregando, liberado } = useAcesso()
 
   if (liberado || location.pathname === '/perfil') return <Outlet/>
-
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
-      {carregando
-        ? <div className="flex-1 flex items-center justify-center"><Loader size={32}/></div>
-        : <SemLicenca
-            titulo="Sua conta não tem licença ativa"
-            texto="Para criar e editar projetos é preciso ter uma licença válida de algum módulo do FireUtils."
-          />}
-    </div>
-  )
+  if (carregando) return <div className="flex-1 flex items-center justify-center"><Loader size={32}/></div>
+  return <Navigate to="/perfil" replace/>
 }
 
 // ── LoginRoute ────────────────────────────────────────────────────────
