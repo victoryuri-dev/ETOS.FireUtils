@@ -4,7 +4,7 @@ import Loader from '../ui/Loader'
 
 const TOM = {
   green:  'border-green-border bg-green-dim text-green',
-  blue:   'border-blue-border bg-blue-dim text-ink',
+  blue:   'border-blue-border bg-blue-dim text-blue',
   amber:  'border-amber-border bg-amber-dim text-amber',
   red:    'border-red-border bg-red-dim text-red',
   neutro: 'border-border bg-transparent text-ink-faint',

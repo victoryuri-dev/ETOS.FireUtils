@@ -206,7 +206,7 @@ function BuscaCnaePorCnpj({ pav, dispatch }) {
   return (
     <div className="ibox blue mb-5 flex-col items-stretch gap-2.5">
       <div className="flex items-start gap-2.5">
-        <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
+        <Icon name="info" size={14} color="var(--color-blue)" className="shrink-0 mt-0.5"/>
         <div className="text-xs leading-[1.6]">
           <div className="font-semibold text-ink mb-0.5">CNAE encontrado pelo CNPJ da Etapa 1</div>
           Escolha qual CNAE preencher neste pavimento. Pode ser diferente da ocupação real — confirme antes de usar.
@@ -435,7 +435,7 @@ function PavCard({ pav, classificacao, onOpen }) {
   return (
     <div
       onClick={onOpen}
-      className={`bg-surface-2 rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-white/25 ${configured ? 'border-border' : 'border-dashed border-border-2'}`}
+      className={`bg-surface rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-ink-hint ${configured ? 'border-border' : 'border-dashed border-border-2'}`}
     >
       <div className="flex items-center justify-between gap-5 py-3.5 px-4">
         <div className="min-w-0">
@@ -482,7 +482,7 @@ function PavCard({ pav, classificacao, onOpen }) {
                         {a.area && <span>{fmtUn(a.area, 'm²', 2, `${a.area} m²`)}</span>}
                       </div>
                     </div>
-                    <span className="font-mono text-[11px] font-semibold text-ink-muted py-0.5 px-2 rounded bg-white/[.05] border border-solid border-border shrink-0">{a.divisao}</span>
+                    <span className="font-mono text-[11px] font-semibold text-ink-muted py-0.5 px-2 rounded bg-surface-2 border border-solid border-border shrink-0">{a.divisao}</span>
                   </div>
                 )
               })}

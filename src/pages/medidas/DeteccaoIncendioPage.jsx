@@ -63,7 +63,7 @@ function EstruturaDeteccao({ estrutura, pavimentos, norma, exigido }) {
       {!exigido ? (
         <div className="ibox green">
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-          <span className="text-xs">Sistema de detecção não exigido para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam o sistema de detecção, conforme NT 01 CBMMA.</span>
         </div>
       ) : (
       <>
@@ -177,7 +177,7 @@ export default function DeteccaoIncendioPage() {
             Detecção de Incêndio
           <LinkNorma sistema="deteccao"/>
           </h2>
-          <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[650px] m-0">
+          <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
             Tipos e quantidades de detectores por pavimento conforme a {nrm.sigla} ({nrm.base_tecnica}). Um pavimento pode ter mais de um tipo de detector.
             {itens.projeto ? ` O projeto deve conter todos os elementos necessários ao seu entendimento (item ${itens.projeto}).` : ''}
           </p>

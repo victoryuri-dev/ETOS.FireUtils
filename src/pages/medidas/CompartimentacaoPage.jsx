@@ -52,7 +52,7 @@ function Checklist({ titulo, tip, opcoes, valores, onToggle }) {
 
 function BadgeVerde({ texto }) {
   return (
-    <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-[rgba(29,158,117,.20)] border-green-border text-green">
+    <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-green-dim border-green-border text-green">
       <Icon name="check" size={12}/> {texto}
     </span>
   )
@@ -66,7 +66,7 @@ function ObrigatoriedadeBadge({ obrigatorio, isenta, compartimentoUnico }) {
       <Icon name="check" size={12}/> Exigida
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-[rgba(29,158,117,.20)] border-green-border text-green">
+    <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid text-[11px] font-semibold bg-green-dim border-green-border text-green">
       <Icon name="x" size={12}/> Não exigida
     </span>
   )
@@ -231,17 +231,14 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   const condV = est.condicoesEspeciaisCompartVertical || []
   const isencaoH = est.isencaoCompartHorizontal || null
   const isencaoV = est.isencaoCompartVertical || null
-  // Botões de substituição só entram na tela quando fazem diferença: a área
-  // já excede o limite (é a saída natural do problema) ou uma substituição
-  // já foi escolhida (pra poder trocar/remover) — no caso comum (conforme,
-  // sem isenção) ficam fora, sem competir com o resultado.
-  const mostrarSubstituicaoH = !!isencaoH || resultadoArea.pavimentosExcedentes.length > 0
-  // Elementos de proteção (parede/porta/vedador corta-fogo etc.) só fazem
-  // sentido quando existe subdivisão a construir: se a compartimentação foi
-  // substituída por sistema alternativo, ou se a edificação já se enquadra
-  // inteira num único compartimento (área considerada dentro do limite do
-  // Anexo B), não há o que adotar — a lista de elementos desaparece.
-  const precisaElementosH = !isencaoH && !resultadoArea.dentroDoLimite
+  // Estes controles pertencem apenas ao cenário em que a compartimentação
+  // horizontal continua efetivamente exigida. Se a área cabe em um único
+  // compartimento ou uma alternativa já concedeu isenção, os elementos de
+  // proteção deixam de aparecer. O seletor de alternativas permanece quando
+  // houver uma escolha ativa, permitindo revisar, trocar ou remover a opção.
+  const horizontalExigida = obrigH && !isencaoH && !resultadoArea.dentroDoLimite
+  const mostrarSubstituicaoH = !!isencaoH || (horizontalExigida && resultadoArea.pavimentosExcedentes.length > 0)
+  const precisaElementosH = horizontalExigida
   const precisaElementosV = !isencaoV
 
   // Só conta o que a norma exige: horizontal (isenção, ou elementos quando há
@@ -309,7 +306,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
               />
             )}
 
-            <Divisor/>
+            {horizontalExigida && <Divisor/>}
 
             {!precisaElementosH && !isencaoH && (
               <div className="ibox green">
@@ -318,8 +315,8 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
               </div>
             )}
 
-            <div className={precisaElementosH ? 'grid grid-cols-2 gap-6' : ''}>
-              {precisaElementosH && (
+            {horizontalExigida && (
+              <div className="grid grid-cols-2 gap-6">
                 <Checklist
                   titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartHorizontal`}/></>}
                   tip="Itens 5.1.3 e 5.1.5, NT 09 CBMMA — a solução adotada deve constar no memorial descritivo."
@@ -327,24 +324,26 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
                   valores={elementosH}
                   onToggle={(k) => toggleArr('elementosCompartHorizontal', elementosH, k)}
                 />
-              )}
-              <Checklist
-                titulo="Condições especiais aplicáveis"
-                opcoes={CONDICOES_ESPECIAIS_HORIZONTAL}
-                valores={condH}
-                onToggle={(k) => toggleArr('condicoesEspeciaisCompartHorizontal', condH, k)}
-              />
-            </div>
+                <Checklist
+                  titulo="Condições especiais aplicáveis"
+                  opcoes={CONDICOES_ESPECIAIS_HORIZONTAL}
+                  valores={condH}
+                  onToggle={(k) => toggleArr('condicoesEspeciaisCompartHorizontal', condH, k)}
+                />
+              </div>
+            )}
 
-            <TrrfNota>
-              TRRF mínimo da parede: {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (EI-{TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}). Portas/vedadores/registros podem ter até {TRRF_REDUCAO_MAXIMA_ABERTURAS} min a menos, nunca abaixo de {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (itens 5.4.1 e 5.4.2).
-            </TrrfNota>
+            {horizontalExigida && (
+              <TrrfNota>
+                TRRF mínimo da parede: {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (EI-{TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}). Portas/vedadores/registros podem ter até {TRRF_REDUCAO_MAXIMA_ABERTURAS} min a menos, nunca abaixo de {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (itens 5.4.1 e 5.4.2).
+              </TrrfNota>
+            )}
           </div>
         ) : (
           <div className="py-3.5 px-[18px]">
             <div className="ibox green">
               <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-              <span className="text-xs">Compartimentação horizontal não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA (Tabela 5 ou 6 aplicável).</span>
+              <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a compartimentação horizontal, conforme NT 01 CBMMA (Tabela 5 ou 6 aplicável).</span>
             </div>
           </div>
         )}
@@ -406,7 +405,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
           <div className="py-3.5 px-[18px]">
             <div className="ibox green">
               <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-              <span className="text-xs">Compartimentação vertical não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA (Tabela 5 ou 6 aplicável). Atenção: a inexistência ou quebra da compartimentação vertical soma as áreas dos pavimentos interligados para fins de área máxima de compartimentação horizontal (item 6.1.1).</span>
+              <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a compartimentação vertical, conforme NT 01 CBMMA (Tabela 5 ou 6 aplicável). Atenção: a inexistência ou quebra da compartimentação vertical soma as áreas dos pavimentos interligados para fins de área máxima de compartimentação horizontal (item 6.1.1).</span>
             </div>
           </div>
         )}
@@ -443,7 +442,7 @@ export default function CompartimentacaoPage() {
             Compartimentação Horizontal e Vertical
           <LinkNorma sistema="compart_horizontal"/>
           </h2>
-          <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
+          <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
             Verificação de exigibilidade (NT 01 CBMMA) e de área máxima de compartimentação (Anexo B, NT 09 CBMMA), por estrutura, a partir da ocupação, altura e área de cada pavimento.
           </p>
         </div>

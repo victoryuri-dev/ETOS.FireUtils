@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import gsap from 'gsap'
-import logo from '../assets/fireutils-landing.svg'
+import logo from '../assets/logo-fireutils-dark.svg'
 import revitVideo from '../assets/revit-fireutils.mp4'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'

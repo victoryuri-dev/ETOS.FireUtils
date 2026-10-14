@@ -26,12 +26,12 @@
 .profile-overview .profile-data-column>section h3{margin:0;color:var(--color-ink);font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:600;letter-spacing:-.025em}
 .profile-data-column>section{margin-bottom:14px}
 .profile-tools-grid{display:grid;grid-template-columns:1fr;gap:12px}
-.profile-tool-card{position:relative;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(220px,.75fr);gap:26px;min-width:0;min-height:180px;padding:22px;border:1px solid var(--color-border);background:linear-gradient(145deg,#191a20,#14151a);clip-path:polygon(13px 0,100% 0,100% calc(100% - 13px),calc(100% - 13px) 100%,0 100%,0 13px);transition:border-color .22s ease,background .22s ease,transform .22s ease}
-.profile-tool-card:hover{border-color:#ffffff38;background:linear-gradient(145deg,#1d1e25,#16171c);transform:translateY(-2px)}
-.profile-tool-card.is-pro{border-color:var(--color-red-border);background:linear-gradient(145deg,#25151a,#17171c 58%)}
+.profile-tool-card{position:relative;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(220px,.75fr);gap:26px;min-width:0;min-height:180px;padding:22px;border:1px solid var(--color-border);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);transition:border-color .22s ease,box-shadow .22s ease,transform .22s ease}
+.profile-tool-card:hover{border-color:color-mix(in srgb,var(--color-ink) 22%,transparent);background:var(--color-surface);box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.profile-tool-card.is-pro{border-color:var(--color-red-border);background:linear-gradient(145deg,color-mix(in srgb,var(--color-red) 7%,var(--color-surface)),var(--color-surface) 58%)}
 .profile-tool-card.is-pro::after{content:'PRO';position:absolute;right:18px;bottom:8px;color:#ea133012;font-family:'Space Grotesk',sans-serif;font-size:46px;font-weight:700;letter-spacing:-.08em;pointer-events:none}
 .profile-tool-main{position:relative;z-index:1;display:flex;align-items:flex-start;gap:13px}
-.profile-tool-icon{display:grid;width:40px;height:40px;flex:0 0 40px;place-items:center;border:1px solid var(--color-border);background:#ffffff06;color:var(--color-ink-muted);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.profile-tool-icon{display:grid;width:40px;height:40px;flex:0 0 40px;place-items:center;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface-2);color:var(--color-ink-muted)}
 .profile-tool-card.is-pro .profile-tool-icon{border-color:var(--color-red-border);background:var(--color-red-dim);color:var(--color-red)}
 .profile-tool-copy{min-width:0;flex:1}
 .profile-tool-title-row{display:flex;align-items:center;justify-content:space-between;gap:14px}

@@ -552,7 +552,7 @@ export default function HidrantesPage() {
               Hidrantes / Mangotinho
             <LinkNorma sistema="hidrantes"/>
           </h2>
-            <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+            <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
               Classificação conforme {norma.NORMA.nome} / NBR 13714 — o dimensionamento hidráulico é calculado pelo plugin Revit a partir dela.
             </p>
           </div>

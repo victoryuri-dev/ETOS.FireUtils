@@ -56,7 +56,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
       {!exigido ? (
         <div className="ibox green">
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-          <span className="text-xs">Segurança estrutural contra incêndio não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a segurança estrutural contra incêndio, conforme NT 01 CBMMA.</span>
         </div>
       ) : (
       <>
@@ -162,8 +162,8 @@ export default function SegurancaEstruturalPage() {
             Segurança Estrutural Contra Incêndio
           <LinkNorma sistema="seg_estrutural"/>
           </h2>
-          <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
-            Classificação e TRRF (Tempo Requerido de Resistência ao Fogo) conforme Anexo B da NT 01 CBMMA, calculados por estrutura a partir da altura (acima do solo) e da profundidade do subsolo.
+          <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
+            Estabelece as condições a serem atendidas pelos elementos estruturais e de compartimentação que integram as edificações, quanto aos Tempos Requeridos de Resistência ao Fogo (TRRF) para que, em situação de incêndio, seja evitado o colapso estrutural por tempo suficiente para possibilitar a saída segura das pessoas e o acesso para as operações do Corpo de Bombeiros Militar.
           </p>
         </div>
 

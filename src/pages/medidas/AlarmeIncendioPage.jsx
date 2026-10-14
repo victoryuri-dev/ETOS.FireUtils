@@ -75,7 +75,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
       {!exigido ? (
         <div className="ibox green">
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-          <span className="text-xs">Sistema de alarme não exigido para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam o sistema de alarme, conforme NT 01 CBMMA.</span>
         </div>
       ) : (
       <>
@@ -254,7 +254,7 @@ export default function AlarmeIncendioPage() {
             Alarme de Incêndio
           <LinkNorma sistema="alarme"/>
           </h2>
-          <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[650px] m-0">
+          <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
             Central, alimentação, acionadores manuais e avisadores conforme a {nrm.sigla} ({nrm.base_tecnica}). Os mínimos da norma já vêm preenchidos como referência e podem ser substituídos; valores abaixo do mínimo são corrigidos.
           </p>
         </div>

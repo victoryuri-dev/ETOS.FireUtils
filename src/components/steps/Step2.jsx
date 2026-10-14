@@ -155,7 +155,7 @@ function EstruturaCard({ est, index, canRemove, dispatch, onOpen }) {
   return (
     <div
       onClick={onOpen}
-      className={`bg-surface-2 rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-white/25 ${configured ? 'border-border' : 'border-dashed border-border-2'}`}
+      className={`bg-surface rounded-lg mb-2 cursor-pointer transition-colors duration-150 border border-solid hover:border-ink-hint ${configured ? 'border-border' : 'border-dashed border-border-2'}`}
     >
       <div className="flex items-center gap-4 py-3.5 px-4">
         <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4">
@@ -287,7 +287,7 @@ export default function Step2({ step, totalSteps }) {
             ].map(o => (
               <div key={o.k} className={optClass(state.situacao === o.k)}
                 onClick={() => dispatch({ type:'SET_FIELD', field:'situacao', value:o.k })}>
-                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${state.situacao===o.k ? 'bg-red-dim text-red' : 'bg-white/5 text-ink-faint'}`}>
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${state.situacao===o.k ? 'bg-red-dim text-red' : 'bg-surface-2 text-ink-faint'}`}>
                   <Icon name={o.icon} size={17}/>
                 </div>
                 <div>

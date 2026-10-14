@@ -10,7 +10,7 @@
   width: 1px; height: calc(100% - 8px); background: var(--color-border);
 }
 .item:last-child::before { display: none; }
-.item:hover:not(.locked) { background: rgba(255,255,255,0.02); }
+.item:hover:not(.locked) { background: color-mix(in srgb,var(--color-ink) 4%,transparent); }
 .num {
   width: 26px; height: 26px; border-radius: 50%;
   border: 1.5px solid var(--color-border); flex-shrink: 0;
@@ -27,5 +27,5 @@
 .item.done   .label { color: var(--color-ink-hint); }
 .item.locked .label { opacity: 0.35; }
 .sub  { font-size: 11px; color: var(--color-ink-hint); }
-.item.done .sub { color: rgba(29,158,117,0.65); }
+.item.done .sub { color: var(--color-green); }
 .locked { pointer-events: none; }

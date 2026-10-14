@@ -79,7 +79,7 @@ export default function Step1({ step, totalSteps }) {
       </div>
 
       <FormSection title="Responsavel pelo uso" description="Empresa ou pessoa que ocupa o imovel — pode ser diferente do proprietario.">
-        <div className="ibox blue"><Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/><span>Buscar pelo CNPJ preenche os dados abaixo automaticamente.</span></div>
+        <div className="ibox blue"><Icon name="info" size={14} color="var(--color-blue)" className="shrink-0"/><span>Buscar pelo CNPJ preenche os dados abaixo automaticamente.</span></div>
 
         <div className="fg mb-3">
           <label>CNPJ <Obrigatorio id={'respCNPJ'}/></label>
@@ -117,7 +117,7 @@ export default function Step1({ step, totalSteps }) {
         {mostrarEnderecoFiscal && (
           <div className="ibox blue mb-4 flex-col items-stretch gap-3">
             <div className="flex items-start gap-2.5">
-              <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
+              <Icon name="info" size={14} color="var(--color-blue)" className="shrink-0 mt-0.5"/>
               <div className="text-xs leading-[1.6]">
                 <div className="font-semibold text-ink mb-0.5">Endereco fiscal encontrado pelo CNPJ</div>
                 {enderecoFiscal.logradouro}, {enderecoFiscal.numero} — {enderecoFiscal.bairro}, {enderecoFiscal.cidade} — {enderecoFiscal.uf}, CEP {enderecoFiscal.cep}.
@@ -158,7 +158,7 @@ export default function Step1({ step, totalSteps }) {
         {mostrarQuadroSocietario && (
           <div className="ibox blue flex-col items-stretch gap-2.5">
             <div className="flex items-start gap-2.5">
-              <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0 mt-0.5"/>
+              <Icon name="info" size={14} color="var(--color-blue)" className="shrink-0 mt-0.5"/>
               <div className="text-xs leading-[1.6]">
                 <div className="font-semibold text-ink mb-0.5">Quadro societario encontrado pelo CNPJ</div>
                 Selecione quem e o proprietario do imovel.

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
 import useEntradaEmLote from '../hooks/useEntradaEmLote'
 import { useProjeto } from '../context/ProjetoContext'
 import { useAuditoria } from '../context/AuditoriaContext'
@@ -11,7 +10,7 @@ import { getCompartimentacao } from '../data/normas/index'
 import { classificarTipoEdificacao } from '../data/compart_calc'
 import { divisoesDaEstrutura } from '../utils/classificacao'
 import Icon from '../components/ui/Icon'
-import InlineEditableNome from '../components/ui/InlineEditableNome'
+import ProjectNotesCard from '../components/notes/ProjectNotesCard'
 import { fmtNum } from '../utils/numero'
 import './DashboardPage.css'
 
@@ -31,6 +30,52 @@ const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'se
 // última coluna (a mais à direita), igual ao GitHub.
 const CELULA = 11 // gap entre quadrados fica em DashboardPage.css (.dashboard-activity__grid)
 const LINHA_MES_ALTURA = 14
+const PROJECT_RING_SIZE = 152
+const PROJECT_RING_CENTER = PROJECT_RING_SIZE / 2
+const PROJECT_RING_RADIUS = (PROJECT_RING_SIZE - 3) / 2
+const PROJECT_RING_CIRCUMFERENCE = 2 * Math.PI * PROJECT_RING_RADIUS
+
+function ProjectProgressRing({ progress }) {
+  const normalizedProgress = Math.min(100, Math.max(0, Number(progress) || 0))
+  const strokeOffset = PROJECT_RING_CIRCUMFERENCE * (1 - normalizedProgress / 100)
+
+  return (
+    <div
+      className="dashboard-overview__ring"
+      role="img"
+      aria-label={`${normalizedProgress}% concluído`}
+      data-progress={normalizedProgress}
+    >
+      <svg className="dashboard-overview__ring-svg -rotate-90" viewBox={`0 0 ${PROJECT_RING_SIZE} ${PROJECT_RING_SIZE}`} aria-hidden="true">
+        <circle
+          cx={PROJECT_RING_CENTER}
+          cy={PROJECT_RING_CENTER}
+          r={PROJECT_RING_RADIUS}
+          fill="none"
+          stroke="currentColor"
+          strokeOpacity=".2"
+          strokeWidth="3"
+        />
+        <circle
+          key={normalizedProgress}
+          cx={PROJECT_RING_CENTER}
+          cy={PROJECT_RING_CENTER}
+          r={PROJECT_RING_RADIUS}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={PROJECT_RING_CIRCUMFERENCE}
+          strokeDashoffset={strokeOffset}
+          className="anel-progresso dashboard-overview__ring-progress"
+          style={{ '--anel-c': PROJECT_RING_CIRCUMFERENCE, '--anel-off': strokeOffset }}
+        />
+      </svg>
+      <strong>{normalizedProgress}<small>%</small></strong>
+      <span>concluído</span>
+    </div>
+  )
+}
 
 function timeAgo(iso) {
   if (!iso) return '—'
@@ -132,285 +177,6 @@ function ActivityHeatmap({ registros, ultimaAlteracao }) {
       </div>
       <p className="dashboard-activity__updated">Última alteração {timeAgo(ultimaAlteracao)}</p>
     </>
-  )
-}
-
-// ── Notas do Dashboard ───────────────────────────────────────────────────
-// Bloco livre ao lado de Identificação: modo "estante" mostra uma tira com
-// scroll de prévias; clicar num bloco expande ele pro tamanho do card e
-// libera edição (contentEditable simples — negrito/itálico/sublinhado/
-// traçado/cor/lista via document.execCommand, sem depender de nenhuma lib
-// de rich text). Cada nota é { id, html, atualizadoEm } em state.notas.
-function novoNotaId() {
-  return `nota-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-}
-
-// Enquanto a nota não recebe um título próprio (InlineEditableNome), usa
-// o começo do próprio conteúdo como nome — igual Keep/Apple Notes — em
-// vez de deixar tudo genérico "Nota sem título" pra sempre. Some de novo
-// assim que o usuário digita um título de verdade (nota.titulo passa a
-// vencer aqui).
-function tituloDaNota(nota) {
-  if (nota.titulo) return nota.titulo
-  const tmp = document.createElement('div')
-  tmp.innerHTML = nota.html || ''
-  const texto = (tmp.textContent || '').replace(/\s+/g, ' ').trim()
-  return texto ? texto.slice(0, 60) : 'Nota sem título'
-}
-
-// Cores do card, estilo "sticky note" (fundo sólido e saturado, texto
-// escuro por cima — ver --nota-* em DashboardPage.css) — cada tema já
-// define a combinação fixa de fundo+fonte, não dá pra escolher cor de
-// texto avulsa (só bold/itálico/sublinhado/traçado/lista na toolbar).
-const CORES_NOTA = [
-  { key: null,     label: 'Sem cor' },
-  { key: 'yellow', label: 'Amarelo' },
-  { key: 'blue',   label: 'Azul'    },
-  { key: 'green',  label: 'Verde'   },
-  { key: 'pink',   label: 'Rosa'    },
-  { key: 'orange', label: 'Laranja' },
-  { key: 'purple', label: 'Roxo'    },
-  { key: 'red',    label: 'Vermelho'},
-]
-
-// Não é um <button> só (com a lixeira/alça dentro) porque <button> dentro
-// de <button> é HTML inválido — cada uma é um botão próprio com
-// stopPropagation, o resto do card abre a nota via role="button" no div.
-// Arrastável E soltável no mesmo id (mesmo padrão de Extintores/Saídas de
-// Emergência — @dnd-kit/core puro, sem o pacote @sortable): só reordena
-// no drop (onDragEnd em NotasCard), não tem preview ao vivo dos vizinhos.
-function NotaPreview({ nota, onOpen, onDelete }) {
-  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({ id: nota.id })
-  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: nota.id })
-  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
-
-  return (
-    <div
-      ref={node => { setDragRef(node); setDropRef(node) }}
-      style={style}
-      className={`dashboard-notas__block${nota.cor ? ` dashboard-notas__block--${nota.cor}` : ''}${isDragging ? ' dashboard-notas__block--dragging' : ''}${isOver ? ' dashboard-notas__block--over' : ''}`}
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(nota.id)}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(nota.id) } }}
-    >
-      <button {...attributes} {...listeners} type="button" className="dashboard-notas__block-grip" onClick={e => e.stopPropagation()} title="Arrastar pra reordenar">
-        <Icon name="grip" size={13}/>
-      </button>
-      <button type="button" className="dashboard-notas__block-delete" onClick={e => { e.stopPropagation(); onDelete(nota.id) }} title="Excluir nota">
-        <Icon name="trash" size={12}/>
-      </button>
-      <div className="dashboard-notas__block-title">{tituloDaNota(nota)}</div>
-      {nota.html
-        ? <div className="dashboard-notas__block-html" dangerouslySetInnerHTML={{ __html: nota.html }}/>
-        : <span className="dashboard-notas__block-empty">Nota vazia</span>}
-      <span className="dashboard-notas__block-meta">{timeAgo(nota.atualizadoEm)}</span>
-    </div>
-  )
-}
-
-// `savedRangeRef` guarda a seleção de texto antes de qualquer clique que
-// tiraria o foco do contentEditable (ex.: abrir o seletor de cor nativo) —
-// sem isso, o execCommand seguinte não sabe mais o que estava selecionado.
-// Botões de formatação usam onMouseDown com preventDefault pra nem chegar
-// a tirar o foco/seleção em primeiro lugar.
-function NotaEditor({ nota, onChange }) {
-  const editorRef = useRef(null)
-  const savedRangeRef = useRef(null)
-  const debounceRef = useRef(null)
-  const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
-
-  useEffect(() => {
-    if (editorRef.current) editorRef.current.innerHTML = nota.html || ''
-    editorRef.current?.focus()
-    return () => {
-      if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null }
-      if (editorRef.current) onChangeRef.current(editorRef.current.innerHTML)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- só re-sincroniza ao trocar de nota, não a cada dispatch/re-render
-  }, [nota.id])
-
-  const flush = () => {
-    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null }
-    if (editorRef.current) onChange(editorRef.current.innerHTML)
-  }
-  const scheduleSave = () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(flush, 700)
-  }
-  const saveSelection = () => {
-    const sel = window.getSelection()
-    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
-      savedRangeRef.current = sel.getRangeAt(0).cloneRange()
-    }
-  }
-  const restoreSelection = () => {
-    if (!savedRangeRef.current) return
-    const sel = window.getSelection()
-    sel.removeAllRanges()
-    sel.addRange(savedRangeRef.current)
-  }
-  const exec = (cmd, value) => {
-    editorRef.current.focus()
-    restoreSelection()
-    document.execCommand(cmd, false, value)
-    saveSelection()
-    scheduleSave()
-  }
-  // Cola só o texto puro — evita que HTML colado de fora (com estilos ou
-  // atributos arbitrários) entre na nota sem passar pelos botões daqui.
-  const handlePaste = e => {
-    e.preventDefault()
-    document.execCommand('insertText', false, e.clipboardData.getData('text/plain'))
-  }
-
-  return (
-    <div className="dashboard-notas__editor">
-      <div className="dashboard-notas__toolbar">
-        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('bold')} title="Negrito"><Icon name="bold" size={13}/></button>
-        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('italic')} title="Itálico"><Icon name="italic" size={13}/></button>
-        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('underline')} title="Sublinhado"><Icon name="underline" size={13}/></button>
-        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('strikeThrough')} title="Traçado"><Icon name="strike" size={13}/></button>
-        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('insertUnorderedList')} title="Lista"><Icon name="list" size={13}/></button>
-      </div>
-      <div
-        ref={editorRef}
-        className="dashboard-notas__content"
-        contentEditable
-        suppressContentEditableWarning
-        onInput={scheduleSave}
-        onBlur={flush}
-        onMouseUp={saveSelection}
-        onKeyUp={saveSelection}
-        onPaste={handlePaste}
-      />
-    </div>
-  )
-}
-
-function NotasCard({ notas, dispatch, height }) {
-  const [expandedId, setExpandedId] = useState(null)
-  const [corMenuAberto, setCorMenuAberto] = useState(false)
-  const corMenuRef = useRef(null)
-  const bodyRef = useRef(null)
-  const expandida = notas.find(n => n.id === expandedId)
-
-  // Mesma linguagem de movimento do TechnicalCardStack (saída rápida
-  // power2.in, entrada mais longa power3.out): some o conteúdo atual
-  // (lista ou editor), só então troca o React state (o que de fato monta
-  // o outro lado) e revela o novo conteúdo já animando de volta.
-  const irPara = novoId => {
-    const node = bodyRef.current
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (!node || reduceMotion) { setExpandedId(novoId); return }
-    gsap.killTweensOf(node)
-    gsap.to(node, {
-      opacity: 0, y: 8, scale: .98, duration: .16, ease: 'power2.in',
-      onComplete: () => {
-        setExpandedId(novoId)
-        requestAnimationFrame(() => {
-          gsap.fromTo(node,
-            { opacity: 0, y: -8, scale: .98 },
-            { opacity: 1, y: 0, scale: 1, duration: .32, ease: 'power3.out', clearProps: 'transform,opacity' })
-        })
-      },
-    })
-  }
-
-  const handleAdd = () => {
-    const id = novoNotaId()
-    dispatch({ type: 'ADD_NOTA', id })
-    irPara(id)
-  }
-  const handleDelete = id => {
-    dispatch({ type: 'REMOVE_NOTA', id })
-    setExpandedId(prev => prev === id ? null : prev)
-  }
-  const handleVoltar = () => { setCorMenuAberto(false); irPara(null) }
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
-  const handleDragEnd = ({ active, over }) => {
-    if (!over || active.id === over.id) return
-    const ids = notas.map(n => n.id)
-    const fromIndex = ids.indexOf(active.id)
-    const toIndex = ids.indexOf(over.id)
-    if (fromIndex === -1 || toIndex === -1) return
-    ids.splice(fromIndex, 1)
-    ids.splice(toIndex, 0, active.id)
-    dispatch({ type: 'REORDER_NOTAS', ids })
-  }
-
-  // Fecha o menu de cor ao clicar fora dele (não precisa de outro jeito de
-  // fechar — trocar/escolher cor já fecha explicitamente).
-  useEffect(() => {
-    if (!corMenuAberto) return
-    const onClickFora = e => { if (corMenuRef.current && !corMenuRef.current.contains(e.target)) setCorMenuAberto(false) }
-    document.addEventListener('mousedown', onClickFora)
-    return () => document.removeEventListener('mousedown', onClickFora)
-  }, [corMenuAberto])
-
-  return (
-    <article className={`dashboard-panel dashboard-notas anim-entra${expandida?.cor ? ` dashboard-notas--${expandida.cor}` : ''}`} style={height ? { height } : undefined}>
-      <div className={`dashboard-section-heading${expandida ? ' dashboard-section-heading--editing' : ''}`}>
-        {expandida ? (
-          <>
-            <div className="dashboard-notas__heading-editing">
-              <button type="button" className="dashboard-notas__back" onClick={handleVoltar} title="Voltar às notas"><Icon name="left" size={15}/></button>
-              <InlineEditableNome
-                value={tituloDaNota(expandida)}
-                onCommit={titulo => dispatch({ type: 'SET_NOTA_TITULO', id: expandida.id, titulo })}
-                textClassName="font-heading text-[15px] tracking-[-.015em] text-[var(--nota-text,var(--color-ink))] truncate"
-              />
-            </div>
-            <div className="dashboard-notas__color-picker" ref={corMenuRef}>
-              <button
-                type="button"
-                className={`dashboard-notas__color-trigger${expandida.cor ? ` dashboard-notas__color-trigger--${expandida.cor}` : ''}`}
-                onClick={() => setCorMenuAberto(o => !o)}
-                title="Cor do card"
-              />
-              {corMenuAberto && (
-                <div className="dashboard-notas__color-menu">
-                  {CORES_NOTA.map(c => (
-                    <button
-                      key={c.key || 'none'}
-                      type="button"
-                      className={`dashboard-notas__color-swatch dashboard-notas__color-swatch--${c.key || 'none'}`}
-                      title={c.label}
-                      onClick={() => { dispatch({ type: 'SET_NOTA_COR', id: expandida.id, cor: c.key }); setCorMenuAberto(false) }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <div><h2>Notas</h2><p>{notas.length ? `${notas.length} nota${notas.length === 1 ? '' : 's'}` : 'Anotações livres do projeto'}</p></div>
-            <button type="button" className="dashboard-notas__new" onClick={handleAdd} title="Nova nota"><Icon name="plus" size={15}/></button>
-          </>
-        )}
-      </div>
-      <div className="dashboard-notas__body" ref={bodyRef}>
-        {expandida ? (
-          <NotaEditor
-            nota={expandida}
-            onChange={html => dispatch({ type: 'SET_NOTA_HTML', id: expandida.id, html })}
-          />
-        ) : notas.length === 0 ? (
-          <div className="dashboard-notas__empty">
-            <p>Nenhuma nota ainda.</p>
-          </div>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <div className="dashboard-notas__scroller">
-              {notas.map(n => <NotaPreview key={n.id} nota={n} onOpen={irPara} onDelete={handleDelete}/>)}
-            </div>
-          </DndContext>
-        )}
-      </div>
-    </article>
   )
 }
 
@@ -687,12 +453,29 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
   const shellRef = useRef(null)
   const identRef = useRef(null)
   const { state, dispatch } = useProjeto()
-  const { info, grupos } = useNorma()
+  const { grupos } = useNorma()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const { campos, pendencias } = useAuditoria()
   const [selectedStructureId, setSelectedStructureId] = useState('all')
   const [atividade, setAtividade] = useState([])
   const [identHeight, setIdentHeight] = useState(null)
+  const [gradientGlow, setGradientGlow] = useState(.72)
+  const [gradientGlowDuration, setGradientGlowDuration] = useState(5)
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+
+    let timer
+    const updateGlow = () => {
+      const duration = 3.8 + Math.random() * 3
+      setGradientGlowDuration(duration)
+      setGradientGlow(.56 + Math.random() * .38)
+      timer = window.setTimeout(updateGlow, duration * 1000)
+    }
+    updateGlow()
+
+    return () => window.clearTimeout(timer)
+  }, [])
 
   // Notas acompanha a altura real de Identificação (ao lado, no mesmo grid)
   // em vez de um valor fixo no CSS — o conteúdo de Identificação varia
@@ -840,27 +623,28 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
   }, [state, sistemas, porEstrutura, selectedStructureId, campos, pendencias])
 
   const { projectReady, configDone } = data
+  const projectProgress = Math.min(100, Math.max(0, Number(data.projectPercent) || 0))
   const sistemasPendentes = data.activeSystems.length - data.systemsDone.length
-  const etapasPendentes = data.configStepCount - data.configuredSteps.length
-  // Narra o que está acontecendo de verdade no projeto — não só "configuração
-  // sim/não". Quatro situações possíveis: nada cadastrado ainda; configuração
-  // inicial incompleta; configuração ok mas sistemas exigidos ainda em
-  // desenvolvimento; tudo concluído (aí sim pronto pra documentação, que não
-  // é um passo contado na porcentagem, só a fase seguinte).
+  const proximaPendencia = configDone
+    ? pendencias.find(item => item.rota?.startsWith('medida/')) || pendencias[0]
+    : pendencias.find(item => item.rota === 'config') || pendencias[0]
+  const proximaSecao = proximaPendencia?.secao || 'configuração do projeto'
+  const abrirProximaPendencia = () => {
+    if (!proximaPendencia || proximaPendencia.rota === 'config') onGoConfig()
+    else onNavigate?.(proximaPendencia.rota.replace('medida/', ''))
+  }
+
+  // O resumo funciona como uma orientação de continuidade: descreve o estado
+  // real e aponta o próximo campo obrigatório, em vez de repetir percentuais.
   const situacaoTitulo = projectReady
-    ? 'Projeto pronto para documentação.'
+    ? 'O projeto completo e pronto para gerar os documentos.'
     : configDone
-      ? 'Configuração concluída — sistemas em desenvolvimento.'
+      ? sistemasPendentes === 1
+        ? `Ainda falta 1 sistema para configurar. Paramos em ${proximaSecao}.`
+        : `Ainda faltam ${sistemasPendentes} sistemas para configurar. Paramos em ${proximaSecao}.`
       : data.hasTechnicalData
-        ? 'Configuração em andamento.'
-        : 'Comece pela configuração do projeto.'
-  const situacaoDetalhe = projectReady
-    ? `${data.activeSystems.length} sistema${data.activeSystems.length === 1 ? '' : 's'} identificado${data.activeSystems.length === 1 ? '' : 's'}, todos com dados concluídos.`
-    : configDone
-      ? `${sistemasPendentes} de ${data.activeSystems.length} sistema${data.activeSystems.length === 1 ? '' : 's'} ainda precisa${sistemasPendentes === 1 ? '' : 'm'} de dados.`
-      : data.hasTechnicalData
-        ? `${etapasPendentes} etapa${etapasPendentes === 1 ? '' : 's'} da configuração ainda precisa${etapasPendentes === 1 ? '' : 'm'} de atenção.`
-        : 'Cadastre a edificação para identificar as exigências e iniciar os dimensionamentos.'
+        ? 'Vamos terminar a base técnica do projeto.'
+        : 'Vamos começar pelas informações essenciais do projeto.'
   const address = [state.endereco, state.numero, state.bairro, state.cidade && `${state.cidade} — ${state.uf || 'MA'}`].filter(Boolean).join(', ')
   useEntradaEmLote(shellRef, '.anim-entra', 'montagem')
   return (
@@ -868,27 +652,43 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       <div className="dashboard-content">
         <header className="dashboard-header anim-entra">
           <div>
-            <div className="dashboard-status-line"><span className={projectReady ? 'is-ready' : ''}/>{projectReady ? 'Projeto concluído' : `${data.projectPercent}% do projeto concluído`}</div>
             <h1>{state.nome || 'Projeto sem nome'}</h1>
-            <p>{[state.cidade && `${state.cidade} — ${state.uf || 'MA'}`, info?.nome || 'NT 01/2019 CBMMA', data.groups.length && `Grupos ${data.groups.join(', ')}`].filter(Boolean).join(' · ')}</p>
           </div>
           <button type="button" className="btn-primary dashboard-header__button" onClick={onGoConfig}><Icon name="settings" size={14}/> Editar configuração</button>
         </header>
 
         <div className="dashboard-top-row">
-          <section className="dashboard-overview anim-entra" aria-label="Situação geral do projeto">
-            <div className="dashboard-overview__lead">
-              <div className="dashboard-overview__copy">
-                <span>Situação do projeto</span>
-                <h2>{situacaoTitulo}</h2>
-                <p>{situacaoDetalhe}</p>
-              </div>
-              <div className="dashboard-overview__score" aria-label={`${data.projectPercent}% concluído`}><strong>{data.projectPercent}<small>%</small></strong><span>do projeto</span></div>
+          <section
+            className="dashboard-overview anim-entra"
+            aria-label="Situação geral do projeto"
+            style={{
+              '--dashboard-gradient-stop': `${projectProgress}%`,
+              '--dashboard-gradient-color': `rgba(204, 26, 50, ${(projectProgress / 100 * .42).toFixed(3)})`,
+              '--dashboard-gradient-glow': gradientGlow,
+              '--dashboard-gradient-glow-duration': `${gradientGlowDuration}s`,
+            }}
+          >
+            <div className="dashboard-overview__beams" aria-hidden="true"><i/><i/><i/></div>
+            <div className="dashboard-overview__score">
+              <ProjectProgressRing progress={projectProgress}/>
             </div>
-            <div className="dashboard-stages">
-              <div className={configDone ? 'is-complete' : 'is-current'}><span>01</span><strong>Configuração</strong><small>{data.configuredSteps.length} de {data.configStepCount} etapas</small></div>
-              <div className={configDone ? (projectReady ? 'is-complete' : 'is-current') : ''}><span>02</span><strong>Sistemas</strong><small>{data.systemsDone.length} de {data.activeSystems.length} concluídos</small></div>
-              <div className={projectReady ? 'is-current' : ''}><span>03</span><strong>Documentação</strong><small>Memorial e anexos</small></div>
+            <div className="dashboard-overview__content">
+              <div className="dashboard-overview__copy">
+                <h2>{situacaoTitulo}</h2>
+                {projectReady ? (
+                  <button type="button" className="dashboard-overview__action" onClick={() => onNavigate?.('documentos')}>
+                    Acessar documentos <Icon name="right" size={14}/>
+                  </button>
+                ) : proximaPendencia && (
+                  <button type="button" className="dashboard-overview__action" onClick={abrirProximaPendencia}>
+                    Continuar em {proximaSecao} <Icon name="right" size={14}/>
+                  </button>
+                )}
+              </div>
+              <div className="dashboard-stages">
+                <div className={configDone ? 'is-complete' : 'is-current'}><span>01</span><strong>Configuração</strong><small>{data.configuredSteps.length} de {data.configStepCount} etapas</small></div>
+                <div className={configDone ? (projectReady ? 'is-complete' : 'is-current') : ''}><span>02</span><strong>Sistemas</strong><small>{data.systemsDone.length} de {data.activeSystems.length} concluídos</small></div>
+              </div>
             </div>
           </section>
 
@@ -914,7 +714,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
             <button type="button" className="dashboard-text-button" onClick={onGoConfig}>Editar identificação <Icon name="right" size={13}/></button>
           </article>
 
-          <NotasCard notas={state.notas} dispatch={dispatch} height={identHeight}/>
+          <ProjectNotesCard notes={state.notas} dispatch={dispatch} height={identHeight} className="anim-entra"/>
         </section>
 
         <section className="dashboard-technical anim-entra" aria-label={`Resumo técnico — ${selectedStructureId === 'all' ? 'todas as edificações' : data.summary.label}`}>

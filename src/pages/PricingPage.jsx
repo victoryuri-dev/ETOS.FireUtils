@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import logo from '../assets/fireutils-landing.svg'
+import logo from '../assets/logo-fireutils-light.svg'
 import Icon from '../components/ui/Icon'
 import './PricingPage.css'
 

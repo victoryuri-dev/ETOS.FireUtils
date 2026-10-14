@@ -402,7 +402,7 @@ export default function SaidaEmergenciaPage() {
                 Saídas de Emergência
               <LinkNorma sistema="saida_emergencia"/>
           </h2>
-              <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+              <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
                 Clique em um pavimento para cadastrar os ambientes e montar a árvore de acessos, saídas e escadas/rampas, conforme {info?.nome || 'NT vigente'} / NBR 9077.
               </p>
             </div>
@@ -458,7 +458,7 @@ export default function SaidaEmergenciaPage() {
                     <thead><tr><TH>Pavimento</TH><TH center>Amb.</TH><TH center>Pop.</TH><TH center>Saídas</TH><TH right>Dist. máxima</TH><TH/></tr></thead>
                     <tbody>
                       {dadosDaEstrutura.map(({ pav, pop, nSaidas, dist }) => (
-                        <tr key={pav.id} onClick={() => setViewPavId(pav.id)} className="cursor-pointer transition-colors duration-100 hover:bg-white/[.025]">
+                        <tr key={pav.id} onClick={() => setViewPavId(pav.id)} className="cursor-pointer transition-colors duration-100 hover:bg-surface-2">
                           <TD bold>
                             {pav.nome}
                             {pav.pisoDescarga && <span className="ml-1.5 align-middle text-[9px] py-0.5 px-1.5 rounded bg-amber-dim border border-solid border-amber-border text-amber font-semibold">DESCARGA</span>}

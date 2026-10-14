@@ -78,7 +78,7 @@ export default function AnexoBPage({ onBack }) {
                 <tr><td colSpan={6}><Campo label="COMPLEMENTO:" value={d.complemento}/></td><td colSpan={5}><Campo label="UF:" value={d.uf === 'MA' ? 'MARANHÃO' : d.uf}/></td></tr>
                 <tr><td colSpan={6}><Campo label="PROPRIETÁRIO:" value={d.proprietario}/></td><td colSpan={5}><Campo label="CPF/CNPJ:" value={d.proprietarioDocumento}/></td></tr>
                 <tr><td colSpan={6}><Campo label="RESPONSÁVEL PELO USO:" value={d.responsavelUso}/></td><td colSpan={5}><Campo label="CPF:" value={d.responsavelDocumento}/></td></tr>
-                <tr><td colSpan={6}><Campo label="E-MAIL:" value={d.responsavelEmail}/></td><td colSpan={5}><Campo label="FONE:" value={d.responsavelFone || '(    )'}/></td></tr>
+                <tr><td colSpan={6}><Campo label="E-MAIL:" value={d.responsavelEmail}/></td><td colSpan={5}><Campo label="FONE:" value={d.responsavelFone}/></td></tr>
                 <tr><td colSpan={9}><Campo label="RAZÃO SOCIAL:" value={d.razaoSocial}/></td><td colSpan={2}><Campo label="CNPJ:" value={d.cnpj}/></td></tr>
                 <tr><td colSpan={11}><Campo label="NOME FANTASIA:" value={d.nomeFantasia}/></td></tr>
                 <tr><td colSpan={11}><Campo label="CNAE PRINCIPAL:" value={d.cnaePrincipal}/></td></tr>
@@ -93,7 +93,7 @@ export default function AnexoBPage({ onBack }) {
                 <tr><td colSpan={4}><Campo label="Nº DO CAP PRINCIPAL:" accent/></td></tr>
                 <tr><td colSpan={8}><Campo label="RESPONSÁVEL TÉCNICO:" value={d.responsavelTecnico}/></td><td colSpan={3} rowSpan={3}/></tr>
                 <tr><td colSpan={2}><Campo label="CPF:" value={d.rtCpf}/></td><td colSpan={6}><Campo label="Nº DO CONSELHO:" value={d.rtConselho}/></td></tr>
-                <tr><td colSpan={3}><Campo label="e-mail:" value={d.rtEmail}/></td><td colSpan={5}><Campo label="FONE:" value={d.rtFone || '(    )'}/></td></tr>
+                <tr><td colSpan={3}><Campo label="e-mail:" value={d.rtEmail}/></td><td colSpan={5}><Campo label="FONE:" value={d.rtFone}/></td></tr>
                 <SectionBar>CARACTERÍSTICAS CONSTRUTIVAS</SectionBar>
                 <tr><td colSpan={2} className="anexob-label">ESTRUTURA (CONCRETO, AÇO, MADEIRA, OUTROS.):</td><td colSpan={9}>{d.estrutura}</td></tr>
                 <tr><td colSpan={2} className="anexob-label">ELEMENTOS DE COBERTURA:</td><td colSpan={9}>{d.cobertura}</td></tr>

@@ -49,7 +49,7 @@ export default function Step3({ step, totalSteps }) {
 
       {preenchidoDoPerfil && (
         <div className="ibox blue">
-          <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
+          <Icon name="info" size={14} color="var(--color-blue)" className="shrink-0"/>
           <span>Preenchido com o responsável técnico do seu perfil. Alterações feitas aqui valem só para este projeto.</span>
         </div>
       )}

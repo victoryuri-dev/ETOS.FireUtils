@@ -60,13 +60,13 @@ export default function GerenciamentoRiscoPage() {
           Gerenciamento de Risco de Incêndio
         <LinkNorma sistema="gerenciamento_risco"/>
           </h2>
-        <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
+        <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
           Plano de Emergência Contra Incêndio conforme NT 16/2021 CBMMA (Anexo B) — vira um capítulo do Memorial Descritivo.
         </p>
       </div>
 
       <div className="ibox blue">
-        <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
+        <Icon name="info" size={14} color="var(--color-blue)" className="shrink-0"/>
         <span>
           Endereço, estrutura, área, altura, ocupação, sistemas de segurança e riscos especiais já cadastrados na
           Configuração do projeto entram automaticamente no capítulo do Plano de Emergência dentro do Memorial

@@ -36,10 +36,14 @@ import AlarmeIncendioPage     from './pages/medidas/AlarmeIncendioPage'
 import DeteccaoIncendioPage   from './pages/medidas/DeteccaoIncendioPage'
 import Icon           from './components/ui/Icon'
 import Loader         from './components/ui/Loader'
+import ProjectNotesCard from './components/notes/ProjectNotesCard'
 import { AuditoriaProvider } from './context/AuditoriaContext'
 import AuditoriaPage from './pages/AuditoriaPage'
 import ToastProvider   from './components/ui/ToastProvider'
-import landingLogo    from './assets/fireutils-landing.svg'
+import landingLogo from './assets/logo-fireutils-light.svg'
+import landingLogoDark from './assets/logo-fireutils-dark.svg'
+import { ThemeProvider } from './context/ThemeContext'
+import { useTheme } from './context/theme-context'
 
 // ── SaveStatusIndicator ───────────────────────────────────────────────
 // Mostra se o projeto esta sendo sincronizado com o servidor ou se ja foi
@@ -69,21 +73,48 @@ function SaveStatusIndicator({ status }) {
   )
 }
 
+function HeaderNotes({ notes, dispatch, open, onToggle, onClose }) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        title="Notas do projeto"
+        aria-label="Notas do projeto"
+        aria-expanded={open}
+        className={`w-8 h-8 grid place-items-center rounded-md border border-solid bg-surface transition-colors ${open ? 'border-red text-red bg-red-dim' : 'border-border text-ink-faint hover:text-ink hover:bg-surface-2'}`}
+      >
+        <Icon name="notebookPen" size={16}/>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={onClose}/>
+          <section className="header-notes-popover absolute right-0 top-[42px] z-50 w-[360px] max-w-[calc(100vw-32px)]" aria-label="Notas do projeto">
+            <ProjectNotesCard notes={notes} dispatch={dispatch} height={300} className="header-notes-card"/>
+          </section>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ── AppHeader ─────────────────────────────────────────────────────────
 function AppHeader({ onGoProjetos, isProjectPage, showProjectsLink = false }) {
   const { user, signOut } = useAuth()
   const { perfil } = usePerfil()
-  const { state, syncStatus } = useProjeto()
+  const { state, dispatch, syncStatus } = useProjeto()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
   const navigate = useNavigate()
   const profileName = nomeDeUsuario(perfil, user)
+  const { theme, toggleTheme } = useTheme()
 
   return (
-    <header className="relative flex items-center justify-between gap-3 px-6 h-16 border-b border-border border-solid shrink-0 z-100">
+    <header className="relative flex items-center justify-between gap-3 px-4 sm:px-6 h-16 border-b border-border border-solid bg-surface shadow-[0_1px_0_rgba(19,24,34,.02)] shrink-0 z-100">
       {/* Logo — omitida dentro de um projeto, ja mostrada no topo do aside */}
       {!isProjectPage && (
         <div className="flex items-center gap-2.5">
-          <img src={landingLogo} alt="FireUtils" className="w-[126px] h-auto"/>
+          <img src={theme === 'light' ? landingLogo : landingLogoDark} alt="FireUtils" className="w-[126px] h-auto"/>
         </div>
       )}
 
@@ -91,8 +122,8 @@ function AppHeader({ onGoProjetos, isProjectPage, showProjectsLink = false }) {
           de um projeto, ja que fora dele nao ha contexto pra mostrar. */}
       {isProjectPage && (
         <nav className="flex items-center gap-1.5 text-[14px] min-w-0 overflow-hidden whitespace-nowrap">
-          <button onClick={onGoProjetos} className="text-ink-muted hover:text-ink transition-colors cursor-pointer">
-            PROJETOS
+          <button onClick={onGoProjetos} className="inline-flex items-center gap-2 text-ink-muted hover:text-ink transition-colors cursor-pointer">
+            <Icon name="left" size={14}/> PROJETOS
           </button>
           {state.uf && <>
             <span className="text-ink-hint">/</span>
@@ -119,13 +150,33 @@ function AppHeader({ onGoProjetos, isProjectPage, showProjectsLink = false }) {
       )}
 
       {/* Direita — conta */}
-      <div className="flex items-center gap-4 sm:gap-6 relative shrink-0">
-        {isProjectPage && <button type="button" className="btn-ghost text-xs" onClick={() => navigate(`/projeto/${state.id}/auditoria`)}>
-          <Icon name="search" size={14}/><span className="hidden sm:inline">Auditar projeto</span>
-          <span className="sm:hidden">Auditar</span>
-        </button>}
+      <div className="flex items-center gap-5 sm:gap-6 relative shrink-0">
+        <div className="flex items-center gap-2">
+          {isProjectPage && <button type="button" className="btn-ghost text-xs" onClick={() => navigate(`/projeto/${state.id}/auditoria`)}>
+            <Icon name="search" size={14}/><span className="hidden sm:inline">Auditar projeto</span>
+            <span className="sm:hidden">Auditar</span>
+          </button>}
+          {isProjectPage && (
+            <HeaderNotes
+              notes={state.notas || []}
+              dispatch={dispatch}
+              open={notesOpen}
+              onToggle={() => { setMenuOpen(false); setNotesOpen(value => !value) }}
+              onClose={() => setNotesOpen(false)}
+            />
+          )}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'}
+            aria-label={theme === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'}
+            className="w-8 h-8 grid place-items-center rounded-md border border-solid border-border bg-surface text-ink-faint hover:text-ink hover:bg-surface-2 transition-colors"
+          >
+            <Icon name={theme === 'light' ? 'moon' : 'sun'} size={15}/>
+          </button>
+        </div>
         <button
-          onClick={() => setMenuOpen(o => !o)}
+          onClick={() => { setNotesOpen(false); setMenuOpen(o => !o) }}
           title={user?.email}
           className="group flex items-center gap-2.5 min-w-0 cursor-pointer text-ink-muted hover:text-ink transition-colors"
         >
@@ -137,7 +188,7 @@ function AppHeader({ onGoProjetos, isProjectPage, showProjectsLink = false }) {
         {menuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}/>
-            <div className="absolute right-0 top-[42px] bg-surface border border-border border-solid rounded-lg shadow-lg py-1 min-w-[200px] z-50">
+            <div className="absolute right-0 top-[42px] bg-surface border border-border border-solid rounded-lg shadow-[var(--shadow-md)] py-1 min-w-[200px] z-50">
               <div className="px-3 py-2 text-[11px] text-ink-faint border-b border-border border-solid truncate">
                 {user?.email}
               </div>
@@ -323,7 +374,6 @@ function ProjectLayout() {
       <ProjectAside
         activePage={activePage}
         onNavigate={handleNavigate}
-        onSairDoProjeto={() => navigate('/projetos')}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage/>
@@ -356,11 +406,11 @@ function AuthedLayout() {
   if (!user) return <Navigate to="/login" state={{ from: location }} replace/>
 
   return (
-    <LicencaProvider>
-      <div className="w-screen h-screen flex overflow-hidden bg-bg text-ink">
+    <ThemeProvider>
+      <LicencaProvider>
         <PortaoLicenca/>
-      </div>
-    </LicencaProvider>
+      </LicencaProvider>
+    </ThemeProvider>
   )
 }
 

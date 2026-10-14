@@ -39,7 +39,9 @@ export default function useEntradaEmLote(rootRef, seletor, chave) {
     return () => {
       io.disconnect(); clearTimeout(timer)
       gsap.killTweensOf(cards)
-      gsap.set(cards, { clearProps: 'all' })
+      // Preserve component-owned inline styles (for example dynamic CSS
+      // variables). The entrance animation only owns these three props.
+      gsap.set(cards, { clearProps: 'transform,opacity,visibility' })
     }
   }, [rootRef, seletor, chave])
 }

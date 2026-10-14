@@ -372,7 +372,7 @@ export default function SinalizacaoPage() {
               Sinalização de Emergência
             <LinkNorma sistema="sinalizacao"/>
           </h2>
-            <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+            <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
               Cadastre as placas de sinalização de emergência utilizadas em cada estrutura, conforme a NT 20 CBMMA / NBR 13434 — proibição, alerta, orientação/saída e equipamentos de combate a incêndio.
             </p>
           </div>
@@ -414,7 +414,7 @@ export default function SinalizacaoPage() {
               {!exigido ? (
                 <div className="ibox green">
                   <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                  <span className="text-xs">Sinalização de emergência não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+                  <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a sinalização de emergência, conforme NT 01 CBMMA.</span>
                 </div>
               ) : (
                 <SinalizacaoEstrutura

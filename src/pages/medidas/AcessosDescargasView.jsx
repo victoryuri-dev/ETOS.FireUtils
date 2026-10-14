@@ -88,7 +88,7 @@ function AmbienteChip({ amb, taxaPopulacional, larguras, onEdit, onRemove, onDes
       : undefined
   return (
     <div ref={setNodeRef} style={style} onClick={() => modoSelecao ? onToggleSelecao(amb.id) : onEdit(amb)}
-      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''} ${souSeguidor ? 'relative shadow-[0_6px_16px_rgba(0,0,0,.35)]' : ''}`}
+      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-ink-hint'} ${isDragging ? 'opacity-40 relative z-50' : ''} ${souSeguidor ? 'relative shadow-[var(--shadow-md)]' : ''}`}
     >
       <div className="flex items-center gap-2.5 min-w-0 max-w-[50%]">
         <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar ambiente">
@@ -200,7 +200,7 @@ function AcessoCard({ acesso, ambientes, acessos, taxaPopulacional, larguras, pi
 
   return (
     <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
-      className={`group rounded-lg border border-solid bg-surface overflow-hidden transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
+      className={`group rounded-lg border border-solid bg-surface overflow-hidden transition-colors ${isOver ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-ink-hint'} ${isDragging ? 'opacity-40' : ''} ${isRaiz ? '' : 'ml-1'}`}
     >
       <div className="flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none bg-surface-2" onClick={() => toggleColapsado(acesso.id)}>
         <div className="flex items-center gap-2 min-w-0 max-w-[50%]">

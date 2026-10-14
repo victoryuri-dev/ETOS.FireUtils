@@ -24,9 +24,9 @@ import { statusEstrutura } from '../../utils/statusEstrutura'
 // card fechado, se a configuração/os dados da estrutura estão pendentes ou
 // resolvidos: pílula ao lado do título + linha de destaque na borda esquerda.
 const STATUS_TONE = {
-  pendente:  { pill: 'bg-white/[.04] border-border text-ink-faint',                          bar: 'bg-white/15',  dot: 'ring-1 ring-current bg-transparent' },
-  andamento: { pill: 'bg-[rgba(186,117,23,.12)] border-amber-border text-amber',              bar: 'bg-amber',     dot: 'bg-current shadow-[0_0_8px_currentColor]' },
-  concluido: { pill: 'bg-[rgba(29,158,117,.12)] border-green-border text-green',              bar: 'bg-green',     dot: '' },
+  pendente:  { pill: 'bg-surface-2 border-border text-ink-faint',                          bar: 'bg-border',  dot: 'ring-1 ring-current bg-transparent' },
+  andamento: { pill: 'bg-amber-dim border-amber-border text-amber',                            bar: 'bg-amber',     dot: 'bg-current shadow-[0_0_8px_currentColor]' },
+  concluido: { pill: 'bg-green-dim border-green-border text-green',                            bar: 'bg-green',     dot: '' },
   atencao:   { pill: 'bg-red-dim border-red-border text-red',                   bar: 'bg-red',       dot: 'bg-current shadow-[0_0_8px_currentColor]' },
 }
 
@@ -80,7 +80,7 @@ function BarraConclusao({ concluida, automatica, definir, pendencias = [] }) {
           ? (automatica ? 'Concluída com os dados sincronizados do Revit. Reabra se precisar revisar.' : 'Estrutura marcada como concluída. Reabra para voltar a acompanhar o status.')
           : pendencias.length ? `Preencha os campos obrigatórios antes de concluir: ${pendencias.map(p => p.rotulo).join('; ')}.` : 'Enquanto não for marcada como concluída, a estrutura permanece em amarelo.'}
       </span>
-      <button type="button" disabled={!concluida && pendencias.length > 0} onClick={() => definir(!concluida)} className={concluida ? 'btn-ghost shrink-0' : 'btn-success shrink-0'}>
+      <button type="button" disabled={!concluida && pendencias.length > 0} onClick={() => definir(!concluida)} className={concluida ? 'inline-flex min-h-9 items-center gap-1.5 rounded-md border border-solid border-blue-border bg-blue-dim px-3.5 text-xs font-semibold text-blue transition-colors hover:border-blue hover:bg-blue hover:text-white shrink-0' : 'btn-success shrink-0'}>
         <Icon name={concluida ? 'edit' : 'check'} size={13}/>
         {concluida ? 'Reabrir' : 'Marcar como concluída'}
       </button>
@@ -99,7 +99,7 @@ export default function EstruturaSection({ titulo, extra, status: statusBase, co
   const bar = status ? (STATUS_TONE[status.tone] || STATUS_TONE.pendente).bar : null
 
   return (
-    <div className="relative mb-5 border border-solid border-border rounded-lg overflow-clip bg-surface transition-colors duration-300 ease-out hover:border-[rgba(255,255,255,.3)] focus-within:border-[rgba(255,255,255,.3)] last:mb-0">
+    <div className="relative mb-5 border border-solid border-border rounded-lg overflow-clip bg-surface transition-colors duration-300 ease-out hover:border-ink-hint focus-within:border-ink-hint last:mb-0">
       {bar && <span aria-hidden="true" className={`absolute left-0 top-0 bottom-0 w-[2px] ${bar} opacity-80`}/>}
       <div
         onClick={() => setOpen(o => !o)}

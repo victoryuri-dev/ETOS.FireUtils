@@ -1,5 +1,5 @@
 /* Estilos compartilhados entre todas as etapas */
-.section { max-width: 720px; margin: 0 auto; padding: 34px 48px 96px; }
+.section { max-width: 800px; margin: 0 auto; padding: 42px clamp(28px, 5vw, 64px) 104px; }
 .header  { margin-bottom: 26px; }
 .stepLabel { font-size: 11px; color: var(--color-red); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 5px; }
 .title   { font-size: 22px; font-weight: 600; color: var(--color-ink); margin-bottom: 5px; }
@@ -21,11 +21,11 @@
   display: flex; align-items: center; gap: 12px;
   transition: border-color 0.15s, background 0.15s;
 }
-.edifOpt:hover { border-color: rgba(255,255,255,0.18); }
+.edifOpt:hover { border-color: color-mix(in srgb,var(--color-ink) 26%,transparent); background: var(--color-surface); }
 .edifOpt.selected { border-color: var(--color-red-border); background: var(--color-red-dim); }
 .edifIcon {
   width: 32px; height: 32px; border-radius: var(--radius-md);
-  background: rgba(255,255,255,0.05); display: flex;
+  background: color-mix(in srgb,var(--color-ink) 5%,transparent); display: flex;
   align-items: center; justify-content: center; color: var(--color-ink-faint); flex-shrink: 0;
 }
 .edifOpt.selected .edifIcon { background: var(--color-red-dim); color: var(--color-red); }
@@ -35,11 +35,11 @@
 
 /* Pav cards */
 .pavList { display: flex; flex-direction: column; gap: 8px; }
-.pavCard { background: var(--color-surface-2); border: 0.5px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+.pavCard { background: var(--color-surface); border: 0.5px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
 .pavCard.hasOcup { border-color: rgba(192,21,42,0.2); }
 .pavHeader { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; cursor: pointer; user-select: none; }
 .pavHeaderLeft { display: flex; align-items: center; gap: 10px; }
-.pavNum { width: 28px; height: 28px; border-radius: var(--radius-md); background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--color-ink-faint); flex-shrink: 0; }
+.pavNum { width: 28px; height: 28px; border-radius: var(--radius-md); background: color-mix(in srgb,var(--color-ink) 5%,transparent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--color-ink-faint); flex-shrink: 0; }
 .pavCard.hasOcup .pavNum { background: var(--color-red-dim); color: var(--color-red); }
 .pavName { font-size: 13px; font-weight: 500; color: var(--color-ink-muted); }
 .pavSub  { font-size: 11px; color: var(--color-ink-faint); margin-top: 2px; }
@@ -50,12 +50,12 @@
 .pavTags { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .pavTag { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
 .pavTag.main { background: var(--color-red-dim); border: 0.5px solid var(--color-red-border); color: var(--color-red); }
-.pavTag.acc  { background: rgba(255,255,255,0.06); border: 0.5px solid var(--color-border); color: var(--color-ink-faint); }
+.pavTag.acc  { background: color-mix(in srgb,var(--color-ink) 5%,transparent); border: 0.5px solid var(--color-border); color: var(--color-ink-faint); }
 
 /* Grupo mini */
 .ocupGrid { display: grid; grid-template-columns: repeat(9,1fr); gap: 5px; margin-bottom: 12px; }
 .ocupMini { border: 0.5px solid var(--color-border); border-radius: var(--radius-md); padding: 8px 4px; cursor: pointer; text-align: center; transition: border-color 0.15s, background 0.15s; }
-.ocupMini:hover { border-color: rgba(255,255,255,0.18); }
+.ocupMini:hover { border-color: color-mix(in srgb,var(--color-ink) 26%,transparent); background: var(--color-surface); }
 .ocupMini.sel { border-color: var(--color-red-border); background: var(--color-red-dim); }
 .ocupMiniL { font-size: 15px; font-weight: 700; color: var(--color-ink-faint); }
 .ocupMini.sel .ocupMiniL { color: var(--color-red); }
@@ -69,14 +69,14 @@
 .sistCard { border: 0.5px solid var(--color-border); border-radius: var(--radius-md); padding: 13px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.15s, background 0.15s; position: relative; }
 .sistCard.on    { border-color: var(--color-green-border); background: var(--color-green-dim); }
 .sistCard.obrig { border-color: var(--color-red-border); background: var(--color-red-dim); pointer-events: none; }
-.sistIcon { width: 28px; height: 28px; border-radius: var(--radius-md); background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; color: var(--color-ink-faint); }
+.sistIcon { width: 28px; height: 28px; border-radius: var(--radius-md); background: color-mix(in srgb,var(--color-ink) 5%,transparent); display: flex; align-items: center; justify-content: center; color: var(--color-ink-faint); }
 .sistCard.on    .sistIcon { background: var(--color-green-dim); color: var(--color-green); }
 .sistCard.obrig .sistIcon { background: var(--color-red-dim);   color: var(--color-red);   }
 .sistName { font-size: 12px; font-weight: 500; color: var(--color-ink-muted); }
 .sistCard.on    .sistName { color: var(--color-green); }
 .sistCard.obrig .sistName { color: var(--color-red); }
 .sistStatus { font-size: 10px; color: var(--color-ink-hint); }
-.sistCard.on    .sistStatus { color: rgba(29,158,117,0.65); }
+.sistCard.on    .sistStatus { color: var(--color-green); }
 .sistCard.obrig .sistStatus { color: rgba(192,21,42,0.6); }
 .sistChk { position: absolute; top: 9px; right: 9px; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--color-border); display: flex; align-items: center; justify-content: center; }
 .sistCard.on    .sistChk { background: var(--color-green); border-color: var(--color-green); }
@@ -101,3 +101,9 @@
 .resumoTable td { padding: 9px 0; font-size: 13px; }
 .resumoTable td:first-child { color: var(--color-ink-faint); width: 42%; }
 .resumoTable td:last-child  { color: var(--color-ink); font-weight: 500; }
+
+@media (max-width: 640px) {
+  .section { padding: 28px 18px 72px; }
+  .edifToggle,.sistemasGrid { grid-template-columns: 1fr; }
+  .ocupGrid { grid-template-columns: repeat(3,1fr); }
+}

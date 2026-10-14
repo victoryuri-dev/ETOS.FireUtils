@@ -19,7 +19,7 @@ export default function StepsNav({ steps, current, isUnlocked, getStatus, onGo }
           : 'bg-transparent border-border text-ink-faint'
 
         const labelClass = active ? 'text-ink' : done ? 'text-ink-muted' : partial ? 'text-ink-muted' : 'text-ink-faint'
-        const subClass = done ? 'text-[rgba(29,158,117,.75)]' : partial ? 'text-[rgba(201,160,40,.75)]' : 'text-ink-hint'
+        const subClass = done ? 'text-green' : partial ? 'text-amber' : 'text-ink-hint'
 
         return (
           <div key={n} onClick={() => !locked && onGo(n)}

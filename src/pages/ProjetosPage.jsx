@@ -116,10 +116,10 @@ function riscoInfo(q) {
 }
 
 const CHIP_TONE = {
-  green:   'bg-[rgba(29,158,117,.12)] border-green-border text-green',
-  amber:   'bg-[rgba(186,117,23,.12)] border-amber-border text-amber',
+  green:   'bg-green-dim border-green-border text-green',
+  amber:   'bg-amber-dim border-amber-border text-amber',
   red:     'bg-red-dim border-red-border text-red',
-  neutral: 'bg-white/[.04] border-border text-ink-faint',
+  neutral: 'bg-surface-2 border-border text-ink-faint',
 }
 
 function Chip({ tone = 'neutral', icon, children }) {
@@ -156,13 +156,13 @@ function StatusPill({ dot, tone, label, active, onClick }) {
   const activeClass = {
     green: 'border-green-border bg-green-dim text-green',
     amber: 'border-amber-border bg-amber-dim text-amber',
-    muted: 'border-white/25 bg-white/[.08] text-ink',
+    muted: 'border-border bg-surface-2 text-ink',
   }[tone]
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 text-[11px] py-1 px-2.5 rounded-[20px] border border-solid whitespace-nowrap cursor-pointer transition-colors duration-150 ${active ? activeClass : 'border-border bg-transparent text-ink-faint hover:border-white/20 hover:text-ink-muted'}`}
+      className={`inline-flex items-center gap-1.5 text-[11px] py-1 px-2.5 rounded-[20px] border border-solid whitespace-nowrap cursor-pointer transition-colors duration-150 ${active ? activeClass : 'border-border bg-transparent text-ink-faint hover:border-ink-hint hover:text-ink-muted'}`}
     >
       <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${dot}`}/>
       {label}
@@ -191,7 +191,7 @@ function CardActions({ onDelete, onDuplicate, className = '' }) {
         <button
           onClick={onDuplicate}
           title="Duplicar projeto"
-          className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-white/[.07] hover:text-ink hover:border-border"
+          className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-ink hover:border-border"
         >
           <Icon name="copy" size={12}/>
         </button>
@@ -234,7 +234,7 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
     <div
       onClick={() => onOpen(proj)}
       onMouseEnter={() => setReplay(n => n + 1)}
-      className="card-projeto group relative bg-surface-2 hover:bg-surface border border-solid border-border hover:border-white/13 rounded-lg p-4 cursor-pointer transition-colors duration-150 flex flex-col gap-3.5"
+      className="card-projeto group relative bg-surface hover:bg-surface border border-solid border-border hover:border-ink-hint hover:shadow-[var(--shadow-sm)] rounded-lg p-4 cursor-pointer transition-[border-color,box-shadow] duration-150 flex flex-col gap-3.5"
     >
       {/* Ações (excluir / duplicar) */}
       <CardActions
@@ -329,7 +329,7 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
   return (
     <div
       onClick={() => onOpen(proj)}
-      className={`group grid ${LIST_GRID_COLS} gap-3.5 items-center py-3.5 px-4 bg-surface-2 hover:bg-surface border border-solid border-border hover:border-white/13 rounded-lg cursor-pointer transition-colors duration-150`}
+      className={`group grid ${LIST_GRID_COLS} gap-3.5 items-center py-3.5 px-4 bg-surface border border-solid border-border hover:border-ink-hint hover:shadow-[var(--shadow-sm)] rounded-lg cursor-pointer transition-[border-color,box-shadow] duration-150`}
     >
       {/* Nome — exatamente como foi digitado */}
       <span className="font-heading text-[13px] font-bold text-ink overflow-hidden text-ellipsis whitespace-nowrap">
@@ -368,13 +368,13 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
 function ConfirmModal({ tone, icon, title, message, confirmLabel, onConfirm, onCancel }) {
   const toneClass = tone === 'red'
     ? { dot: 'bg-red-dim border-red-border text-red', btn: 'bg-red hover:brightness-90' }
-    : { dot: 'bg-blue-dim border-blue-border text-ink', btn: 'bg-ink-muted hover:bg-ink text-bg' }
+    : { dot: 'bg-blue-dim border-blue-border text-blue', btn: 'bg-ink-muted hover:bg-ink text-bg' }
 
   return (
     <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={onCancel}>
       <div
         onClick={e => e.stopPropagation()}
-        className="bg-surface border border-solid border-border rounded-lg py-7 px-8 w-[400px] max-w-[90vw] shadow-[0_20px_60px_rgba(0,0,0,.5)]"
+        className="bg-surface border border-solid border-border rounded-lg py-7 px-8 w-[400px] max-w-[90vw] shadow-[var(--shadow-md)]"
       >
         {/* Ícone */}
         <div className={`w-11 h-11 rounded-full border border-solid flex items-center justify-center mx-auto mb-[18px] ${toneClass.dot}`}>
@@ -466,9 +466,9 @@ function NovoProjetoBotao({ onNewProject }) {
         <Icon name="chevD" size={17} strokeWidth={3}/>
       </button>
       {aberto && (
-        <div className="absolute top-full right-0 mt-1.5 min-w-[240px] bg-surface-2 border border-solid border-border rounded-lg shadow-[0_12px_32px_rgba(0,0,0,.4)] z-50 py-1.5 overflow-hidden">
+        <div className="absolute top-full right-0 mt-1.5 min-w-[240px] bg-surface border border-solid border-border rounded-lg shadow-[var(--shadow-md)] z-50 py-1.5 overflow-hidden">
           <button
-            className="w-full text-left px-3.5 py-2.5 bg-transparent border-none cursor-pointer hover:bg-white/[.04] flex flex-col gap-0.5"
+            className="w-full text-left px-3.5 py-2.5 bg-transparent border-none cursor-pointer hover:bg-surface-2 flex flex-col gap-0.5"
             onClick={() => { setAberto(false); onNewProject('dimensionamento') }}
           >
             <span className="font-heading text-[13px] font-medium text-ink">Apenas dimensionamento</span>
@@ -508,13 +508,13 @@ function FilterDropdown({ prefix, value, options, onChange }) {
         <Icon name="chevD" size={11} className="text-ink-faint"/>
       </button>
       {aberto && (
-        <div className="absolute top-full left-0 mt-1.5 min-w-full bg-surface-2 border border-solid border-border rounded-lg shadow-[0_12px_32px_rgba(0,0,0,.4)] z-50 py-1.5 overflow-hidden">
+        <div className="absolute top-full left-0 mt-1.5 min-w-full bg-surface border border-solid border-border rounded-lg shadow-[var(--shadow-md)] z-50 py-1.5 overflow-hidden">
           {options.map(o => (
             <button
               key={o.value}
               type="button"
               onClick={() => { onChange(o.value); setAberto(false) }}
-              className={`w-full text-left px-3.5 py-2 bg-transparent border-none cursor-pointer whitespace-nowrap hover:bg-white/[.04] text-[13px] ${o.value === value ? 'text-ink font-semibold' : 'text-ink-muted'}`}
+              className={`w-full text-left px-3.5 py-2 bg-transparent border-none cursor-pointer whitespace-nowrap hover:bg-surface-2 text-[13px] ${o.value === value ? 'text-ink font-semibold' : 'text-ink-muted'}`}
             >
               {o.label}
             </button>

@@ -26,7 +26,7 @@
   border-left: 2px solid transparent;
   white-space: nowrap; transition: background 0.1s;
 }
-.item:hover:not(.active):not(.disabled) { background: rgba(255,255,255,0.03); color: var(--color-ink); }
+.item:hover:not(.active):not(.disabled) { background: color-mix(in srgb,var(--color-ink) 4%,transparent); color: var(--color-ink); }
 .item.active {
   color: var(--color-ink); border-left: 2px solid var(--color-red);
   background: var(--color-red-dim); font-weight: 500;

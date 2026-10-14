@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import Icon from '../ui/Icon'
-import logoFull from '../../assets/fireutils-logo.png'
-import logoSymbol from '../../assets/ETOS-SYMBOLL.png'
+import logoFullDark from '../../assets/logo-fireutils-dark.svg'
 
 // Lista completa de sistemas — mesma ordem do Step7
 const SISTEMAS = [
@@ -37,8 +36,8 @@ function NavItem({ pageKey, icon, label, onClick, activePage, collapsed, onNavig
         'w-full flex items-center gap-2.5 cursor-pointer whitespace-nowrap transition-[background-color,color] duration-100 text-[13px] border-l-2 border-y-0 border-r-0 border-solid',
         collapsed ? 'py-2.5 px-0 justify-center' : 'py-2.5 px-5 justify-start',
         active
-          ? 'text-ink font-medium bg-red-dim border-l-red'
-          : 'text-ink-muted font-normal bg-transparent border-l-transparent hover:bg-white/[.03] hover:text-ink',
+          ? 'text-white font-medium bg-[rgba(204,26,50,.18)] border-l-red'
+          : 'text-[#b0b0b9] font-normal bg-transparent border-l-transparent hover:bg-[#1a1a20] hover:text-white',
         active && collapsed ? 'border-r-2 border-r-solid border-r-red' : '',
       ].filter(Boolean).join(' ')}
     >
@@ -50,7 +49,7 @@ function NavItem({ pageKey, icon, label, onClick, activePage, collapsed, onNavig
 
 function SectionLabel({ text, collapsed }) {
   if (collapsed) return null
-  return <div className="text-[10px] text-ink-faint px-5 pt-3 pb-1 tracking-[.08em] uppercase whitespace-nowrap">{text}</div>
+  return <div className="text-[10px] text-[#777781] px-5 pt-3 pb-1 tracking-[.08em] uppercase whitespace-nowrap">{text}</div>
 }
 
 // Último estado do menu lateral (recolhido/aberto), lembrado no navegador.
@@ -62,7 +61,7 @@ function salvarMenuRecolhido(valor) {
   try { localStorage.setItem(CHAVE_MENU, valor ? '1' : '0') } catch { /* sem armazenamento: só não lembra */ }
 }
 
-export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }) {
+export default function ProjectAside({ activePage, onNavigate }) {
   const { sistemas } = useMedidasObrigatorias()
   // Telas estreitas sempre abrem recolhidas (sem sobrescrever a preferência salva);
   // nas demais vale a última escolha do usuário.
@@ -83,7 +82,7 @@ export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }
   const itemProps = { activePage, collapsed: col, onNavigate }
 
   return (
-    <aside className={`shrink-0 border-r border-solid border-border flex flex-col overflow-hidden transition-[width] duration-200 ${col ? 'w-14' : 'w-60'}`}>
+    <aside className={`shrink-0 border-r border-solid border-[#2b2b32] bg-[#101014] text-white flex flex-col overflow-hidden transition-[width] duration-200 ${col ? 'w-14' : 'w-60'}`}>
 
       {/* Marca + toggle colapso */}
       <div className="p-2 shrink-0">
@@ -91,17 +90,20 @@ export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }
           <button
             onClick={() => { if (!window.matchMedia('(max-width: 720px)').matches) definirRecolhido(false) }}
             title={window.matchMedia('(max-width: 720px)').matches ? 'Fire Utils' : 'Expandir menu'}
-            className="w-full h-12 flex items-center justify-center rounded-lg hover:bg-white/[.06] transition-colors cursor-pointer"
+            className="w-full h-12 flex items-center justify-center rounded-lg hover:bg-[#1a1a20] transition-colors cursor-pointer"
           >
-            <img src={logoSymbol} alt="Fire Utils" className="h-8 w-auto"/>
+            <span className="block w-7 h-8 overflow-hidden" aria-hidden="true">
+              <img src={logoFullDark} alt="" className="h-8 w-auto max-w-none"/>
+            </span>
+            <span className="sr-only">FireUtils</span>
           </button>
         ) : (
           <div className="h-12 flex items-center justify-between gap-2 pl-1 pr-1">
-            <img src={logoFull} alt="Fire Utils" className="h-8 w-auto"/>
+            <img src={logoFullDark} alt="FireUtils" className="h-8 w-auto"/>
             <button
               onClick={() => definirRecolhido(true)}
               title="Retrair menu"
-              className="w-6 h-6 flex items-center justify-center rounded-md text-ink-faint hover:bg-white/[.06] hover:text-ink transition-colors cursor-pointer shrink-0"
+              className="w-6 h-6 flex items-center justify-center rounded-md text-[#85858f] hover:bg-[#1a1a20] hover:text-white transition-colors cursor-pointer shrink-0"
             >
               <Icon name="panelLeft" size={15}/>
             </button>
@@ -109,13 +111,8 @@ export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }
         )}
       </div>
 
-      {/* Saída do projeto */}
-      <div className="py-1.5 border-b border-solid border-border shrink-0">
-        <NavItem icon="left" label="Projetos" onClick={onSairDoProjeto} {...itemProps}/>
-      </div>
-
       {/* Navegação principal */}
-      <div className="py-1.5 border-b border-solid border-border shrink-0">
+      <div className="py-1.5 border-b border-solid border-[#2b2b32] shrink-0">
         <NavItem pageKey="dashboard" icon="dash"     label="Dashboard" {...itemProps}/>
         <NavItem pageKey="config"    icon="settings" label="Configuração" {...itemProps}/>
       </div>
@@ -131,7 +128,7 @@ export default function ProjectAside({ activePage, onNavigate, onSairDoProjeto }
           </>
         )}
 
-        <div className="border-t border-solid border-border mt-1.5"/>
+        <div className="border-t border-solid border-[#2b2b32] mt-1.5"/>
         <SectionLabel text="Documentos" collapsed={col}/>
         <NavItem pageKey="documentos" icon="documentosMedida" label="Documentos" {...itemProps}/>
       </div>

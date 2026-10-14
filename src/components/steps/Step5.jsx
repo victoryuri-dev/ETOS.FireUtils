@@ -121,7 +121,7 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
                         title={dica}
                         aria-pressed={st.metodo === valor}
                         onClick={() => setMetodo(code, valor)}
-                        className={`py-1 px-3 rounded text-[11px] font-medium border-0 cursor-pointer transition-colors duration-150 ${st.metodo === valor ? 'bg-white/[.10] text-ink' : 'bg-transparent text-ink-faint hover:text-ink-muted'}`}
+                        className={`py-1 px-3 rounded text-[11px] font-medium border-0 cursor-pointer transition-colors duration-150 ${st.metodo === valor ? 'bg-surface text-ink' : 'bg-transparent text-ink-faint hover:text-ink-muted'}`}
                       >{rotulo}</button>
                     ))}
                   </div>
@@ -214,7 +214,7 @@ export default function Step5({ step, totalSteps }) {
       </div>
 
       <div className="ibox blue">
-        <Icon name="info" size={14} color="rgba(80,140,220,.85)" className="shrink-0"/>
+        <Icon name="info" size={14} color="var(--color-blue)" className="shrink-0"/>
         <span>Divisoes sem CNAE configurado nao terao carga automatica. Volte a etapa 4 para configurar o CNAE de cada pavimento.</span>
       </div>
 

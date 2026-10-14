@@ -11,9 +11,9 @@ const RISCO_LBL = { green: 'Risco baixo', amber: 'Risco médio', red: 'Risco alt
 // padrao visual pros tres dados do cabecalho, em vez de cada um com um
 // tratamento diferente (texto solto, texto colorido, badge com borda).
 const TONE = {
-  neutral: 'bg-white/[.04] border-border text-ink-faint',
-  green:   'bg-[rgba(29,158,117,.12)] border-green-border text-green',
-  amber:   'bg-[rgba(186,117,23,.12)] border-amber-border text-amber',
+  neutral: 'bg-surface-2 border-border text-ink-faint',
+  green:   'bg-green-dim border-green-border text-green',
+  amber:   'bg-amber-dim border-amber-border text-amber',
   red:     'bg-red-dim border-red-border text-red',
 }
 

@@ -152,3 +152,48 @@
 
 @media(max-width:960px){.pp-heading-includes{min-width:0}.pp-offers-heading{display:grid;grid-template-columns:1fr}.pp-heading-includes{margin-top:4px}.pp-module-heading>span{text-align:left}}
 @media(max-width:760px){.pp-hero{padding:56px 0 50px}.pp-hero-subtitle{font-size:13px}.pp-hero-facts{gap:12px 18px}.pp-pricing{padding-top:54px}.pp-offers-heading h2{font-size:30px}.pp-heading-includes ul{grid-template-columns:1fr}.pp-pro-period-card{min-height:270px}.pp-bim-exclusive{padding:22px}.pp-module-heading{margin-top:70px}}
+
+/* Tema claro: mantém a hierarquia comercial com superfícies limpas e
+   contraste alto, sem transformar cada informação em um bloco pesado. */
+.pricing-page{
+  --pp-bg:#f7f8fa;
+  --pp-panel:#fff;
+  --pp-panel-raised:#fff;
+  --pp-ink:#17191f;
+  --pp-muted:#666c76;
+  --pp-line:rgba(25,30,40,.14);
+}
+.pp-login:hover{border-color:rgba(25,30,40,.28);background:rgba(25,30,40,.035)}
+.pp-kicker,.pp-unlimited,.pp-pro-card li,.pp-plan-card li,.pp-plan-card>a,
+.pp-bonus-list>div span,.pp-offer-card li,.pp-offer-card li svg,
+.pp-offer-card>a:not(.pp-primary),.pp-pro-summary li,.pp-pro-period-card>a,
+.pp-heading-includes li,.pp-hero-facts{color:var(--pp-ink)}
+.pp-hero h1 span{color:#747985}
+.pp-periods{background:#eceef2}
+.pp-periods button.is-active{background:#fff;box-shadow:0 1px 3px rgba(20,24,32,.08)}
+.pp-primary{color:#fff;box-shadow:0 8px 18px rgba(192,21,42,.14)}
+.pp-primary:hover{box-shadow:0 12px 24px rgba(192,21,42,.2)}
+.pp-pro-card{background:linear-gradient(125deg,#fff4f6 0%,#fff 52%,#f8f9fb 100%);box-shadow:0 18px 55px rgba(20,24,32,.07)}
+.pp-pro-mark{color:rgba(192,21,42,.055)}
+.pp-plan-grid{box-shadow:0 10px 35px rgba(20,24,32,.05)}
+.pp-plan-card:hover{background:#fafafb}
+.pp-bonus-list>p{background:#fff}
+.pp-final{background:#eef0f3}
+.pp-offer-card,.pp-module-offer-grid .pp-offer-card{border-color:var(--pp-line);background:#fff;box-shadow:0 10px 30px rgba(20,24,32,.045)}
+.pp-offer-card:hover,.pp-module-offer-grid .pp-offer-card:hover{border-color:rgba(25,30,40,.25);background:#fff;box-shadow:0 18px 45px rgba(20,24,32,.08)}
+.pp-offer-card.is-pro{border-color:#ea13308c;background:linear-gradient(155deg,#fff2f4 0%,#fff 55%,#f9f9fb 100%);box-shadow:0 22px 65px rgba(20,24,32,.09),0 0 45px #ea13300d}
+.pp-offer-icon{border-color:var(--pp-line);background:#f1f3f6;color:var(--pp-ink)}
+.pp-offer-label,.pp-offer-features>span,.pp-price-option small,.pp-pro-period-card>span,
+.pp-offers-heading>span,.pp-module-heading>span,.pp-heading-includes>span{color:var(--pp-muted)}
+.pp-price-option{border-color:var(--pp-line);background:#f7f8fa}
+.pp-price-option strong,.pp-price-option b{color:var(--pp-ink)}
+.pp-price-option.is-best{border-color:#ea13304d;background:#fff0f3}
+.pp-pro-showcase{background:linear-gradient(145deg,#fff3f5 0%,#fff 48%,#f8f9fb 100%);box-shadow:0 22px 65px rgba(20,24,32,.08)}
+.pp-pro-summary{border-color:var(--pp-line)}
+.pp-pro-period-card{border-color:var(--pp-line);background:#fff;box-shadow:0 10px 28px rgba(20,24,32,.045)}
+.pp-pro-period-card:hover{border-color:rgba(25,30,40,.25);background:#fff;box-shadow:0 16px 38px rgba(20,24,32,.08)}
+.pp-pro-period-card.is-best{border-color:#ea133080;background:linear-gradient(150deg,#fff0f3,#fff)}
+.pp-bim-exclusive{border-color:#ea13303d;background:#fff}
+.pp-bim-exclusive p{color:var(--pp-muted)}
+.pp-bim-tags span{border-color:var(--pp-line);background:#f3f4f6;color:var(--pp-muted)}
+@media(max-width:960px){.pp-pro-summary{border-color:var(--pp-line)}}

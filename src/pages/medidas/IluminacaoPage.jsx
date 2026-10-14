@@ -332,11 +332,11 @@ function AdicionarEquipamentoMenu({ equipamentosDef, presets, onAdicionar }) {
             <div key={eq.key}>
               <div className="py-1.5 px-3 text-[10px] text-ink-faint uppercase tracking-[.06em] bg-surface-2">{eq.label}</div>
               <button type="button" onClick={() => escolher(eq.key, undefined)}
-                className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
+                className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-surface-2 hover:text-ink"
               ><Icon name="plus" size={10} className="inline-block mr-1.5 align-[-1px]"/>Adicionar Luminária</button>
               {presets.filter(p => p.tipoBase === eq.key).map(p => (
                 <button key={p.key} type="button" onClick={() => escolher(eq.key, p)}
-                  className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-white/[.05] hover:text-ink"
+                  className="w-full text-left py-2 px-3 text-[12px] text-ink-muted cursor-pointer bg-transparent border-none border-b border-solid border-border-2 hover:bg-surface-2 hover:text-ink"
                 >{p.label}</button>
               ))}
             </div>
@@ -567,7 +567,7 @@ export default function IluminacaoPage() {
               Sistema de Iluminação de Emergência
             <LinkNorma sistema="iluminacao"/>
           </h2>
-            <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+            <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
               Escolha o sistema utilizado e os equipamentos de aclaramento, e depois cadastre as quantidades por pavimento, conforme a NT 18 CBMMA / NBR 10898.
             </p>
           </div>
@@ -631,7 +631,7 @@ export default function IluminacaoPage() {
                 {!exigido ? (
                   <div className="ibox green">
                     <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                    <span className="text-xs">Iluminação de emergência não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+                    <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a iluminação de emergência, conforme NT 01 CBMMA.</span>
                   </div>
                 ) : (
                   <>

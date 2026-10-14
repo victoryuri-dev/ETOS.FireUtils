@@ -103,8 +103,8 @@ export default function AcessoViaturaPage() {
             Acesso de Viatura
           <LinkNorma sistema="acesso_viatura"/>
           </h2>
-          <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
-            Dimensionamento conforme item 5.1 (Anexo A e Anexo B) da NT 06/2021 CBMMA — Acesso de Viaturas nas Edificações e Áreas de Risco.
+          <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
+            O acesso a viatura garante que os caminhões dos bombeiros e ambulâncias consigam entrar e manobrar rapidamente dentro de uma propriedade em caso de emergência com o objetivo de salvar vidas e combater incêndios de forma ágil, permitindo que as equipes cheguem o mais próximo possível das vítimas e da estrutura.
           </p>
         </div>
 
@@ -131,7 +131,7 @@ export default function AcessoViaturaPage() {
                 ? 'Condomínio de residências — via de acesso dedicada é sempre exigida.'
                 : gat.exigido
                   ? `Afastamento superior a ${gat.afastamentoMax} m (altura ${gat.faixa === 'baixa' ? '≤ 12 m' : '> 12 m'}) — via de acesso dedicada é exigida.`
-                  : `Afastamento dentro do limite de ${gat.afastamentoMax} m (altura ${gat.faixa === 'baixa' ? '≤ 12 m' : '> 12 m'}) — a via pública é suficiente, via de acesso dedicada não é exigida.`}
+                  : <><strong className="font-semibold text-green">Não exigida —</strong>{' '}a via pública é suficiente porque o afastamento está dentro do limite de {gat.afastamentoMax} m (altura {gat.faixa === 'baixa' ? '≤ 12 m' : '> 12 m'}).</>}
             </span>
           </div>
         </div>

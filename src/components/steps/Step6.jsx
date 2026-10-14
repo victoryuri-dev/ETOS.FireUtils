@@ -111,7 +111,7 @@ function MedidasGrid({ pe, dispatch, sistConfig }) {
         // ligado = vermelho (obrigatoria) ou verde (opcional); desligado = cinza. A borda
         // vermelha do cartao marca o que a norma exige (ver legenda). Cor via prop, nao
         // classe: os simbolos proprios do Icon fixam a cor inline.
-        const iconColor = on ? (obrig ? 'var(--color-red)' : '#2FBF92') : 'rgba(255,255,255,.35)'
+        const iconColor = on ? (obrig ? 'var(--color-red)' : 'var(--color-green)') : 'var(--color-ink-hint)'
         const labelClass = on || obrig ? 'text-ink' : 'text-ink-muted'
         const alternar = () => dispatch({ type:'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: pe.estrutura.id, key:s.key })
 
@@ -199,7 +199,7 @@ function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
               onClick={alternar}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar() } }}
               className={`border border-solid rounded-md p-3.5 flex items-center gap-2.5 cursor-pointer transition-[border-color,background-color] duration-150 ${on ? 'border-red-border bg-red-dim' : 'border-border bg-transparent'}`}>
-              <Icon name={r.icon} size={26} color={on ? 'var(--color-red)' : 'rgba(255,255,255,.35)'} className="shrink-0"/>
+              <Icon name={r.icon} size={26} color={on ? 'var(--color-red)' : 'var(--color-ink-hint)'} className="shrink-0"/>
               <div className={`min-w-0 [overflow-wrap:anywhere] text-xs font-medium leading-[1.3] ${on ? 'text-ink' : 'text-ink-muted'}`}>{r.label}</div>
             </div>
           )
@@ -236,11 +236,11 @@ export default function Step6({ step, totalSteps }) {
           Obrigatória (exigida pela norma)
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 bg-[#2FBF92]"/>
+          <div className="w-3.5 h-3.5 bg-green"/>
           Opcional
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 bg-[rgba(255,255,255,.35)]"/>
+          <div className="w-3.5 h-3.5 bg-ink-hint"/>
           Desabilitada
         </div>
       </div>

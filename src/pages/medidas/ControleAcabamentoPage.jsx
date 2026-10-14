@@ -24,9 +24,9 @@ function descricaoDivisao(ocupacoes, divisao) {
   return ocupacoes?.[divisao.charAt(0)]?.divisoes?.[divisao] || ''
 }
 
-const th = 'py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]'
-const td = 'py-2 px-3 text-xs align-top'
-const input = 'bg-bg border border-solid border-border rounded-md text-ink text-[11px] py-1.5 px-2 w-full outline-none box-border'
+const th = 'py-3 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em] align-middle'
+const td = 'py-3 px-3 text-xs align-middle'
+const input = 'bg-bg border border-solid border-border rounded-md text-ink text-[11px] py-2 px-2.5 min-h-9 w-full outline-none box-border'
 
 // Textos padronizados — a mesma frase em todo lugar que fala do mesmo
 // estado da linha (select, texto de apoio na tela e memorial), em vez de
@@ -58,6 +58,8 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   const normasAtuais = parseNormasEnsaio(item?.normasEnsaio)
   const normasMarcadas = normasAtuais.filter(n => normasDisponiveis.includes(n))
   const normaExtra = normasAtuais.filter(n => !normasDisponiveis.includes(n)).join(', ')
+  const [normaExtraAberta, setNormaExtraAberta] = useState(false)
+  const mostrarNormaExtra = normaExtraAberta || Boolean(normaExtra)
 
   const toggleNorma = (norma) => {
     const novas = normasMarcadas.includes(norma)
@@ -68,6 +70,15 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
 
   const setNormaExtra = (texto) => {
     set({ normasEnsaio: [...normasMarcadas, ...parseNormasEnsaio(texto)].join(', ') })
+  }
+
+  const toggleNormaExtra = () => {
+    if (mostrarNormaExtra) {
+      setNormaExtra('')
+      setNormaExtraAberta(false)
+    } else {
+      setNormaExtraAberta(true)
+    }
   }
 
   const handleMaterial = (e) => {
@@ -90,8 +101,8 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
 
   return (
     <>
-      <tr className="border-b border-solid border-border last:border-b-0">
-        <td className={`${td} text-ink whitespace-nowrap`}>{elementoLabel}</td>
+      <tr className={`${manual && editando ? 'border-b-0' : 'border-b border-solid border-border'} last:border-b-0`}>
+        <td className={`${td} text-ink leading-[1.4]`}>{elementoLabel}</td>
         <td className={td}>
           <select
             value={manual ? 'manual' : ensaiado ? `ensaiado:${item.materialId}` : naoPossui ? 'nao_possui' : (item?.materialId || '')}
@@ -124,44 +135,45 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
             <span className="text-ink-faint">N/A — {TXT_NAO_POSSUI.toLowerCase()}</span>
           ) : incombustivel ? (
             <span className="text-ink-faint">{TXT_INCOMBUSTIVEL_MOTIVO}</span>
-          ) : normasDisponiveis.length > 0 ? (
+          ) : (
             <>
-              <div className="flex flex-wrap gap-x-3 gap-y-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 {normasDisponiveis.map(norma => (
-                  <label key={norma} className="flex items-center gap-1.5 text-[11px] text-ink-faint whitespace-nowrap cursor-pointer">
-                    <input type="checkbox" checked={normasMarcadas.includes(norma)} onChange={() => toggleNorma(norma)}/>
+                  <label key={norma} className="flex items-center gap-1.5 text-[11px] text-ink-muted whitespace-nowrap cursor-pointer">
+                    <input className="size-4 shrink-0 accent-[var(--color-blue)] cursor-pointer" type="checkbox" checked={normasMarcadas.includes(norma)} onChange={() => toggleNorma(norma)}/>
                     {norma}
                   </label>
                 ))}
+                <label className="flex items-center gap-1.5 text-[11px] text-ink-muted whitespace-nowrap cursor-pointer">
+                  <input className="size-4 shrink-0 accent-[var(--color-blue)] cursor-pointer" type="checkbox" checked={mostrarNormaExtra} onChange={toggleNormaExtra}/>
+                  Outra norma
+                </label>
               </div>
-              <input
-                placeholder="outra norma…"
-                value={normaExtra}
-                onChange={e => setNormaExtra(e.target.value)}
-                className={`${input} mt-1.5`}
-              />
+              {mostrarNormaExtra && (
+                <input
+                  autoFocus={normaExtraAberta && !normaExtra}
+                  aria-label="Outra norma de ensaio"
+                  placeholder="Informe a norma…"
+                  value={normaExtra}
+                  onChange={e => setNormaExtra(e.target.value)}
+                  className={`${input} mt-2`}
+                />
+              )}
             </>
-          ) : (
-            <input
-              placeholder="ex.: EN 13823 – SBI"
-              value={item?.normasEnsaio || ''}
-              onChange={e => set({ normasEnsaio: e.target.value })}
-              className={input}
-            />
           )}
         </td>
       </tr>
       {manual && editando && (
         <tr className="border-b border-solid border-border last:border-b-0">
-          <td colSpan={4} className="py-3 px-3 bg-surface-2">
-            <div className="grid grid-cols-4 gap-2">
-              <label className="fg">Nome do material <Obrigatorio id={`${estruturaId}.${linha.chave}.materialNome`}/><input placeholder="Nome do material" value={item.materialNome} onChange={e => set({ materialNome: e.target.value })} className={input}/></label>
-              <label className="fg">Classe <Obrigatorio id={`${estruturaId}.${linha.chave}.classeAdotada`}/><select value={item.classeAdotada} onChange={e => set({ classeAdotada: e.target.value })} className={input}>
+          <td colSpan={4} className="py-4 px-3 bg-surface">
+            <div className="grid grid-cols-4 gap-2.5">
+              <label className="fg text-[11px] text-ink-muted leading-[1.4]"><span className="inline-flex items-center gap-0.5">Nome do material <Obrigatorio id={`${estruturaId}.${linha.chave}.materialNome`}/></span><input placeholder="Nome do material" value={item.materialNome} onChange={e => set({ materialNome: e.target.value })} className={input}/></label>
+              <label className="fg text-[11px] text-ink-muted leading-[1.4]"><span className="inline-flex items-center gap-0.5">Classe <Obrigatorio id={`${estruturaId}.${linha.chave}.classeAdotada`}/></span><select value={item.classeAdotada} onChange={e => set({ classeAdotada: e.target.value })} className={input}>
                 <option value="">Classe (aguardando laudo)</option>
                 {ORDEM_CLASSE.map(c => <option key={c} value={c}>{c}</option>)}
               </select></label>
-              <label className="fg">Fabricante / modelo <Obrigatorio id={`${estruturaId}.${linha.chave}.fabricante`}/><input placeholder="Fabricante / modelo" value={item.fabricante} onChange={e => set({ fabricante: e.target.value })} className={input}/></label>
-              <label className="fg">Nº do laudo / ensaio <Obrigatorio id={`${estruturaId}.${linha.chave}.laudoNumero`}/><input placeholder="Nº do laudo / ensaio" value={item.laudoNumero} onChange={e => set({ laudoNumero: e.target.value })} className={input}/></label>
+              <label className="fg text-[11px] text-ink-muted leading-[1.4]"><span className="inline-flex items-center gap-0.5">Fabricante / modelo <Obrigatorio id={`${estruturaId}.${linha.chave}.fabricante`}/></span><input placeholder="Fabricante / modelo" value={item.fabricante} onChange={e => set({ fabricante: e.target.value })} className={input}/></label>
+              <label className="fg text-[11px] text-ink-muted leading-[1.4]"><span className="inline-flex items-center gap-0.5">Nº do laudo / ensaio <Obrigatorio id={`${estruturaId}.${linha.chave}.laudoNumero`}/></span><input placeholder="Nº do laudo / ensaio" value={item.laudoNumero} onChange={e => set({ laudoNumero: e.target.value })} className={input}/></label>
             </div>
             <div className="text-[10px] text-ink-faint mt-1.5 leading-[1.5]">
               A classe só é considerada comprovada com fabricante/modelo e nº do laudo preenchidos — conforme a NT 10/2021 CBMMA, a classe de reação ao fogo não pode ser presumida sem documentação técnica do produto.
@@ -187,7 +199,7 @@ function TabelaAcabamento({ ambiente, linhas, estruturaId, dispatch }) {
   }
 
   return (
-    <div className="group rounded-lg border border-solid border-border bg-surface hover:border-white/20 transition-colors mb-3">
+    <div className="group rounded-lg border border-solid border-border bg-surface hover:border-ink-hint transition-colors mb-3">
       <div
         className={`flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none bg-surface-2 ${aberto ? 'rounded-t-[7px] border-b border-solid border-border' : 'rounded-[7px]'}`}
         onClick={() => setAberto(a => !a)}
@@ -204,7 +216,7 @@ function TabelaAcabamento({ ambiente, linhas, estruturaId, dispatch }) {
         <div className="overflow-x-auto">
           <table className="w-full border-collapse table-fixed min-w-[640px]">
             <colgroup>
-              <col className="w-[120px]"/>
+              <col className="w-[136px]"/>
               <col className="w-[27%]"/>
               <col className="w-[64px]"/>
               <col/>
@@ -242,7 +254,7 @@ function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido }) {
       {!exigido ? (
         <div className="ibox green">
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-          <span className="text-xs">Controle de materiais de acabamento não exigido para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam o controle de materiais de acabamento, conforme NT 01 CBMMA.</span>
         </div>
       ) : (
         <>
@@ -257,8 +269,8 @@ function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido }) {
             <TabelaAcabamento key={ambiente.id} ambiente={ambiente} linhas={linhas} estruturaId={est.id} dispatch={dispatch}/>
           ))}
 
-          <button type="button" onClick={adicionarAmbiente} className="btn-add w-full justify-center py-2">
-            <Icon name="plus" size={12}/> Adicionar ambiente
+          <button type="button" onClick={adicionarAmbiente} className="w-full min-h-10 inline-flex items-center justify-center gap-2 rounded-md border border-solid border-border bg-surface-2 text-ink-muted text-xs font-semibold transition-[background,color,border-color,transform] duration-150 hover:bg-surface-3 hover:border-ink-hint hover:text-ink active:translate-y-px">
+            <Icon name="plus" size={14} strokeWidth={2.5}/> Adicionar ambiente
           </button>
         </>
       )}
@@ -307,8 +319,8 @@ export default function ControleAcabamentoPage() {
             Controle de Materiais de Acabamento e Revestimento
           <LinkNorma sistema="controle_acabamento"/>
           </h2>
-          <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[640px] m-0">
-            Quadro Resumo de Controle de Materiais de Acabamento por estrutura — um ambiente por caixa (nome livre, editável), com piso, parede/divisórias, teto/forro, cobertura e isolamento térmico acústico cada um. Materiais incombustíveis recebem Classe I automaticamente, e produtos do catálogo de materiais já ensaiados (piso, parede e teto) têm a classe preenchida direto do ensaio; qualquer outro material exige fabricante e nº do laudo para a classe ser considerada comprovada.
+          <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
+            Estabelece as condições a serem atendidas pelos materiais de acabamento e de revestimento empregados nas edificações, para que, na ocorrência de incêndio, restrinjam a propagação de fogo e o desenvolvimento de fumaça.
           </p>
         </div>
 

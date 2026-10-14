@@ -74,11 +74,9 @@ export function buildAnexoBData(state, sistemas) {
   }).join('; ')
 
   const estruturas     = state.estruturas || []
-  const areaTotalSum   = estruturas.reduce((s, e) => s + (parseFloat(e.areaTotal) || 0), 0)
-  // area construida total: sempre o valor gravado no projeto (manual ou
-  // somado das estruturas pelo switch da Etapa 2) — a soma das estruturas
-  // so entra como fallback quando esse campo ainda nao foi preenchido.
-  const areaConstruida = parseFloat(state.areaConstruidaTotal) || areaTotalSum
+  // Exibe somente a área total gravada no campo correspondente. A soma
+  // das estruturas é feita na configuração, quando escolhida pelo usuário.
+  const areaConstruida = parseFloat(state.areaConstruidaTotal)
   const alturaNum      = estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
   const subsolosSum    = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
 
@@ -114,8 +112,8 @@ export function buildAnexoBData(state, sistemas) {
     altura: alturaNum ? fmtUn(alturaNum, 'm') : '',
     cargaIncendio: maxQ ? fmtUn(maxQ, 'MJ/m²') : '',
     riscoCargaIncendio: maxQ ? ({ baixo:'Baixo', medio:'Médio', alto:'Alto' })[classificarRisco(maxQ, getExtintores(state.uf).LIMIARES_RISCO)] : '',
-    // "Forma de apresentacao" — o app so trata processo tecnico novo hoje.
-    processoTecnico: true,
+    // Ausência de informação não implica marcar uma forma de apresentação.
+    processoTecnico: state.processoTecnico === true,
     responsavelTecnico: state.rtNome || '',
     rtCpf: state.rtCpf || '',
     rtConselho: state.rtConselho || '',

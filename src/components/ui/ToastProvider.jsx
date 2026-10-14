@@ -23,7 +23,7 @@ const TONE = {
   success: { icon: 'checkCircle', color: 'var(--color-green)' },
   error:   { icon: 'warn',        color: 'var(--color-red)' },
   warning: { icon: 'warn',        color: 'var(--color-amber)' },
-  info:    { icon: 'info',        color: 'rgba(80,140,220,.95)' },
+  info:    { icon: 'info',        color: 'var(--color-blue)' },
 }
 
 const reduzMovimento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -138,7 +138,7 @@ function ToastItem({ toast, onDismiss, onRemove, register, unregister }) {
               type="button"
               aria-label="Fechar notificação"
               onClick={() => onDismiss(toast.id)}
-              className="shrink-0 grid place-items-center w-6 h-6 -mr-1 rounded-md bg-transparent border-0 text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-white/[.07] hover:text-ink"
+              className="shrink-0 grid place-items-center w-6 h-6 -mr-1 rounded-md bg-transparent border-0 text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-ink"
             >
               <Icon name="x" size={13}/>
             </button>

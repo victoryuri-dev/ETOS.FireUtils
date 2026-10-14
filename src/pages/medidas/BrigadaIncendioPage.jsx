@@ -131,7 +131,7 @@ function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresR
       {!exigido ? (
         <div className="ibox green">
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-          <span className="text-xs">Brigada de incêndio não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a brigada de incêndio, conforme NT 01 CBMMA.</span>
         </div>
       ) : (
       <Card>
@@ -277,7 +277,7 @@ export default function BrigadaIncendioPage() {
             Brigada de Incêndio
           <LinkNorma sistema="brigada"/>
           </h2>
-          <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[650px] m-0">
+          <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
             Dimensionamento da brigada de incêndio orgânica por pavimento, conforme o Anexo A (Tabela A.1) da {brigNorma.NORMA.nome}. Divisão de ocupação e grau de risco vêm automaticamente da classificação já feita nas Etapas 4 e 5 — informe apenas a população fixa de cada pavimento.
           </p>
         </div>

@@ -237,7 +237,7 @@ function UnidadeCard({ ext, tiposPortatil, tiposSobreRodas, onEdit, onRemove, se
       : undefined
   return (
     <div ref={setNodeRef} style={style} onClick={() => modoSelecao ? onToggleSelecao(ext.id) : onEdit(ext.id)}
-      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface-2 cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-white/20'} ${isDragging ? 'opacity-40 relative z-50' : ''} ${souSeguidor ? 'relative shadow-[0_6px_16px_rgba(0,0,0,.35)]' : ''}`}
+      className={`group flex items-center justify-between gap-3 py-2.5 px-3 rounded-md border border-solid bg-surface cursor-pointer transition-colors ${selecionado ? 'border-red' : 'border-border-2 hover:border-ink-hint'} ${isDragging ? 'opacity-40 relative z-50' : ''} ${souSeguidor ? 'relative shadow-[var(--shadow-md)]' : ''}`}
     >
       <div className="flex items-center gap-2.5 min-w-0 max-w-[50%]">
         <button {...attributes} {...listeners} onClick={e => e.stopPropagation()} className="flex opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-ink-faint touch-none shrink-0" title="Arrastar extintor">
@@ -385,7 +385,7 @@ function AmbienteCard({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil
 
   return (
     <div ref={node => { setDragRef(node); setDropRef(node) }} style={style}
-      className={`group rounded-lg border border-solid bg-surface transition-colors ${destacar ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-white/20'} ${isDragging ? 'opacity-40' : ''}`}
+      className={`group rounded-lg border border-solid bg-surface transition-colors ${destacar ? 'border-red bg-[rgba(192,21,42,.05)]' : 'border-border hover:border-ink-hint'} ${isDragging ? 'opacity-40' : ''}`}
     >
       <div className={`flex items-center justify-between gap-4 py-3 px-3.5 cursor-pointer select-none bg-surface-2 ${aberto ? 'rounded-t-[7px]' : 'rounded-[7px]'}`} onClick={() => setAberto(a => !a)}>
         <div className="flex items-center gap-2 min-w-0 max-w-[50%]">
@@ -944,7 +944,7 @@ export default function ExtintoresPage() {
               Sistema de Proteção por Extintores de Incêndio
             <LinkNorma sistema="extintores"/>
           </h2>
-            <p className="text-[13px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
+            <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
               Distribuição de extintores por estrutura, pavimento e ambiente conforme a NT 21 CBMMA. Cadastre manualmente ou importe do plugin Revit — o risco predominante (que define a área-limite para unidade única) vem da carga de incêndio classificada na Etapa 5.
             </p>
           </div>
@@ -1005,7 +1005,7 @@ export default function ExtintoresPage() {
               {!exigido ? (
                 <div className="ibox green">
                   <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                  <span className="text-xs">Proteção por extintores não exigida para a ocupação/altura atual desta estrutura, conforme NT 01 CBMMA.</span>
+                  <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a proteção por extintores, conforme NT 01 CBMMA.</span>
                 </div>
               ) : pavimentos.length === 0 ? (
                 <div className="ibox amber">
