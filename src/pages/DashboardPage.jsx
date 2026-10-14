@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
 import useEntradaEmLote from '../hooks/useEntradaEmLote'
 import { useProjeto } from '../context/ProjetoContext'
+import { useAuditoria } from '../context/AuditoriaContext'
 import { useNorma } from '../hooks/useNorma'
 import { useMedidasObrigatorias } from '../hooks/useMedidasObrigatorias'
 import { supabase } from '../lib/supabase'
@@ -688,6 +689,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
   const { state, dispatch } = useProjeto()
   const { info, grupos } = useNorma()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
+  const { campos, pendencias } = useAuditoria()
   const [selectedStructureId, setSelectedStructureId] = useState('all')
   const [atividade, setAtividade] = useState([])
   const [identHeight, setIdentHeight] = useState(null)
@@ -762,8 +764,19 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
     const area = Number(state.areaConstruidaTotal) || structures.reduce((sum, item) => sum + (Number(item.areaTotal) || 0), 0)
     const height = structures.reduce((highest, item) => Math.max(highest, Number(item.altura) || 0), 0)
     const fireLoad = getFireLoad(state.cargaState)
-    const systemsWithData = activeSystems.filter(system => system.progress.tone !== 'todo')
-    const configPercent = Math.round((configuredSteps.length / configSteps.length) * 100)
+    const configDone = configuredSteps.length === configSteps.length
+    // Completude do projeto inteiro — não só a configuração inicial — vem
+    // direto da auditoria de campos obrigatórios (useAuditoria/
+    // auditoriaProjeto.js), que já cobre campo a campo cada etapa de
+    // configuração E cada medida de segurança exigida (extintores,
+    // iluminação, brigada, detecção/alarme, hidrantes, etc.), sem
+    // reimplementar essa lógica aqui com uma segunda fonte de verdade que
+    // poderia divergir. Documentação não entra: não é um campo obrigatório
+    // do projeto, é a fase seguinte, só exibida como próximo passo.
+    const pendenciasSistema = new Set(pendencias.filter(c => c.rota?.startsWith('medida/')).map(c => c.rota.slice('medida/'.length)))
+    const systemsDone = activeSystems.filter(s => !pendenciasSistema.has(s.key))
+    const projectPercent = campos.length > 0 ? Math.round(((campos.length - pendencias.length) / campos.length) * 100) : 0
+    const projectReady = campos.length > 0 && pendencias.length === 0
     const hasTechnicalData = Boolean(state.nome || area || height || fireLoad || groups.length || state.rtNome)
 
     const selectedStructure = structures.find(item => item.id === selectedStructureId)
@@ -823,10 +836,31 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
 
     const technicalCards = [{ id: 'all', name: 'Visão geral do projeto', area, terrain, height, floorCount, heightClass, basementCount, fireLoad, groups, divisions }, ...structures.map(makeStructureSummary)]
 
-    return { activeSystems, displayedSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsWithData, configPercent, hasTechnicalData, summary, technicalCards }
-  }, [state, sistemas, porEstrutura, selectedStructureId])
+    return { activeSystems, displayedSystems, configuredSteps, configStepCount: configSteps.length, groups, divisions, systemsDone, configDone, projectPercent, projectReady, hasTechnicalData, summary, technicalCards }
+  }, [state, sistemas, porEstrutura, selectedStructureId, campos, pendencias])
 
-  const projectReady = data.configPercent === 100
+  const { projectReady, configDone } = data
+  const sistemasPendentes = data.activeSystems.length - data.systemsDone.length
+  const etapasPendentes = data.configStepCount - data.configuredSteps.length
+  // Narra o que está acontecendo de verdade no projeto — não só "configuração
+  // sim/não". Quatro situações possíveis: nada cadastrado ainda; configuração
+  // inicial incompleta; configuração ok mas sistemas exigidos ainda em
+  // desenvolvimento; tudo concluído (aí sim pronto pra documentação, que não
+  // é um passo contado na porcentagem, só a fase seguinte).
+  const situacaoTitulo = projectReady
+    ? 'Projeto pronto para documentação.'
+    : configDone
+      ? 'Configuração concluída — sistemas em desenvolvimento.'
+      : data.hasTechnicalData
+        ? 'Configuração em andamento.'
+        : 'Comece pela configuração do projeto.'
+  const situacaoDetalhe = projectReady
+    ? `${data.activeSystems.length} sistema${data.activeSystems.length === 1 ? '' : 's'} identificado${data.activeSystems.length === 1 ? '' : 's'}, todos com dados concluídos.`
+    : configDone
+      ? `${sistemasPendentes} de ${data.activeSystems.length} sistema${data.activeSystems.length === 1 ? '' : 's'} ainda precisa${sistemasPendentes === 1 ? '' : 'm'} de dados.`
+      : data.hasTechnicalData
+        ? `${etapasPendentes} etapa${etapasPendentes === 1 ? '' : 's'} da configuração ainda precisa${etapasPendentes === 1 ? '' : 'm'} de atenção.`
+        : 'Cadastre a edificação para identificar as exigências e iniciar os dimensionamentos.'
   const address = [state.endereco, state.numero, state.bairro, state.cidade && `${state.cidade} — ${state.uf || 'MA'}`].filter(Boolean).join(', ')
   useEntradaEmLote(shellRef, '.anim-entra', 'montagem')
   return (
@@ -834,7 +868,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
       <div className="dashboard-content">
         <header className="dashboard-header anim-entra">
           <div>
-            <div className="dashboard-status-line"><span className={projectReady ? 'is-ready' : ''}/>{projectReady ? 'Configuração concluída' : `${data.configPercent}% da configuração concluída`}</div>
+            <div className="dashboard-status-line"><span className={projectReady ? 'is-ready' : ''}/>{projectReady ? 'Projeto concluído' : `${data.projectPercent}% do projeto concluído`}</div>
             <h1>{state.nome || 'Projeto sem nome'}</h1>
             <p>{[state.cidade && `${state.cidade} — ${state.uf || 'MA'}`, info?.nome || 'NT 01/2019 CBMMA', data.groups.length && `Grupos ${data.groups.join(', ')}`].filter(Boolean).join(' · ')}</p>
           </div>
@@ -846,15 +880,15 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
             <div className="dashboard-overview__lead">
               <div className="dashboard-overview__copy">
                 <span>Situação do projeto</span>
-                <h2>{projectReady ? 'Configuração pronta para dimensionamento.' : data.hasTechnicalData ? 'Há dados da base técnica para revisar.' : 'Comece pela configuração do projeto.'}</h2>
-                <p>{projectReady ? `${data.activeSystems.length} sistemas foram identificados para desenvolvimento e conferência.` : data.hasTechnicalData ? `${data.configStepCount - data.configuredSteps.length} etapa${data.configStepCount - data.configuredSteps.length === 1 ? '' : 's'} da configuração ainda precisa${data.configStepCount - data.configuredSteps.length === 1 ? '' : 'm'} de atenção.` : 'Cadastre a edificação para identificar as exigências e iniciar os dimensionamentos.'}</p>
+                <h2>{situacaoTitulo}</h2>
+                <p>{situacaoDetalhe}</p>
               </div>
-              <div className="dashboard-overview__score" aria-label={`${data.configPercent}% concluído`}><strong>{data.configPercent}<small>%</small></strong><span>base técnica</span></div>
+              <div className="dashboard-overview__score" aria-label={`${data.projectPercent}% concluído`}><strong>{data.projectPercent}<small>%</small></strong><span>do projeto</span></div>
             </div>
             <div className="dashboard-stages">
-              <div className={projectReady ? 'is-complete' : 'is-current'}><span>01</span><strong>Configuração</strong><small>{data.configuredSteps.length} de {data.configStepCount} etapas</small></div>
-              <div className={projectReady ? 'is-current' : ''}><span>02</span><strong>Sistemas</strong><small>{data.systemsWithData.length} com dados cadastrados</small></div>
-              <div><span>03</span><strong>Documentação</strong><small>Memorial e anexos</small></div>
+              <div className={configDone ? 'is-complete' : 'is-current'}><span>01</span><strong>Configuração</strong><small>{data.configuredSteps.length} de {data.configStepCount} etapas</small></div>
+              <div className={configDone ? (projectReady ? 'is-complete' : 'is-current') : ''}><span>02</span><strong>Sistemas</strong><small>{data.systemsDone.length} de {data.activeSystems.length} concluídos</small></div>
+              <div className={projectReady ? 'is-current' : ''}><span>03</span><strong>Documentação</strong><small>Memorial e anexos</small></div>
             </div>
           </section>
 
