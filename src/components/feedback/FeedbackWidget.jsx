@@ -69,13 +69,13 @@ export default function FeedbackWidget() {
   }
 
   return (
-    <div className="platform-theme fixed bottom-6 right-6 z-[900] flex flex-col items-end gap-5" data-theme="dark">
+    <div className="platform-theme fixed bottom-6 right-0 z-[900] flex flex-col items-end gap-5" data-theme="dark">
       {open && <div className="fixed inset-0 z-40" onClick={fechar}/>}
       {montado && (
         <form
           ref={painelRef}
           onSubmit={handleEnviar}
-          className="relative z-50 w-[300px] max-w-[calc(100vw-48px)] bg-surface p-5 flex flex-col gap-5 shadow-[var(--shadow-md)]"
+          className="relative z-50 mr-6 w-[300px] max-w-[calc(100vw-48px)] bg-surface p-5 flex flex-col gap-5 shadow-[var(--shadow-md)]"
         >
           <textarea
             autoFocus
@@ -91,16 +91,20 @@ export default function FeedbackWidget() {
           </button>
         </form>
       )}
-      <button
-        type="button"
-        onClick={() => (open ? fechar() : abrir())}
-        title="Enviar feedback"
-        aria-label="Enviar feedback"
-        aria-expanded={open}
-        className={`relative z-50 w-12 h-12 grid place-items-center text-white transition-colors duration-150 ${open ? 'bg-red' : 'bg-[rgba(23,23,28,.6)] hover:bg-red'}`}
-      >
-        {open ? <Icon name="x" size={24} strokeWidth={3}/> : <BalaoIcon/>}
-      </button>
+      {/* Área de hover fixa, colada na borda: o botão dentro dela desliza 24px
+          pra esquerda (e fica vermelho) sem perder o hover no meio do caminho. */}
+      <div className="group relative z-50 w-12 h-12">
+        <button
+          type="button"
+          onClick={() => (open ? fechar() : abrir())}
+          title="Enviar feedback"
+          aria-label="Enviar feedback"
+          aria-expanded={open}
+          className={`absolute inset-0 grid place-items-center text-white transition-[transform,background-color] duration-300 ease-out group-hover:-translate-x-6 group-hover:bg-red ${open ? '-translate-x-6 bg-red' : 'bg-[rgba(23,23,28,.6)]'}`}
+        >
+          {open ? <Icon name="x" size={24} strokeWidth={3}/> : <BalaoIcon/>}
+        </button>
+      </div>
     </div>
   )
 }
