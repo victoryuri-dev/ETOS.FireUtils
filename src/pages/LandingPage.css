@@ -628,7 +628,7 @@
 }
 
 /* Open network composition: no containing panel, direct traces and local details. */
-.fl-network-board{height:720px;overflow:visible;border:0;background:transparent;clip-path:none}
+.fl-network-board{width:100%;max-width:1250px;height:720px;margin-inline:auto;overflow:visible;border:0;background:transparent;clip-path:none}
 .fl-network-board::before{display:none}
 .fl-network-trace{stroke:#d8d8df2e}
 .fl-network-core{left:calc(50% - 85px);top:315px;width:170px;height:70px;padding:0;border:0;background:transparent;clip-path:none;box-shadow:none;gap:0;pointer-events:none}
