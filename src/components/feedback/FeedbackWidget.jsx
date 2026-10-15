@@ -100,7 +100,7 @@ export default function FeedbackWidget() {
           title="Enviar feedback"
           aria-label="Enviar feedback"
           aria-expanded={open}
-          className={`absolute inset-0 grid place-items-center text-white transition-[translate,background-color] duration-300 ease-out group-hover:-translate-x-6 group-hover:bg-red ${open ? '-translate-x-6 bg-red' : 'bg-[rgba(23,23,28,.6)]'}`}
+          className={`absolute inset-0 grid place-items-center border border-solid text-white shadow-[0_8px_24px_rgba(0,0,0,.38)] transition-[translate,background-color,border-color,box-shadow] duration-300 ease-out group-hover:-translate-x-6 group-hover:border-red group-hover:bg-red ${open ? '-translate-x-6 border-red bg-red' : 'border-[rgba(255,255,255,.16)] bg-[#24252c]'}`}
         >
           {open ? <Icon name="x" size={24} strokeWidth={3}/> : <BalaoIcon/>}
         </button>
