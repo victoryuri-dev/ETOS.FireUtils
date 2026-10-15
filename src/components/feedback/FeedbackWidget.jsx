@@ -1,22 +1,52 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import gsap from 'gsap'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../hooks/useToast'
 import { supabase } from '../../lib/supabase'
 import Icon from '../ui/Icon'
 
+const reduzMovimento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+function BalaoIcon({ size = 22 }) {
+  return (
+    <svg width={size} height={size * 75 / 83} viewBox="0 0 83 75" fill="currentColor" aria-hidden="true" className="shrink-0">
+      <path d="M83 54H32.7842L6.58691 74.5488L12.0254 54H0V0H83V54Z"/>
+    </svg>
+  )
+}
+
 // Botão flutuante presente em toda a plataforma — canto inferior direito.
-// Abre uma caixa de diálogo ao lado (acima/esquerda) pra enviar sugestões de
-// implementação ou relatar erros, direto pra tabela `feedbacks` no Supabase.
+// Sempre no tema escuro. Abre, acima dele, uma caixa que desliza da direita
+// pra esquerda pra enviar sugestões ou relatar erros na tabela `feedbacks`.
 export default function FeedbackWidget() {
   const { user } = useAuth()
   const location = useLocation()
   const toast = useToast()
+  const painelRef = useRef(null)
   const [open, setOpen] = useState(false)
+  const [montado, setMontado] = useState(false)
   const [mensagem, setMensagem] = useState('')
   const [enviando, setEnviando] = useState(false)
 
-  const fechar = () => { setOpen(false); setMensagem('') }
+  useLayoutEffect(() => {
+    if (!montado || !painelRef.current) return
+    const d = reduzMovimento() ? 0 : 1
+    gsap.fromTo(painelRef.current,
+      { x: 56, opacity: 0 },
+      { x: 0, opacity: 1, duration: .38 * d, ease: 'power3.out', clearProps: 'transform,opacity' })
+  }, [montado])
+
+  const abrir = () => { setOpen(true); setMontado(true) }
+
+  const fechar = () => {
+    setOpen(false)
+    setMensagem('')
+    const el = painelRef.current
+    if (!el) { setMontado(false); return }
+    const d = reduzMovimento() ? 0 : 1
+    gsap.to(el, { x: 56, opacity: 0, duration: .18 * d, ease: 'power2.in', onComplete: () => setMontado(false) })
+  }
 
   const handleEnviar = async (e) => {
     e.preventDefault()
@@ -39,47 +69,37 @@ export default function FeedbackWidget() {
   }
 
   return (
-    <div className="platform-theme fixed bottom-6 right-6 z-[900]" data-theme="dark">
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={fechar}/>
-          <form
-            onSubmit={handleEnviar}
-            className="absolute bottom-[calc(100%+12px)] right-0 z-50 w-[320px] max-w-[calc(100vw-48px)] bg-surface border border-border border-solid rounded-lg shadow-[var(--shadow-md)] p-4 flex flex-col gap-3"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-[13px] font-semibold text-ink">Enviar feedback</h3>
-              <button type="button" onClick={fechar} className="text-ink-faint hover:text-ink transition-colors" aria-label="Fechar">
-                <Icon name="x" size={16}/>
-              </button>
-            </div>
-            <p className="text-[11px] text-ink-faint leading-[1.5]">
-              Sugestões de implementação ou relatos de erro — conte o que aconteceu.
-            </p>
-            <textarea
-              autoFocus
-              value={mensagem}
-              onChange={e => setMensagem(e.target.value)}
-              placeholder="Escreva aqui..."
-              rows={5}
-              className="w-full resize-none text-[13px] text-ink bg-surface-2 border border-solid border-border rounded-md p-2.5 outline-none focus:border-red-border placeholder:text-ink-faint"
-            />
-            <button type="submit" className="btn-primary justify-center" disabled={!mensagem.trim() || enviando}>
-              {enviando ? <Icon name="spinner" size={14} className="animate-spin"/> : <Icon name="feedback" size={14}/>}
-              {enviando ? 'Enviando...' : 'Enviar'}
-            </button>
-          </form>
-        </>
+    <div className="platform-theme fixed bottom-6 right-6 z-[900] flex flex-col items-end gap-5" data-theme="dark">
+      {open && <div className="fixed inset-0 z-40" onClick={fechar}/>}
+      {montado && (
+        <form
+          ref={painelRef}
+          onSubmit={handleEnviar}
+          className="relative z-50 w-[300px] max-w-[calc(100vw-48px)] bg-surface p-5 flex flex-col gap-5 shadow-[var(--shadow-md)]"
+        >
+          <textarea
+            autoFocus
+            value={mensagem}
+            onChange={e => setMensagem(e.target.value)}
+            placeholder="Escreva sugestões de implementação ou relatos de erro para melhorar a ferramenta..."
+            rows={8}
+            className="w-full resize-none text-[13px] text-ink bg-surface-2 border border-solid border-border rounded-md p-3 outline-none focus:border-ink-hint placeholder:text-ink-faint"
+          />
+          <button type="submit" className="btn-primary justify-center rounded-sm uppercase font-heading font-bold tracking-[.02em] disabled:opacity-60" disabled={!mensagem.trim() || enviando}>
+            {enviando ? <Icon name="spinner" size={16} className="animate-spin"/> : <BalaoIcon size={16}/>}
+            {enviando ? 'Enviando...' : 'Enviar feedback'}
+          </button>
+        </form>
       )}
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => (open ? fechar() : abrir())}
         title="Enviar feedback"
         aria-label="Enviar feedback"
         aria-expanded={open}
-        className={`w-12 h-12 rounded-full grid place-items-center border border-solid shadow-[var(--shadow-md)] transition-[opacity,background-color,color,border-color] duration-150 ${open ? 'opacity-100 bg-red text-white border-red' : 'opacity-50 hover:opacity-100 bg-surface text-ink-faint border-border hover:bg-red hover:text-white hover:border-red'}`}
+        className={`relative z-50 w-12 h-12 grid place-items-center text-white transition-colors duration-150 ${open ? 'bg-red' : 'bg-[rgba(23,23,28,.6)] hover:bg-red'}`}
       >
-        <Icon name={open ? 'x' : 'feedback'} size={20}/>
+        {open ? <Icon name="x" size={24} strokeWidth={3}/> : <BalaoIcon/>}
       </button>
     </div>
   )
