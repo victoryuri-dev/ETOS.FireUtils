@@ -11,9 +11,11 @@
   position:relative;
   min-height:100dvh;
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(380px,430px);
+  grid-template-columns:minmax(0,1250px) minmax(350px,380px);
   grid-template-rows:1fr;
-  justify-content:stretch;
+  justify-content:center;
+  column-gap:clamp(24px,3vw,56px);
+  padding-inline:clamp(24px,4vw,64px);
   overflow:hidden;
   isolation:isolate;
   background:#101014;
@@ -51,7 +53,7 @@
 .login-network *{box-sizing:border-box}
 .login-network h3{margin:0;font-family:'Space Grotesk',sans-serif;font-weight:500;letter-spacing:-.045em}
 .login-network p{margin:0}
-.login-network-stage{position:relative;flex:0 0 80%;width:80%;height:auto;aspect-ratio:1160/720}
+.login-network-stage{position:relative;flex:0 1 1250px;width:100%;max-width:1250px;height:auto;aspect-ratio:1160/720}
 .login-network-stage>.fl-network-board{position:absolute;left:50%;top:50%;width:1160px;height:720px;margin:-360px 0 0 -580px;transform:scale(var(--login-network-scale,.69));transform-origin:center}
 .login-original-card{
   position:relative;

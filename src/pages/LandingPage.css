@@ -607,6 +607,7 @@
 }
 
 /* Modules: concise product lineup replacing the experimental network. */
+.fl-module-showcase{width:100%;max-width:1250px;margin-inline:auto}
 .fl-module-showcase .fl-modules-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
 .fl-module-showcase .fl-module-card,
 .fl-module-showcase .fl-module-card.is-soon{display:flex;min-height:300px;height:auto;flex-direction:column;padding:26px 24px}

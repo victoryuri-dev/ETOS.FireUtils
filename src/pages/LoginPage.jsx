@@ -15,7 +15,7 @@ function LoginNetwork() {
     if (!network || !stage) return
     const resize = () => {
       if (window.innerWidth > 700) {
-        stage.style.setProperty('--login-network-scale', stage.clientWidth / 1160)
+        stage.style.setProperty('--login-network-scale', Math.min(stage.clientWidth, 1250) / 1160)
         return
       }
       stage.style.removeProperty('--login-network-scale')
