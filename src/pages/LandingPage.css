@@ -173,9 +173,8 @@
 
 /* The memorial preview follows the physical A4 page proportion. */
 .fl-pdf-page{width:min(60%,430px);min-height:0;aspect-ratio:210/297}
-.fl-pdf-company-logo{display:block;width:112px;height:auto;margin:4px 0 0 4px;padding:8px 10px;border-radius:3px;background:#111116}
 @media(max-width:800px){.fl-pdf-page{width:min(76%,410px)}}
-@media(max-width:560px){.fl-pdf-page{width:88%}.fl-pdf-company-logo{width:96px;padding:7px 8px}}
+@media(max-width:560px){.fl-pdf-page{width:88%}}
 
 /* Dedicated mobile composition: readable type, bounded previews and a linear project flow. */
 .fl-demo-mobile{display:none}
@@ -612,6 +611,28 @@
 @media(prefers-reduced-motion:reduce){
   .fl-network-signal,.fl-network-mesh-signal{animation:none;stroke-dasharray:none;opacity:.28}
   .fl-network-signal.is-active,.fl-network-mesh-signal.is-active{opacity:.8}
+}
+
+/* Modules: concise product lineup replacing the experimental network. */
+.fl-module-showcase .fl-modules-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
+.fl-module-showcase .fl-module-card,
+.fl-module-showcase .fl-module-card.is-soon{min-height:300px;height:auto;padding:26px 24px 56px}
+.fl-module-showcase .fl-module-card h3,
+.fl-module-showcase .fl-module-card.is-soon h3{margin-top:30px;font-size:clamp(21px,1.8vw,27px)}
+.fl-module-showcase .fl-module-card p{font-size:14px}
+.fl-module-showcase .fl-module-card.is-soon .fl-module-source{display:flex}
+
+@media(max-width:900px){
+  .fl-module-showcase .fl-modules-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:600px){
+  .fl-module-showcase .fl-modules-grid{grid-template-columns:1fr;gap:12px;margin-top:14px}
+  .fl-module-showcase .fl-module-card,
+  .fl-module-showcase .fl-module-card.is-soon{min-height:0;padding:23px 22px 58px}
+  .fl-module-showcase .fl-module-card h3,
+  .fl-module-showcase .fl-module-card.is-soon h3{margin-top:24px;font-size:24px}
+  .fl-module-showcase .fl-module-card p{font-size:15px}
 }
 
 /* Open network composition: no containing panel, direct traces and local details. */

@@ -222,4 +222,98 @@ export function useLandingMotion(scope, stage, setStage, ready = true) {
     })
     return () => media.revert()
   }, { scope, dependencies: [stage, ready], revertOnUpdate: true })
+
+  // No mobile os três previews coexistem na página. Cada um recebe sua
+  // própria animação e seus próprios seletores, sem depender do painel
+  // desktop oculto nem da troca global de `stage`.
+  useGSAP(() => {
+    if (!ready) return
+    const media = gsap.matchMedia()
+    media.add('(max-width: 700px) and (prefers-reduced-motion: no-preference)', () => {
+      const root = scope.current
+      const stages = [...root.querySelectorAll('.fl-mobile-stage')]
+      const timelines = []
+      const triggers = []
+
+      stages.forEach(stageElement => {
+        const elements = stageElement.querySelectorAll('.fl-demo-caption > *, .fl-demo-window')
+        const reveal = gsap.from(elements, {
+          y: 28,
+          opacity: 0,
+          duration: .75,
+          stagger: .1,
+          ease: 'power3.out',
+          paused: true,
+        })
+        const trigger = ScrollTrigger.create({
+          trigger: stageElement,
+          scroller: root,
+          start: 'top 88%',
+          once: true,
+          onEnter: () => reveal.play(),
+        })
+        timelines.push(reveal)
+        triggers.push(trigger)
+      })
+
+      const configStage = stages[0]
+      const viewport = configStage?.querySelector('.fl-safety-viewport')
+      const choices = configStage ? [...configStage.querySelectorAll('.fl-mouse-1, .fl-mouse-2')] : []
+      if (viewport && choices.length === 2) {
+        const toggles = choices.map(choice => choice.querySelector('.fl-security-check'))
+        const knobs = toggles.map(toggle => toggle?.querySelector('b'))
+        const maxScroll = Math.max(0, viewport.scrollHeight - viewport.clientHeight)
+        const configTour = gsap.timeline({ repeat: -1, repeatDelay: 1, paused: true })
+          .set(viewport, { scrollTop: 0 })
+          .set(choices, { borderColor: 'rgba(255,255,255,.1)', backgroundColor: 'transparent' })
+          .set(toggles, { backgroundColor: '#34343d' })
+          .set(knobs, { opacity: 0, scale: .5 })
+          .to(choices[0], { borderColor: '#148d73', backgroundColor: 'rgba(20,141,115,.13)', duration: .25 }, '+=.7')
+          .to(toggles[0], { backgroundColor: '#159579', duration: .25 }, '<')
+          .to(knobs[0], { opacity: 1, scale: 1, duration: .25 }, '<')
+          .to(viewport, { scrollTop: maxScroll, duration: 1.4, ease: 'power3.inOut' }, '+=1')
+          .to(choices[1], { borderColor: '#148d73', backgroundColor: 'rgba(20,141,115,.13)', duration: .25 })
+          .to(toggles[1], { backgroundColor: '#159579', duration: .25 }, '<')
+          .to(knobs[1], { opacity: 1, scale: 1, duration: .25 }, '<')
+          .to({}, { duration: 1.4 })
+        const trigger = ScrollTrigger.create({
+          trigger: configStage,
+          scroller: root,
+          start: 'top 75%',
+          end: 'bottom 20%',
+          onToggle: self => self.isActive ? configTour.play() : configTour.pause(),
+        })
+        timelines.push(configTour)
+        triggers.push(trigger)
+      }
+
+      const documentStage = stages[2]
+      const stack = documentStage?.querySelector('.fl-pdf-stack')
+      const firstPage = stack?.querySelector('.fl-pdf-page')
+      if (stack && firstPage) {
+        const pageStep = firstPage.offsetHeight + 22
+        const documentTour = gsap.timeline({ repeat: -1, repeatDelay: 1, paused: true })
+          .set(stack, { y: 0 })
+          .to(stack, { y: -pageStep, duration: 1, ease: 'power3.inOut' }, '+=1.6')
+          .to(stack, { y: -pageStep * 2, duration: 1, ease: 'power3.inOut' }, '+=1.6')
+          .to(stack, { y: -pageStep * 3, duration: 1, ease: 'power3.inOut' }, '+=1.6')
+          .to(stack, { y: 0, duration: 1.1, ease: 'power3.inOut' }, '+=1.6')
+        const trigger = ScrollTrigger.create({
+          trigger: documentStage,
+          scroller: root,
+          start: 'top 75%',
+          end: 'bottom 20%',
+          onToggle: self => self.isActive ? documentTour.play() : documentTour.pause(),
+        })
+        timelines.push(documentTour)
+        triggers.push(trigger)
+      }
+
+      return () => {
+        timelines.forEach(timeline => timeline.kill())
+        triggers.forEach(trigger => trigger.kill())
+      }
+    })
+    return () => media.revert()
+  }, { scope, dependencies: [ready], revertOnUpdate: true })
 }
