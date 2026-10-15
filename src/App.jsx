@@ -410,6 +410,9 @@ function AuthedLayout() {
       <LicencaProvider>
         <PortaoLicenca/>
       </LicencaProvider>
+      {/* Dentro do ThemeProvider pra herdar data-theme (claro/escuro) — fora
+          daqui as variaveis de cor caem no padrao claro. */}
+      <FeedbackWidget/>
     </ThemeProvider>
   )
 }
@@ -445,7 +448,7 @@ function LoginRoute() {
 
 // ── AppInner ──────────────────────────────────────────────────────────
 function AppInner() {
-  const { user, loading } = useAuth()
+  const { loading } = useAuth()
 
   if (loading) {
     return (
@@ -456,34 +459,29 @@ function AppInner() {
   }
 
   return (
-    <>
-      <Routes>
-        <Route path="/landing" element={<LandingPage/>}/>
-        <Route path="/pricing" element={<PricingPage/>}/>
-        <Route path="/login" element={<LoginRoute/>}/>
+    <Routes>
+      <Route path="/landing" element={<LandingPage/>}/>
+      <Route path="/pricing" element={<PricingPage/>}/>
+      <Route path="/login" element={<LoginRoute/>}/>
 
-        <Route element={<AuthedLayout/>}>
-          <Route path="/" element={<Navigate to="/projetos" replace/>}/>
-          <Route path="/projetos" element={<ProjetosRoute/>}/>
-          <Route path="/perfil" element={<PerfilRoute/>}/>
+      <Route element={<AuthedLayout/>}>
+        <Route path="/" element={<Navigate to="/projetos" replace/>}/>
+        <Route path="/projetos" element={<ProjetosRoute/>}/>
+        <Route path="/perfil" element={<PerfilRoute/>}/>
 
-          <Route path="/projeto/:id" element={<ProjectLayout/>}>
-            <Route index element={<Navigate to="dashboard" replace/>}/>
-            <Route path="dashboard" element={<DashboardRoute/>}/>
-            <Route path="auditoria" element={<AuditoriaPage/>}/>
-            <Route path="config/:step?" element={<ConfigRoute/>}/>
-            <Route path="documentos" element={<DocumentosPage/>}/>
-            <Route path="documentos/:docId" element={<DocumentosPage/>}/>
-            <Route path="medida/:sistKey" element={<MedidaRoute/>}/>
-          </Route>
-
-          <Route path="*" element={<Navigate to="/projetos" replace/>}/>
+        <Route path="/projeto/:id" element={<ProjectLayout/>}>
+          <Route index element={<Navigate to="dashboard" replace/>}/>
+          <Route path="dashboard" element={<DashboardRoute/>}/>
+          <Route path="auditoria" element={<AuditoriaPage/>}/>
+          <Route path="config/:step?" element={<ConfigRoute/>}/>
+          <Route path="documentos" element={<DocumentosPage/>}/>
+          <Route path="documentos/:docId" element={<DocumentosPage/>}/>
+          <Route path="medida/:sistKey" element={<MedidaRoute/>}/>
         </Route>
-      </Routes>
-      {/* So faz sentido enviar feedback logado — anonimo nao passa na RLS
-          de insert da tabela `feedbacks` (auth.uid() = user_id). */}
-      {user && <FeedbackWidget/>}
-    </>
+
+        <Route path="*" element={<Navigate to="/projetos" replace/>}/>
+      </Route>
+    </Routes>
   )
 }
 
