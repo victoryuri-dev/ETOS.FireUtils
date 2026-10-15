@@ -6,27 +6,8 @@ import { useNorma } from '../hooks/useNorma'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { newIds } from '../context/ProjetoContext'
-import { criarProjetoExemploFixo, EXEMPLO_FIXO_ID } from '../data/projetoExemplo'
 import { temCNAECadastrado } from '../data/normas/index'
 import { fmtUn } from '../utils/numero'
-
-// Garante que o projeto de exemplo fixo sempre exista pra este usuário — se
-// foi excluido em uma sessao anterior, recria-lo ao carregar a pagina. O id
-// leva o user_id porque a tabela `projetos` é compartilhada entre contas
-// (id sozinho é a chave primária), então o id fixo original colidiria entre
-// usuários diferentes.
-async function garantirProjetoExemploFixo(userId) {
-  const idExemplo = `${EXEMPLO_FIXO_ID}-${userId}`
-  const { data } = await supabase.from('projetos').select('id').eq('id', idExemplo).maybeSingle()
-  if (data) return
-  const dados = { ...criarProjetoExemploFixo(), id: idExemplo, updatedAt: new Date().toISOString() }
-  await supabase.from('projetos').insert({
-    id: idExemplo,
-    user_id: userId,
-    nome: dados.nome || 'Projeto de exemplo',
-    dados,
-  })
-}
 
 // ── helpers ───────────────────────────────────────────────────────────
 
@@ -533,7 +514,7 @@ function FilterDropdown({ prefix, value, options, onChange }) {
 // user.id -> ultima lista de projetos carregada (vive enquanto a aba estiver aberta).
 const cacheProjetos = new Map()
 
-export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjetoExemplo }) {
+export default function ProjetosPage({ onOpenProject, onNewProject }) {
   const { grupos } = useNorma()
   const { user } = useAuth()
   const [view,        setView]        = useState('grid')
@@ -552,13 +533,12 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
   const [loading,     setLoading]     = useState(!cache)
 
   // Roda a cada vez que a pagina "Meus projetos" monta (ou apos delete/recarga) —
-  // garante o exemplo fixo e busca a lista de projetos do usuário no Postgres.
+  // busca a lista de projetos do usuário no Postgres.
   useEffect(() => {
     if (!user) return
     let cancelado = false
     if (!cacheProjetos.has(user.id)) setLoading(true)
     ;(async () => {
-      await garantirProjetoExemploFixo(user.id)
       const { data, error } = await supabase
         .from('projetos').select('dados').eq('user_id', user.id)
       if (cancelado) return
@@ -586,7 +566,6 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
       createdAt,
       updatedAt: createdAt,
       nome: `${toDuplicate.nome || 'Sem nome'} (cópia)`,
-      exemploFixo: false,
     }
     await supabase.from('projetos').insert({ id, user_id: user.id, nome: dados.nome, dados })
     setToDuplicate(null)
@@ -669,11 +648,6 @@ export default function ProjetosPage({ onOpenProject, onNewProject, onNovoProjet
           <div className="flex items-start justify-between mb-6">
             <h1 className="font-heading text-2xl font-bold text-ink">Meus projetos</h1>
             <div className="flex gap-2">
-              {onNovoProjetoExemplo && (
-                <button className="btn-ghost" onClick={onNovoProjetoExemplo} title="Cria um projeto com todos os campos preenchidos, para testes">
-                  <Icon name="file" size={13}/> Projeto de teste
-                </button>
-              )}
               <NovoProjetoBotao onNewProject={onNewProject}/>
             </div>
           </div>

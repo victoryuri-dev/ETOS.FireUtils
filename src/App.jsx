@@ -7,7 +7,6 @@ import { ProjetoProvider, useProjeto, newIds } from './context/ProjetoContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabase } from './lib/supabase'
 import { usePerfil, nomeDeUsuario } from './hooks/usePerfil'
-import { criarProjetoExemplo } from './data/projetoExemplo'
 import LoginPage      from './pages/LoginPage'
 import LandingPage    from './pages/LandingPage'
 import PricingPage    from './pages/PricingPage'
@@ -266,19 +265,12 @@ function ProjetosRoute() {
     navigate(`/projeto/${ids.id}/config`)
   }
 
-  const handleNovoProjetoExemplo = () => {
-    const proj = criarProjetoExemplo()
-    dispatch({ type: 'LOAD', payload: proj })
-    navigate(`/projeto/${proj.id}/dashboard`)
-  }
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <AppHeader onGoProjetos={() => navigate('/projetos')} isProjectPage={false}/>
       <ProjetosPage
         onOpenProject={handleOpenProject}
         onNewProject={handleNewProject}
-        onNovoProjetoExemplo={handleNovoProjetoExemplo}
       />
     </div>
   )
