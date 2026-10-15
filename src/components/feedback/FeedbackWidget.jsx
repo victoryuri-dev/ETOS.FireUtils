@@ -77,7 +77,7 @@ export default function FeedbackWidget() {
         title="Enviar feedback"
         aria-label="Enviar feedback"
         aria-expanded={open}
-        className={`w-12 h-12 rounded-full grid place-items-center bg-transparent border border-solid transition-[opacity,color,border-color] duration-150 ${open ? 'opacity-100 text-red border-red-border' : 'opacity-50 hover:opacity-100 text-ink-faint border-border hover:text-red hover:border-red-border'}`}
+        className={`w-12 h-12 rounded-full grid place-items-center bg-surface border border-solid shadow-[var(--shadow-md)] transition-[opacity,color,border-color] duration-150 ${open ? 'opacity-100 text-red border-red-border' : 'opacity-50 hover:opacity-100 text-ink-faint border-border hover:text-red hover:border-red-border'}`}
       >
         <Icon name={open ? 'x' : 'feedback'} size={20}/>
       </button>
