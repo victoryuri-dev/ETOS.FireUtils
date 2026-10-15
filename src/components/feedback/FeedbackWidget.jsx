@@ -81,7 +81,7 @@ export default function FeedbackWidget() {
             autoFocus
             value={mensagem}
             onChange={e => setMensagem(e.target.value)}
-            placeholder="Escreva sugestões de implementação ou relatos de erro para melhorar a ferramenta..."
+            placeholder="Digite aqui..."
             rows={8}
             className="w-full resize-none text-[13px] text-ink bg-surface-2 border border-solid border-border rounded-md p-3 outline-none focus:border-ink-hint placeholder:text-ink-faint"
           />
