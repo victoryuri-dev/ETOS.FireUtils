@@ -637,7 +637,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
   // O resumo funciona como uma orientação de continuidade: descreve o estado
   // real e aponta o próximo campo obrigatório, em vez de repetir percentuais.
   const situacaoTitulo = projectReady
-    ? 'O projeto completo e pronto para gerar os documentos.'
+    ? 'O projeto está completo e pronto para gerar os documentos necessários.'
     : configDone
       ? sistemasPendentes === 1
         ? `Ainda falta 1 sistema para configurar. Paramos em ${proximaSecao}.`
