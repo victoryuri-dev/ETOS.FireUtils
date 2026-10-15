@@ -13,33 +13,68 @@ import { LicencaContext } from '../hooks/useLicencas'
 // vez de "sem licença".
 export default function LicencaProvider({ children }) {
   const { user } = useAuth()
-  const [licencas, setLicencas] = useState(null)
-  const [erro, setErro] = useState(null)
+  const [resultado, setResultado] = useState({ userId: null, licencas: null, erro: null })
 
   useEffect(() => {
-    if (!user) { setLicencas({}); return }
+    if (!user) return
 
     let cancelado = false
-    setLicencas(null)
-    setErro(null)
 
-    supabase
-      .from('licencas')
-      .select('modulo, plano, situacao, inicio_em, expira_em')
-      .eq('user_id', user.id)
-      .then(({ data, error }) => {
-        if (cancelado) return
-        if (error) {
-          setErro('Não foi possível consultar as licenças desta conta.')
-          setLicencas({})
-          return
-        }
-        setLicencas(Object.fromEntries((data || []).map(l => [l.modulo, l])))
-      })
+    const carregar = () => {
+      supabase
+        .from('licencas')
+        .select('modulo, plano, situacao, inicio_em, expira_em')
+        .eq('user_id', user.id)
+        .then(({ data, error }) => {
+          if (cancelado) return
+          if (error) {
+            setResultado({
+              userId: user.id,
+              licencas: {},
+              erro: 'Não foi possível consultar as licenças desta conta.',
+            })
+            return
+          }
+          setResultado({
+            userId: user.id,
+            licencas: Object.fromEntries((data || []).map(l => [l.modulo, l])),
+            erro: null,
+          })
+        })
+    }
 
-    return () => { cancelado = true }
+    carregar()
+
+    // Uma concessão, suspensão ou renovação feita pela administração passa a
+    // valer na sessão aberta sem exigir logout. O foco cobre ambientes em que
+    // o Realtime não estiver habilitado para a tabela.
+    const canal = supabase
+      .channel(`licencas:${user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'licencas',
+        filter: `user_id=eq.${user.id}`,
+      }, carregar)
+      .subscribe()
+
+    const aoFocar = () => carregar()
+    window.addEventListener('focus', aoFocar)
+
+    return () => {
+      cancelado = true
+      window.removeEventListener('focus', aoFocar)
+      supabase.removeChannel(canal)
+    }
   }, [user])
 
-  const valor = useMemo(() => ({ licencas, erro }), [licencas, erro])
+  // Associa o resultado ao usuário consultado. Assim, durante uma troca de
+  // conta, licenças da sessão anterior nunca ficam visíveis para a nova.
+  const valor = useMemo(() => {
+    if (!user) return { licencas: {}, erro: null }
+    if (resultado.userId !== user.id) return { licencas: null, erro: null }
+    return { licencas: resultado.licencas, erro: resultado.erro }
+  }, [resultado, user])
+
   return <LicencaContext.Provider value={valor}>{children}</LicencaContext.Provider>
 }

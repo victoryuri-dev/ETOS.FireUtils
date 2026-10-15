@@ -29,11 +29,6 @@ export const MODULOS = [
   },
 ]
 
-// Interruptor do bloqueio na tela. Desligado (padrão), a licença é só
-// informativa e ninguém é barrado — é o que permite publicar o código antes
-// de as licenças estarem concedidas. Liga com VITE_EXIGIR_LICENCA=true.
-export const EXIGIR_LICENCA = import.meta.env.VITE_EXIGIR_LICENCA === 'true'
-
 // Faltando este tanto (ou menos) pra vencer, a licença ativa já avisa.
 const DIAS_AVISO = 15
 
@@ -67,8 +62,26 @@ export function situacaoLicenca(licenca, hoje = new Date()) {
     return { status: 'cancelada', rotulo: 'Cancelada', tom: 'neutro', valida: false, detalhe: 'A licença foi cancelada.' }
   }
 
+  // Falha fechada: valores novos, incompletos ou corrompidos não podem
+  // liberar a plataforma sem uma regra explícita para eles.
+  if (!['ativa', 'teste'].includes(licenca.situacao)) {
+    return { status: 'invalida', rotulo: 'Inválida', tom: 'red', valida: false, detalhe: 'A situação desta licença não permite acesso.' }
+  }
+
+  const inicio = dataLocal(licenca.inicio_em)
   const expira = dataLocal(licenca.expira_em)
   const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate())
+
+  if (inicio && inicio > inicioDoDia) {
+    return {
+      status: 'agendada',
+      rotulo: 'Ainda não iniciada',
+      tom: 'blue',
+      valida: false,
+      detalhe: `Disponível a partir de ${formatarData(licenca.inicio_em)}.`,
+    }
+  }
+
   const dias = expira ? Math.round((expira - inicioDoDia) / 86400000) : null
 
   if (dias != null && dias < 0) {
@@ -112,13 +125,11 @@ export function useLicencas() {
 }
 
 /**
- * Acesso já considerando o interruptor: com o bloqueio desligado, todo mundo
- * passa. `carregando` só é verdadeiro com o bloqueio ligado — é quando a tela
- * precisa esperar a resposta antes de decidir.
+ * Acesso da conta. Enquanto as licenças ainda não foram consultadas, a rota
+ * aguarda; depois, somente uma licença válida libera o módulo solicitado.
  */
 export function useAcesso(modulo) {
   const { licencas } = useLicencas()
-  if (!EXIGIR_LICENCA) return { carregando: false, liberado: true }
   if (!licencas) return { carregando: true, liberado: false }
   return { carregando: false, liberado: temAcesso(licencas, modulo) }
 }

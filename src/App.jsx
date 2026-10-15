@@ -414,10 +414,10 @@ function AuthedLayout() {
 }
 
 // ── PortaoLicenca ─────────────────────────────────────────────────────
-// Com o bloqueio ligado (VITE_EXIGIR_LICENCA), a conta sem nenhuma licença
-// válida não entra na plataforma: qualquer rota vai direto pro perfil, que é
-// a única liberada — lá ela vê a situação das licenças. Com o bloqueio
-// desligado, não barra nada.
+// A conta sem nenhuma licença válida não entra na plataforma: qualquer rota
+// vai direto pro perfil, que é a única liberada para consultar a situação das
+// licenças. A regra também existe no banco para impedir gravações por fora da
+// interface.
 function PortaoLicenca() {
   const location = useLocation()
   const { carregando, liberado } = useAcesso()
