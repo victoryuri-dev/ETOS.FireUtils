@@ -39,6 +39,7 @@ import ProjectNotesCard from './components/notes/ProjectNotesCard'
 import { AuditoriaProvider } from './context/AuditoriaContext'
 import AuditoriaPage from './pages/AuditoriaPage'
 import ToastProvider   from './components/ui/ToastProvider'
+import FeedbackWidget  from './components/feedback/FeedbackWidget'
 import landingLogo from './assets/logo-fireutils-light.svg'
 import landingLogoDark from './assets/logo-fireutils-dark.svg'
 import { ThemeProvider } from './context/ThemeContext'
@@ -444,7 +445,7 @@ function LoginRoute() {
 
 // ── AppInner ──────────────────────────────────────────────────────────
 function AppInner() {
-  const { loading } = useAuth()
+  const { user, loading } = useAuth()
 
   if (loading) {
     return (
@@ -455,29 +456,34 @@ function AppInner() {
   }
 
   return (
-    <Routes>
-      <Route path="/landing" element={<LandingPage/>}/>
-      <Route path="/pricing" element={<PricingPage/>}/>
-      <Route path="/login" element={<LoginRoute/>}/>
+    <>
+      <Routes>
+        <Route path="/landing" element={<LandingPage/>}/>
+        <Route path="/pricing" element={<PricingPage/>}/>
+        <Route path="/login" element={<LoginRoute/>}/>
 
-      <Route element={<AuthedLayout/>}>
-        <Route path="/" element={<Navigate to="/projetos" replace/>}/>
-        <Route path="/projetos" element={<ProjetosRoute/>}/>
-        <Route path="/perfil" element={<PerfilRoute/>}/>
+        <Route element={<AuthedLayout/>}>
+          <Route path="/" element={<Navigate to="/projetos" replace/>}/>
+          <Route path="/projetos" element={<ProjetosRoute/>}/>
+          <Route path="/perfil" element={<PerfilRoute/>}/>
 
-        <Route path="/projeto/:id" element={<ProjectLayout/>}>
-          <Route index element={<Navigate to="dashboard" replace/>}/>
-          <Route path="dashboard" element={<DashboardRoute/>}/>
-          <Route path="auditoria" element={<AuditoriaPage/>}/>
-          <Route path="config/:step?" element={<ConfigRoute/>}/>
-          <Route path="documentos" element={<DocumentosPage/>}/>
-          <Route path="documentos/:docId" element={<DocumentosPage/>}/>
-          <Route path="medida/:sistKey" element={<MedidaRoute/>}/>
+          <Route path="/projeto/:id" element={<ProjectLayout/>}>
+            <Route index element={<Navigate to="dashboard" replace/>}/>
+            <Route path="dashboard" element={<DashboardRoute/>}/>
+            <Route path="auditoria" element={<AuditoriaPage/>}/>
+            <Route path="config/:step?" element={<ConfigRoute/>}/>
+            <Route path="documentos" element={<DocumentosPage/>}/>
+            <Route path="documentos/:docId" element={<DocumentosPage/>}/>
+            <Route path="medida/:sistKey" element={<MedidaRoute/>}/>
+          </Route>
+
+          <Route path="*" element={<Navigate to="/projetos" replace/>}/>
         </Route>
-
-        <Route path="*" element={<Navigate to="/projetos" replace/>}/>
-      </Route>
-    </Routes>
+      </Routes>
+      {/* So faz sentido enviar feedback logado — anonimo nao passa na RLS
+          de insert da tabela `feedbacks` (auth.uid() = user_id). */}
+      {user && <FeedbackWidget/>}
+    </>
   )
 }
 
