@@ -75,7 +75,7 @@ export default function FeedbackWidget() {
         <form
           ref={painelRef}
           onSubmit={handleEnviar}
-          className="relative z-50 mr-6 w-[300px] max-w-[calc(100vw-48px)] bg-surface p-5 flex flex-col gap-5 shadow-[var(--shadow-md)]"
+          className="relative z-50 mr-6 w-[300px] max-w-[calc(100vw-48px)] border border-solid border-[rgba(255,255,255,.14)] bg-surface p-5 flex flex-col gap-5 shadow-[var(--shadow-md)]"
         >
           <textarea
             autoFocus
