@@ -6,9 +6,10 @@ gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 export function useBuildingMotion(scope) {
   useGSAP(() => {
+    const svg = scope.current
+    if (!svg) return
     const media = gsap.matchMedia()
     media.add('(prefers-reduced-motion: no-preference)', () => {
-      const svg = scope.current
       const scroller = svg.closest('.fire-landing')
       const timeline = gsap.timeline({ scrollTrigger: { trigger: svg, scroller, start: 'top 95%', toggleActions: 'play none none none' } })
       timeline.from(svg.querySelectorAll('.fl-floor'), { y: '+=22', opacity: 0, duration: .9, stagger: .12, ease: 'power3.out' })
@@ -26,10 +27,11 @@ export function useBuildingMotion(scope) {
 export function useLandingMotion(scope, stage, setStage, ready = true) {
   useGSAP(() => {
     if (!ready) return
+    const root = scope.current
+    if (!root) return
     const media = gsap.matchMedia()
     media.add({ desktop: '(min-width: 701px)', motion: '(prefers-reduced-motion: no-preference)' }, context => {
       if (!context.conditions.motion) return
-      const root = scope.current
       const select = gsap.utils.selector(root)
       const desktop = context.conditions.desktop
       let cleanupDemo
@@ -153,13 +155,14 @@ export function useLandingMotion(scope, stage, setStage, ready = true) {
 
   useGSAP(() => {
     if (!ready) return
+    const root = scope.current
+    if (!root) return
     const media = gsap.matchMedia()
     media.add('(prefers-reduced-motion: no-preference)', () => {
-      gsap.fromTo('.fl-demo-stage',
+      gsap.fromTo(root.querySelectorAll('.fl-demo-stage'),
         { y: 110, opacity: 0 },
         { y: 0, opacity: 1, duration: .72, ease: 'power3.out' })
       if (stage === 0) {
-        const root = scope.current
         const cursor = root.querySelector('.fl-demo-cursor')
         const firstChoice = root.querySelector('.fl-mouse-1')
         const secondChoice = root.querySelector('.fl-mouse-2')
@@ -176,37 +179,27 @@ export function useLandingMotion(scope, stage, setStage, ready = true) {
           const maxScroll = Math.max(0, viewport.scrollHeight - viewport.clientHeight)
           const scrollAmount = Math.min(maxScroll, Math.max(0, secondRawPoint.y - config.clientHeight * .68))
           const secondPoint = { x: secondRawPoint.x, y: secondRawPoint.y - scrollAmount }
-          const firstToggle = firstChoice.querySelector('.fl-security-check')
-          const secondToggle = secondChoice.querySelector('.fl-security-check')
-          const firstKnob = firstToggle.querySelector('b')
-          const secondKnob = secondToggle.querySelector('b')
           const mouse = gsap.timeline({ repeat: -1, repeatDelay: .7 })
           mouse.set(cursor, { opacity: 0, x: config.clientWidth - 70, y: 22, scale: 1 })
             .set(viewport, { scrollTop: 0 })
             .set([firstChoice, secondChoice], { borderColor: 'rgba(255,255,255,.1)', backgroundColor: 'transparent' })
-            .set([firstToggle, secondToggle], { backgroundColor: '#34343d' })
-            .set([firstKnob, secondKnob], { opacity: 0, scale: .5 })
             .to(cursor, { opacity: 1, duration: .2 })
             .to(cursor, { x: firstPoint.x, y: firstPoint.y, duration: .8, ease: 'power3.inOut' })
             .to(cursor, { scale: .76, duration: .1 })
             .to(firstChoice, { borderColor: '#148d73', backgroundColor: 'rgba(20,141,115,.13)', duration: .18 }, '<')
-            .to(firstToggle, { backgroundColor: '#159579', duration: .18 }, '<')
-            .to(firstKnob, { opacity: 1, scale: 1, duration: .18 }, '<')
             .to(cursor, { scale: 1, duration: .12 })
             .to(cursor, { opacity: 0, duration: .18 }, '+=.35')
             .to(viewport, { scrollTop: scrollAmount, duration: 1.25, ease: 'power3.inOut' }, '<')
             .to(cursor, { x: secondPoint.x, y: secondPoint.y, opacity: 1, duration: .7, ease: 'power3.inOut' }, '+=.15')
             .to(cursor, { scale: .76, duration: .1 })
             .to(secondChoice, { borderColor: '#148d73', backgroundColor: 'rgba(20,141,115,.13)', duration: .18 }, '<')
-            .to(secondToggle, { backgroundColor: '#159579', duration: .18 }, '<')
-            .to(secondKnob, { opacity: 1, scale: 1, duration: .18 }, '<')
             .to(cursor, { scale: 1, duration: .12 })
             .to(cursor, { opacity: 0, duration: .3 }, '+=1.1')
           return () => mouse.kill()
         }
       }
       if (stage === 2) {
-        const stack = scope.current.querySelector('.fl-pdf-stack')
+        const stack = root.querySelector('.fl-pdf-stack')
         const firstPage = stack?.querySelector('.fl-pdf-page')
         if (stack && firstPage) {
           const pageStep = firstPage.offsetHeight + 22
@@ -228,9 +221,10 @@ export function useLandingMotion(scope, stage, setStage, ready = true) {
   // desktop oculto nem da troca global de `stage`.
   useGSAP(() => {
     if (!ready) return
+    const root = scope.current
+    if (!root) return
     const media = gsap.matchMedia()
     media.add('(max-width: 700px) and (prefers-reduced-motion: no-preference)', () => {
-      const root = scope.current
       const stages = [...root.querySelectorAll('.fl-mobile-stage')]
       const timelines = []
       const triggers = []
@@ -260,21 +254,13 @@ export function useLandingMotion(scope, stage, setStage, ready = true) {
       const viewport = configStage?.querySelector('.fl-safety-viewport')
       const choices = configStage ? [...configStage.querySelectorAll('.fl-mouse-1, .fl-mouse-2')] : []
       if (viewport && choices.length === 2) {
-        const toggles = choices.map(choice => choice.querySelector('.fl-security-check'))
-        const knobs = toggles.map(toggle => toggle?.querySelector('b'))
         const maxScroll = Math.max(0, viewport.scrollHeight - viewport.clientHeight)
         const configTour = gsap.timeline({ repeat: -1, repeatDelay: 1, paused: true })
           .set(viewport, { scrollTop: 0 })
           .set(choices, { borderColor: 'rgba(255,255,255,.1)', backgroundColor: 'transparent' })
-          .set(toggles, { backgroundColor: '#34343d' })
-          .set(knobs, { opacity: 0, scale: .5 })
           .to(choices[0], { borderColor: '#148d73', backgroundColor: 'rgba(20,141,115,.13)', duration: .25 }, '+=.7')
-          .to(toggles[0], { backgroundColor: '#159579', duration: .25 }, '<')
-          .to(knobs[0], { opacity: 1, scale: 1, duration: .25 }, '<')
           .to(viewport, { scrollTop: maxScroll, duration: 1.4, ease: 'power3.inOut' }, '+=1')
           .to(choices[1], { borderColor: '#148d73', backgroundColor: 'rgba(20,141,115,.13)', duration: .25 })
-          .to(toggles[1], { backgroundColor: '#159579', duration: .25 }, '<')
-          .to(knobs[1], { opacity: 1, scale: 1, duration: .25 }, '<')
           .to({}, { duration: 1.4 })
         const trigger = ScrollTrigger.create({
           trigger: configStage,
