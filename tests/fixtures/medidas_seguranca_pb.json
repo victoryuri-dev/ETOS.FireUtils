@@ -1,0 +1,416 @@
+{
+  "limiares": {
+    "areaMin": 930,
+    "alturaMin": 12,
+    "inclusivo": true
+  },
+  "medidas": {
+    "C": {
+      "medidas": {
+        "extintores": {
+          "divisoes": "todas",
+          "alturaMin": null
+        },
+        "hidrantes": {
+          "divisoes": "todas",
+          "alturaMin": null
+        },
+        "deteccao": {
+          "divisoes": "todas",
+          "alturaMin": null,
+          "alturaMax": 12,
+          "notaEspecifica": 5
+        },
+        "sprinklers": {
+          "divisoes": "todas",
+          "alturaMin": 23
+        },
+        "gerenciamento_risco": [
+          {
+            "divisoes": [
+              "C-3"
+            ],
+            "alturaMax": 23,
+            "alturaMin": null
+          },
+          {
+            "divisoes": "todas",
+            "alturaMin": 23
+          }
+        ]
+      },
+      "tabelaOrigem": "6C"
+    },
+    "F": {
+      "F-3_F-9": {
+        "medidas": {
+          "deteccao": {
+            "divisoes": "todas",
+            "alturaMin": 12
+          },
+          "sprinklers": {
+            "divisoes": "todas",
+            "alturaMin": 12
+          },
+          "compart_horizontal": {
+            "divisoes": [],
+            "alturaMin": null
+          },
+          "gerenciamento_risco": {
+            "divisoes": [
+              "F-3"
+            ],
+            "alturaMin": null
+          }
+        },
+        "divisoesAplicaveis": [
+          "F-3",
+          "F-9"
+        ]
+      }
+    },
+    "K": {
+      "faixas": [
+        "Até 20 m³",
+        "Acima de 20 m³"
+      ],
+      "criterio": "volume_liquidos_combustiveis_m3",
+      "medidas": {
+        "alarme": {
+          "Até 20 m³": {
+            "exigido": true
+          }
+        }
+      }
+    },
+    "L": {
+      "L-1_L-4": {
+        "medidas": "Observar exigências da Norma Técnica Específica."
+      },
+      "tabelaOrigem": "6L"
+    },
+    "M": {
+      "M-4_M-7": {
+        "medidas": {
+          "M-4": {
+            "espuma": false,
+            "brigada": true,
+            "hidrantes": false,
+            "saida_emergencia": {
+              "exigido": true,
+              "notaEspecifica": 1
+            }
+          },
+          "M-7": {
+            "brigada": true,
+            "hidrantes": true
+          }
+        }
+      }
+    }
+  },
+  "tabela_simplificada": {
+    "origem": "Gerada a partir de tabela5_edificacoesPequenas (Tabela 5, NT 04/2023 CBMPB)",
+    "grupos": {
+      "A": {
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "D": {
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "E": {
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "G": {
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "B": {
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 2
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "C": {
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "I": {
+        "extintores": true,
+        "iluminacao": true,
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "J": {
+        "extintores": true,
+        "iluminacao": true,
+        "sinalizacao": true,
+        "saida_emergencia": true
+      }
+    },
+    "divisoes": {
+      "F-1": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "F-2": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "F-3": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "F-4": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "F-5": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "F-6": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "F-7": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "F-8": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "F-10": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "F-9": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "F-11": {
+        "brigada": {
+          "notaSimp": 4
+        },
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 3
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true,
+        "controle_acabamento": true
+      },
+      "H-1": {
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "H-4": {
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "H-6": {
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "H-2": {
+        "brigada": true,
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "controle_fumaca": {
+          "notaSimp": 6
+        },
+        "saida_emergencia": true,
+        "controle_acabamento": {
+          "notaSimp": 5
+        },
+        "gerenciamento_risco": true
+      },
+      "H-3": {
+        "brigada": true,
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "controle_fumaca": {
+          "notaSimp": 6
+        },
+        "saida_emergencia": true,
+        "controle_acabamento": {
+          "notaSimp": 5
+        },
+        "gerenciamento_risco": true
+      },
+      "H-5": {
+        "brigada": true,
+        "extintores": true,
+        "iluminacao": {
+          "notaSimp": 1
+        },
+        "sinalizacao": true,
+        "controle_fumaca": {
+          "notaSimp": 6
+        },
+        "saida_emergencia": true,
+        "controle_acabamento": {
+          "notaSimp": 5
+        },
+        "gerenciamento_risco": true
+      },
+      "M-3": {
+        "extintores": true,
+        "iluminacao": true,
+        "sinalizacao": true,
+        "saida_emergencia": true
+      },
+      "L-1": {
+        "brigada": true,
+        "extintores": true,
+        "iluminacao": true,
+        "sinalizacao": true,
+        "saida_emergencia": true
+      }
+    },
+    "notasEspecificas": {
+      "1": "Somente para as edificações com mais de dois pavimentos.",
+      "2": "Estão isentos os motéis que não possuam corredores internos de serviços.",
+      "3": "Para edificação com lotação superior a 50 pessoas ou edificações com mais de dois pavimentos.",
+      "4": "Exigido para lotação superior a 250 pessoas.",
+      "5": "Somente para lotação superior a 250 pessoas, conforme NT-09.",
+      "6": "Somente para lotação superior a 500 pessoas, nos termos da Norma Técnica específica, podendo ser substituído por chuveiros automáticos de resposta rápida com reserva de incêndio para 30 minutos."
+    },
+    "notasGerais": {
+      "a": "Para o Grupo K (Energia) e M (especiais) ver tabelas específicas.",
+      "b": "Para a Divisão G-5 (hangares): prever sistema de drenagem de líquidos nos pisos para bacias de contenção à distância. Não é permitido o armazenamento de líquidos combustíveis ou inflamáveis dentro dos hangares.",
+      "c": "Para a Divisão L-1 (Explosivos), atender a NT-01. As divisões L-2 e L-3 somente serão avaliadas pelo Corpo de Bombeiros mediante Comissão Técnica.",
+      "d": "Os subsolos das edificações devem ser compartimentados com PCF P-90 em relação aos demais pisos contíguos. Para subsolos ocupados ver Tabela 7.",
+      "e": "As instalações elétricas, o SPDA e o controle das fontes de ignição devem estar em conformidade com as normas técnicas oficiais.",
+      "f": "Observar ainda as exigências para os riscos específicos das respectivas Normas Técnicas.",
+      "g": "Depósitos em áreas descobertas, observar as exigências da Tabela 6J.",
+      "h": "No cômputo de pavimentos, desconsiderar os pavimentos de subsolo quando destinados a estacionamento de veículos, vestiários e instalações sanitárias, áreas técnicas sem aproveitamento para quaisquer atividades ou permanência humana.",
+      "i": "Os pavimentos ocupados devem possuir aberturas para o exterior (por exemplo: janelas, painéis de vidro, etc.) ou controle de fumaça dimensionados conforme Norma Técnica específica.",
+      "j": "Para edificações existentes, as adaptações de controle de material de acabamento e revestimento, de saída de emergência e de controle de fumaça, devem atender a NT-16."
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'vite'
+import { readFileSync } from 'node:fs'
 
 const server = await createServer({server:{middlewareMode:true}, appType:'custom'})
 after(() => server.close())
@@ -112,7 +113,6 @@ test('riscos especiais: PB tem lista própria, MA continua com a do Anexo B', ()
 })
 
 test('SQL do memorial_formulario entrega o mesmo conteúdo do arquivo estático da PB', async () => {
-  const { readFileSync } = await import('node:fs')
   const dadosDoSql = arquivo => JSON.parse(readFileSync(new URL(`../supabase/migrations/${arquivo}`, import.meta.url), 'utf8').split('$j$')[1])
   const mf = await server.ssrLoadModule('/src/data/normas/PB/memorial_formulario.js')
   const esperado = Object.fromEntries(Object.entries(mf).map(([k, v]) => [k.toLowerCase(), v]))
@@ -128,7 +128,7 @@ export const sistemaExisteNoCatalogo = () => false
 export const carregarNormasRemotas = async () => {}
 export const carregarCatalogoNormas = async () => {}
 export const normasCarregadas = () => true`
-  const srv = await createServer({ server:{ middlewareMode:true }, appType:'custom', plugins:[{
+  const srv = await createServer({ server:{ middlewareMode:true, hmr:false }, appType:'custom', plugins:[{
     name:'stub-normas-remotas', enforce:'pre',
     resolveId: id => (id.endsWith('lib/normasRemote') || id.endsWith('lib/normasRemote.js') ? '\0stub-normas' : null),
     load: id => (id === '\0stub-normas' ? stub : null),
@@ -138,6 +138,53 @@ export const normasCarregadas = () => true`
     assert.doesNotThrow(() => getMedidasObrigatorias('PB', ['C-1'], 0, 0))      // simplificado, sem tabela
     assert.doesNotThrow(() => getMedidasObrigatorias('PB', ['C-1'], 20, 2000))  // normal, grupo sem dado
     assert.deepEqual(getGruposSemDados('PB', ['C-1'], 0, 0), ['C'])
+  } finally {
+    await srv.close()
+  }
+})
+
+test('linha padronizada da PB: Tabela 5 inclusiva, subtabelas por divisão e grupos sem critério do app', async () => {
+  // Recorte fiel da linha ('PB','medidas_seguranca') do Supabase, com a
+  // tabela_simplificada lida do próprio SQL de padronização.
+  const linha = readFileSync(new URL('./fixtures/medidas_seguranca_pb.json', import.meta.url), 'utf8')
+  const stub = `const LINHA = ${linha}
+export const getNormaRemota = (uf, s) => (uf === 'PB' && s === 'medidas_seguranca' ? LINHA : null)
+export const sistemaExisteNoCatalogo = () => false
+export const carregarNormasRemotas = async () => {}
+export const carregarCatalogoNormas = async () => {}
+export const normasCarregadas = () => true`
+  const srv = await createServer({ server:{ middlewareMode:true, hmr:false }, appType:'custom', plugins:[{
+    name:'stub-normas-pb', enforce:'pre',
+    resolveId: id => (id.endsWith('lib/normasRemote') || id.endsWith('lib/normasRemote.js') ? '\0stub-normas-pb' : null),
+    load: id => (id === '\0stub-normas-pb' ? stub : null),
+  }] })
+  try {
+    const { getMedidasObrigatorias, getGruposSemDados } = await srv.ssrLoadModule('/src/data/normas/index.js')
+    const exigidas = r => Object.entries(r.medidas).filter(([, v]) => v.obrigatorio).map(([k]) => k).sort()
+
+    // Exatamente 930 m² e 12 m ainda é Tabela 5 ("menor ou igual").
+    const limite = getMedidasObrigatorias('PB', ['C-1'], 12, 930)
+    assert.equal(limite.simplificado, true)
+    assert.deepEqual(exigidas(limite), ['extintores', 'iluminacao', 'saida_emergencia', 'sinalizacao'])
+    assert.equal(limite.medidas.iluminacao.notaSimp, 1)
+    assert.equal(getMedidasObrigatorias('PB', ['C-1'], 12, 931).simplificado, false)
+
+    // Tabela 5: coluna por divisão (H-2_H-3_H-5) e "I_J_M-3" (grupo + divisão).
+    assert.ok(exigidas(getMedidasObrigatorias('PB', ['H-2'], 6, 500)).includes('gerenciamento_risco'))
+    assert.ok(exigidas(getMedidasObrigatorias('PB', ['M-3'], 6, 500)).includes('iluminacao'))
+    assert.deepEqual(getGruposSemDados('PB', ['K-1'], 6, 500), ['K'])
+
+    // Tabela 6, grupo direto (C) com alturaMax e condição em lista.
+    assert.deepEqual(exigidas(getMedidasObrigatorias('PB', ['C-3'], 20, 2000)), ['extintores', 'gerenciamento_risco', 'hidrantes'])
+
+    // Tabela 6, subtabela com a divisão na chave ('F-3_F-9').
+    assert.deepEqual(exigidas(getMedidasObrigatorias('PB', ['F-9'], 20, 2000)), ['deteccao', 'sprinklers'])
+    assert.deepEqual(getGruposSemDados('PB', ['F-3'], 20, 2000), [])
+
+    // Exigência fixa (M-4/M-7) e grupos com critério que o app não coleta.
+    assert.deepEqual(exigidas(getMedidasObrigatorias('PB', ['M-4'], 20, 2000)), ['brigada', 'saida_emergencia'])
+    assert.deepEqual(getGruposSemDados('PB', ['K-1', 'L-1', 'M-4'], 20, 2000), ['K', 'L'])
+    assert.doesNotThrow(() => getMedidasObrigatorias('PB', ['K-1', 'L-1'], 20, 2000))
   } finally {
     await srv.close()
   }

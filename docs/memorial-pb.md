@@ -63,3 +63,19 @@ Classificação e exigências da NT 04/2023 já estão no Supabase. A PB fica li
 2. **NT 08** (TRRF), **NT 36** (compartimentação), **NT 17/2024** (brigada, inclusive carga horária), **NT 14/2023** (acesso de viatura), **NT 15/2016** (hidrantes), **NT 12/2025** (tipos de escada, Anexo C).
 
 Enquanto não entram, as seções 7, 8 e 12 usam as tabelas do Maranhão (mesma base IT/CBPMESP).
+
+## Padronização da tabela de exigências da PB (`medidas_seguranca`)
+
+A linha `('PB','medidas_seguranca')` do Supabase (NT 04/2023) foi comparada campo a campo com a do MA (formato que o motor de normas lê):
+
+| Parte | Situação | Tratamento |
+|---|---|---|
+| `medidas` grupos A–E (`medidas` direto no grupo) | Igual ao MA | — |
+| `medidas` grupos F, G, H, I, J, M-3, M-5 (divisão na chave da subtabela: `F['F-3_F-9'].medidas`) | Layout diferente do MA (`F['F1_F2'].medidas['F-1']`) | Código aceita os dois (`_medidasDaDivisaoNormal`) |
+| `M-4_M-7` (exigência fixa `true` / `{ exigido }`) | Sem condição de altura | Código aceita (`_condSatisfeita`) |
+| K (volume), M-1 (extensão), M-2 (tanques/plataformas), L e M-6 (Comissão Técnica / norma específica) | Critério que o app não coleta | Tratados como "sem dados": mínimo de referência + sinalização para o RT |
+| `tabela5_edificacoesPequenas` (medida → coluna) | Formato diferente da `tabela_simplificada` (grupo/divisão → medida) | SQL `20261016130000_padroniza_medidas_seguranca_pb.sql` acrescenta `tabela_simplificada` gerada a partir dela |
+| `limiares` (930 m² / 12 m, "menor ou igual") | MA usa "<" | SQL acrescenta `limiares.inclusivo = true`; código respeita |
+| `notasEspecificas` por grupo, `tabelaAltura`, `tabela7_subsolos`, `tabelaCargaIncendio` | Extras da PB | Não lidos pelo motor hoje (sem efeito no cálculo) |
+
+O SQL só acrescenta chaves — nada existente é apagado. Se a `tabela5_edificacoesPequenas` for corrigida no banco, a `tabela_simplificada` precisa ser regerada.

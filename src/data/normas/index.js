@@ -373,7 +373,7 @@ export function getMedidasObrigatorias(uf, divisoes, altura, area) {
   const h = parseFloat(altura) || 0
   const a = parseFloat(area)   || 0
   const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = _partesMedidas(norma)
-  const simplificado = a < LIMIARES.areaMin && h < LIMIARES.alturaMin
+  const simplificado = _ehSimplificado(LIMIARES, a, h)
 
   return simplificado
     ? _resolverSimplificado(TABELA_SIMPLIFICADA, divisoes)
@@ -400,7 +400,7 @@ export function getGruposSemDados(uf, divisoes, altura, area) {
   const h = parseFloat(altura) || 0
   const a = parseFloat(area)   || 0
   const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = _partesMedidas(norma)
-  const simplificado = a < LIMIARES.areaMin && h < LIMIARES.alturaMin
+  const simplificado = _ehSimplificado(LIMIARES, a, h)
 
   const faltantes = new Set()
   divisoes.forEach(div => {
@@ -434,6 +434,16 @@ export function getNotaMedida(uf, divisao, medida) {
 // tela — a divisão sem dado vira "grupo sem dados" (getGruposSemDados) e o
 // motor aplica o mínimo de referência (useMedidasObrigatorias), como já
 // acontece com uma divisão que a tabela não cobre.
+// Processo simplificado (Tabela 5): abaixo dos limiares de área e altura.
+// `inclusivo` = o próprio limite ainda é simplificado ("área menor ou igual a
+// 930 m² e altura inferior ou igual a 12 m", NT 04/2023 CBMPB); sem a marca,
+// "<" estrito (regra do MA).
+function _ehSimplificado(LIMIARES, area, altura) {
+  return LIMIARES.inclusivo
+    ? area <= LIMIARES.areaMin && altura <= LIMIARES.alturaMin
+    : area < LIMIARES.areaMin && altura < LIMIARES.alturaMin
+}
+
 function _partesMedidas(norma) {
   return {
     LIMIARES: norma.LIMIARES || { areaMin: 0, alturaMin: 0 },
@@ -509,18 +519,48 @@ function _resolverNormal(MEDIDAS, divisoes, altura) {
 function _medidasDaDivisaoNormal(MEDIDAS, divisao) {
   const grupo = MEDIDAS[divisao.charAt(0)]
   if (!grupo) return null
-  if (grupo.medidas) return grupo.medidas
+  if (grupo.medidas) return _tabelaAvaliavel(grupo)
 
+  // Subtabela indexada pela(s) divisão(ões) na PRÓPRIA chave (formato da
+  // NT 04/2023 CBMPB: MEDIDAS.F['F-3_F-9'].medidas = { medida: condição }).
+  // Pode ainda vir com um nível por divisão dentro de `medidas` (M-4_M-7:
+  // .medidas['M-4'] = { brigada: true, ... }).
+  const daChave = Object.entries(grupo).find(([k, sub]) => sub && typeof sub === 'object' && k.split('_').includes(divisao))
+  if (daChave) {
+    const medidas = _tabelaAvaliavel(daChave[1])
+    const porDivisao = medidas && Object.keys(medidas).find(k => k.split('_').includes(divisao))
+    return porDivisao ? medidas[porDivisao] : medidas
+  }
+
+  // Subtabela com as divisões DENTRO de `medidas` (formato do MA:
+  // MEDIDAS.F['F1_F2'].medidas['F-1'] = { medida: condição }).
   for (const subtabela of Object.values(grupo)) {
     const porDivisao = subtabela?.medidas
-    if (!porDivisao) continue
+    if (!porDivisao || typeof porDivisao !== 'object') continue
     const chave = Object.keys(porDivisao).find(k => k.split('_').includes(divisao))
     if (chave) return porDivisao[chave]
   }
   return null
 }
 
+// Só tabelas por divisão × altura entram no motor. As que dependem de outro
+// critério que o app não coleta (volume de líquidos do Grupo K, extensão do
+// túnel M-1, colunas de tanques/plataformas do M-2) ou que remetem a
+// Comissão Técnica / norma específica (`medidas` em texto — L, M-6) contam
+// como "sem dados": o motor aplica o mínimo de referência e sinaliza o grupo
+// (getGruposSemDados) em vez de decidir sozinho.
+function _tabelaAvaliavel(tabela) {
+  if (!tabela.medidas || typeof tabela.medidas !== 'object') return null
+  if (tabela.criterio || tabela.faixas || tabela.colunas) return null
+  return tabela.medidas
+}
+
 function _condSatisfeita(cond, divisao, altura) {
+  // Exigência fixa, sem condição de altura (ex.: M-4/M-7 da NT 04/2023 CBMPB:
+  // `brigada: true` ou `{ exigido: true, notaEspecifica }`).
+  if (typeof cond === 'boolean') return cond
+  if (!cond || typeof cond !== 'object') return false
+  if (cond.divisoes === undefined) return !!cond.exigido
   if (Array.isArray(cond.divisoes) && cond.divisoes.length === 0) return false
   if (cond.divisoes !== 'todas' && !cond.divisoes.includes(divisao)) return false
   const min = cond.alturaMin ?? -Infinity
