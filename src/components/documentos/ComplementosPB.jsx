@@ -67,7 +67,7 @@ export default function ComplementosPB({ temTabelaExigencias }) {
         {!temTabelaExigencias && (
           <div className="ibox amber mt-3 mb-0">
             <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-            <span>A tabela de exigências da NT 04/2023 CBMPB ainda não está cadastrada: só as medidas do mínimo de referência saem como &quot;Exigível&quot;; as demais ficam sem marcação até o cadastro.</span>
+            <span>A tabela de exigências da NT 04/2023 CBMPB não foi encontrada (Supabase, normas_dados: uf 'PB', sistema 'medidas_seguranca'): só as medidas do mínimo de referência saem como &quot;Exigível&quot;; as demais ficam sem marcação.</span>
           </div>
         )}
       </div>

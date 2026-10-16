@@ -20,7 +20,7 @@ Regras do gerador:
 - **Exigível / Não exigível**: sai da tabela de exigências da NT 04/2023 (`medidas_seguranca` da PB, via `useMedidasObrigatorias`) — "exigível" quando a norma exige ou o RT adotou a medida. Se a tabela não carregar (offline), "não exigível" fica **em aberto** (nenhum dos dois marcado), porque não haveria base para afirmar;
 - seções ainda não ligadas ao projeto saem com o texto do formulário e campos em branco, mas com Exigível/Não exigível marcado, para o documento sair completo.
 
-**Estado do projeto**: escolhido antes de abrir a ferramenta (modal em "Criar novo projeto") e travado depois (o reducer ignora `SET_FIELD 'uf'`). O estado decide a norma e o modelo de documento: projeto da PB abre este formulário em Documentos, no lugar do Anexo B e do memorial do MA.
+**Estado do projeto**: escolhido antes de abrir a ferramenta (modal em "Criar novo projeto"; estados sem norma aparecem em cinza com cadeado) e travado depois (o reducer ignora `SET_FIELD 'uf'`). O estado decide a norma e o modelo de documento: projeto da PB abre este formulário em Documentos, no lugar do Anexo B e do memorial do MA.
 
 ## Levantamento por seção
 
@@ -57,7 +57,7 @@ Regras do gerador:
 
 ## Normas da PB que ainda faltam cadastrar
 
-Classificação e exigências da NT 04/2023 já estão no Supabase. Faltam:
+Classificação e exigências da NT 04/2023 já estão no Supabase. A PB fica liberada para projeto completo também pelo formulário do código (`memorial_formulario`), mesmo que a linha `medidas_seguranca` não seja encontrada — nesse caso o painel de complementos avisa. Faltam:
 
 1. **NT 02/2023**: carga de incêndio por CNAE (`carga_incendio`).
 2. **NT 08** (TRRF), **NT 36** (compartimentação), **NT 17/2024** (brigada, inclusive carga horária), **NT 14/2023** (acesso de viatura), **NT 15/2016** (hidrantes), **NT 12/2025** (tipos de escada, Anexo C).

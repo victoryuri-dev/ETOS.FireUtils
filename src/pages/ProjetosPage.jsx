@@ -384,10 +384,13 @@ function EscolhaEstadoModal({ tipo, onEscolher, onCancel }) {
                 type="button"
                 disabled={!ok}
                 onClick={() => onEscolher(e.uf)}
-                className={`flex items-center justify-between gap-3 py-3 px-4 rounded-md border border-solid text-left transition-colors ${ok ? 'border-border bg-transparent cursor-pointer hover:border-red-border hover:bg-red-dim' : 'border-border bg-transparent opacity-50 cursor-not-allowed'}`}
+                title={ok ? undefined : 'Norma deste estado ainda não disponível'}
+                className={`flex items-center justify-between gap-3 py-3 px-4 rounded-md border border-solid text-left transition-colors ${ok ? 'border-border bg-transparent cursor-pointer hover:border-red-border hover:bg-red-dim' : 'border-border bg-surface-2 cursor-not-allowed'}`}
               >
-                <span className="font-heading text-[14px] font-medium text-ink">{e.nome}</span>
-                <span className="text-[11px] text-ink-faint">{ok ? e.uf : 'em breve'}</span>
+                <span className={`font-heading text-[14px] font-medium ${ok ? 'text-ink' : 'text-ink-hint'}`}>{e.nome}</span>
+                {ok
+                  ? <span className="text-[11px] text-ink-faint">{e.uf}</span>
+                  : <span className="flex items-center gap-1 text-[11px] text-ink-hint"><Icon name="lock" size={13}/> em breve</span>}
               </button>
             )
           })}
