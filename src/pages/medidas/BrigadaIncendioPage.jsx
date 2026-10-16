@@ -13,6 +13,7 @@ import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { statusEstrutura } from '../../utils/statusEstrutura'
 import { CamposPBBrigada } from '../../components/pb/CamposPB'
 import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
+import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
 
 // ── Shared UI (mesmo estilo das demais páginas de medida) ────────────────
 function Card({ children, className = '' }) {
@@ -85,10 +86,10 @@ const ORDEM_NIVEL = { basico: 1, intermediario: 2, misto: 2, avancado: 3 }
 // ── Estrutura (card colapsável) com o dimensionamento da brigada ─────────
 // Mesma estrutura visual da Compartimentação: EstruturaSection com status +
 // um Card da medida (título + resumo) contendo a tabela por pavimento.
-function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, dispatch, exigido }) {
+function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, dispatch, exigido }) {
   const linhasCalculadas = pavimentos.map(pav => {
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
-    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela, estrutura.areaTotal) }
+    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela, estrutura.areaTotal, opcoesPublicoBrigada(uf, pav)) }
   })
 
   // Pavimento resolvido = tem linha na Tabela A.1 e já saiu número (ou é isento).
@@ -291,6 +292,7 @@ export default function BrigadaIncendioPage() {
           const pe = porEstrutura.find(p => p.estrutura.id === est.id)
           return (
             <EstruturaBrigada
+              uf={state.uf}
               key={est.id}
               estrutura={est}
               pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}

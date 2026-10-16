@@ -65,11 +65,40 @@ const GRUPO_NOTA5 = { baixo: 20, medio: 15, alto: 10 }
  *  instalação temporária). `notasDinamicas` lista os números de nota do
  *  rodapé (NOTAS_TABELA_A1) que este cálculo específico efetivamente
  *  acionou — não a lista estática de notas da linha, ver calcularBrigadaPavimento. */
-export function calcularBrigadistas(linha, populacaoFixa) {
+/** Brigadistas pela população máxima do local (ex.: item 4.11.2 NT 17/2024
+ *  CBMPB) — `dim` = DIMENSIONAMENTO_PUBLICO da norma. null sem público. */
+export function brigadistasPorPublico(publico, dim) {
+  const p = Math.round(num(publico))
+  if (!dim || !(p > 0)) return null
+  const faixa = dim.faixas.find(f => p <= f.ate)
+  if (faixa) return faixa.brigadistas
+  const ultima = dim.faixas.at(-1)
+  return ultima.brigadistas + Math.ceil((p - ultima.ate) / dim.acimaPorGrupo)
+}
+
+/** O dimensionamento pelo público vale para esta linha? A linha "ver item"
+ *  sempre; a que cita a nota do item (nota 10), acima do público mínimo. */
+function usaDimensionamentoPublico(linha, publico, dim) {
+  if (!dim || !linha) return false
+  if (linha.regraAcima10 === 'ver_item_5_11_2') return true
+  return (linha.notas || []).includes(dim.nota) && num(publico) > dim.publicoMinimo
+}
+
+function calcularPorPublico(linha, publico, dim) {
+  const n = brigadistasPorPublico(publico, dim)
+  const p = Math.round(num(publico))
+  if (n == null) return { brigadistas: null, especial: false, faixaUsada: null, detalhe: `Dimensionamento pelo item ${dim.item}: informe a população do pavimento na Saída de Emergência.`, notasDinamicas: [] }
+  const viaNota = linha.regraAcima10 !== 'ver_item_5_11_2'
+  return { brigadistas: n, especial: false, faixaUsada: `Item ${dim.item} — população máxima de ${p} pessoas`, detalhe: null, notasDinamicas: viaNota ? [dim.nota] : [] }
+}
+
+export function calcularBrigadistas(linha, populacaoFixa, { publico, dimensionamentoPublico } = {}) {
   if (!linha) return { brigadistas: null, especial: false, faixaUsada: null, detalhe: 'Divisão não cadastrada na Tabela A.1 — classifique a divisão do pavimento na Etapa 4.', notasDinamicas: [] }
   if (linha.isento) return { brigadistas: 0, especial: false, faixaUsada: null, detalhe: 'Divisão isenta de brigada de incêndio.', notasDinamicas: [] }
 
   const pop = Math.max(0, Math.round(num(populacaoFixa)))
+
+  if (usaDimensionamentoPublico(linha, publico, dimensionamentoPublico)) return calcularPorPublico(linha, publico, dimensionamentoPublico)
 
   if (linha.regraAcima10 === 'ver_item_5_11_2') {
     return { brigadistas: null, especial: true, faixaUsada: null, detalhe: `Instalação temporária — dimensionamento conforme item ${linha.itemReferencia || '5.11.2'} da norma (não coberto pela Tabela A.1 padrão).`, notasDinamicas: [] }
@@ -226,9 +255,12 @@ const NOTAS_SO_DINAMICAS = new Set([1, 4, 5, 8])
  *  de instalação exigidos, e `notasIdentificadas` — a lista exata (e só ela)
  *  das notas do rodapé que se aplicam a este resultado específico, pronta
  *  para render verbatim (ver NOTAS_TABELA_A1). */
-export function calcularBrigadaPavimento(divisao, risco, populacaoFixa, alturaEdificacao, tabela, areaEdificacao) {
+/** `opcoes` (opcional): { publico, dimensionamentoPublico } — população
+ *  máxima do pavimento (Saída de Emergência) e o DIMENSIONAMENTO_PUBLICO da
+ *  norma, quando o estado o tem (PB, item 4.11.2). */
+export function calcularBrigadaPavimento(divisao, risco, populacaoFixa, alturaEdificacao, tabela, areaEdificacao, opcoes) {
   const linha = linhaTabelaA1(divisao, risco, tabela)
-  const resultado = calcularBrigadistas(linha, populacaoFixa)
+  const resultado = calcularBrigadistas(linha, populacaoFixa, opcoes)
   // nota4Aplicavel diferencia a coluna: na única linha que hoje cita a Nota 4
   // (M-7 risco médio), ela vale só para o Treinamento — a Instalação não a cita.
   const temNota4Treinamento = linha?.nota4Aplicavel === 'treinamento' || linha?.nota4Aplicavel === 'ambos'

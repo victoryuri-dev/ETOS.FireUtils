@@ -45,6 +45,7 @@ import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '
 import { alarmeDaEstrutura, detectoresAtivos } from '../../deteccao_alarme_calc'
 import { observacoesDoProjeto } from '../../../utils/observacoes'
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../tipoProjeto'
+import { opcoesPublicoBrigada } from '../../../utils/brigadaPublico'
 
 const vazio = v => v === '' || v === null || v === undefined
 const fmtM  = v => `${fmtNum(v, 2, String(v))} m`
@@ -522,7 +523,7 @@ function resumoBrigada(state, ctx) {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     pavs.forEach(pav => {
       const risco = riscoDoPavimentoRobusto(pav, state.cargaState?.[est.id] || {}, cnaesDiv, LIMIARES_RISCO)
-      const { linha, resultado, nivelTreinamento } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, est.altura, TABELA_A1, est.areaTotal)
+      const { linha, resultado, nivelTreinamento } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, est.altura, TABELA_A1, est.areaTotal, opcoesPublicoBrigada(state.uf, pav))
       if (!linha || linha.isento) return
       divisoes.push(pav.divisao)
       riscos.push(RISCO_LABEL[risco])

@@ -10,6 +10,7 @@
 // População fixa, Brigadistas, Treinamento, Instalação) com o total.
 
 import { getBrigada, getExtintores, getCNAEsDivisao } from '../normas/index'
+import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL } from '../brigada_calc'
 import { blocoObservacao } from '../../utils/observacoes'
 
@@ -50,7 +51,7 @@ function divisoesUsadas(linhasCalculadas) {
   return [...vistas.entries()].map(([linha, divisao]) => ({ divisao, linha }))
 }
 
-function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, exigido) {
+function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, exigido, uf) {
   const blocos = [{ tipo: 'titulo2', texto: est.nome }]
 
   // Não exigida pra esta estrutura (NT 01 CBMMA, por ocupação/altura) — só a
@@ -63,7 +64,7 @@ function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiares
 
   const linhasCalculadas = pavs.map(pav => {
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
-    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, altura, tabela, area) }
+    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, altura, tabela, area, opcoesPublicoBrigada(uf, pav)) }
   })
 
   const temAsterisco = linhasCalculadas.some(({ linha, resultado, nivelTreinamento, nivelInstalacao }) =>
@@ -142,7 +143,7 @@ export function textoMemorialBrigadaIncendio(state, sistemas, porEstrutura) {
     // `porEstrutura` não foi repassado.
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
     const exigido = pe ? !!pe.sistemas?.brigada?.ativo : !!sistemas?.brigada?.ativo
-    const r = blocosDaEstrutura(est, pavs, est.altura, est.areaTotal, state.cargaState[est.id] || {}, cnaesDiv, extNorma.LIMIARES_RISCO, TABELA_A1, NOTAS_TABELA_A1, exigido)
+    const r = blocosDaEstrutura(est, pavs, est.altura, est.areaTotal, state.cargaState[est.id] || {}, cnaesDiv, extNorma.LIMIARES_RISCO, TABELA_A1, NOTAS_TABELA_A1, exigido, state.uf)
     if (r.temAsterisco) temAsterisco = true
     return [...r.blocos, ...blocoObservacao(est, 'brigada')]
   })

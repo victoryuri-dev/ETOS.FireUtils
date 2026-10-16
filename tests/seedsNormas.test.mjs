@@ -103,7 +103,7 @@ test('extintores: distância portátil pela opção adotada (PB nível III) e po
 test('brigada da PB: SQL = arquivo de seed', async () => {
   const esperado = await server.ssrLoadModule('/src/data/normas/PB/brigada_incendio.js')
   const lido = normas.getBrigada('PB')
-  for (const k of ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'OBSERVACOES_TRANSCRICAO']) assert.deepEqual(lido[k], JSON.parse(JSON.stringify(esperado[k])), k)
+  for (const k of ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'OBSERVACOES_TRANSCRICAO', 'DIMENSIONAMENTO_PUBLICO']) assert.deepEqual(lido[k], JSON.parse(JSON.stringify(esperado[k])), k)
 })
 
 test('brigada da PB: exemplos da NT 17/2024 (Anexo A) e diferenças para o MA', async () => {
@@ -118,6 +118,24 @@ test('brigada da PB: exemplos da NT 17/2024 (Anexo A) e diferenças para o MA', 
   assert.equal(n('H-6', 'baixo', 10), 2)    // PB: 1-2-2-2-2
   assert.equal(n('H-6', 'medio', 10, ma), 6)
   assert.equal(n('M-5', 'alto', 10), 5)     // PB: 2-2-3-4-5 (MA: 8)
+  assert.equal(normas.getBrigada('PB').TABELA_A1.find(l => l.divisoes.includes('B-2')).notas.includes(3), false)
   assert.match(calcularBrigadaPavimento('F-7', 'medio', 10, 6, pb, 500).resultado.detalhe, /item 4\.11\.2/)
   assert.match(calcularBrigadaPavimento('F-7', 'medio', 10, 6, ma, 500).resultado.detalhe, /item 5\.11\.2/)
+})
+
+test('brigada da PB: item 4.11.2 (F-7 sempre; nota 10 acima de 250 pessoas)', async () => {
+  const { calcularBrigadaPavimento, brigadistasPorPublico } = await server.ssrLoadModule('/src/data/brigada_calc.js')
+  const brig = normas.getBrigada('PB'), dim = brig.DIMENSIONAMENTO_PUBLICO
+  assert.deepEqual([250, 1000, 1001, 2500, 4000, 10000, 10001, 11000].map(p => brigadistasPorPublico(p, dim)), [5, 5, 10, 10, 15, 20, 21, 22])
+  const calc = (div, risco, popFixa, publico) => calcularBrigadaPavimento(div, risco, popFixa, 6, brig.TABELA_A1, 500, { publico, dimensionamentoPublico: dim })
+  assert.equal(calc('F-7', 'medio', 0, 3000).resultado.brigadistas, 15)
+  assert.equal(calc('F-7', 'medio', 0, 0).resultado.brigadistas, null)
+  assert.equal(calc('F-2', 'baixo', 10, 200).resultado.brigadistas, 6)    // ≤250: Tabela A.1
+  assert.equal(calc('F-2', 'baixo', 10, 800).resultado.brigadistas, 5)    // >250: item 4.11.2
+  assert.equal(calc('F-6', 'medio', 10, 1500).resultado.brigadistas, 10)  // F-6 também cita a nota 10
+  assert.equal(calc('F-4', 'baixo', 10, 1500).resultado.brigadistas, 6)   // sem nota 10: Tabela A.1
+  // MA sem a regra: comportamento de antes
+  const ma = normas.getBrigada('MA')
+  assert.equal(ma.DIMENSIONAMENTO_PUBLICO, undefined)
+  assert.equal(calcularBrigadaPavimento('F-2', 'baixo', 10, 6, ma.TABELA_A1, 500, {}).resultado.brigadistas, 6)
 })

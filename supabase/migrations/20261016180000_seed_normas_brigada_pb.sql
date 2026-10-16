@@ -5,6 +5,30 @@
 
 insert into public.normas_dados (uf, sistema, dados, versao) values
   ('PB', 'brigada', $j${
+  "dimensionamento_publico": {
+    "item": "4.11.2",
+    "nota": 10,
+    "publicoMinimo": 250,
+    "faixas": [
+      {
+        "ate": 1000,
+        "brigadistas": 5
+      },
+      {
+        "ate": 2500,
+        "brigadistas": 10
+      },
+      {
+        "ate": 5000,
+        "brigadistas": 15
+      },
+      {
+        "ate": 10000,
+        "brigadistas": 20
+      }
+    ],
+    "acimaPorGrupo": 500
+  },
   "norma": {
     "estado": "PB",
     "nome": "NT 17/2024 CBMPB",
@@ -128,7 +152,6 @@ insert into public.normas_dados (uf, sistema, dados, versao) values
       "nivelTreinamento": "nota8",
       "nivelInstalacao": "nota8",
       "notas": [
-        3,
         5,
         6,
         8

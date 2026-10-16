@@ -9,6 +9,7 @@
 import { buildAnexoBData, RISCOS_ESPECIAIS } from './anexoB'
 import { fmtNum, fmtUn } from './numero'
 import { getBrigada, getExtintores, getCNAEsDivisao } from '../data/normas/index'
+import { opcoesPublicoBrigada } from './brigadaPublico'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento } from '../data/brigada_calc'
 
 // Texto padrão dos 10 procedimentos básicos (item B.2 do Anexo B) — adaptado
@@ -113,7 +114,7 @@ function totalBrigadistasDoProjeto(state) {
     const estrutura = (state.estruturas || []).find(e => e.id === pav.estruturaId)
     const cargaEst = state.cargaState[pav.estruturaId] || {}
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, extNorma.LIMIARES_RISCO)
-    const { resultado } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura?.altura, brigNorma.TABELA_A1, estrutura?.areaTotal)
+    const { resultado } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura?.altura, brigNorma.TABELA_A1, estrutura?.areaTotal, opcoesPublicoBrigada(state.uf, pav))
     total += resultado?.brigadistas || 0
   })
   return total

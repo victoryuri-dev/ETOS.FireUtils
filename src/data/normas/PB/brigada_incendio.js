@@ -9,9 +9,27 @@
 // (nível I, faixas 1-2-2-2-2, básico), M-5 nível II e III (faixas), F-5 com
 // a nota 10, F-7 pelo item 4.11.2, notas 5, 9 e 10 e nota geral d.
 //
-// B-2: a tabela cita as notas 5, 6 e 8; a nota 3 ("Na Divisão B-2, somente os
-// funcionários...") é mantida porque o próprio texto dela se refere à B-2.
+// B-2: a tabela cita só as notas 5, 6 e 8 (a nota 3 fala da B-2, mas a
+// linha não a cita — seguida a tabela, conferida pelo usuário).
 // Fora do Anexo A (não enviado): carga horária e simulados (Anexo B).
+
+// ── Item 4.11.2: dimensionamento pela população máxima do local ─────────
+// Vale para a F-7 (linha "Ver item 4.11.2") e, pela nota 10, para as linhas
+// que citam a nota 10 quando o público máximo passa de 250 pessoas. Até
+// 10.000 pessoas: mínimo da faixa; acima, +1 brigadista por grupo de 500
+// pessoas além de 10.000.
+export const DIMENSIONAMENTO_PUBLICO = {
+  item: '4.11.2',
+  nota: 10,
+  publicoMinimo: 250,
+  faixas: [
+    { ate: 1000,  brigadistas: 5 },
+    { ate: 2500,  brigadistas: 10 },
+    { ate: 5000,  brigadistas: 15 },
+    { ate: 10000, brigadistas: 20 },
+  ],
+  acimaPorGrupo: 500,
+}
 
 export const NORMA = {
   estado: 'PB',
@@ -41,7 +59,7 @@ export const TABELA_A1 = [
 
   // ── B — Serviços de hospedagem ───────────────────────────────────────
   { divisoes: ['B-1'], grupoLabel: 'B – Serviços de hospedagem', descricao: 'Hotel e assemelhado', risco: 'medio', isento: false, faixas: [1, 2, 3, 4, 4], regraAcima10: 'nota5', nivelTreinamento: 'nota8', nivelInstalacao: 'nota8', notas: [5, 6, 8] },
-  { divisoes: ['B-2'], grupoLabel: 'B – Serviços de hospedagem', descricao: 'Hotel residencial', risco: 'medio', isento: false, faixas: [1, 2, 3, 4, 4], regraAcima10: 'nota5', nivelTreinamento: 'nota8', nivelInstalacao: 'nota8', notas: [3, 5, 6, 8] },
+  { divisoes: ['B-2'], grupoLabel: 'B – Serviços de hospedagem', descricao: 'Hotel residencial', risco: 'medio', isento: false, faixas: [1, 2, 3, 4, 4], regraAcima10: 'nota5', nivelTreinamento: 'nota8', nivelInstalacao: 'nota8', notas: [5, 6, 8] },
 
   // ── C — Comercial ─────────────────────────────────────────────────────
   { divisoes: ['C-1'], grupoLabel: 'C - Comercial', descricao: 'Comércio', risco: 'baixo', isento: false, faixas: [1, 2, 2, 2, 2], regraAcima10: 'nota5', nivelTreinamento: 'basico', nivelInstalacao: 'basico', notas: [5] },
