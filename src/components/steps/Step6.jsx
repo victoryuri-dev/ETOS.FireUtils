@@ -6,6 +6,7 @@ import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
+import { CamposPBGlp } from '../pb/CamposPB'
 
 const SIST_CONFIG = [
   { key:'acesso_viatura',      icon:'viaturaMedida', label:'Acesso de Viatura em Edificacoes'   },
@@ -280,6 +281,8 @@ export default function Step6({ step, totalSteps }) {
           </EstruturaSection>
         )
       })}
+
+      {!dimensionamento && <CamposPBGlp/>}
     </div>
   )
 }

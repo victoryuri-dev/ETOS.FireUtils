@@ -284,7 +284,6 @@ function secaoAcessoViatura(ctx) {
 }
 
 function secaoSegEstrutural(state, ctx) {
-  const m = state.memorialPB || {}
   const exigivel = exigibilidade(ctx, 'seg_estrutural')
   let grupo = '', divisao = '', classe = '', trrf = ''
   if (exigivel) {
@@ -307,7 +306,7 @@ function secaoSegEstrutural(state, ctx) {
       campo('DIVISÃO:', divisao),
       campo('CLASSE (S2, S1, P1 até P8):', classe),
       campo('TRRF (em minutos):', trrf),
-      obs('OBSERVAÇÕES LIVRES:', exigivel ? texto(...(state.estruturas || []).map(e => e.obsSegEstrutural), m.obsSegEstrutural) : m.obsSegEstrutural || ''),
+      obs('OBSERVAÇÕES LIVRES:', exigivel ? texto(...(state.estruturas || []).map(e => e.obsSegEstrutural)) : ''),
       { tipo: 'texto', negrito: true, texto: 'ORIENTAÇÃO (VERIFICAR AS NOTAS ESPECIFICAS NAS NTS):' },
     ],
   }

@@ -13,6 +13,7 @@ import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import InlineEditableNome from '../../components/ui/InlineEditableNome'
 import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import { CamposPBCmar } from '../../components/pb/CamposPB'
 
 // Descrição oficial da divisão (ex.: "A-3" -> "Habitação coletiva") — OCUPACOES
 // é indexado pela letra do grupo, com as divisões aninhadas em `.divisoes`
@@ -337,6 +338,8 @@ export default function ControleAcabamentoPage() {
             />
           )
         })}
+
+        <CamposPBCmar/>
       </div>
     </div>
   )

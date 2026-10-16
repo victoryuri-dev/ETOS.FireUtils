@@ -573,8 +573,9 @@ const INITIAL_STATE = {
   },
   // Campos que só o formulário do Memorial Descritivo do CBMPB pede (ver
   // data/memorial/PB/formulario.js) — o resto do formulário sai do que o
-  // projeto já tem (classificação, dimensionamentos, medidas). Editados no
-  // painel "Complementos" do próprio memorial (MemorialPBPage.jsx). Tudo
+  // projeto já tem (classificação, dimensionamentos, medidas). Editados nos
+  // boxes "Campos específicos da Paraíba" das páginas de medida e da
+  // Configuração (components/pb/CamposPB.jsx). Tudo
   // nasce em branco: nenhuma opção é marcada no documento sem o RT escolher.
   memorialPB: {
     formaApresentacao: '',   // 'pci' | 'ptiot' | 'ptotep' (FORMAS_APRESENTACAO)
@@ -582,7 +583,6 @@ const INITIAL_STATE = {
     estagioConstrucao: '',   // ESTAGIOS_CONSTRUCAO; '' = deriva de state.situacao
     adaptacoes: '',          // adaptações da NT 16 / Resoluções Técnicas (3.6)
     glpClasse: '',           // CLASSES_GLP (3.4.1) — só com o risco especial GLP
-    obsSegEstrutural: '',
     // Característica de cada elemento de compartimentação marcado (8) —
     // chave `h:<elemento>` ou `v:<elemento>` (chaves de
     // ELEMENTOS_COMPART_HORIZONTAL/VERTICAL em normas/<UF>/compartimentacao.js).

@@ -10,7 +10,7 @@ Na Paraíba o memorial não é texto corrido como no Maranhão: é o **formulár
 | Classificação e exigências NT 04/2023 | Supabase `('PB','ocupacoes')` e `('PB','medidas_seguranca')` (já cadastradas no banco); `src/data/normas/PB/ocupacoes.js` é só o fallback offline, cópia da linha do banco |
 | Gerador dos dados do formulário (puro, testável) | `src/data/memorial/PB/formulario.js` |
 | Página / desenho do formulário | `src/pages/documentos/MemorialPBPage.jsx` (+ estilos `.pbf-*` em `src/index.css`) |
-| Campos que só a PB pede | `state.memorialPB` (ProjetoContext) — painel `src/components/documentos/ComplementosPB.jsx` |
+| Campos que só a PB pede | `state.memorialPB` (ProjetoContext) — boxes "Campos específicos da Paraíba" (`src/components/pb/CamposPB.jsx`) no fim de cada página de medida e na Configuração (Etapa 2: forma de apresentação, estágio, adaptações, observação da natureza; Etapa de Medidas: classe de GLP) |
 | Testes | `tests/memorialPB.test.mjs` |
 | SQL | `supabase/migrations/20261016120001_seed_normas_memorial_formulario_pb.sql` (só o sistema novo `memorial_formulario`) |
 
@@ -57,7 +57,7 @@ Regras do gerador:
 
 ## Normas da PB que ainda faltam cadastrar
 
-Classificação e exigências da NT 04/2023 já estão no Supabase. A PB fica liberada para projeto completo também pelo formulário do código (`memorial_formulario`), mesmo que a linha `medidas_seguranca` não seja encontrada — nesse caso o painel de complementos avisa. Faltam:
+Classificação e exigências da NT 04/2023 já estão no Supabase. A PB fica liberada para projeto completo também pelo formulário do código (`memorial_formulario`), mesmo que a linha `medidas_seguranca` não seja encontrada — nesse caso o memorial avisa no topo do documento. Faltam:
 
 1. **NT 02/2023**: carga de incêndio por CNAE (`carga_incendio`).
 2. **NT 08** (TRRF), **NT 36** (compartimentação), **NT 17/2024** (brigada, inclusive carga horária), **NT 14/2023** (acesso de viatura), **NT 15/2016** (hidrantes), **NT 12/2025** (tipos de escada, Anexo C).

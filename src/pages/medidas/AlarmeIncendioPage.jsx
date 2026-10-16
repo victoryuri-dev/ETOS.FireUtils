@@ -13,6 +13,7 @@ import {
   alarmeDaEstrutura, alarmePav, resumoAlarmePavimento, notasAplicaveis, fmtNum, TIPOS_AVISADOR, avisadoresAtivos,
 } from '../../data/deteccao_alarme_calc'
 import { Card, CampoNum, CampoComSugestoes, BotaoOpcao, LinhaChave, Erro, NotasDaNorma, QuadroParametros, TH, TD, inputBase } from '../../components/deteccao/DaUi'
+import { CamposPBAlarme } from '../../components/pb/CamposPB'
 
 // Conceitos de circuito da central endereçável (NBR 17240) — não variam por UF,
 // por isso ficam fixos aqui em vez de na base normativa.
@@ -269,6 +270,8 @@ export default function AlarmeIncendioPage() {
               exigido={!!pe?.sistemas?.alarme?.ativo}/>
           )
         })}
+
+        <CamposPBAlarme/>
       </div>
     </div>
   )

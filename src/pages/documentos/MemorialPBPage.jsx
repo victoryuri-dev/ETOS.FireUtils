@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildFormularioPB } from '../../data/memorial/PB/formulario'
@@ -8,7 +8,6 @@ import { textoMemorialCalculoHidrantes } from '../../data/memorial/hidrantesCalc
 import { numerarBlocos } from '../../utils/memorialEstilo'
 import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
-import ComplementosPB from '../../components/documentos/ComplementosPB'
 import Icon from '../../components/ui/Icon'
 
 // Memorial Descritivo da Paraíba: o formulário oficial do CBMPB (DSPCI),
@@ -179,7 +178,6 @@ export default function MemorialPBPage({ onBack }) {
   const { state } = useProjeto()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const formulario = buildFormularioPB(state, sistemas, porEstrutura)
-  const [painel, setPainel] = useState(true)
 
   if (!formulario) return null
   const anexoA = sistemas.saida_emergencia?.ativo ? [textoMemorialSaidaEmergencia(state, sistemas, porEstrutura)] : []
@@ -191,21 +189,20 @@ export default function MemorialPBPage({ onBack }) {
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="no-print shrink-0 flex items-center justify-between gap-3 py-3 px-8 border-b border-solid border-border">
         <button className="btn-ghost" onClick={onBack}><Icon name="left" size={13}/> Voltar</button>
-        <div className="flex items-center gap-2">
-          <button className="btn-ghost" onClick={() => setPainel(v => !v)}>
-            <Icon name="settings" size={13}/> {painel ? 'Ocultar complementos' : 'Complementos do formulário'}
-          </button>
-          <button className="btn-primary" onClick={() => window.print()}><Icon name="file" size={13}/> Imprimir / Salvar PDF</button>
-        </div>
+        <button className="btn-primary" onClick={() => window.print()}><Icon name="file" size={13}/> Imprimir / Salvar PDF</button>
       </div>
 
       <div className="relative print:static flex-1 min-h-0 flex">
-        {painel && (
-          <aside className="no-print w-[380px] shrink-0 border-r border-solid border-border overflow-y-auto">
-            <ComplementosPB temTabelaExigencias={formulario.temTabelaExigencias}/>
-          </aside>
-        )}
         <div className="flex-1 min-w-0 overflow-auto py-8 flex flex-col">
+          {/* Os campos que só a PB pede ficam nos boxes "Campos específicos da
+              Paraíba" de cada página de medida e da Configuração
+              (components/pb/CamposPB.jsx) — aqui o documento só é exibido. */}
+          {!formulario.temTabelaExigencias && (
+            <div className="no-print ibox amber mx-auto mb-6 max-w-[760px]">
+              <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+              <span>A tabela de exigências da NT 04/2023 CBMPB não foi encontrada (Supabase, normas_dados: uf &apos;PB&apos;, sistema &apos;medidas_seguranca&apos;): só as medidas do mínimo de referência saem como &quot;Exigível&quot;; as demais ficam sem marcação.</span>
+            </div>
+          )}
           <PreviewPaginado css={CSS_PAGINA}>
             <div className="pbf">
               <Cabecalho norma={formulario.norma}/>

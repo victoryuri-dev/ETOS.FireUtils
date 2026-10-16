@@ -11,6 +11,7 @@ import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { statusEstrutura } from '../../utils/statusEstrutura'
+import { CamposPBBrigada } from '../../components/pb/CamposPB'
 
 // ── Shared UI (mesmo estilo das demais páginas de medida) ────────────────
 function Card({ children, className = '' }) {
@@ -301,6 +302,8 @@ export default function BrigadaIncendioPage() {
             />
           )
         })}
+
+        <CamposPBBrigada/>
       </div>
     </div>
   )

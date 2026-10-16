@@ -12,6 +12,7 @@ import {
   TIPOS_DETECTOR, deteccaoDaEstrutura, deteccaoPav, detectoresAtivos, resumoDeteccaoPavimento, notasAplicaveis, fmtNum,
 } from '../../data/deteccao_alarme_calc'
 import { Card, CampoNum, BotaoOpcao, LinhaChave, NotasDaNorma, QuadroParametros, inputBase, TH, TD } from '../../components/deteccao/DaUi'
+import { CamposPBDeteccao } from '../../components/pb/CamposPB'
 
 // ── Detecção de Incêndio ────────────────────────────────────────────────
 // Tipos e quantidades de detectores por pavimento (NT 19 — mesma norma do
@@ -193,6 +194,8 @@ export default function DeteccaoIncendioPage() {
               exigido={!!pe?.sistemas?.deteccao?.ativo}/>
           )
         })}
+
+        <CamposPBDeteccao/>
       </div>
     </div>
   )
