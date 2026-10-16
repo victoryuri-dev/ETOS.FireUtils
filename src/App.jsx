@@ -259,9 +259,9 @@ function ProjetosRoute() {
     navigate(`/projeto/${proj.id}/dashboard`)
   }
 
-  const handleNewProject = (tipo = 'completo') => {
+  const handleNewProject = (tipo = 'completo', uf) => {
     const ids = newIds()
-    dispatch({ type: 'NEW_PROJECT', ...ids, tipo })
+    dispatch({ type: 'NEW_PROJECT', ...ids, tipo, uf })
     navigate(`/projeto/${ids.id}/config`)
   }
 

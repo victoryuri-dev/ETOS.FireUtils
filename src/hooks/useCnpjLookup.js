@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useProjeto } from '../context/ProjetoContext'
-import { getEstadosDisponiveis } from '../data/normas/index'
 import { supabase } from '../lib/supabase'
 
 function maskCNPJ(raw) {
@@ -34,7 +33,7 @@ function maskCNAE(raw) {
 // espera — e o endereco fiscal da empresa, que pode nao ser o endereco da obra — e so
 // e copiado para o projeto se o usuario confirmar em aplicarEndereco().
 export function useCnpjLookup() {
-  const { dispatch } = useProjeto()
+  const { state, dispatch } = useProjeto()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
@@ -76,9 +75,12 @@ export function useCnpjLookup() {
         dispatch({ type: 'SET_FIELD', field: 'cnaePrincipalDesc', value: d.cnae_fiscal_descricao || '' })
       }
 
-      const estadoSuportado = !!getEstadosDisponiveis().find(e => e.uf === d.uf && e.ativo)
+      // O estado do projeto é fixado na criação (ver SET_FIELD 'uf' em
+      // ProjetoContext.jsx) — o endereço fiscal nunca o troca, só avisa
+      // quando não bate.
+      const estadoSuportado = d.uf === state.uf
       if (!estadoSuportado && d.uf) {
-        setWarning(`Endereco fiscal em ${d.uf} — norma ainda nao disponivel para esse estado nesta versao.`)
+        setWarning(`Endereco fiscal em ${d.uf}, mas o projeto foi criado para ${state.uf} — o estado do projeto nao muda. Confira o endereco da obra.`)
       }
       setEnderecoFiscal({
         logradouro: d.logradouro || '',
@@ -106,9 +108,6 @@ export function useCnpjLookup() {
     dispatch({ type: 'SET_FIELD', field: 'bairro', value: enderecoFiscal.bairro })
     dispatch({ type: 'SET_FIELD', field: 'cidade', value: enderecoFiscal.cidade })
     dispatch({ type: 'SET_FIELD', field: 'cep', value: enderecoFiscal.cep })
-    if (enderecoFiscal.ufSuportado) {
-      dispatch({ type: 'SET_FIELD', field: 'uf', value: enderecoFiscal.uf })
-    }
   }
 
   return { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco, qsa }

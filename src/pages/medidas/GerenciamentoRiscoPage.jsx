@@ -6,7 +6,7 @@ import EstruturaSection from '../../components/ui/EstruturaSection'
 import Icon from '../../components/ui/Icon'
 import InfoTip from '../../components/ui/InfoTip'
 import SwitchToggle from '../../components/ui/SwitchToggle'
-import { RISCOS_ESPECIAIS } from '../../utils/anexoB'
+import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { statusPorProgresso } from '../../utils/statusEstrutura'
 
@@ -132,7 +132,7 @@ export default function GerenciamentoRiscoPage() {
         <FormSection title="Localização dos riscos especiais" description="Os riscos marcados na Configuração já entram no documento — se quiser, informe onde cada um fica localizado.">
           {estruturasComRisco.map(est => {
             const marcados = state.riscosEspeciaisPorEstrutura[est.id] || {}
-            const riscosDaEst = RISCOS_ESPECIAIS.filter(r => marcados[r.key])
+            const riscosDaEst = riscosEspeciaisDoEstado(state.uf).filter(r => marcados[r.key])
             const localizacoes = pe.riscosLocalizacaoPorEstrutura[est.id] || {}
             const status = statusPorProgresso(riscosDaEst.filter(r => localizacoes[r.key]).length, riscosDaEst.length, {
               pendente: 'Opcional', concluido: 'Localizados',

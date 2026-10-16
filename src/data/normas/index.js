@@ -32,6 +32,7 @@ import * as MA_BRIG from './MA/brigada_incendio'
 import * as MA_DA   from './MA/deteccao_alarme'
 
 import * as PB_SE   from './PB/saida_emergencia'
+import * as PB_MEMF from './PB/memorial_formulario'
 
 import { getNormaRemota, sistemaExisteNoCatalogo } from '../../lib/normasRemote'
 import * as CATALOGOS_HIDRANTES from '../hidrantesCatalogos'
@@ -48,6 +49,9 @@ const NORMAS_CMAR = { MA: MA_CMAR }
 const NORMAS_COMP = { MA: MA_COMP }
 const NORMAS_HID  = { MA: MA_HID }
 const NORMAS_BRIG = { MA: MA_BRIG }
+// Só estados cujo memorial é um formulário fixo do CBM (hoje só a PB — o MA
+// usa o memorial em texto corrido, ver memorial/registry.js).
+const NORMAS_MEMF = { PB: PB_MEMF }
 // getNts() não é parametrizado por UF hoje (só existe o MA_NTS estático,
 // e o único consumidor — MemorialDescritivoPage.jsx — sempre foi
 // hardcoded pro MA também); mantido assim pra não inventar comportamento
@@ -86,7 +90,13 @@ function temSistemaCadastrado(uf, sistema, mapaEstatico) {
 // caem no fallback estático do MA quando o UF não tem base própria, sem
 // bloquear o projeto).
 function disponibilidadeEstado(uf) {
-  const ativo = temSistemaCadastrado(uf, 'ocupacoes', NORMAS) && temSistemaCadastrado(uf, 'medidas_seguranca', NORMAS_MED)
+  // Estado com memorial em formulário próprio do CBM (PB) já gera o
+  // documento do projeto completo mesmo antes da tabela de medidas: sem ela,
+  // useMedidasObrigatorias aplica o mínimo de referência
+  // (BASELINE_QUANDO_FALTA_DADO) e o formulário deixa em aberto o
+  // "Exigível/Não exigível" das demais medidas (ver memorial/PB/formulario.js).
+  const temExigencias = temSistemaCadastrado(uf, 'medidas_seguranca', NORMAS_MED) || temSistemaCadastrado(uf, 'memorial_formulario', NORMAS_MEMF)
+  const ativo = temSistemaCadastrado(uf, 'ocupacoes', NORMAS) && temExigencias
   const ativoDimensionamento = ativo || temSistemaCadastrado(uf, 'saida_emergencia', NORMAS_SE)
   return { ativo, ativoDimensionamento }
 }
@@ -142,6 +152,11 @@ const CHAVES_SIN  = ['CATEGORIAS', 'NOTAS', 'TIPOS_PLACA']
 const CHAVES_MED  = ['LIMIARES', 'MEDIDAS', 'NOTAS_ESPECIFICAS', 'TABELA_SIMPLIFICADA']
 const CHAVES_NTS  = ['NTS_PADRAO_MA', 'NTS_POR_SISTEMA', 'NT_CARGA_INCENDIO']
 const CHAVES_DA   = ['NORMA', 'REFERENCIAS', 'ALIMENTACAO', 'CENTRAL', 'ACIONADOR', 'AVISADOR', 'FIACAO', 'ENTREFORROS', 'SEM_FIO', 'COMPLEMENTARES', 'DETECTORES', 'COMISSIONAMENTO', 'MANUTENCAO', 'ITENS', 'NOTAS_POR_DIVISAO', 'NOTAS_GERAIS']
+const CHAVES_MEMF = [
+  'NORMA', 'FORMAS_APRESENTACAO', 'DIVISOES_FORA_DO_FORMULARIO', 'CLASSES_ALTURA', 'RISCOS_VALIDADE',
+  'NIVEIS_CARGA', 'CLASSES_GLP', 'ESTAGIOS_CONSTRUCAO', 'RISCOS_ESPECIAIS', 'CMAR_LINHAS',
+  'MODELOS_PLANO', 'EXTINTORES_NIVEL',
+]
 const CHAVES_BRIG = ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'OBSERVACOES_TRANSCRICAO']
 const CHAVES_HID  = [
   'NORMA', 'REFERENCIA_PRESSAO_VAZAO', 'TIPOS_SISTEMA', 'COMPONENTES_POR_TIPO',
@@ -267,6 +282,21 @@ export function getHidrantes(uf) {
 export function getDeteccaoAlarme(uf) {
   const remoto = getNormaRemota(uf, 'deteccao_alarme')
   return remoto ? renomearDaBaseCentral(remoto, CHAVES_DA) : { ...MA_DA }
+}
+// getMemorialFormulario: parâmetros do memorial em formato de formulário do
+// CBM (hoje só a PB — ver normas/PB/memorial_formulario.js). Base central
+// (normas_dados, sistema 'memorial_formulario'), com o arquivo estático como
+// fallback offline/dev. Não cai pro MA: null = o estado usa o memorial em
+// texto corrido (MemorialDescritivoPage.jsx), não um formulário.
+export function getMemorialFormulario(uf) {
+  const remoto = getNormaRemota(uf, 'memorial_formulario')
+  return remoto ? renomearDaBaseCentral(remoto, CHAVES_MEMF) : (NORMAS_MEMF[uf] ?? null)
+}
+// Estados cujo documento oficial é o formulário do CBM (sem precisar do
+// conteúdo, só saber se existe) — usado pra escolher o documento em
+// DocumentosPage.jsx.
+export function usaMemorialFormulario(uf) {
+  return temSistemaCadastrado(uf, 'memorial_formulario', NORMAS_MEMF)
 }
 export function getBrigada(uf) {
   const remoto = getNormaRemota(uf, 'brigada')

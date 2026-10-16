@@ -4,7 +4,7 @@
 
 import { fmtNum, fmtUn } from './numero'
 import { classificarRisco } from '../data/extintores_calc'
-import { getExtintores, getOcupacoes } from '../data/normas/index'
+import { getExtintores, getOcupacoes, getMemorialFormulario } from '../data/normas/index'
 
 // Mesma lista/ordem do formulario oficial. `key` aponta para state.sistemas —
 // quando null, a medida ainda nao e rastreada pelo app.
@@ -45,6 +45,15 @@ export const RISCOS_ESPECIAIS = [
   { key: 'produtos_perigosos',   label: 'Armazenamento de produtos perigosos' },
   { key: 'outros',               label: 'Outros (especificar):' },
 ]
+
+// Lista de riscos especiais que a Configuração oferece pra marcar, por
+// estado: a PB tem a própria lista no formulário do memorial (item 5 —
+// normas/PB/memorial_formulario.js), com as mesmas chaves do MA quando o
+// risco é o mesmo e quatro riscos a mais; os demais estados usam a do
+// Anexo B (NT 01 CBMMA), acima.
+export function riscosEspeciaisDoEstado(uf) {
+  return getMemorialFormulario(uf)?.RISCOS_ESPECIAIS ?? RISCOS_ESPECIAIS
+}
 
 // 'x' = medida adotada (ativo); 'isenta' = a norma exige mas a medida foi
 // dispensada por algum motivo específico (substituição por sistema

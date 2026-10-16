@@ -142,14 +142,11 @@ export default function Step1({ step, totalSteps }) {
         <div className="g3">
           <div className="fg"><label>Cidade <Obrigatorio id={'cidade'}/></label><input value={state.cidade} onChange={set('cidade')} placeholder="Sao Luis"/></div>
           <div className="fg">
-            <label>Estado <Obrigatorio id={'uf'}/></label>
-            <select value={state.uf} onChange={set('uf')}>
-              {estadosDisponiveis.map(e => (
-                <option key={e.uf} value={e.uf} disabled={!e.ativo}>
-                  {e.nome}{!e.ativo ? ' — em breve' : ''}
-                </option>
-              ))}
-            </select>
+            <label>Estado</label>
+            {/* Escolhido na criação do projeto e travado (ver SET_FIELD 'uf'
+                em ProjetoContext.jsx) — a norma e o modelo de documento
+                dependem dele. */}
+            <input value={estadosDisponiveis.find(e => e.uf === state.uf)?.nome || state.uf} disabled title="Definido na criação do projeto — não pode ser alterado"/>
           </div>
         </div>
       </FormSection>

@@ -6,7 +6,7 @@ import { useNorma } from '../hooks/useNorma'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { newIds } from '../context/ProjetoContext'
-import { temCNAECadastrado } from '../data/normas/index'
+import { temCNAECadastrado, getEstadosDisponiveis } from '../data/normas/index'
 import { fmtUn } from '../utils/numero'
 
 // ── helpers ───────────────────────────────────────────────────────────
@@ -343,6 +343,62 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
   )
 }
 
+// ── Escolha do estado (antes de criar o projeto) ───────────────────────
+// O estado é perguntado ANTES de abrir a ferramenta e fica gravado no
+// projeto pra sempre (ver SET_FIELD 'uf' em ProjetoContext.jsx): ele define
+// a norma usada em todo o wizard e o modelo de documento gerado no fim
+// (memorial em texto corrido do MA x formulário oficial do CBMPB). Só ficam
+// habilitados os estados com norma cadastrada pro tipo de projeto escolhido.
+function EscolhaEstadoModal({ tipo, onEscolher, onCancel }) {
+  const estados = getEstadosDisponiveis()
+  const disponivel = e => (tipo === 'dimensionamento' ? e.ativo || e.ativoDimensionamento : e.ativo)
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onCancel() }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [onCancel])
+
+  return (
+    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={onCancel}>
+      <div
+        role="dialog" aria-modal="true" aria-labelledby="escolha-estado-titulo"
+        onClick={e => e.stopPropagation()}
+        className="bg-surface border border-solid border-border rounded-lg py-7 px-8 w-[440px] max-w-[90vw] shadow-[var(--shadow-md)]"
+      >
+        <div className="text-center mb-5">
+          <div id="escolha-estado-titulo" className="font-heading text-base font-semibold text-ink mb-2">
+            Em qual estado fica a edificação?
+          </div>
+          <div className="text-[13px] text-ink-faint leading-[1.6]">
+            A norma aplicada e o modelo dos documentos dependem do estado. Ele não poderá ser alterado depois de criado o projeto.
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 mb-5">
+          {estados.map(e => {
+            const ok = disponivel(e)
+            return (
+              <button
+                key={e.uf}
+                type="button"
+                disabled={!ok}
+                onClick={() => onEscolher(e.uf)}
+                className={`flex items-center justify-between gap-3 py-3 px-4 rounded-md border border-solid text-left transition-colors ${ok ? 'border-border bg-transparent cursor-pointer hover:border-red-border hover:bg-red-dim' : 'border-border bg-transparent opacity-50 cursor-not-allowed'}`}
+              >
+                <span className="font-heading text-[14px] font-medium text-ink">{e.nome}</span>
+                <span className="text-[11px] text-ink-faint">{ok ? e.uf : 'em breve'}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        <button className="btn-ghost w-full justify-center" onClick={onCancel}>Cancelar</button>
+      </div>
+    </div>
+  )
+}
+
 // ── Modal de confirmação (excluir / duplicar) ──────────────────────────
 // Ambas as ações do card (excluir e duplicar) passam por aqui antes de
 // acontecer — o usuário sempre precisa confirmar.
@@ -526,6 +582,10 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
   const [filterUF,     setFilterUF]     = useState('')
   const [filterGrupo,  setFilterGrupo]  = useState('')
   const [filterStatus, setFilterStatus] = useState([]) // multiselect: 'concluidos' | 'andamento' | 'rascunhos'
+  // Tipo de projeto ('completo' | 'dimensionamento') aguardando a escolha do
+  // estado — null = modal fechado (ver EscolhaEstadoModal).
+  const [novoTipo, setNovoTipo] = useState(null)
+  const pedirEstado = tipo => setNovoTipo(tipo === 'dimensionamento' ? 'dimensionamento' : 'completo')
   // Lista em cache (por usuario) so pra nao piscar o loader ao voltar pra
   // esta tela: mostra a ultima lista de imediato e atualiza em segundo plano.
   const cache = user ? cacheProjetos.get(user.id) : null
@@ -648,7 +708,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
           <div className="flex items-start justify-between mb-6">
             <h1 className="font-heading text-2xl font-bold text-ink">Meus projetos</h1>
             <div className="flex gap-2">
-              <NovoProjetoBotao onNewProject={onNewProject}/>
+              <NovoProjetoBotao onNewProject={pedirEstado}/>
             </div>
           </div>
 
@@ -756,7 +816,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
           {loading ? (
             <div className="py-16 flex justify-center"><Loader size={40}/></div>
           ) : filtered.length === 0 ? (
-            <EmptyState hasFilter={hasFilter} onNew={onNewProject}/>
+            <EmptyState hasFilter={hasFilter} onNew={() => pedirEstado('completo')}/>
           ) : view === 'grid' ? (
             <div ref={gridRef} className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-3">
               {filtered.map(proj => (
@@ -776,6 +836,14 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
       </div>
 
       {/* Modais de confirmação */}
+      {novoTipo && (
+        <EscolhaEstadoModal
+          tipo={novoTipo}
+          onEscolher={uf => { const tipo = novoTipo; setNovoTipo(null); onNewProject(tipo, uf) }}
+          onCancel={() => setNovoTipo(null)}
+        />
+      )}
+
       {toDelete && (
         <ConfirmModal
           tone="red"

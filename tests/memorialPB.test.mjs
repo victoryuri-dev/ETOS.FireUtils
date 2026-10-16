@@ -1,0 +1,122 @@
+import { test, after } from 'node:test'
+import assert from 'node:assert/strict'
+import { createServer } from 'vite'
+
+const server = await createServer({server:{middlewareMode:true}, appType:'custom'})
+after(() => server.close())
+const { buildFormularioPB } = await server.ssrLoadModule('/src/data/memorial/PB/formulario.js')
+const { medidasObrigatorias } = await server.ssrLoadModule('/src/hooks/useMedidasObrigatorias.js')
+const { riscosEspeciaisDoEstado, RISCOS_ESPECIAIS } = await server.ssrLoadModule('/src/utils/anexoB.js')
+
+const SISTEMAS = Object.fromEntries(['acesso_viatura','seg_estrutural','compart_horizontal','compart_vertical','controle_acabamento','saida_emergencia','gerenciamento_risco','brigada','iluminacao','sinalizacao','extintores','hidrantes','alarme','deteccao','sprinklers','controle_fumaca','central_gas','spda'].map(k => [k, { obrigatorio:false, ativo:false }]))
+
+function projeto(extra = {}) {
+  return {
+    uf:'PB', tipoProjeto:'completo', situacao:'nova', nome:'Teste',
+    estruturas:[{ id:'e1', nome:'Bloco A', areaTotal:'1200', altura:'9', alturaPisoPiso:9, alturaEdificacao:9, nPavimentos:3, nSubsolos:0 }],
+    pavimentos:[{
+      id:'p1', estruturaId:'e1', label:'Térreo', tipo:'terreo', divisao:'C-1', area:'400', pisoDescarga:true,
+      ambientes:[{ id:'a1', nome:'Loja', divisao:'C-1', area:'300', acessoId:'ac2' }],
+      acessos:[{ id:'ac1', nome:'Saída', alimentaEm:null }, { id:'ac2', nome:'Acesso', alimentaEm:'ac1' }],
+    }],
+    cargaState:{ e1:{ 'C-1':{ metodo:'levantamento', valorManual:'500' } } },
+    sistemas: SISTEMAS, sistemasPorEstrutura:{}, riscosEspeciaisPorEstrutura:{}, riscosOutrosDescPorEstrutura:{},
+    memorialPB:{},
+    ...extra,
+  }
+}
+function gerar(state) {
+  const { sistemas, porEstrutura } = medidasObrigatorias(state)
+  return buildFormularioPB(state, sistemas, porEstrutura)
+}
+const secao = (f, prefixo) => f.secoes.find(s => s.titulo.startsWith(prefixo))
+const marcados = s => s.linhas.flatMap(l => [...(l.itens || []), ...(l.tipo === 'checkValor' ? [l] : [])]).filter(i => i.x).map(i => i.label)
+const valorCampo = (s, label) => s.linhas.flatMap(l => l.celulas || []).find(c => c.label === label)?.valor
+
+test('estado sem formulário próprio não gera o memorial da PB', () => {
+  assert.equal(gerar(projeto({ uf:'MA' })), null)
+})
+
+test('as 20 seções saem na ordem do modelo do CBMPB', () => {
+  const f = gerar(projeto())
+  assert.equal(f.secoes.length, 20)
+  assert.ok(f.secoes[0].titulo.startsWith('1.'))
+  assert.ok(f.secoes[19].titulo.startsWith('20.'))
+})
+
+test('identificação, natureza, altura, risco e nível saem do projeto', () => {
+  const f = gerar(projeto({ respRazaoSocial:'Loja X', bairro:'Centro', cidade:'João Pessoa', rtNome:'Fulano', rtConselho:'CREA 123', artNumero:'999' }))
+  const id = secao(f, '1.')
+  assert.equal(valorCampo(id, 'Obra/Razão Social:'), 'Loja X')
+  assert.equal(valorCampo(id, 'Município:'), 'João Pessoa')
+  assert.equal(valorCampo(id, 'ART/RRT nº:'), '999')
+  const p = secao(f, '3.')
+  const x = marcados(p)
+  assert.ok(x.includes('C-1 - Comércio com carga de incêndio nível I'))
+  assert.ok(x.includes('Tipo III'))                      // 9 m: 6 < H ≤ 12
+  assert.ok(x.includes('Médio'))                         // 500 MJ/m²
+  assert.ok(x.includes('Nível II'))
+  assert.ok(x.includes('A edificação ainda será construída'))
+})
+
+test('sem forma de apresentação escolhida, nada é marcado', () => {
+  assert.deepEqual(marcados(secao(gerar(projeto()), '2.')), [])
+  assert.deepEqual(marcados(secao(gerar(projeto({ memorialPB:{ formaApresentacao:'ptiot' } })), '2.')),
+    ['Projeto Técnico para Instalação e Ocupação Temporária (PTIOT)'])
+})
+
+test('classe de GLP só marca com o risco especial GLP marcado', () => {
+  const semRisco = marcados(secao(gerar(projeto({ memorialPB:{ glpClasse:'II' } })), '3.'))
+  assert.ok(!semRisco.some(l => l.startsWith('CLASSE')))
+  const comRisco = marcados(secao(gerar(projeto({ riscosEspeciaisPorEstrutura:{ e1:{ glp:true } }, memorialPB:{ glpClasse:'II' } })), '3.'))
+  assert.ok(comRisco.includes('CLASSE II – Até 1.560 kg'))
+  assert.ok(comRisco.includes('EXIGÍVEL'))
+})
+
+test('exigibilidade fica em aberto sem a tabela de exigências da PB, exceto no mínimo de referência', () => {
+  const f = gerar(projeto())
+  assert.equal(f.temTabelaExigencias, false)
+  const exig = prefixo => secao(f, prefixo).linhas.find(l => l.tipo === 'exigivel').exigivel
+  assert.equal(exig('10.'), true)     // saída de emergência — mínimo de referência
+  assert.equal(exig('17.'), null)     // hidrantes — não dá pra afirmar "não exigível"
+  assert.equal(exig('19.'), null)     // SPDA — sem regra no app
+})
+
+test('saídas de emergência saem do dimensionamento do projeto', () => {
+  const s = secao(gerar(projeto()), '10.')
+  assert.equal(valorCampo(s, 'Capacidade de público (pessoas) total da edificação:'), '60') // 300 m² / 5 m²/pessoa
+  assert.ok(valorCampo(s, 'Largura (metros) dos acessos e descargas:'))
+  assert.ok(valorCampo(s, 'Distanciamento (metros) máximo a ser percorrido no piso de descarga:').includes('C-1'))
+})
+
+test('atestos só aparecem marcados quando o RT marca', () => {
+  assert.equal(marcados(secao(gerar(projeto()), '10.')).length, 0)
+  const s = secao(gerar(projeto({ memorialPB:{ atestos:{ se_guardas_5_8:true } } })), '10.')
+  assert.deepEqual(marcados(s), ['As guardas e corrimãos atendem aos requisitos do item 5.8 da NT 12'])
+})
+
+test('extintores marcam o nível da carga; nível III depende da escolha do RT', () => {
+  assert.ok(marcados(secao(gerar(projeto()), '16.')).some(l => l.includes('nível II')))
+  const alto = projeto({ cargaState:{ e1:{ 'C-1':{ metodo:'levantamento', valorManual:'1500' } } } })
+  assert.equal(marcados(secao(gerar(alto), '16.')).length, 0)
+  alto.memorialPB = { extintorNivelIII:'nivel_III_4A' }
+  assert.deepEqual(marcados(secao(gerar(alto), '16.')), ['Edificação de nível III com capacidade extintora mínima de 4A e 80BC'])
+})
+
+test('riscos especiais: PB tem lista própria, MA continua com a do Anexo B', () => {
+  assert.equal(riscosEspeciaisDoEstado('MA'), RISCOS_ESPECIAIS)
+  const pb = riscosEspeciaisDoEstado('PB').map(r => r.key)
+  for (const k of ['tendas_inflamaveis', 'geradores_eletricos', 'estrutura_montada', 'sistemas_eletricos_montados', 'glp']) assert.ok(pb.includes(k), k)
+  const r = secao(gerar(projeto({ riscosEspeciaisPorEstrutura:{ e1:{ geradores_eletricos:true } } })), '5.')
+  assert.deepEqual(marcados(r), ['Geradores elétricos'])
+})
+
+test('SQL do Supabase entrega o mesmo conteúdo dos arquivos estáticos da PB', async () => {
+  const { readFileSync } = await import('node:fs')
+  const dadosDoSql = arquivo => JSON.parse(readFileSync(new URL(`../supabase/migrations/${arquivo}`, import.meta.url), 'utf8').split('$j$')[1])
+  const oc = await server.ssrLoadModule('/src/data/normas/PB/ocupacoes.js')
+  const mf = await server.ssrLoadModule('/src/data/normas/PB/memorial_formulario.js')
+  assert.deepEqual(dadosDoSql('20261016120000_seed_normas_ocupacoes_pb.sql'), { norma: oc.NORMA, ocupacoes: oc.OCUPACOES })
+  const esperado = Object.fromEntries(Object.entries(mf).map(([k, v]) => [k.toLowerCase(), v]))
+  assert.deepEqual(dadosDoSql('20261016120001_seed_normas_memorial_formulario_pb.sql'), JSON.parse(JSON.stringify(esperado)))
+})

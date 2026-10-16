@@ -56,6 +56,12 @@ export default function PreviewPaginado({ children, css, prepararConteudo, aposP
       await previewer.preview(conteudo, [{ 'preview-paginado.css': propsRef.current.css || '@page { size: A4 portrait; margin: 25mm; }' }], palco)
       if (!s.ativo) { previewer.polisher.destroy(); return }
 
+      // Páginas prontas não devem mais se repaginar sozinhas: o Paged.js deixa
+      // um ResizeObserver ligado em cada uma, que ao mover a página pro
+      // destino (ou ao trocar a geração anterior) tentava reajustar contra o
+      // conteúdo do palco já descartado — "Cannot read properties of null
+      // (reading 'getAttribute')" a cada repaginação.
+      previewer.chunker?.pages?.forEach(pg => pg.removeListeners?.())
       destinoRef.current.replaceChildren(...palco.childNodes)
       propsRef.current.aposPaginar?.(destinoRef.current)
       const anterior = s.previewer

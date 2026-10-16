@@ -5,6 +5,7 @@ import Icon from '../ui/Icon'
 import EstruturaSection from '../ui/EstruturaSection'
 import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
+import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
 
 const SIST_CONFIG = [
   { key:'acesso_viatura',      icon:'viaturaMedida', label:'Acesso de Viatura em Edificacoes'   },
@@ -39,14 +40,15 @@ const SIST_CONFIG_DIMENSIONAMENTO = [
   { key:'sprinklers',       icon:'sprinklerMedida',label:'Chuveiros Automaticos'    },
 ]
 
-const RISCOS_CONFIG = [
-  { key:'liquidos_inflamaveis', icon:'flame',    label:'Armazenamento de liquidos inflamaveis' },
-  { key:'fogos_artificio',      icon:'warn',     label:'Armazenamento ou revenda de fogos de artificio' },
-  { key:'glp',                  icon:'drop',     label:'Uso de Gas Liquefeito de Petroleo' },
-  { key:'vasos_pressao',        icon:'settings', label:'Vasos sob pressao (caldeiras)' },
-  { key:'produtos_perigosos',   icon:'warn',     label:'Armazenamento de produtos perigosos' },
-  { key:'outros',               icon:'info',     label:'Outros (especificar)' },
-]
+// Ícone de cada risco especial — a lista em si (chaves e rótulos) vem de
+// riscosEspeciaisDoEstado(uf) (utils/anexoB.js), que muda por estado (a PB
+// tem riscos que o Anexo B do MA não tem).
+const ICONE_RISCO = {
+  liquidos_inflamaveis: 'flame', fogos_artificio: 'warn', glp: 'drop',
+  vasos_pressao: 'settings', produtos_perigosos: 'warn', outros: 'info',
+  tendas_inflamaveis: 'flame', geradores_eletricos: 'settings',
+  estrutura_montada: 'settings', sistemas_eletricos_montados: 'settings',
+}
 
 const RISCOS_DEFAULT = {
   liquidos_inflamaveis: false, fogos_artificio: false, glp: false,
@@ -179,14 +181,14 @@ function MotivosIsencao({ pe, state, dispatch, sistConfig }) {
 }
 
 // ── Grid de riscos especiais de uma estrutura ───────────────────────────
-function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
+function RiscosGrid({ uf, estruturaId, riscos, outrosDesc, dispatch }) {
   return (
     <>
       <div
         className="grid gap-2"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(max(170px, calc((100% - 24px) / 4)), 1fr))' }}
       >
-        {RISCOS_CONFIG.map(r => {
+        {riscosEspeciaisDoEstado(uf).map(r => {
           const on = !!riscos[r.key]
           const alternar = () => dispatch({ type:'TOGGLE_RISCO_ESTRUTURA', estruturaId, key:r.key })
           // Mesmo desenho das medidas: o estado esta na cor do proprio simbolo
@@ -199,7 +201,7 @@ function RiscosGrid({ estruturaId, riscos, outrosDesc, dispatch }) {
               onClick={alternar}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar() } }}
               className={`border border-solid rounded-md p-3.5 flex items-center gap-2.5 cursor-pointer transition-[border-color,background-color] duration-150 ${on ? 'border-red-border bg-red-dim' : 'border-border bg-transparent'}`}>
-              <Icon name={r.icon} size={26} color={on ? 'var(--color-red)' : 'var(--color-ink-hint)'} className="shrink-0"/>
+              <Icon name={ICONE_RISCO[r.key] || 'warn'} size={26} color={on ? 'var(--color-red)' : 'var(--color-ink-hint)'} className="shrink-0"/>
               <div className={`min-w-0 [overflow-wrap:anywhere] text-xs font-medium leading-[1.3] ${on ? 'text-ink' : 'text-ink-muted'}`}>{r.label}</div>
             </div>
           )
@@ -271,8 +273,8 @@ export default function Step6({ step, totalSteps }) {
             {!dimensionamento && (
               <div>
                 <div className={blockTitle}>Riscos especiais</div>
-                <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes nesta estrutura ou area de risco, conforme Anexo B da NT 01.</p>
-                <RiscosGrid estruturaId={est.id} riscos={riscos} outrosDesc={outrosDesc} dispatch={dispatch}/>
+                <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes nesta estrutura ou area de risco, {state.uf === 'PB' ? 'conforme item 5 do Memorial Descritivo do CBMPB.' : 'conforme Anexo B da NT 01.'}</p>
+                <RiscosGrid uf={state.uf} estruturaId={est.id} riscos={riscos} outrosDesc={outrosDesc} dispatch={dispatch}/>
               </div>
             )}
           </EstruturaSection>

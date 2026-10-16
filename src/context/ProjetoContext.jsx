@@ -298,6 +298,7 @@ function hydrateState(saved) {
     iluminacao: migrarAclaramentoParaItens(saved),
     hidrantes: { ...INITIAL_STATE.hidrantes, ...(saved.hidrantes || {}) },
     planoEmergencia: hydratarPlanoEmergencia(saved.planoEmergencia),
+    memorialPB: { ...INITIAL_STATE.memorialPB, ...(saved.memorialPB || {}) },
     // Migração: pavimentos salvos antes de `ambientes` (Saída de Emergência)
     // ou de `acessos`/`pisoDescarga` (árvore de Acessos e Descargas)
     // existirem não têm esses campos — sem isso, o reducer quebraria ao
@@ -570,6 +571,40 @@ const INITIAL_STATE = {
     telefoneCBM: '193', hospitalNome: '', hospitalDistancia: '', hospitalEndereco: '',
     ...PROCEDIMENTOS_PADRAO,
   },
+  // Campos que só o formulário do Memorial Descritivo do CBMPB pede (ver
+  // data/memorial/PB/formulario.js) — o resto do formulário sai do que o
+  // projeto já tem (classificação, dimensionamentos, medidas). Editados no
+  // painel "Complementos" do próprio memorial (MemorialPBPage.jsx). Tudo
+  // nasce em branco: nenhuma opção é marcada no documento sem o RT escolher.
+  memorialPB: {
+    formaApresentacao: '',   // 'pci' | 'ptiot' | 'ptotep' (FORMAS_APRESENTACAO)
+    obsNatureza: '',
+    estagioConstrucao: '',   // ESTAGIOS_CONSTRUCAO; '' = deriva de state.situacao
+    adaptacoes: '',          // adaptações da NT 16 / Resoluções Técnicas (3.6)
+    glpClasse: '',           // CLASSES_GLP (3.4.1) — só com o risco especial GLP
+    obsSegEstrutural: '',
+    // Característica de cada elemento de compartimentação marcado (8) —
+    // chave `h:<elemento>` ou `v:<elemento>` (chaves de
+    // ELEMENTOS_COMPART_HORIZONTAL/VERTICAL em normas/<UF>/compartimentacao.js).
+    especificacaoCompart: {},
+    obsCmar: '',
+    tipoEscada: '',          // 'NE' | 'EP' | 'PF'; '' = deriva da norma (10.1)
+    obsSaidas: '',
+    planoModelo: '',         // 'item6' | 'anexoB' (MODELOS_PLANO, 11.1)
+    obsPlano: '',
+    brigadaCargaHoraria: '',
+    brigadaIntervaloSimulados: '',
+    brigadaDimensionamento: '',
+    obsBrigada: '',
+    extintorNivelIII: '',    // 'nivel_III_3A' | 'nivel_III_4A' (EXTINTORES_NIVEL)
+    obsExtintores: '',
+    obsAlarme: '',
+    obsDeteccao: '',
+    // Itens de "atesto" do formulário (as escadas atendem ao item 5.7 da NT
+    // 12 etc.) — { [chave do item]: true }. Nunca marcados automaticamente:
+    // é declaração do RT, não resultado de cálculo.
+    atestos: {},
+  },
   sistemas: {
     // acesso_viatura, seg_estrutural e brigada NAO sao universais: a Tabela 5
     // (simplificado) nunca exige as duas primeiras, e brigada so e exigida
@@ -606,14 +641,27 @@ function marcarOrigemRevit(estruturas, ids, medida) {
 
 function reducer(state, action) {
   switch (action.type) {
+    // `uf` é escolhido uma única vez, na criação do projeto (NEW_PROJECT —
+    // ver EscolhaEstadoModal em ProjetosPage.jsx), e não muda mais: a norma,
+    // o wizard e o modelo de documento (memorial em texto do MA x formulário
+    // do CBMPB) dependem dele, e trocar no meio do projeto deixaria dados de
+    // uma norma avaliados pela outra.
     case 'SET_FIELD':
+      if (action.field === 'uf') return state
       return { ...state, [action.field]: action.value }
     // Varios campos de uma vez, como UMA alteracao — usado ao aplicar o
     // responsavel tecnico do perfil na Etapa 3 (ver hooks/usePerfil.js), que
     // senao viraria um dispatch por campo e, com isso, varios passos
     // separados de autosave.
-    case 'SET_FIELDS':
-      return { ...state, ...action.fields }
+    case 'SET_FIELDS': {
+      const fields = { ...action.fields }
+      delete fields.uf
+      return { ...state, ...fields }
+    }
+    // Campos do formulário do memorial do CBMPB (state.memorialPB) — merge
+    // raso: `changes` traz só os campos alterados.
+    case 'SET_MEMORIAL_PB':
+      return { ...state, memorialPB: { ...state.memorialPB, ...action.changes } }
     case 'ADD_ESTRUTURA': {
       const est = novaEstrutura(`Estrutura ${state.estruturas.length + 1}`, action.id)
       return { ...state, estruturas: [...state.estruturas, est], pavimentos: [...state.pavimentos, pavimentoTerreo(est.id)] }
@@ -1068,6 +1116,7 @@ function reducer(state, action) {
         ...INITIAL_STATE,
         id: action.id, createdAt: action.createdAt,
         tipoProjeto: action.tipo || 'completo',
+        uf: action.uf || INITIAL_STATE.uf,
         estruturas: [est], pavimentos: [pavimentoTerreo(est.id)], saveReady: true,
       }
     }

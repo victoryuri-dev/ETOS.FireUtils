@@ -260,17 +260,8 @@ export default function Step2({ step, totalSteps }) {
               <input value={state.nome} onChange={set('nome')} placeholder="Ex: Edificio Comercial Centro"/>
             </div>
             <div className="fg">
-              <label>Estado <Obrigatorio id={'uf'}/></label>
-              <select value={state.uf} onChange={set('uf')}>
-                {estadosDisponiveis.map(e => {
-                  const habilitado = e.ativo || e.ativoDimensionamento
-                  return (
-                    <option key={e.uf} value={e.uf} disabled={!habilitado}>
-                      {e.nome}{!habilitado ? ' — em breve' : ''}
-                    </option>
-                  )
-                })}
-              </select>
+              <label>Estado</label>
+              <input value={estadosDisponiveis.find(e => e.uf === state.uf)?.nome || state.uf} disabled title="Definido na criação do projeto — não pode ser alterado"/>
             </div>
           </div>
         </FormSection>

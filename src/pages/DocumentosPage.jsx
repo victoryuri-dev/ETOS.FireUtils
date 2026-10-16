@@ -2,6 +2,8 @@ import { useLocation, useNavigate, useParams, Navigate } from 'react-router-dom'
 import { useProjeto } from '../context/ProjetoContext'
 import AnexoBPage from './documentos/AnexoBPage'
 import MemorialDescritivoPage from './documentos/MemorialDescritivoPage'
+import MemorialPBPage from './documentos/MemorialPBPage'
+import { usaMemorialFormulario } from '../data/normas/index'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
 import SemLicenca from '../components/perfil/SemLicenca'
@@ -17,6 +19,17 @@ const DOCUMENTOS = [
     id: 'memorial-descritivo',
     titulo: 'Memorial Descritivo',
     descricao: 'Uma pagina por medida de seguranca dimensionada, com o texto tecnico gerado a partir dos dados de cada dimensionamento — inclui o Plano de Emergencia (NT 16) quando aplicavel ao projeto.',
+  },
+]
+
+// Estados cujo memorial é o formulário oficial do CBM (hoje só a PB — ver
+// normas/PB/memorial_formulario.js): no lugar do Anexo B (NT 01 CBMMA) e do
+// memorial em texto corrido, um único documento — o próprio formulário.
+const DOCUMENTOS_FORMULARIO = [
+  {
+    id: 'memorial-descritivo',
+    titulo: 'Memorial Descritivo — CBMPB',
+    descricao: 'Formulario oficial do Memorial Descritivo do Projeto de Seguranca Contra Incendio do CBMPB, preenchido com os dados do projeto, com os Anexos A a D ao final.',
   },
 ]
 
@@ -45,7 +58,9 @@ export default function DocumentosPage() {
   // projeto "apenas dimensionamento" nunca coleta — não faz sentido gerar
   // um formulário cheio de campo em branco pra um modo pensado pra não
   // pedir esse dado.
-  const documentos = state.tipoProjeto === 'dimensionamento'
+  const formulario = usaMemorialFormulario(state.uf)
+  const documentos = formulario ? DOCUMENTOS_FORMULARIO
+    : state.tipoProjeto === 'dimensionamento'
     ? DOCUMENTOS.filter(d => d.id !== 'anexo-b')
     : DOCUMENTOS
   // O documento aberto vive na URL (/projeto/:id/documentos/:docId), então
@@ -83,7 +98,7 @@ export default function DocumentosPage() {
     return <AnexoBPage onBack={voltar}/>
   }
   if (aberto === 'memorial-descritivo') {
-    return <MemorialDescritivoPage onBack={voltar}/>
+    return formulario ? <MemorialPBPage onBack={voltar}/> : <MemorialDescritivoPage onBack={voltar}/>
   }
 
   return (
@@ -98,10 +113,12 @@ export default function DocumentosPage() {
             </p>
           </div>
 
-          <div className="ibox amber mb-5">
-            <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-            <span>Os campos "Para uso do CBMMA" (protocolo, observacoes, No do CAP) sao de preenchimento exclusivo do Corpo de Bombeiros e ficam em branco no documento.</span>
-          </div>
+          {!formulario && (
+            <div className="ibox amber mb-5">
+              <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+              <span>Os campos "Para uso do CBMMA" (protocolo, observacoes, No do CAP) sao de preenchimento exclusivo do Corpo de Bombeiros e ficam em branco no documento.</span>
+            </div>
+          )}
 
           <div className="flex flex-col gap-3">
             {documentos.map(doc => (

@@ -1,140 +1,147 @@
-// PB/ocupacoes.js — Classificação de ocupações (grupos e divisões).
+// PB/ocupacoes.js — Classificação das edificações quanto à natureza da
+// ocupação (grupos e divisões) — NT 04/2023 CBMPB.
 //
-// A NT 12/2025 CBMPB (Saída de Emergência) não define ela mesma essa
-// classificação — remete a uma norma técnica específica de Classificação
-// das Edificações e Áreas de Risco (nota (O) da Tabela 1 do Anexo A), que
-// ainda não está nesta base. Os códigos/descrições abaixo são os do
-// esquema nacional (grupos A–M) compartilhado com o Maranhão — ambos os
-// estados citam a mesma referência (Instrução Técnica Nº 11/2019 CBPMESP,
-// seção 3 da NT 12/2025) — reaproveitados daqui até a norma de
-// Classificação da PB entrar na base. CARGADEINCENDIO fica vazio de
-// propósito: mapeamento de CNAE é outro levantamento, fora do escopo do
-// dimensionamento de saída de emergência.
+// Rótulos transcritos do item 3.1 do formulário "Memorial Descritivo do
+// Projeto de Segurança Contra Incêndio" do CBMPB, que reproduz a tabela de
+// classificação da NT 04/2023 (o próprio formulário manda o RT "consultar a
+// NT 04/2023 para realizar o enquadramento da edificação"). A-1 não aparece
+// no formulário, mas continua aqui: é uma divisão da classificação nacional
+// (A–M) e projetos já classificados nela não podem perder a classificação.
+// Divisões que não existiam na versão anterior deste arquivo (F-7 com outro
+// nome, L-4, M-2, M-6, M-7) vêm do formulário.
+//
+// CARGADEINCENDIO fica vazio de propósito: o mapa de CNAEs da NT 02/2023
+// CBMPB ainda não foi cadastrado — até lá a carga é informada por
+// levantamento (Etapa de Carga de Incêndio).
 export const NORMA = {
   estado: 'PB',
-  nome:   'NT 12/2025 CBMPB',
-  desc:   'Norma Tecnica de Saida de Emergencia — CBMPB',
+  nome:   'NT 04/2023 CBMPB',
+  desc:   'Norma Técnica de Classificação das Edificações e Áreas de Risco — CBMPB',
 }
 
 export const OCUPACOES = {
   'A': {
     descricao: 'Residencial',
     divisoes: {
-      'A-1': 'Habitacao unifamiliar',
-      'A-2': 'Habitacao multifamiliar',
-      'A-3': 'Habitacao coletiva',
+      'A-1': 'Habitação unifamiliar',
+      'A-2': 'Multifamiliar',
+      'A-3': 'Coletivo',
     },
   },
   'B': {
-    descricao: 'Servico de Hospedagem',
+    descricao: 'Serviço de Hospedagem',
     divisoes: {
-      'B-1': 'Hotel e assemelhado',
+      'B-1': 'Hotel',
       'B-2': 'Hotel residencial',
     },
   },
   'C': {
     descricao: 'Comercial',
     divisoes: {
-      'C-1': 'Comercio com baixa carga de incendio',
-      'C-2': 'Comercio com media e alta carga de incendio',
-      'C-3': 'Shopping centers',
+      'C-1': 'Comércio com carga de incêndio nível I',
+      'C-2': 'Comercio com carga de incêndio nível II e III',
+      'C-3': 'Central de Compras',
     },
   },
   'D': {
-    descricao: 'Servico profissional',
+    descricao: 'Serviço Profissional',
     divisoes: {
-      'D-1': 'Local para prestacao de servico profissional ou conducao de negocios e administracao publica em geral',
-      'D-2': 'Agencia bancaria',
-      'D-3': 'Servico de reparacao (exceto os classificados em G-4)',
-      'D-4': 'Laboratorio',
+      'D-1': 'Serviço profissional ou condução de negócios',
+      'D-2': 'Agência bancária',
+      'D-3': 'Serviço de reparação',
+      'D-4': 'Laboratório',
     },
   },
   'E': {
-    descricao: 'Educacional e cultura fisica',
+    descricao: 'Escola e Cultura Física',
     divisoes: {
       'E-1': 'Escola em geral',
       'E-2': 'Escola especial',
-      'E-3': 'Espaco para cultura fisica',
+      'E-3': 'Espaço para cultura física',
       'E-4': 'Centro de treinamento profissional',
-      'E-5': 'Pre-escola',
-      'E-6': 'Escola para portadores de deficiencias',
+      'E-5': 'Pré-escola',
+      'E-6': 'Escola para portadores de deficiências',
     },
   },
   'F': {
-    descricao: 'Local de Reuniao de Publico',
+    descricao: 'Local de Reunião de público',
     divisoes: {
-      'F-1':  'Local onde ha objeto de valor inestimavel',
-      'F-2':  'Local religioso e velorio',
-      'F-3':  'Centro esportivo e de exibicao',
-      'F-4':  'Estacao e terminal de passageiro',
-      'F-5':  'Arte cenica e auditorio',
-      'F-6':  'Clubes sociais e Salao de Festas',
-      'F-7':  'Eventos temporarios',
-      'F-8':  'Local para refeicao',
-      'F-9':  'Recreacao publica',
-      'F-10': 'Exposicao de objetos ou animais',
-      'F-11': 'Boates',
+      'F-1':  'Local onde há objeto de valor inestimável',
+      'F-2':  'Local religioso e velório',
+      'F-3':  'Centro esportivo e de exibição',
+      'F-4':  'Estação e terminal de passageiro',
+      'F-5':  'Arte cênica e auditório',
+      'F-6':  'Clube social e Salão de festas',
+      'F-7':  'Instalação temporária',
+      'F-8':  'Local de refeição',
+      'F-9':  'Recreação pública',
+      'F-10': 'Exposição de objetos e animais',
+      'F-11': 'Boate',
     },
   },
   'G': {
-    descricao: 'Servico automotivo e assemelhados',
+    descricao: 'Serviços automotivos e assemelhados',
     divisoes: {
-      'G-1': 'Garagem sem acesso de publico e sem abastecimento',
-      'G-2': 'Garagem com acesso de publico e sem abastecimento',
-      'G-3': 'Local dotado de abastecimento de combustivel',
-      'G-4': 'Servico de conservacao, manutencao e reparos',
-      'G-5': 'Hangares',
+      'G-1': 'Garagem sem acesso ao público',
+      'G-2': 'Garagem com acesso ao público',
+      'G-3': 'Local dotado de abastecimento de combustível',
+      'G-4': 'Serviço de conservação, manutenção e reparos',
+      'G-5': 'Hangar',
     },
   },
   'H': {
-    descricao: 'Servico de saude e institucional',
+    descricao: 'Serviço de saúde e Institucional',
     divisoes: {
-      'H-1': 'Hospital veterinario e assemelhados',
-      'H-2': 'Local onde pessoas requerem cuidados especiais por limitacoes fisicas ou mentais',
-      'H-3': 'Hospital e assemelhado',
-      'H-4': 'Edificacoes das forcas armadas e policiais',
-      'H-5': 'Local onde a liberdade das pessoas sofre restricoes',
-      'H-6': 'Clinica e consultorio medico e odontologico',
+      'H-1': 'Hospital veterinário',
+      'H-2': 'Local onde pessoas requerem cuidados especiais por limitações físicas ou mentais',
+      'H-3': 'Hospital',
+      'H-4': 'Repartição pública',
+      'H-5': 'Local com liberdade das pessoas sofre restrições',
+      'H-6': 'Clínicas e consultório médico e odontológico',
     },
   },
   'I': {
-    descricao: 'Industria',
+    descricao: 'Indústria',
     divisoes: {
-      'I-1': 'Industria com carga de incendio ate 300 MJ/m²',
-      'I-2': 'Industria com carga de incendio acima de 300 MJ/m² ate 1.200 MJ/m²',
-      'I-3': 'Industria com carga de incendio superior a 1.200 MJ/m²',
+      'I-1': 'Indústria com carga de incêndio Nível I',
+      'I-2': 'Indústria com carga de incêndio Nível II',
+      'I-3': 'Indústria com carga de incêndio Nível III',
     },
   },
   'J': {
-    descricao: 'Deposito',
+    descricao: 'Depósito',
     divisoes: {
-      'J-1': 'Deposito de material incombustivel',
-      'J-2': 'Deposito com carga de incendio ate 300 MJ/m²',
-      'J-3': 'Deposito com carga de incendio acima de 300 MJ/m² ate 1.200 MJ/m²',
-      'J-4': 'Deposito com carga de incendio superior a 1.200 MJ/m²',
+      'J-1': 'Depósitos de material incombustível',
+      'J-2': 'Depósitos com carga de incêndio Nível I',
+      'J-3': 'Depósitos com carga de incêndio Nível II',
+      'J-4': 'Depósitos com carga de incêndio Nível III',
     },
   },
   'K': {
     descricao: 'Energia',
     divisoes: {
-      'K-1': 'Central de transmissao e distribuicao de energia',
+      'K-1': 'Central de transmissão e distribuição de energia',
     },
   },
   'L': {
     descricao: 'Explosivo',
     divisoes: {
-      'L-1': 'Comercio',
-      'L-2': 'Industria',
-      'L-3': 'Deposito',
+      'L-1': 'Comércio',
+      'L-2': 'Indústria',
+      'L-3': 'Depósito',
+      'L-4': 'Show Pirotécnico',
     },
   },
   'M': {
     descricao: 'Especial',
     divisoes: {
-      'M-1': 'Tunel',
-      'M-3': 'Central de comunicacao',
+      'M-1': 'Túnel',
+      'M-2': 'Tanques ou Parques de Tanques',
+      'M-3': 'Central de comunicação',
       'M-4': 'Canteiro de obras',
       'M-5': 'Silos',
+      'M-6': 'Floresta nativa ou cultivada',
+      'M-7': 'Pátio de Contêineres',
     },
   },
 }
