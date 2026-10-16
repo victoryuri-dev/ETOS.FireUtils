@@ -106,6 +106,7 @@ function totalPopulacaoFixaDoProjeto(state) {
 function totalBrigadistasDoProjeto(state) {
   const brigNorma = getBrigada(state.uf)
   const extNorma = getExtintores(state.uf)
+  if (!brigNorma || !extNorma) return 0
   const cnaesDiv = divisao => getCNAEsDivisao(state.uf, divisao)
   let total = 0
   ;(state.pavimentos || []).forEach(pav => {

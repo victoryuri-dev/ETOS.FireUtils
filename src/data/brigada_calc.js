@@ -4,7 +4,7 @@
 // normativos (TABELA_A1, notas) como parâmetro; não importam nenhum arquivo
 // de norma de um estado específico — a mesma função dimensiona qualquer
 // tabela A.1 compatível (ver normas/index.js → getBrigada(uf), que já
-// resolve a base normativa central no Supabase com fallback estático).
+// resolve a base normativa central no Supabase).
 // Mesmas funções alimentam a tela de dimensionamento e o texto do memorial
 // — nunca duas fontes de verdade.
 // ─────────────────────────────────────────────────────────────────────────────

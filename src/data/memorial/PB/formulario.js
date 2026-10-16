@@ -310,8 +310,8 @@ function secaoSegEstrutural(state, ctx) {
   const exigivel = exigibilidade(ctx, 'seg_estrutural')
   let grupo = '', divisao = '', classe = '', trrf = ''
   if (exigivel) {
-    const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO } = getTRRF(state.uf)
-    const resultados = (state.estruturas || []).map(est => {
+    const { TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO } = getTRRF(state.uf) || {}
+    const resultados = !TABELA_TRRF ? [] : (state.estruturas || []).map(est => {
       const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
       return calcularTRRF(pavs, est, TABELA_TRRF, CLASSES_ALTURA, CLASSES_SUBSOLO, DIVISOES_SEM_OCUPACAO_SUBSOLO)
     })
@@ -372,8 +372,8 @@ function secaoCompartimentacao(state, ctx) {
   // estruturas em que a horizontal é exigida (mesmo cálculo da tela).
   let areaMax = null
   if (exigH) {
-    const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO } = getCompartimentacao(state.uf)
-    ;(ctx.porEstrutura || []).filter(pe => pe.sistemas?.compart_horizontal?.obrigatorio || pe.sistemas?.compart_horizontal?.ativo).forEach(pe => {
+    const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO } = getCompartimentacao(state.uf) || {}
+    ;(TABELA_AREA_MAXIMA ? ctx.porEstrutura || [] : []).filter(pe => pe.sistemas?.compart_horizontal?.obrigatorio || pe.sistemas?.compart_horizontal?.ativo).forEach(pe => {
       const pavs = (state.pavimentos || []).filter(p => p.estruturaId === pe.estrutura.id)
       calcularAreaMaximaCompartimentacao(pavs, pe.estrutura, TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, state.areaCompartimentacaoHorizontal)
         .linhas.forEach(l => { if (typeof l.valor === 'number') areaMax = areaMax == null ? l.valor : Math.min(areaMax, l.valor) })
@@ -424,6 +424,7 @@ const ATESTOS_SAIDAS = [
  * nós/ambientes do projeto; distâncias: os valores distintos por divisão. */
 function resumoSaidas(state, ctx) {
   const se = getSE(state.uf)
+  if (!se) return null
   const { TAXA_POPULACIONAL, LARGURAS_MINIMAS, DISTANCIAS_MAXIMAS } = se
   const sistemasPorEst = Object.fromEntries((ctx.porEstrutura || []).map(pe => [pe.estrutura.id, pe.sistemas]))
   let popMax = 0, popTotal = 0, larAD = 0, larER = 0, larPT = 0
@@ -509,8 +510,11 @@ const ATESTOS_BRIGADA = [
 ]
 
 function resumoBrigada(state, ctx) {
-  const { TABELA_A1 } = getBrigada(state.uf)
-  const { LIMIARES_RISCO } = getExtintores(state.uf)
+  const brig = getBrigada(state.uf)
+  const ext = getExtintores(state.uf)
+  if (!brig || !ext) return null
+  const { TABELA_A1 } = brig
+  const { LIMIARES_RISCO } = ext
   const cnaesDiv = divisao => getCNAEsDivisao(state.uf, divisao)
   let total = 0, temTotal = false
   const divisoes = [], riscos = [], niveis = []
@@ -668,7 +672,7 @@ function secaoAlarmeDeteccao(state, ctx) {
   // dimensionamento usou, só para os tipos de detector de fato adotados.
   const tiposDet = new Set(comMedida('deteccao').flatMap(est =>
     detectoresAtivos(est, (state.pavimentos || []).filter(p => p.estruturaId === est.id)).map(t => t.key)))
-  const det = exigDet ? (getDeteccaoAlarme(state.uf).DETECTORES?.tipos || {}) : {}
+  const det = exigDet ? (getDeteccaoAlarme(state.uf)?.DETECTORES?.tipos || {}) : {}
   const v = (tipo, campoNorma) => (tiposDet.has(tipo) && det[tipo]?.[campoNorma] != null ? fmtM(det[tipo][campoNorma]) : '')
 
   return {

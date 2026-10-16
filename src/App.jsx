@@ -6,6 +6,8 @@ import {
 import { ProjetoProvider, useProjeto, newIds } from './context/ProjetoContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabase } from './lib/supabase'
+import { statusNormas } from './lib/normasRemote'
+import { getSE, getHidrantes, getExtintores, getAV, getTRRF, getCompartimentacao, getIluminacao, getSinalizacao, getBrigada, getDeteccaoAlarme } from './data/normas/index'
 import { usePerfil, nomeDeUsuario } from './hooks/usePerfil'
 import LoginPage      from './pages/LoginPage'
 import LandingPage    from './pages/LandingPage'
@@ -211,8 +213,45 @@ function AppHeader({ onGoProjetos, isProjectPage, showProjectsLink = false }) {
   )
 }
 
+// Normas da base central de que cada página de medida depende (getter +
+// nome do sistema em normas_dados) — sem alguma delas para o estado do
+// projeto, a página mostra "norma não cadastrada" em vez de quebrar ou de
+// aplicar a norma de outro estado.
+const NORMAS_DA_MEDIDA = {
+  saida_emergencia:    [[getSE, 'saida_emergencia']],
+  hidrantes:           [[getHidrantes, 'hidrantes'], [getExtintores, 'extintores']],
+  acesso_viatura:      [[getAV, 'acesso_viatura']],
+  seg_estrutural:      [[getTRRF, 'trrf']],
+  compart_horizontal:  [[getCompartimentacao, 'compartimentacao']],
+  compart_vertical:    [[getCompartimentacao, 'compartimentacao']],
+  extintores:          [[getExtintores, 'extintores']],
+  iluminacao:          [[getIluminacao, 'iluminacao']],
+  sinalizacao:         [[getSinalizacao, 'sinalizacao']],
+  brigada:             [[getBrigada, 'brigada'], [getExtintores, 'extintores']],
+  alarme:              [[getDeteccaoAlarme, 'deteccao_alarme']],
+  deteccao:            [[getDeteccaoAlarme, 'deteccao_alarme']],
+}
+
+function NormaNaoCadastrada({ uf, sistemas }) {
+  return (
+    <div className="flex-1 overflow-y-auto"><div className="max-w-[720px] mx-auto pt-12 px-10 pb-20">
+      <div className="ibox amber">
+        <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
+        <span>
+          A norma desta medida ainda não está cadastrada para {uf} na base normativa
+          (Supabase — normas_dados, sistema {sistemas.map(s => `'${s}'`).join(' e ')}).
+          Cadastre-a para dimensionar esta medida.
+        </span>
+      </div>
+    </div></div>
+  )
+}
+
 function MedidaRoute() {
   const { sistKey } = useParams()
+  const { state } = useProjeto()
+  const faltando = (NORMAS_DA_MEDIDA[sistKey] || []).filter(([get]) => !get(state.uf)).map(([, nome]) => nome)
+  if (faltando.length) return <NormaNaoCadastrada uf={state.uf} sistemas={[...new Set(faltando)]}/>
   if (sistKey === 'saida_emergencia')  return <SaidaEmergenciaPage/>
   if (sistKey === 'hidrantes')         return <HidrantesPage/>
   if (sistKey === 'acesso_viatura')    return <AcessoViaturaPage/>
@@ -293,6 +332,31 @@ function PerfilRoute() {
 // projeto correto esteja carregado no contexto antes de renderizar — isso
 // é o que permite recarregar a página (F5) sem cair de volta na lista de
 // projetos: o :id na URL é a fonte da verdade, não o estado em memória.
+// Tela de espera/erro enquanto a base normativa do estado do projeto
+// (normas_dados no Supabase) não carrega — sem ela nenhuma tela de medida,
+// classificação ou documento tem dado para mostrar.
+function NormasIndisponiveis({ status, uf }) {
+  const { recarregarNormas } = useProjeto()
+  const navigate = useNavigate()
+  if (status === 'carregando') {
+    return <div className="flex-1 flex items-center justify-center"><Loader size={32}/></div>
+  }
+  return (
+    <div className="flex-1 flex items-center justify-center p-8">
+      <div className="max-w-[440px] text-center">
+        <div className="text-[15px] font-semibold text-ink mb-2">Não foi possível carregar as normas de {uf}</div>
+        <p className="text-[13px] text-ink-faint leading-[1.6] mb-5">
+          As normas técnicas vêm da base normativa central (Supabase). Verifique a conexão e tente de novo.
+        </p>
+        <div className="flex gap-2 justify-center">
+          <button className="btn-ghost" onClick={() => navigate('/projetos')}>Meus projetos</button>
+          <button className="btn-primary" onClick={recarregarNormas}>Tentar de novo</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ProjectLayout() {
   const { id } = useParams()
   const { state, dispatch, conflito, definirVersaoConhecida } = useProjeto()
@@ -360,6 +424,10 @@ function ProjectLayout() {
   }
 
   if (!carregado) return null
+  // Toda norma vem do Supabase (sem fallback local): o projeto só abre com as
+  // normas do estado carregadas.
+  const normas = statusNormas(state.uf)
+  if (normas !== 'ok') return <NormasIndisponiveis status={normas} uf={state.uf}/>
 
   return (
     <>

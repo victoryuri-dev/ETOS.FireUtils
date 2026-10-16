@@ -17,6 +17,7 @@ import { textoMemorialCalculoHidrantes } from './hidrantesCalculo'
 import { textoMemorialBrigadaIncendio } from './brigada_incendio'
 import { textoMemorialAlarmeIncendio } from './alarme_incendio'
 import { textoMemorialDeteccaoIncendio } from './deteccao_incendio'
+import { getAV, getTRRF, getCompartimentacao, getExtintores, getIluminacao, getSinalizacao, getSE, getHidrantes, getBrigada, getDeteccaoAlarme } from '../normas/index'
 
 export const MEMORIAL_BUILDERS = {
   acesso_viatura:      textoMemorialAcessoViatura,
@@ -80,6 +81,8 @@ const SECOES_SEMPRE_QUANDO_OBRIGATORIO = new Set(['compart_horizontal', 'compart
 // rodaria o dimensionamento dela sobre dados que deixaram de fazer sentido
 // (o RT decidiu não instalar o sistema).
 const TITULO_MEDIDA = {
+  compart_horizontal: 'Compartimentação Horizontal',
+  compart_vertical: 'Compartimentação Vertical',
   acesso_viatura: 'Acesso de Viatura',
   seg_estrutural: 'Segurança Estrutural Contra Incêndio',
   controle_acabamento: 'Controle de Material de Acabamento e Revestimento',
@@ -117,6 +120,32 @@ function secaoIsencaoGenerica(key, state, porEstrutura) {
     }
   })
   return { titulo, blocos }
+}
+
+// Normas da base central de que cada builder depende — sem alguma delas
+// para o estado do projeto, a seção sai só com o aviso de norma não
+// cadastrada (nunca com a norma de outro estado, e sem quebrar o documento).
+const NORMAS_DO_BUILDER = {
+  acesso_viatura:      [getAV],
+  seg_estrutural:      [getTRRF],
+  compart_horizontal:  [getCompartimentacao],
+  compart_vertical:    [getCompartimentacao],
+  extintores:          [getExtintores],
+  iluminacao:          [getIluminacao],
+  sinalizacao:         [getSinalizacao],
+  gerenciamento_risco: [getExtintores, getBrigada],
+  saida_emergencia:    [getSE],
+  hidrantes:           [getHidrantes, getExtintores],
+  brigada:             [getBrigada, getExtintores],
+  alarme:              [getDeteccaoAlarme],
+  deteccao:            [getDeteccaoAlarme],
+}
+const normaCadastrada = (key, uf) => (NORMAS_DO_BUILDER[key] || []).every(get => !!get(uf))
+function secaoSemNorma(key, uf) {
+  return {
+    titulo: TITULO_MEDIDA[key] || key,
+    blocos: [{ tipo: 'paragrafo', texto: `Norma desta medida não cadastrada para ${uf} na base normativa — seção pendente.` }],
+  }
 }
 
 /**
@@ -159,10 +188,12 @@ export function buildMemorial(state, sistemas, porEstrutura) {
 
   const secoes = [...ORDEM_SECOES, ...restantes]
     .filter(key => ativa(key) || isenta(key))
-    .map(key => (ativa(key) ? MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura) : secaoIsencaoGenerica(key, state, porEstrutura)))
+    .map(key => (!ativa(key) ? secaoIsencaoGenerica(key, state, porEstrutura)
+      : !normaCadastrada(key, state.uf) ? (MEMORIAL_BUILDERS[key] ? secaoSemNorma(key, state.uf) : null)
+      : MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura)))
     .filter(Boolean)
 
-  if (src.hidrantes?.ativo) {
+  if (src.hidrantes?.ativo && normaCadastrada('hidrantes', state.uf)) {
     secoes.push(textoMemorialCalculoHidrantes(state))
   }
 

@@ -1,7 +1,7 @@
 // Dados normativos de Detecção e Alarme de Incêndio — Maranhão
 // Fonte: NT 19/2021 CBMMA (que adota a NBR 17240 para os detectores).
 //
-// FALLBACK OFFLINE/DEV: a fonte de verdade é a tabela `normas_dados`
+// SÓ SEED/TESTE (o site não lê este arquivo): a fonte de verdade é a tabela `normas_dados`
 // (uf='MA', sistema='deteccao_alarme') no Supabase — ver
 // supabase/migrations/20260926160000_seed_normas_deteccao_alarme.sql e
 // src/lib/normasRemote.js. Editar a norma? Edite a linha no Supabase.

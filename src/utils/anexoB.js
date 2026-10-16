@@ -120,7 +120,7 @@ export function buildAnexoBData(state, sistemas) {
     areaComplementar: state.areaComplementar ? fmtUn(state.areaComplementar, 'm²', 2, `${state.areaComplementar} m²`) : '',
     altura: alturaNum ? fmtUn(alturaNum, 'm') : '',
     cargaIncendio: maxQ ? fmtUn(maxQ, 'MJ/m²') : '',
-    riscoCargaIncendio: maxQ ? ({ baixo:'Baixo', medio:'Médio', alto:'Alto' })[classificarRisco(maxQ, getExtintores(state.uf).LIMIARES_RISCO)] : '',
+    riscoCargaIncendio: maxQ && getExtintores(state.uf) ? ({ baixo:'Baixo', medio:'Médio', alto:'Alto' })[classificarRisco(maxQ, getExtintores(state.uf).LIMIARES_RISCO)] : '',
     // Ausência de informação não implica marcar uma forma de apresentação.
     processoTecnico: state.processoTecnico === true,
     responsavelTecnico: state.rtNome || '',

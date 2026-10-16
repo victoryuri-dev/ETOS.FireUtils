@@ -178,12 +178,14 @@ function Sumario() {
 }
 
 function Introducao({ sistemas, uf }) {
-  const { NTS_PADRAO_MA, NT_CARGA_INCENDIO, NTS_POR_SISTEMA } = getNts(uf)
+  // Sem a lista de NTs do estado na base central: seção sem a lista, nunca a de outro estado.
+  const { NTS_PADRAO_MA = [], NT_CARGA_INCENDIO = null, NTS_POR_SISTEMA = {} } = getNts(uf) || {}
   const nts = Object.entries(sistemas || {})
     .filter(([, s]) => s.ativo || s.obrigatorio)
     .map(([key]) => NTS_POR_SISTEMA[key])
     .filter(Boolean)
     .concat([NT_CARGA_INCENDIO])
+    .filter(Boolean)
     .filter((nt, i, arr) => arr.findIndex(n => n.numero === nt.numero) === i)
     .sort((a, b) => parseInt(a.numero.replace(/\D/g, ''), 10) - parseInt(b.numero.replace(/\D/g, ''), 10))
 
@@ -302,7 +304,7 @@ function SobreEdificacao({ state }) {
 }
 
 function Caracterizacao({ state, porEstrutura }) {
-  const { CLASSES_TIPO_EDIFICACAO } = getCompartimentacao(state.uf)
+  const { CLASSES_TIPO_EDIFICACAO } = getCompartimentacao(state.uf) || {}
   return (
     <div className={FOLHA}>
       <Titulo nivel={1} numero={String(SECAO_CARACTERIZACAO)}>Caracterização da Edificação e do Risco</Titulo>
@@ -324,7 +326,7 @@ function Caracterizacao({ state, porEstrutura }) {
         })
 
         // Altura e tipo de edificação são apresentados em linhas separadas.
-        const tipoEst = classificarTipoEdificacao(est.alturaPisoPiso, CLASSES_TIPO_EDIFICACAO)
+        const tipoEst = CLASSES_TIPO_EDIFICACAO ? classificarTipoEdificacao(est.alturaPisoPiso, CLASSES_TIPO_EDIFICACAO) : null
         const alturaClassifTxt = est.alturaPisoPiso === '' || est.alturaPisoPiso == null ? '' :
           fmtUn(est.alturaPisoPiso, 'm')
         const subsolos = parseInt(est.nSubsolos) || 0

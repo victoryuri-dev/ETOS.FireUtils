@@ -6,8 +6,8 @@ Na Paraíba o memorial não é texto corrido como no Maranhão: é o **formulár
 
 | Peça | Arquivo |
 |---|---|
-| Parâmetros do formulário (faixas, classes, listas) | `src/data/normas/PB/memorial_formulario.js` + Supabase `('PB','memorial_formulario')` |
-| Classificação e exigências NT 04/2023 | Supabase `('PB','ocupacoes')` e `('PB','medidas_seguranca')` (já cadastradas no banco); `src/data/normas/PB/ocupacoes.js` é só o fallback offline, cópia da linha do banco |
+| Parâmetros do formulário (faixas, classes, listas) | Supabase `('PB','memorial_formulario')` — seed gerado de `src/data/normas/PB/memorial_formulario.js` |
+| Classificação e exigências NT 04/2023 | Supabase `('PB','ocupacoes')` e `('PB','medidas_seguranca')` (já cadastradas no banco); `src/data/normas/PB/ocupacoes.js` é só referência/fixture de teste (o site lê só o banco) |
 | Gerador dos dados do formulário (puro, testável) | `src/data/memorial/PB/formulario.js` |
 | Página / desenho do formulário | `src/pages/documentos/MemorialPBPage.jsx` (+ estilos `.pbf-*` em `src/index.css`) |
 | Campos que só a PB pede | `state.memorialPB` (ProjetoContext) — boxes "Campos específicos da Paraíba" (`src/components/pb/CamposPB.jsx`) no fim de cada página de medida e na Configuração (Etapa 2: forma de apresentação, estágio, adaptações, observação da natureza; Etapa de Medidas: classe de GLP) |
@@ -104,3 +104,7 @@ A ferramenta só gera esses dois tipos. No formulário da PB, a seção 2 marca 
 ## Estágio de construção (item 3.6) — box Situação
 
 O estágio sai da **Situação** da Etapa 2: edificação **nova** marca "A edificação ainda será construída". Edificação **existente** (só em projeto da PB) abre, dentro do próprio box Situação, as três opções "as built" do formulário (`EstagioExistentePB`); com "adaptações da NT 16" ou "Resoluções Técnicas", abre o campo para descrevê-las. Uma escolha de existente não vale depois de trocar para "nova", e o texto das adaptações só entra no formulário com essas duas opções. A observação da natureza da ocupação (3.1) fica no box "Campos específicos da Paraíba" da etapa de Classificação.
+
+## Base normativa só no Supabase
+
+O site não lê mais nenhuma norma do código: tudo vem de `normas_dados` (Supabase). O projeto só abre depois que as normas do estado carregam (tela de "carregando"/"tentar de novo"); sistema não cadastrado para o estado = página da medida com aviso "norma não cadastrada", seção do memorial pendente, campos do formulário da PB em branco — nunca a norma de outro estado. Os arquivos `src/data/normas/<UF>/*.js` ficam só como fonte dos seeds e fixtures dos testes (`tests/helpers/normasDeTeste.mjs`).

@@ -2,7 +2,7 @@
 // Incêndio Orgânica. Fonte: transcrição consolidada do Anexo A (Tabela A.1),
 // feita pelo usuário a partir do PDF original (cuja camada de texto está
 // corrompida por um problema de codificação de fonte — não é extraível por
-// parsing). Serve só de FALLBACK offline/dev — a fonte de verdade é a base
+// parsing). Serve só de fonte do seed e fixture de teste (o site não lê este arquivo) — a fonte de verdade é a base
 // normativa central (normas_dados no Supabase, ver
 // supabase/migrations/*seed_normas_brigada* e src/lib/normasRemote.js),
 // consumida por getBrigada() em normas/index.js, mesmo padrão de

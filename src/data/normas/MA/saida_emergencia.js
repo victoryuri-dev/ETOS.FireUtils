@@ -2,7 +2,7 @@
 // Dados normativos de Saídas de Emergência — Maranhão
 // Fonte: NT 42/2019 CBMMA / NBR 9077
 //
-// FALLBACK OFFLINE/DEV: a fonte de verdade é a tabela `normas_dados`
+// SÓ SEED/TESTE (o site não lê este arquivo): a fonte de verdade é a tabela `normas_dados`
 // (uf='MA', sistema='saida_emergencia') no Supabase — ver
 // supabase/migrations/*normas_dados* e src/lib/normasRemote.js. Este
 // arquivo só é usado quando a busca remota ainda não completou ou falha

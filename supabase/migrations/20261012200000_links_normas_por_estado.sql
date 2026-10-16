@@ -15,7 +15,7 @@ values ('MA', 'links_normas', $links${
         "url": "https://cbm.ssp.ma.gov.br/wp-content/uploads/2021/03/NT_06-ACESSO-DE-VIATURAS-NAS-EDIFICACOES-E-AREAS-DE-RISCO.pdf"
       }
     ],
-    "seg_estrutural": [s
+    "seg_estrutural": [
       {
         "titulo": "NT 08",
         "url": "https://cbm.ssp.ma.gov.br/wp-content/uploads/2021/03/NT_08-SEGURANCA-ESTRUTURAL-CONTRA-INCENDIO.pdf"

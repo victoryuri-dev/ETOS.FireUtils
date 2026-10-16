@@ -2,7 +2,7 @@
 // ocupação (grupos e divisões) — NT 04/2023 CBMPB.
 //
 // Fonte de verdade: a linha ('PB', 'ocupacoes') de normas_dados no Supabase
-// (cadastrada direto no banco). Este arquivo é só o fallback offline/dev —
+// (cadastrada direto no banco). Este arquivo não é lido pelo site — é só referência/seed e fixture de teste —
 // cópia fiel daquela linha; ao corrigir um rótulo, corrigir lá primeiro.
 //
 // CARGADEINCENDIO fica vazio: o mapa de CNAEs da NT 02/2023 CBMPB vem da

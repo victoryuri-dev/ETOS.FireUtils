@@ -1,9 +1,9 @@
-import { LINKS_NORMAS_MA } from '../data/normas/MA/links_normas.js'
-
+// Links das normas por medida — só da base central (normas_dados, sistema
+// 'links_normas' do estado); sem linha cadastrada, nenhum link. O arquivo
+// data/normas/MA/links_normas.js é só a fonte do seed (migração
+// 20261012200000_links_normas_por_estado.sql).
 export function resolverLinksNormas(uf, sistema, remoto) {
-  const estado = String(uf || '').trim().toUpperCase()
-  const fallback = estado === 'MA' ? LINKS_NORMAS_MA : null
-  const links = remoto?.medidas?.[sistema] ?? fallback?.medidas?.[sistema] ?? []
+  const links = remoto?.medidas?.[sistema] ?? []
   if (!Array.isArray(links)) return []
   const vistos = new Set()
   return links.filter(link => {

@@ -9,6 +9,7 @@ import { numerarBlocos } from '../../utils/memorialEstilo'
 import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import Icon from '../../components/ui/Icon'
+import { getSE, getHidrantes, getExtintores } from '../../data/normas/index'
 
 // Memorial Descritivo da Paraíba: o formulário oficial do CBMPB (DSPCI),
 // preenchido a partir do projeto (data/memorial/PB/formulario.js), seguido
@@ -180,8 +181,9 @@ export default function MemorialPBPage({ onBack }) {
   const formulario = buildFormularioPB(state, sistemas, porEstrutura)
 
   if (!formulario) return null
-  const anexoA = sistemas.saida_emergencia?.ativo ? [textoMemorialSaidaEmergencia(state, sistemas, porEstrutura)] : []
-  const anexoB = sistemas.hidrantes?.ativo
+  // Só com a norma da medida cadastrada para o estado (base central).
+  const anexoA = sistemas.saida_emergencia?.ativo && getSE(state.uf) ? [textoMemorialSaidaEmergencia(state, sistemas, porEstrutura)] : []
+  const anexoB = sistemas.hidrantes?.ativo && getHidrantes(state.uf) && getExtintores(state.uf)
     ? [textoMemorialHidrantes(state, sistemas, porEstrutura), textoMemorialCalculoHidrantes(state)].filter(Boolean)
     : []
 

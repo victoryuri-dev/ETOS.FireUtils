@@ -533,11 +533,11 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
     const floorCount = structures.reduce((max, item) => Math.max(max, totalPavimentos(item)), 0)
     // Classificação da altura (mesma da Compartimentação, Anexo B da NT 09): usa a
     // altura piso a piso; sem altura informada num prédio de mais de 1 pavimento, não classifica.
-    const classesTipo = getCompartimentacao(state.uf).CLASSES_TIPO_EDIFICACAO
+    const classesTipo = getCompartimentacao(state.uf)?.CLASSES_TIPO_EDIFICACAO
     const heightClassOf = item => {
       const h = Number(item.alturaPisoPiso) || 0
       if (h <= 0 && (Number(item.nPavimentos) || 1) + (Number(item.nSubsolos) || 0) > 1) return null
-      return classificarTipoEdificacao(h, classesTipo)?.nome || null
+      return classesTipo ? classificarTipoEdificacao(h, classesTipo)?.nome || null : null
     }
     const tallest = structures.reduce((best, item) => (!best || (Number(item.alturaPisoPiso) || 0) > (Number(best.alturaPisoPiso) || 0)) ? item : best, null)
     const heightClass = tallest ? heightClassOf(tallest) : null

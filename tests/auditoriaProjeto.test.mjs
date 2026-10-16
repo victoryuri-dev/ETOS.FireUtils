@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { test, after } from 'node:test'
-import { createServer } from 'vite'
+import { servidorComNormas } from './helpers/normasDeTeste.mjs'
 
-const server = await createServer({ server:{ middlewareMode:true }, appType:'custom' })
+const server = await servidorComNormas()
 after(() => server.close())
 const { camposObrigatorios, camposOpcionais, etapaExibida } = await server.ssrLoadModule('/src/data/auditoriaProjeto.js')
 

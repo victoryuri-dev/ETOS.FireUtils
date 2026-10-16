@@ -1,125 +1,62 @@
 /**
  * normas/index.js — Loader central de normas
  *
+ * TODA norma vem da base central (tabela `normas_dados` do Supabase — ver
+ * lib/normasRemote.js). Não há mais fallback para arquivos locais nem para
+ * a norma de outro estado: o projeto só abre depois que as normas do estado
+ * carregaram (ver ProjectLayout em App.jsx) e, se um sistema não estiver
+ * cadastrado para o estado, o getter devolve null — quem consome mostra
+ * "norma não cadastrada" em vez de aplicar a norma errada em silêncio.
+ *
+ * Os arquivos em src/data/normas/<UF>/*.js ficam só como fonte das
+ * migrações de seed (supabase/migrations/*seed_normas*) e dos testes — o
+ * app não os importa.
+ *
  * COMO ADICIONAR UM NOVO ESTADO:
  *   1. Cadastre as normas do estado na tabela `normas_dados` do Supabase
  *      (sistemas 'ocupacoes' + 'medidas_seguranca', no mínimo, pra um
  *      projeto completo; só 'saida_emergencia' já libera "apenas
- *      dimensionamento") — OU crie um arquivo estático local seguindo o
- *      modelo do MA (src/data/normas/UF/ocupacoes.js etc.) e registre-o
- *      nas constantes NORMAS/NORMAS_MED/NORMAS_SE abaixo.
+ *      dimensionamento").
  *   2. Adicione { uf:'UF', nome:'...' } em ESTADOS_BASE, logo abaixo.
  *   3. Pronto — getEstadosDisponiveis() calcula ativo/ativoDimensionamento
- *      sozinho a partir do que estiver cadastrado (ver disponibilidadeEstado).
+ *      sozinho a partir do catálogo do Supabase (ver disponibilidadeEstado).
  */
-
-import * as MA from './MA/ocupacoes'
-import * as PE from './PE/ocupacoes'
-import * as PB from './PB/ocupacoes'
-
-import * as MA_SE   from './MA/saida_emergencia'
-import * as MA_MED  from './MA/medidas'
-import * as MA_AV   from './MA/acesso_viatura'
-import * as MA_TRRF from './MA/trrf'
-import * as MA_EXT  from './MA/extintores'
-import * as MA_ILU  from './MA/iluminacao'
-import * as MA_SIN  from './MA/sinalizacao'
-import * as MA_CMAR from './MA/controle_acabamento'
-import * as MA_COMP from './MA/compartimentacao'
-import * as MA_NTS  from './MA/nts'
-import * as MA_HID  from './MA/hidrantes'
-import * as MA_BRIG from './MA/brigada_incendio'
-import * as MA_DA   from './MA/deteccao_alarme'
-
-import * as PB_SE   from './PB/saida_emergencia'
-import * as PB_MEMF from './PB/memorial_formulario'
 
 import { getNormaRemota, sistemaExisteNoCatalogo } from '../../lib/normasRemote'
 import * as CATALOGOS_HIDRANTES from '../hidrantesCatalogos'
-
-const NORMAS      = { MA, PE, PB }
-const NORMAS_SE   = { MA: MA_SE, PB: PB_SE }
-const NORMAS_MED  = { MA: MA_MED }
-const NORMAS_AV   = { MA: MA_AV }
-const NORMAS_TRRF = { MA: MA_TRRF }
-const NORMAS_EXT  = { MA: MA_EXT }
-const NORMAS_ILU  = { MA: MA_ILU }
-const NORMAS_SIN  = { MA: MA_SIN }
-const NORMAS_CMAR = { MA: MA_CMAR }
-const NORMAS_COMP = { MA: MA_COMP }
-const NORMAS_HID  = { MA: MA_HID }
-const NORMAS_BRIG = { MA: MA_BRIG }
-// Só estados cujo memorial é um formulário fixo do CBM (hoje só a PB — o MA
-// usa o memorial em texto corrido, ver memorial/registry.js).
-const NORMAS_MEMF = { PB: PB_MEMF }
-// getNts() não é parametrizado por UF hoje (só existe o MA_NTS estático,
-// e o único consumidor — MemorialDescritivoPage.jsx — sempre foi
-// hardcoded pro MA também); mantido assim pra não inventar comportamento
-// novo nesta migração, só trocar de onde o dado vem.
-const NTS_PADRAO  = MA_NTS
+import { IMAGEM_PLACA } from '../sinalizacaoImagens'
 
 // Estados listados no seletor — nome/uf fixos (cadastro de um estado novo
-// ainda exige entrar aqui, ver "COMO ADICIONAR UM NOVO ESTADO" no topo do
-// arquivo), mas `ativo`/`ativoDimensionamento` NÃO são mais fixados à mão:
-// vêm de getEstadosDisponiveis(), calculados dinamicamente a partir de
-// quais sistemas o estado tem de fato cadastrados (Supabase — ver
-// lib/normasRemote.js:carregarCatalogoNormas — ou arquivo estático local).
+// ainda exige entrar aqui), mas `ativo`/`ativoDimensionamento` vêm do
+// catálogo do Supabase (getEstadosDisponiveis).
 const ESTADOS_BASE = [
   { uf: 'MA', nome: 'Maranhao — MA'   },
   { uf: 'PE', nome: 'Pernambuco — PE' },
   { uf: 'PB', nome: 'Paraiba — PB'    },
 ]
 
-// true se `sistema` está disponível pra `uf`, no Supabase (catálogo) OU no
-// arquivo estático local (`mapaEstatico`, uma das constantes NORMAS/
-// NORMAS_MED/NORMAS_SE acima) — mesmo critério que os getters (getNorma,
-// getMedidas, getSE) já usam pra decidir entre remoto e fallback, só que
-// aqui só interessa "existe ou não", não o conteúdo.
-function temSistemaCadastrado(uf, sistema, mapaEstatico) {
-  return sistemaExisteNoCatalogo(uf, sistema) || !!mapaEstatico[uf]
-}
-
 // Projeto completo precisa, no mínimo, de classificação de ocupação
 // ('ocupacoes') e da tabela de medidas obrigatórias ('medidas_seguranca',
 // Tabela 5/6) — sem as duas, o motor de normas (useMedidasObrigatorias)
 // não tem como classificar nem decidir nada pra esse estado. Projeto
-// "apenas dimensionamento" não passa pela classificação por ocupação
-// (Step2 pula direto pras estruturas — ver comentário lá), então só
-// precisa de pelo menos um sistema dimensionável com dado de verdade;
-// aqui só interessa saída de emergência (hidrantes/sprinklers sempre
-// caem no fallback estático do MA quando o UF não tem base própria, sem
-// bloquear o projeto).
+// "apenas dimensionamento" só precisa de saída de emergência.
 function disponibilidadeEstado(uf) {
-  // Estado com memorial em formulário próprio do CBM (PB) também conta como
-  // completo: o formulário existe no código (normas/PB/memorial_formulario.js)
-  // e, se a tabela de exigências não estiver no catálogo, useMedidasObrigatorias
-  // aplica o mínimo de referência e o painel do memorial avisa (ver
-  // ComplementosPB.jsx) — em vez de travar a criação do projeto.
-  const temExigencias = temSistemaCadastrado(uf, 'medidas_seguranca', NORMAS_MED) || temSistemaCadastrado(uf, 'memorial_formulario', NORMAS_MEMF)
-  const ativo = temSistemaCadastrado(uf, 'ocupacoes', NORMAS) && temExigencias
-  const ativoDimensionamento = ativo || temSistemaCadastrado(uf, 'saida_emergencia', NORMAS_SE)
+  const ativo = sistemaExisteNoCatalogo(uf, 'ocupacoes') && sistemaExisteNoCatalogo(uf, 'medidas_seguranca')
+  const ativoDimensionamento = ativo || sistemaExisteNoCatalogo(uf, 'saida_emergencia')
   return { ativo, ativoDimensionamento }
 }
 
-/** Lista de estados pro seletor (Step1/Step2/useCnpjLookup), com
- * `ativo`/`ativoDimensionamento` recalculados a cada chamada — chamar
- * dentro do render (não guardar em módulo), pra sempre refletir o
- * catálogo mais recente (ver normasVersion em ProjetoContext.jsx, que
- * força os componentes a re-renderizar quando o catálogo termina de
- * carregar). */
+/** Lista de estados pro seletor, com `ativo`/`ativoDimensionamento`
+ * recalculados a cada chamada — chamar dentro do render, pra sempre
+ * refletir o catálogo mais recente (ver normasVersion em ProjetoContext.jsx). */
 export function getEstadosDisponiveis() {
   return ESTADOS_BASE.map(e => ({ ...e, ...disponibilidadeEstado(e.uf) }))
 }
 
-// A tabela `normas_dados` (ver supabase/migrations/*normas_dados*) guarda
-// as chaves em minúsculo, enquanto todo o resto do site sempre esperou os
-// nomes SCREAMING_SNAKE_CASE que `import * as X from './UF/sistema'`
-// produz a partir dos arquivos estáticos — sem esse adaptador, a
-// estrutura da linha remota bate campo a campo mas com nomes de chave
-// diferentes, e o app quebra (`Cannot read properties of undefined`)
-// assim que a base central responde pela primeira vez. Convenção: cada
-// chave devolvida é o nome em maiúsculo, lido de `remoto[chave em
-// minúsculo]` (ex.: DISTANCIA_MAXIMA <- remoto.distancia_maxima).
+// A tabela `normas_dados` guarda as chaves em minúsculo; o resto do site lê
+// os nomes SCREAMING_SNAKE_CASE. Convenção: cada chave devolvida é o nome em
+// maiúsculo, lido de `remoto[chave em minúsculo]`
+// (ex.: DISTANCIA_MAXIMA <- remoto.distancia_maxima).
 function renomearDaBaseCentral(remoto, chaves) {
   const out = {}
   for (const chave of chaves) out[chave] = remoto[chave.toLowerCase()]
@@ -139,10 +76,7 @@ function adaptarSEDaBaseCentral(remoto) {
     NOTAS_NORMATIVAS: remoto.notas,
     LARGURAS_MINIMAS: remoto.larguras_minimas,
     DISTANCIAS_MAXIMAS: remoto.distancias_maximas,
-    // Só da base central: linha remota sem `tipos_escada` (ex.: a migração
-    // 20260926140000_add_tipos_escada_saida_emergencia_ma.sql ainda não
-    // rodou no banco) fica SEM tabela — a tela avisa — em vez de completar
-    // em silêncio com o arquivo local e mascarar que o banco está incompleto.
+    // Sem `tipos_escada` na linha: fica sem tabela (a tela avisa).
     TIPOS_ESCADA: remoto.tipos_escada ?? null,
   }
 }
@@ -161,6 +95,17 @@ const CHAVES_MEMF = [
   'MODELOS_PLANO', 'EXTINTORES_NIVEL',
 ]
 const CHAVES_BRIG = ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'OBSERVACOES_TRANSCRICAO']
+const CHAVES_COMP = [
+  'CLASSES_TIPO_EDIFICACAO', 'TABELA_AREA_MAXIMA', 'NOTA_AREA_MAXIMA_M2',
+  'TRRF_MINIMO_PAREDE_COMPARTIMENTACAO', 'TRRF_REDUCAO_MAXIMA_ABERTURAS',
+  'TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR', 'TRRF_MINIMO_SELAGEM_PRUMADAS',
+  'TRRF_MINIMO_DUTO_SEM_REGISTRO', 'TRRF_PORTA_ESCADA_SEM_ANTECAMARA',
+  'TRRF_PORTA_ESCADA_COM_ANTECAMARA', 'TRRF_ESCADA_RAMPA_SUBSOLO',
+  'ELEMENTOS_COMPART_HORIZONTAL', 'ELEMENTOS_COMPART_VERTICAL',
+  'CONDICOES_ESPECIAIS_HORIZONTAL', 'CONDICOES_ESPECIAIS_VERTICAL',
+  'SUBSTITUICOES_COMPARTIMENTACAO',
+]
+const CHAVES_CMAR = ['TABELA_B1', 'NOTAS', 'NORMA']
 const CHAVES_HID  = [
   'NORMA', 'REFERENCIA_PRESSAO_VAZAO', 'TIPOS_SISTEMA', 'COMPONENTES_POR_TIPO',
   'LABEL_MANGUEIRA_INCENDIO', 'FAIXAS_AREA', 'TABELA3', 'DIVISOES_COLUNA',
@@ -173,138 +118,72 @@ const CHAVES_HID  = [
   'NPSHD_FATOR_VAZAO', 'NPSHD_REF',
 ]
 
-// JSON não serializa `Infinity` (vira `null`) — CLASSES_SUBSOLO usa
-// Infinity pra "sem teto" (S2 = profundidade > 10m). A migração grava
-// esse valor como a string "Infinity"; desfaz aqui antes de entregar pro
-// trrf_calc.js, que compara `profundidade <= classe.max` — com `null` em
-// vez de `Infinity`, subsolos > 10m nunca bateriam com nenhuma classe.
+// JSON não serializa `Infinity` (vira `null`) — as migrações gravam "sem
+// teto" como a string "Infinity"; desfaz aqui antes de entregar pros calcs
+// (comparam `valor <= classe.max`).
 function comInfinidade(classes) {
-  return classes.map((c) => (c.max === 'Infinity' ? { ...c, max: Infinity } : c))
+  return (classes || []).map((c) => (c.max === 'Infinity' ? { ...c, max: Infinity } : c))
 }
 
-// getSinalizacao: TIPOS_PLACA da base central não carrega `img` (é um
-// módulo de asset do bundler — Vite resolve o import pra uma URL em
-// build, não dá pra serializar em JSON), então o pictograma continua
-// vindo do bundle local (src/assets/sinalizacao/*), casado de volta pelo
-// `key` depois do fetch. Sempre usa o catálogo de imagens do MA porque os
-// pictogramas seguem a NBR 13434 (nacional) — não variam por estado, só o
-// texto normativo ao redor (categoria, local de instalação) pode variar.
-function anexarImagens(tiposPlacaRemoto) {
-  const imagemPorKey = new Map(MA_SIN.TIPOS_PLACA.map((t) => [t.key, t.img]))
-  return tiposPlacaRemoto.map((t) => ({ ...t, img: imagemPorKey.get(t.key) }))
+// Linha remota de `sistema` com as chaves renomeadas, ou null quando o
+// estado não tem esse sistema cadastrado.
+function remotoRenomeado(uf, sistema, chaves) {
+  const remoto = getNormaRemota(uf, sistema)
+  return remoto ? renomearDaBaseCentral(remoto, chaves) : null
 }
 
-// getNorma: ocupacoes.js virou DUAS linhas na base central (sistema
-// 'ocupacoes' = NORMA+OCUPACOES; sistema 'carga_incendio' = o mapa de
-// CNAEs — CARGADEINCENDIO) por serem duas coisas de natureza bem
-// diferente (a primeira pequena e estável, a segunda grande e mais
-// sujeita a correção pontual) — mas os consumidores abaixo (getOcupacoes,
-// getCargaMap, getNormaInfo) continuam lendo os três campos de um dict
-// só, como sempre foi. Não retorna null só por faltar o módulo estático:
-// um estado 100% novo (sem arquivo .js local, só linhas na base central)
-// também precisa funcionar.
+/** Ocupações (sistema 'ocupacoes' = norma + ocupações) e mapa de CNAEs
+ * (sistema 'carga_incendio') do estado; null sem nenhum dos dois. */
 export function getNorma(uf) {
-  const base = NORMAS[uf] ?? null
   const remotoOcup  = getNormaRemota(uf, 'ocupacoes')
   const remotoCarga = getNormaRemota(uf, 'carga_incendio')
-  if (!base && !remotoOcup && !remotoCarga) return null
+  if (!remotoOcup && !remotoCarga) return null
   return {
-    ...base,
-    ...(remotoOcup  ? { NORMA: remotoOcup.norma, OCUPACOES: remotoOcup.ocupacoes } : null),
-    ...(remotoCarga ? { CARGADEINCENDIO: remotoCarga.cargadeincendio } : null),
+    NORMA: remotoOcup?.norma ?? null,
+    OCUPACOES: remotoOcup?.ocupacoes ?? {},
+    CARGADEINCENDIO: remotoCarga?.cargadeincendio ?? {},
   }
 }
 
-// getSE: primeiro sistema migrado pra base normativa central
-// (normas_dados no Supabase — ver supabase/migrations/*normas_dados* e
-// src/lib/normasRemote.js). getNormaRemota() devolve null enquanto o fetch
-// não completou (ou se falhar), e cai pro arquivo estático empacotado
-// (./MA/saida_emergencia.js) — que passa a ser só o fallback offline/dev,
-// não mais a fonte de verdade.
 export function getSE(uf) {
   const remoto = getNormaRemota(uf, 'saida_emergencia')
-  return remoto ? adaptarSEDaBaseCentral(remoto) : (NORMAS_SE[uf] ?? NORMAS_SE['MA'])
+  return remoto ? adaptarSEDaBaseCentral(remoto) : null
 }
-export function getAV(uf) {
-  const remoto = getNormaRemota(uf, 'acesso_viatura')
-  return remoto ? renomearDaBaseCentral(remoto, CHAVES_AV) : (NORMAS_AV[uf] ?? NORMAS_AV['MA'])
-}
+export function getAV(uf) { return remotoRenomeado(uf, 'acesso_viatura', CHAVES_AV) }
 export function getTRRF(uf) {
-  const remoto = getNormaRemota(uf, 'trrf')
-  if (!remoto) return NORMAS_TRRF[uf] ?? NORMAS_TRRF['MA']
-  const adaptado = renomearDaBaseCentral(remoto, CHAVES_TRRF)
-  return {
-    ...adaptado,
-    CLASSES_ALTURA: comInfinidade(adaptado.CLASSES_ALTURA),
-    CLASSES_SUBSOLO: comInfinidade(adaptado.CLASSES_SUBSOLO),
-  }
+  const adaptado = remotoRenomeado(uf, 'trrf', CHAVES_TRRF)
+  if (!adaptado) return null
+  return { ...adaptado, CLASSES_ALTURA: comInfinidade(adaptado.CLASSES_ALTURA), CLASSES_SUBSOLO: comInfinidade(adaptado.CLASSES_SUBSOLO) }
 }
-export function getExtintores(uf) {
-  const remoto = getNormaRemota(uf, 'extintores')
-  return remoto ? renomearDaBaseCentral(remoto, CHAVES_EXT) : (NORMAS_EXT[uf] ?? NORMAS_EXT['MA'])
-}
-export function getIluminacao(uf) {
-  const remoto = getNormaRemota(uf, 'iluminacao')
-  return remoto ? renomearDaBaseCentral(remoto, CHAVES_ILU) : (NORMAS_ILU[uf] ?? NORMAS_ILU['MA'])
-}
+export function getExtintores(uf) { return remotoRenomeado(uf, 'extintores', CHAVES_EXT) }
+export function getIluminacao(uf) { return remotoRenomeado(uf, 'iluminacao', CHAVES_ILU) }
+// TIPOS_PLACA da base central não carrega `img` (asset do bundler, não dá
+// pra serializar): o pictograma é casado pelo `key` (data/sinalizacaoImagens.js).
 export function getSinalizacao(uf) {
-  const remoto = getNormaRemota(uf, 'sinalizacao')
-  if (!remoto) return NORMAS_SIN[uf] ?? NORMAS_SIN['MA']
-  return { ...renomearDaBaseCentral(remoto, CHAVES_SIN), TIPOS_PLACA: anexarImagens(remoto.tipos_placa) }
+  const adaptado = remotoRenomeado(uf, 'sinalizacao', CHAVES_SIN)
+  if (!adaptado) return null
+  return { ...adaptado, TIPOS_PLACA: (adaptado.TIPOS_PLACA || []).map(t => ({ ...t, img: IMAGEM_PLACA[t.key] })) }
 }
-// getCompartimentacao: ainda não migrado pra base normativa central —
-// mesmo estágio de getMedidas() hoje, só o arquivo estático
-// (normas/MA/compartimentacao.js) como fonte.
-export function getCompartimentacao(uf) { return NORMAS_COMP[uf] ?? NORMAS_COMP['MA'] }
-// getControleAcabamento: mesmo estágio de getCompartimentacao — ainda não
-// migrado pra base normativa central, só o arquivo estático
-// (normas/MA/controle_acabamento.js) como fonte.
-export function getControleAcabamento(uf) { return NORMAS_CMAR[uf] ?? NORMAS_CMAR['MA'] }
-export function getNts(uf) {
-  const remoto = getNormaRemota(uf, 'nts')
-  return remoto ? renomearDaBaseCentral(remoto, CHAVES_NTS) : NTS_PADRAO
+export function getCompartimentacao(uf) {
+  const adaptado = remotoRenomeado(uf, 'compartimentacao', CHAVES_COMP)
+  if (!adaptado) return null
+  return { ...adaptado, CLASSES_TIPO_EDIFICACAO: comInfinidade(adaptado.CLASSES_TIPO_EDIFICACAO) }
 }
-// getHidrantes: migrado pra base normativa central (normas_dados — ver
-// supabase/migrations/*seed_normas_hidrantes*). O arquivo estático
-// (normas/MA/hidrantes.js) vira só o fallback offline/dev, mesmo padrão
-// dos demais getters acima.
+export function getControleAcabamento(uf) { return remotoRenomeado(uf, 'controle_acabamento', CHAVES_CMAR) }
+export function getNts(uf) { return remotoRenomeado(uf, 'nts', CHAVES_NTS) }
+// Catálogos globais de hidrantes (materiais, recalque, acionamento) são
+// listas de equipamento do app, não norma — juntados à norma do estado.
 export function getHidrantes(uf) {
-  const remoto = getNormaRemota(uf, 'hidrantes')
-  const base = remoto ? renomearDaBaseCentral(remoto, CHAVES_HID) : (NORMAS_HID[uf] ?? NORMAS_HID['MA'])
-  // Catálogos globais (materiais, recalque, acionamento) vêm do código, não do banco.
-  return { ...base, ...CATALOGOS_HIDRANTES }
+  const base = remotoRenomeado(uf, 'hidrantes', CHAVES_HID)
+  return base ? { ...base, ...CATALOGOS_HIDRANTES } : null
 }
-// getBrigada: migrado pra base normativa central (normas_dados — ver
-// supabase/migrations/*seed_normas_brigada*). O arquivo estático
-// (normas/MA/brigada_incendio.js) vira só o fallback offline/dev, mesmo
-// padrão dos demais getters acima.
-// getDeteccaoAlarme: norma compartilhada pelas medidas 'alarme' e 'deteccao'
-// (NT 19). Base central (normas_dados, sistema 'deteccao_alarme' — ver
-// supabase/migrations/*seed_normas_deteccao_alarme*); o arquivo estático do MA
-// é só o fallback offline/dev. UF sem norma cadastrada cai no MA.
-export function getDeteccaoAlarme(uf) {
-  const remoto = getNormaRemota(uf, 'deteccao_alarme')
-  return remoto ? renomearDaBaseCentral(remoto, CHAVES_DA) : { ...MA_DA }
-}
-// getMemorialFormulario: parâmetros do memorial em formato de formulário do
-// CBM (hoje só a PB — ver normas/PB/memorial_formulario.js). Base central
-// (normas_dados, sistema 'memorial_formulario'), com o arquivo estático como
-// fallback offline/dev. Não cai pro MA: null = o estado usa o memorial em
-// texto corrido (MemorialDescritivoPage.jsx), não um formulário.
-export function getMemorialFormulario(uf) {
-  const remoto = getNormaRemota(uf, 'memorial_formulario')
-  return remoto ? renomearDaBaseCentral(remoto, CHAVES_MEMF) : (NORMAS_MEMF[uf] ?? null)
-}
-// Estados cujo documento oficial é o formulário do CBM (sem precisar do
-// conteúdo, só saber se existe) — usado pra escolher o documento em
-// DocumentosPage.jsx.
-export function usaMemorialFormulario(uf) {
-  return temSistemaCadastrado(uf, 'memorial_formulario', NORMAS_MEMF)
-}
-export function getBrigada(uf) {
-  const remoto = getNormaRemota(uf, 'brigada')
-  return remoto ? renomearDaBaseCentral(remoto, CHAVES_BRIG) : (NORMAS_BRIG[uf] ?? NORMAS_BRIG['MA'])
-}
+// Norma compartilhada pelas medidas 'alarme' e 'deteccao' (NT 19).
+export function getDeteccaoAlarme(uf) { return remotoRenomeado(uf, 'deteccao_alarme', CHAVES_DA) }
+// Parâmetros do memorial em formato de formulário do CBM (hoje só a PB);
+// null = o estado usa o memorial em texto corrido (MemorialDescritivoPage.jsx).
+export function getMemorialFormulario(uf) { return remotoRenomeado(uf, 'memorial_formulario', CHAVES_MEMF) }
+export function usaMemorialFormulario(uf) { return !!getNormaRemota(uf, 'memorial_formulario') }
+export function getBrigada(uf) { return remotoRenomeado(uf, 'brigada', CHAVES_BRIG) }
 export function getOcupacoes(uf)   { return getNorma(uf)?.OCUPACOES ?? {} }
 export function getGrupos(uf)      {
   const oc = getOcupacoes(uf)
@@ -347,14 +226,7 @@ export function temCNAECadastrado(uf, divisao) {
 
 // ── Medidas de segurança ─────────────────────────────────────────────────────
 
-export function getMedidas(uf) {
-  const remoto = getNormaRemota(uf, 'medidas_seguranca')
-  // Diferente dos outros getters, não cai pro MA quando `uf` não tem dado
-  // — sem regra cadastrada pro estado, aplicar a do MA por engano seria
-  // pior que simplesmente admitir que a norma ainda não foi cadastrada
-  // (comportamento já era esse antes desta migração, mantido de propósito).
-  return remoto ? renomearDaBaseCentral(remoto, CHAVES_MED) : (NORMAS_MED[uf] ?? null)
-}
+export function getMedidas(uf) { return remotoRenomeado(uf, 'medidas_seguranca', CHAVES_MED) }
 
 /**
  * Resolve as medidas de segurança exigidas para uma edificação.

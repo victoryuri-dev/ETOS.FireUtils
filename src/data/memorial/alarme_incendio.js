@@ -1,6 +1,6 @@
 // memorial/alarme_incendio.js — texto do memorial descritivo do Sistema de
 // Alarme de Incêndio. Norma e valores vêm de getDeteccaoAlarme(uf) (base
-// central, com fallback estático) e o dimensionamento por pavimento do calc
+// central) e o dimensionamento por pavimento do calc
 // puro (deteccao_alarme_calc.js) — o mesmo da tela.
 
 import { getDeteccaoAlarme } from '../normas/index'

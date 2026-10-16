@@ -1,9 +1,11 @@
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { createServer } from 'vite'
+import { servidorComNormas } from './helpers/normasDeTeste.mjs'
 import { readFileSync } from 'node:fs'
 
-const server = await createServer({server:{middlewareMode:true}, appType:'custom'})
+// Normas servidas a partir dos arquivos de seed, como se fossem as linhas do
+// Supabase (o app não lê mais arquivo local — ver helpers/normasDeTeste.mjs).
+const server = await servidorComNormas()
 after(() => server.close())
 const { buildFormularioPB } = await server.ssrLoadModule('/src/data/memorial/PB/formulario.js')
 const { medidasObrigatorias } = await server.ssrLoadModule('/src/hooks/useMedidasObrigatorias.js')
@@ -90,7 +92,7 @@ test('classe de GLP só marca com o risco especial GLP marcado', () => {
   assert.ok(comRisco.includes('EXIGÍVEL'))
 })
 
-test('sem a tabela de exigências (fallback offline), exigibilidade fica em aberto, exceto no mínimo de referência', () => {
+test('sem a tabela de exigências cadastrada para o estado, exigibilidade fica em aberto, exceto no mínimo de referência', () => {
   const f = gerar(projeto())
   assert.equal(f.temTabelaExigencias, false)
   const exig = prefixo => secao(f, prefixo).linhas.find(l => l.tipo === 'exigivel').exigivel
@@ -139,16 +141,7 @@ test('tabela de medidas incompleta na base central não quebra o motor de normas
   // Servidor à parte com normasRemote.js trocado por um stub: a linha
   // ('PB','medidas_seguranca') chega só com limiares e MEDIDAS, sem a
   // tabela simplificada — o caso que derrubava a criação de projeto.
-  const stub = `export const getNormaRemota = (uf, s) => (uf === 'PB' && s === 'medidas_seguranca' ? { limiares: { areaMin: 750, alturaMin: 12 }, medidas: {} } : null)
-export const sistemaExisteNoCatalogo = () => false
-export const carregarNormasRemotas = async () => {}
-export const carregarCatalogoNormas = async () => {}
-export const normasCarregadas = () => true`
-  const srv = await createServer({ server:{ middlewareMode:true, hmr:false }, appType:'custom', plugins:[{
-    name:'stub-normas-remotas', enforce:'pre',
-    resolveId: id => (id.endsWith('lib/normasRemote') || id.endsWith('lib/normasRemote.js') ? '\0stub-normas' : null),
-    load: id => (id === '\0stub-normas' ? stub : null),
-  }] })
+  const srv = await servidorComNormas({ PB: { medidas_seguranca: { limiares: { areaMin: 750, alturaMin: 12 }, medidas: {} } } })
   try {
     const { getMedidasObrigatorias, getGruposSemDados } = await srv.ssrLoadModule('/src/data/normas/index.js')
     assert.doesNotThrow(() => getMedidasObrigatorias('PB', ['C-1'], 0, 0))      // simplificado, sem tabela
@@ -163,17 +156,7 @@ test('linha padronizada da PB: Tabela 5 inclusiva, subtabelas por divisão e gru
   // Recorte fiel da linha ('PB','medidas_seguranca') do Supabase, com a
   // tabela_simplificada lida do próprio SQL de padronização.
   const linha = readFileSync(new URL('./fixtures/medidas_seguranca_pb.json', import.meta.url), 'utf8')
-  const stub = `const LINHA = ${linha}
-export const getNormaRemota = (uf, s) => (uf === 'PB' && s === 'medidas_seguranca' ? LINHA : null)
-export const sistemaExisteNoCatalogo = () => false
-export const carregarNormasRemotas = async () => {}
-export const carregarCatalogoNormas = async () => {}
-export const normasCarregadas = () => true`
-  const srv = await createServer({ server:{ middlewareMode:true, hmr:false }, appType:'custom', plugins:[{
-    name:'stub-normas-pb', enforce:'pre',
-    resolveId: id => (id.endsWith('lib/normasRemote') || id.endsWith('lib/normasRemote.js') ? '\0stub-normas-pb' : null),
-    load: id => (id === '\0stub-normas-pb' ? stub : null),
-  }] })
+  const srv = await servidorComNormas({ PB: { medidas_seguranca: JSON.parse(linha) } })
   try {
     const { getMedidasObrigatorias, getGruposSemDados } = await srv.ssrLoadModule('/src/data/normas/index.js')
     const exigidas = r => Object.entries(r.medidas).filter(([, v]) => v.obrigatorio).map(([k]) => k).sort()

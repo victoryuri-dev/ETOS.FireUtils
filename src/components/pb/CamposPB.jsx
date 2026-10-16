@@ -132,7 +132,7 @@ export function CamposPBGlp() {
 export function CamposPBCompartimentacao() {
   const { state, m, set, F } = useCamposPB()
   if (!F) return null
-  const { ELEMENTOS_COMPART_HORIZONTAL = [], ELEMENTOS_COMPART_VERTICAL = [] } = getCompartimentacao(state.uf)
+  const { ELEMENTOS_COMPART_HORIZONTAL = [], ELEMENTOS_COMPART_VERTICAL = [] } = getCompartimentacao(state.uf) || {}
   const rotulo = (lista, key) => lista.find(([k]) => k === key)?.[1] || key
   const marcados = (campoEst, catalogo, formulario, prefixo, sentido) =>
     [...new Set((state.estruturas || []).flatMap(e => e[campoEst] || []))]

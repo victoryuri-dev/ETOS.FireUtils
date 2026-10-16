@@ -5,7 +5,8 @@ import Loader from '../components/ui/Loader'
 import { useNorma } from '../hooks/useNorma'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
-import { newIds } from '../context/ProjetoContext'
+import { newIds, useProjeto } from '../context/ProjetoContext'
+import { statusCatalogo } from '../lib/normasRemote'
 import { temCNAECadastrado, getEstadosDisponiveis } from '../data/normas/index'
 import { fmtUn } from '../utils/numero'
 
@@ -350,6 +351,9 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
 // (memorial em texto corrido do MA x formulário oficial do CBMPB). Só ficam
 // habilitados os estados com norma cadastrada pro tipo de projeto escolhido.
 function EscolhaEstadoModal({ tipo, onEscolher, onCancel }) {
+  // Disponibilidade de cada estado = catálogo da base normativa (Supabase).
+  const { recarregarNormas } = useProjeto()
+  const catalogo = statusCatalogo()
   const estados = getEstadosDisponiveis()
   const disponivel = e => (tipo === 'dimensionamento' ? e.ativo || e.ativoDimensionamento : e.ativo)
 
@@ -375,6 +379,16 @@ function EscolhaEstadoModal({ tipo, onEscolher, onCancel }) {
           </div>
         </div>
 
+        {catalogo !== 'ok' ? (
+          <div className="flex flex-col items-center gap-3 py-6 mb-5">
+            {catalogo === 'carregando'
+              ? <Loader size={28}/>
+              : <>
+                  <span className="text-[13px] text-ink-faint text-center">Não foi possível carregar a lista de estados da base normativa.</span>
+                  <button className="btn-ghost" onClick={recarregarNormas}>Tentar de novo</button>
+                </>}
+          </div>
+        ) : (
         <div className="flex flex-col gap-2 mb-5">
           {estados.map(e => {
             const ok = disponivel(e)
@@ -395,6 +409,7 @@ function EscolhaEstadoModal({ tipo, onEscolher, onCancel }) {
             )
           })}
         </div>
+        )}
 
         <button className="btn-ghost w-full justify-center" onClick={onCancel}>Cancelar</button>
       </div>

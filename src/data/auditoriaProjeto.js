@@ -72,7 +72,7 @@ export function camposObrigatorios(state, porEstrutura = []) {
       if (ativo(key)) add(campoId(est.id,field),'Elementos de proteção adotados',est[field],medida(key,label,est.nome))
     }
     if (ativo('brigada')) for (const pav of pavs) {
-      const linha = linhaTabelaA1(pav.divisao,null,getBrigada(state.uf).TABELA_A1 || [])
+      const linha = linhaTabelaA1(pav.divisao,null,getBrigada(state.uf)?.TABELA_A1 || [])
       if (!linha?.isento) add(campoId(pav.id,'populacaoFixa'),'População fixa',pav.populacaoFixa,medida('brigada','Brigada de incêndio',`${est.nome} · ${pav.label}`),naoNegativo)
     }
     if (ativo('alarme')) {
@@ -128,7 +128,7 @@ export function camposObrigatorios(state, porEstrutura = []) {
         add(campoId(pav.id,'iluminacao'),'Cadastrar equipamentos',itens,d)
         for (const i of itens) {
           add(campoId(i.id,'quantidade'),'Quantidade',i.quantidade,d,inteiro)
-          for (const c of getIluminacao(state.uf).CAMPOS_EQUIPAMENTO || []) add(campoId(i.id,c.key),c.label,i[c.key],d)
+          for (const c of getIluminacao(state.uf)?.CAMPOS_EQUIPAMENTO || []) add(campoId(i.id,c.key),c.label,i[c.key],d)
         }
       }
     }
@@ -151,7 +151,7 @@ export function camposObrigatorios(state, porEstrutura = []) {
     add('acessoViatura.afastamentoMeioFio','Afastamento até o meio-fio',av.afastamentoMeioFio,dest,naoNegativo)
     const norma = getAV(state.uf)
     const altura = Math.max(0,...(state.estruturas || []).map(alturaEdificacaoBase))
-    if (calcGatilho(altura,av.afastamentoMeioFio,av.isCondominio,norma.GATILHO).exigido) {
+    if (norma && calcGatilho(altura,av.afastamentoMeioFio,av.isCondominio,norma.GATILHO).exigido) {
       add('acessoViatura.extensaoVia','Extensão da via',av.extensaoVia,dest,positivo)
       if (numero(av.extensaoVia) > norma.VIA_ACESSO.retorno.extensaoGatilho) {
         add('acessoViatura.tipoRetorno','Tipo de retorno',av.tipoRetorno,dest)

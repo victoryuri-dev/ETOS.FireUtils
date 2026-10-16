@@ -74,7 +74,9 @@ export function medidasObrigatorias(state) {
     // isenções não baixavam `ativo`, e a medida continuava marcada como
     // aplicada (X) no Anexo B e no resumo do memorial.
     const isentoCompartHorizontal = !!est.isencaoCompartHorizontal || (() => {
-      const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO } = getCompartimentacao(state.uf)
+      const compart = getCompartimentacao(state.uf)
+      if (!compart) return false // norma não cadastrada para o estado: sem isenção por área
+      const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO } = compart
       return calcularAreaMaximaCompartimentacao(pavsEst, est, TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, state.areaCompartimentacaoHorizontal).dentroDoLimite
     })()
     const isentoCompartVertical = !!est.isencaoCompartVertical
@@ -155,7 +157,7 @@ export function useMedidasObrigatorias() {
   // getMedidasObrigatorias/getGruposSemDados (normas/index.js) leem a
   // Tabela 5/6 (`medidas_seguranca`) do cache de normasRemote.js, por fora
   // do React — mas precisa disparar o recálculo quando o fetch da base
-  // central terminar, senão o resultado fica preso ao fallback estático do
+  // central terminar, senão o resultado fica preso ao estado vazio do
   // primeiro render, antes do Supabase responder.
   return useMemo(
     () => medidasObrigatorias(state),

@@ -1255,6 +1255,15 @@ export function ProjetoProvider({ children }) {
     return () => { cancelado = true }
   }, [state.uf])
 
+  // "Tentar de novo" das telas de erro de carregamento (normas do estado e
+  // catálogo de estados) — sem base normativa nada funciona, e não há mais
+  // fallback local (ver lib/normasRemote.js).
+  const recarregarNormas = useCallback(() => {
+    setNormasVersion(v => v + 1)
+    Promise.all([carregarNormasRemotas(state.uf), carregarCatalogoNormas()])
+      .then(() => setNormasVersion(v => v + 1))
+  }, [state.uf])
+
   // Catálogo de quais (uf, sistema) existem no Supabase, pra TODOS os
   // estados — dispara 1x no boot, sem depender do UF do projeto (precisa
   // estar pronto ANTES de o UF ser escolhido, pro seletor de estado do
@@ -1415,7 +1424,7 @@ export function ProjetoProvider({ children }) {
   }, [state, user, conflito])
 
   return (
-    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida, syncStatus, normasVersion }}>
+    <Ctx.Provider value={{ state, dispatch, conflito, definirVersaoConhecida, syncStatus, normasVersion, recarregarNormas }}>
       {children}
     </Ctx.Provider>
   )

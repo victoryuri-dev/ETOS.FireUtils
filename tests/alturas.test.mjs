@@ -1,8 +1,8 @@
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { createServer } from 'vite'
+import { servidorComNormas } from './helpers/normasDeTeste.mjs'
 
-const server = await createServer({ server:{ middlewareMode:true, hmr:false }, appType:'custom' })
+const server = await servidorComNormas()
 after(() => server.close())
 const { limparAlturasOcultas } = await server.ssrLoadModule('/src/data/trrf_calc.js')
 

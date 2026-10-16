@@ -11,7 +11,7 @@
 // especiais. Todos transcritos do próprio formulário (que por sua vez remete
 // às NTs CBMPB citadas em cada seção), não de outra norma.
 //
-// Fallback offline/dev da linha ('PB', 'memorial_formulario') de
+// Fonte do seed (e fixture de teste) da linha ('PB', 'memorial_formulario') de
 // normas_dados — ver supabase/migrations/*seed_normas_memorial_formulario_pb*.
 
 export const NORMA = {
