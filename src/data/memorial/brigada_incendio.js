@@ -62,9 +62,10 @@ function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiares
     return { blocos, temAsterisco: false }
   }
 
+  const opcoes = opcoesPublicoBrigada(uf, pavs)
   const linhasCalculadas = pavs.map(pav => {
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
-    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, altura, tabela, area, opcoesPublicoBrigada(uf, pav)) }
+    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, altura, tabela, area, opcoes) }
   })
 
   const temAsterisco = linhasCalculadas.some(({ linha, resultado, nivelTreinamento, nivelInstalacao }) =>

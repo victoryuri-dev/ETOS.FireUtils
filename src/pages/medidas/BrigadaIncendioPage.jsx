@@ -87,9 +87,10 @@ const ORDEM_NIVEL = { basico: 1, intermediario: 2, misto: 2, avancado: 3 }
 // Mesma estrutura visual da Compartimentação: EstruturaSection com status +
 // um Card da medida (título + resumo) contendo a tabela por pavimento.
 function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, dispatch, exigido }) {
+  const opcoes = opcoesPublicoBrigada(uf, pavimentos)
   const linhasCalculadas = pavimentos.map(pav => {
     const risco = riscoDoPavimentoRobusto(pav, cargaEst, cnaesDiv, limiaresRisco)
-    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela, estrutura.areaTotal, opcoesPublicoBrigada(uf, pav)) }
+    return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, estrutura.altura, tabela, estrutura.areaTotal, opcoes) }
   })
 
   // Pavimento resolvido = tem linha na Tabela A.1 e já saiu número (ou é isento).

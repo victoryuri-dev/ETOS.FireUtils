@@ -521,9 +521,10 @@ function resumoBrigada(state, ctx) {
   const divisoes = [], riscos = [], niveis = []
   ;(ctx.porEstrutura || []).filter(pe => pe.sistemas?.brigada?.ativo).forEach(({ estrutura: est }) => {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
+    const opcoes = opcoesPublicoBrigada(state.uf, pavs)
     pavs.forEach(pav => {
       const risco = riscoDoPavimentoRobusto(pav, state.cargaState?.[est.id] || {}, cnaesDiv, LIMIARES_RISCO)
-      const { linha, resultado, nivelTreinamento } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, est.altura, TABELA_A1, est.areaTotal, opcoesPublicoBrigada(state.uf, pav))
+      const { linha, resultado, nivelTreinamento } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, est.altura, TABELA_A1, est.areaTotal, opcoes)
       if (!linha || linha.isento) return
       divisoes.push(pav.divisao)
       riscos.push(RISCO_LABEL[risco])

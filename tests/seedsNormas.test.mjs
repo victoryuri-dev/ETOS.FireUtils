@@ -139,3 +139,11 @@ test('brigada da PB: item 4.11.2 (F-7 sempre; nota 10 acima de 250 pessoas)', as
   assert.equal(ma.DIMENSIONAMENTO_PUBLICO, undefined)
   assert.equal(calcularBrigadaPavimento('F-2', 'baixo', 10, 6, ma.TABELA_A1, 500, {}).resultado.brigadistas, 6)
 })
+
+test('brigada da PB: público do 4.11.2 = população da edificação inteira', async () => {
+  const { opcoesPublicoBrigada } = await server.ssrLoadModule('/src/utils/brigadaPublico.js')
+  const amb = area => ({ divisao: 'F-2', popTipo: 'area', area: String(area) })
+  const pavs = [{ ambientes: [amb(150)] }, { ambientes: [amb(100), amb(50)] }]  // F-2: 1 pessoa/m²
+  assert.equal(opcoesPublicoBrigada('PB', pavs).publico, 300)
+  assert.deepEqual(opcoesPublicoBrigada('MA', pavs), {})
+})
