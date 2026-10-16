@@ -61,7 +61,9 @@ Já no Supabase (PB): `ocupacoes`, `medidas_seguranca`, `memorial_formulario`, `
 
 Extintores (NT 21/2024): `20261016170000_seed_normas_extintores_pb.sql` — Tabelas 1 a 5 da NT; nível III com duas opções (3-A a 15 m / 4-A a 20 m), escolhida no box da PB da página de extintores. ⚠ Distância de sobre rodas e classe D, altura de instalação, unidade única, proporção, locais de risco especial, entrada/escadas e classe K copiados do MA, a conferir.
 
-Faltam: `trrf` (NT 08), `compartimentacao` (NT 36), `controle_acabamento`, `brigada` (NT 17/2024), `acesso_viatura` (NT 14/2023), `iluminacao`, `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
+Brigada (NT 17/2024, Anexo A): `20261016180000_seed_normas_brigada_pb.sql` — Tabela A.1 e notas conferidas contra o PDF; diferenças para o MA em H-1, H-3, H-4, H-5, H-6, M-5, F-5 (nota 10) e F-7 (item 4.11.2). Carga horária e simulados (Anexo B) seguem manuais.
+
+Faltam: `trrf` (NT 08), `compartimentacao` (NT 36), `controle_acabamento`, `acesso_viatura` (NT 14/2023), `iluminacao`, `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
 
 Na saída de emergência, L-4, M-2, M-6 e M-7 (NT 04/2023) não estão na Tabela 1 nem na Tabela 2 da NT 12/2025; H-2/H-3 têm larguras especiais que o cálculo ainda não modela.
 

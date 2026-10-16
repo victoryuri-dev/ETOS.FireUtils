@@ -72,7 +72,7 @@ export function calcularBrigadistas(linha, populacaoFixa) {
   const pop = Math.max(0, Math.round(num(populacaoFixa)))
 
   if (linha.regraAcima10 === 'ver_item_5_11_2') {
-    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: 'Instalação temporária — dimensionamento conforme item 5.11.2 da norma (não coberto pela Tabela A.1 padrão).', notasDinamicas: [] }
+    return { brigadistas: null, especial: true, faixaUsada: null, detalhe: `Instalação temporária — dimensionamento conforme item ${linha.itemReferencia || '5.11.2'} da norma (não coberto pela Tabela A.1 padrão).`, notasDinamicas: [] }
   }
   if (linha.regraAcima10 === 'tunel') {
     return { brigadistas: null, especial: true, faixaUsada: null, detalhe: null, notasDinamicas: [9] }
@@ -165,9 +165,13 @@ const ACIMA10_LABEL_BRUTO = {
   maior_cenario: '(nota 5)',
   pct_populacao: '80% da população fixa',
   pct_funcionarios_pav: '80% dos funcionários da edificação e 1 (um) brigadista para cada pavimento',
-  ver_item_5_11_2: 'Ver item 5.11.2',
+  ver_item_5_11_2: 'Ver item 5.11.2', // o número do item vem de linha.itemReferencia quando a norma traz
   tunel: '(nota 9)',
 }
+
+const rotuloAcima10 = linha => (linha.regraAcima10 === 'ver_item_5_11_2' && linha.itemReferencia
+  ? `Ver item ${linha.itemReferencia}`
+  : ACIMA10_LABEL_BRUTO[linha.regraAcima10] || '—')
 
 /** Uma divisão específica (código, ex.: "E-5") formatada exatamente como a
  *  Tabela A.1 imprime — grupo, descrição, grau de risco, as colunas "Até N"
@@ -184,11 +188,11 @@ export function linhaTabelaA1Bruta(divisao, linha) {
     acima10 = 'Isento'
   } else if (linha.faixas) {
     celulas = linha.faixas.map(String)
-    acima10 = ACIMA10_LABEL_BRUTO[linha.regraAcima10] || '—'
+    acima10 = rotuloAcima10(linha)
   } else {
     // Regra especial sem faixas numéricas (A-2, F-7, M-1): no original é uma
     // única célula mesclada — aqui vai no primeiro campo, o resto em branco.
-    celulas = [ACIMA10_LABEL_BRUTO[linha.regraAcima10] || '—', '—', '—', '—', '—']
+    celulas = [rotuloAcima10(linha), '—', '—', '—', '—', '—']
     acima10 = '—'
   }
 

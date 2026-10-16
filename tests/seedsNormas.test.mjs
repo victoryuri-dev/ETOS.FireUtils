@@ -9,7 +9,10 @@ import { servidorComNormas } from './helpers/normasDeTeste.mjs'
 const dadosDoSql = arquivo => JSON.parse(readFileSync(new URL(`../supabase/migrations/${arquivo}`, import.meta.url), 'utf8').split('$j$')[1])
 
 const server = await servidorComNormas({
-  PB: { extintores: dadosDoSql('20261016170000_seed_normas_extintores_pb.sql') },
+  PB: {
+    extintores: dadosDoSql('20261016170000_seed_normas_extintores_pb.sql'),
+    brigada: dadosDoSql('20261016180000_seed_normas_brigada_pb.sql'),
+  },
   MA: {
     compartimentacao: dadosDoSql('20261016140000_seed_normas_compartimentacao_ma.sql'),
     controle_acabamento: dadosDoSql('20261016140001_seed_normas_controle_acabamento_ma.sql'),
@@ -38,7 +41,7 @@ test('tipos de escada do MA: SQL = arquivo de seed', async () => {
 })
 
 test('sem o sistema cadastrado para o estado, o getter devolve null (nunca a norma de outro estado)', () => {
-  for (const get of ['getAV', 'getTRRF', 'getIluminacao', 'getSinalizacao', 'getCompartimentacao', 'getControleAcabamento', 'getHidrantes', 'getBrigada', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
+  for (const get of ['getAV', 'getTRRF', 'getIluminacao', 'getSinalizacao', 'getCompartimentacao', 'getControleAcabamento', 'getHidrantes', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
     assert.equal(normas[get]('PB'), null, get)
   }
   assert.ok(normas.getSE('PB'))
@@ -95,4 +98,26 @@ test('extintores: distância portátil pela opção adotada (PB nível III) e po
   assert.deepEqual(['baixo', 'medio', 'alto'].map(r => distanciaPortatil(ma, r)), [25, 20, 15])
   // a classe A da tabela coincide com DISTANCIA_MAXIMA.portatil nos dois estados
   for (const n of [pb, ma]) assert.equal(distanciaPortatil(n, 'medio'), n.DISTANCIA_MAXIMA.portatil.medio)
+})
+
+test('brigada da PB: SQL = arquivo de seed', async () => {
+  const esperado = await server.ssrLoadModule('/src/data/normas/PB/brigada_incendio.js')
+  const lido = normas.getBrigada('PB')
+  for (const k of ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'OBSERVACOES_TRANSCRICAO']) assert.deepEqual(lido[k], JSON.parse(JSON.stringify(esperado[k])), k)
+})
+
+test('brigada da PB: exemplos da NT 17/2024 (Anexo A) e diferenças para o MA', async () => {
+  const { calcularBrigadaPavimento } = await server.ssrLoadModule('/src/data/brigada_calc.js')
+  const pb = normas.getBrigada('PB').TABELA_A1, ma = normas.getBrigada('MA').TABELA_A1
+  const n = (div, risco, pop, tab = pb) => calcularBrigadaPavimento(div, risco, pop, 6, tab, 500).resultado?.brigadistas
+  assert.equal(n('D-1', 'baixo', 25), 3)    // exemplo B
+  assert.equal(n('D-1', 'medio', 19), 5)    // exemplo C.a (por pavimento)
+  assert.equal(n('I-3', 'alto', 116), 19)   // exemplo C.b
+  assert.equal(n('I-3', 'alto', 80), 15)    // exemplo A, diurno
+  assert.equal(n('I-3', 'alto', 20), 9)     // exemplo A, noturno
+  assert.equal(n('H-6', 'baixo', 10), 2)    // PB: 1-2-2-2-2
+  assert.equal(n('H-6', 'medio', 10, ma), 6)
+  assert.equal(n('M-5', 'alto', 10), 5)     // PB: 2-2-3-4-5 (MA: 8)
+  assert.match(calcularBrigadaPavimento('F-7', 'medio', 10, 6, pb, 500).resultado.detalhe, /item 4\.11\.2/)
+  assert.match(calcularBrigadaPavimento('F-7', 'medio', 10, 6, ma, 500).resultado.detalhe, /item 5\.11\.2/)
 })
