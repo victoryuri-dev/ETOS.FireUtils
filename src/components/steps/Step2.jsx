@@ -20,6 +20,15 @@ const S = {
   desc: 'text-[13px] text-ink-faint leading-[1.6]',
 }
 
+function maskCNPJ(raw) {
+  const d = (raw || '').replace(/\D/g, '').slice(0, 14)
+  if (d.length <= 2) return d
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
+}
+
 // ── Modal de edicao de uma Estrutura (torre/bloco) ─────────────────────
 function EstruturaModal({ est, index, dispatch, onClose }) {
   const set = f => e => dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field: f, value: e.target.value })
@@ -273,6 +282,16 @@ export default function Step2({ step, totalSteps }) {
               </select>
             </div>
           </div>
+          <div className="fg">
+            <label>CNPJ <span className="text-ink-faint font-normal">(opcional)</span></label>
+            <input
+              value={state.respCNPJ || ''}
+              onChange={e => dispatch({ type:'SET_FIELD', field:'respCNPJ', value:maskCNPJ(e.target.value) })}
+              placeholder="00.000.000/0000-00"
+              inputMode="numeric"
+            />
+            <span className="text-[11px] text-ink-faint mt-1.5">Usado para buscar o CNAE na etapa de classificação.</span>
+          </div>
         </FormSection>
       )}
 
@@ -401,24 +420,26 @@ export default function Step2({ step, totalSteps }) {
         </button>
       </FormSection>
 
-      <FormSection title="Características construtivas">
-        <div className="space-y-5">
-          {[
-            { field:'caracteristicasEstrutura', label:'Estrutura', placeholder:'Descreva os materiais da estrutura', opcoes:['Concreto armado', 'Estrutura metálica', 'Alvenaria estrutural', 'Madeira'] },
-            { field:'cobertura', label:'Elementos de cobertura', placeholder:'Descreva os materiais da cobertura', opcoes:['Laje impermeabilizada', 'Telha metálica', 'Telha de fibrocimento', 'Telha cerâmica'] },
-            { field:'fachada', label:'Elementos de vedação', placeholder:'Descreva os materiais de vedação', opcoes:['Alvenaria de blocos cerâmicos', 'Alvenaria de blocos de concreto', 'Painéis metálicos', 'Vidro'] },
-          ].map(c => <div key={c.field} className="fg">
-            <label htmlFor={`construtiva-${c.field}`}>{c.label} <Obrigatorio id={c.field}/></label>
-            <input id={`construtiva-${c.field}`} required value={state[c.field] || ''} onChange={set(c.field)} placeholder={c.placeholder}/>
-            <div className="flex flex-wrap gap-2 mt-2" aria-label={`Preenchimento rápido: ${c.label}`}>
-              {c.opcoes.map(value => <button key={value} type="button" className="btn-ghost text-xs" onClick={() => {
-                const atual = (state[c.field] || '').trim()
-                dispatch({ type:'SET_FIELD', field:c.field, value: atual ? `${atual}, ${value}` : value })
-              }}>{value}</button>)}
-            </div>
-          </div>)}
-        </div>
-      </FormSection>
+      {!dimensionamento && (
+        <FormSection title="Características construtivas">
+          <div className="space-y-5">
+            {[
+              { field:'caracteristicasEstrutura', label:'Estrutura', placeholder:'Descreva os materiais da estrutura', opcoes:['Concreto armado', 'Estrutura metálica', 'Alvenaria estrutural', 'Madeira'] },
+              { field:'cobertura', label:'Elementos de cobertura', placeholder:'Descreva os materiais da cobertura', opcoes:['Laje impermeabilizada', 'Telha metálica', 'Telha de fibrocimento', 'Telha cerâmica'] },
+              { field:'fachada', label:'Elementos de vedação', placeholder:'Descreva os materiais de vedação', opcoes:['Alvenaria de blocos cerâmicos', 'Alvenaria de blocos de concreto', 'Painéis metálicos', 'Vidro'] },
+            ].map(c => <div key={c.field} className="fg">
+              <label htmlFor={`construtiva-${c.field}`}>{c.label} <Obrigatorio id={c.field}/></label>
+              <input id={`construtiva-${c.field}`} required value={state[c.field] || ''} onChange={set(c.field)} placeholder={c.placeholder}/>
+              <div className="flex flex-wrap gap-2 mt-2" aria-label={`Preenchimento rápido: ${c.label}`}>
+                {c.opcoes.map(value => <button key={value} type="button" className="btn-ghost text-xs" onClick={() => {
+                  const atual = (state[c.field] || '').trim()
+                  dispatch({ type:'SET_FIELD', field:c.field, value: atual ? `${atual}, ${value}` : value })
+                }}>{value}</button>)}
+              </div>
+            </div>)}
+          </div>
+        </FormSection>
+      )}
 
       {openEst && <EstruturaModal est={openEst} index={openIndex} dispatch={dispatch} onClose={() => setOpenId(null)}/>}
     </div>
