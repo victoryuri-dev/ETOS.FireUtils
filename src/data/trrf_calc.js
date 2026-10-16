@@ -61,6 +61,22 @@ export function alturaEdificacaoBase(estrutura) {
   return num(estrutura.alturaEdificacao)
 }
 
+/** Zera as medidas que a tela esconde para a configuração de pavimentos da
+ *  estrutura: "Altura da edificação" só existe com mais de 1 pavimento acima
+ *  do solo, e "Profundidade do subsolo" só com subsolo. Sem isso, um valor
+ *  digitado antes de voltar para térrea (ou tirar o subsolo) ficava salvo,
+ *  invisível, e reaparecia ao mudar de novo. Térrea COM subsolo mantém a
+ *  profundidade: ela é a altura da edificação nesse caso (item 4.31, NT 03
+ *  CBMMA — ver alturaEdificacaoBase). */
+export function limparAlturasOcultas(estrutura) {
+  const nPav = parseInt(estrutura.nPavimentos) || 1
+  const nSub = parseInt(estrutura.nSubsolos) || 0
+  let e = estrutura
+  if (nPav <= 1 && e.alturaEdificacao !== '' && e.alturaEdificacao != null) e = { ...e, alturaEdificacao: '' }
+  if (nSub <= 0 && e.profundidadeSubsolo !== '' && e.profundidadeSubsolo != null) e = { ...e, profundidadeSubsolo: '' }
+  return e
+}
+
 /** Verdadeiro só quando a edificação é de fato térrea: 1 pavimento acima do
  *  solo E a altura pura (`alturaEdificacaoBase`) é 0 — ou seja, sem subsolo
  *  (com subsolo, a altura pura passa a ser a profundidade dele, item 4.31

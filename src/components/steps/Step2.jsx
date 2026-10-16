@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import { getEstadosDisponiveis } from '../../data/normas/index'
-import { alturaEdificacaoBase } from '../../data/trrf_calc'
+import { alturaEdificacaoBase, limparAlturasOcultas } from '../../data/trrf_calc'
 import { resumoEstrutura } from '../../data/resumoEstrutura'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
@@ -43,17 +43,26 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
     return nPavCand === 1 ? base : (parseFloat(candidato.profundidadeSubsolo) || 0) + base
   }
 
+  // Ao mudar pavimentos/subsolos, o campo que deixa de aparecer é zerado
+  // (limparAlturasOcultas) antes de recalcular a altura piso a piso — senão
+  // o valor antigo ficava salvo, escondido, e entrava na soma.
+  const aplicarLimpeza = candidato => {
+    const limpo = limparAlturasOcultas(candidato)
+    if (limpo.alturaEdificacao !== candidato.alturaEdificacao) dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaEdificacao', value:'' })
+    if (limpo.profundidadeSubsolo !== candidato.profundidadeSubsolo) dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'profundidadeSubsolo', value:'' })
+    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma(limpo) })
+  }
   const handleNPav = e => {
     const v = parseInt(e.target.value) || 1
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nPavimentos', value:v })
     dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav:v, nSub:sub })
-    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, nPavimentos:v }) })
+    aplicarLimpeza({ ...est, nPavimentos:v })
   }
   const handleNSub = e => {
     const v = parseInt(e.target.value) || 0
     dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'nSubsolos', value:v })
     dispatch({ type:'REBUILD_PAVIMENTOS', estruturaId: est.id, nPav: est.nPavimentos, nSub:v })
-    dispatch({ type:'SET_ESTRUTURA_FIELD', id: est.id, field:'alturaPisoPiso', value: alturaPisoPisoSoma({ ...est, nSubsolos:v }) })
+    aplicarLimpeza({ ...est, nSubsolos:v })
   }
   const handleProfundidade = e => {
     const v = e.target.value

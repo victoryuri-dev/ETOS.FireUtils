@@ -4,6 +4,7 @@ import { carregarNormasRemotas, carregarCatalogoNormas } from '../lib/normasRemo
 import { useAuth } from './AuthContext'
 import { PROCEDIMENTOS_PADRAO } from '../utils/planoEmergencia'
 import { dimsPadrao } from '../data/se_calc'
+import { alturaEdificacaoBase, limparAlturasOcultas } from '../data/trrf_calc'
 
 // Gera um ID interno único
 export function newIds() {
@@ -277,7 +278,20 @@ function hydratarPlanoEmergencia(saved) {
 // (profundidadeSubsolo + alturaEdificacao) exibida na tela. Recalcula
 // alturaPisoPiso na migração pra telas de leitura (memorial, dashboard)
 // já mostrarem o valor somado sem o usuário precisar reabrir a Etapa 2.
+function semAlturasOcultas(e) {
+  const limpo = limparAlturasOcultas(e)
+  if (limpo === e) return e
+  const nPav = parseInt(limpo.nPavimentos) || 1
+  const alturaPisoPiso = nPav === 1 ? alturaEdificacaoBase(limpo) : (parseFloat(limpo.profundidadeSubsolo) || 0) + alturaEdificacaoBase(limpo)
+  return { ...limpo, alturaPisoPiso }
+}
+
+// Também zera, em projetos salvos antes da limpeza automática da Etapa 2, a
+// altura/profundidade que ficaram guardadas em campos já escondidos
+// (limparAlturasOcultas, trrf_calc.js), recalculando a altura piso a piso.
 function migrarAlturaEdificacao(estruturas) {
+  // Ordem importa: a migração do formato antigo lê alturaPisoPiso, que a
+  // limpeza recalcula — limpar antes apagaria a altura antiga.
   return estruturas.map(e => {
     const nPav = parseInt(e.nPavimentos) || 1
     const jaTemCampo = e.alturaEdificacao !== undefined && e.alturaEdificacao !== null && e.alturaEdificacao !== ''
@@ -285,7 +299,7 @@ function migrarAlturaEdificacao(estruturas) {
     const alturaEdificacao = e.alturaPisoPiso ?? ''
     const alturaPisoPiso = (parseFloat(e.profundidadeSubsolo) || 0) + (parseFloat(alturaEdificacao) || 0)
     return { ...e, alturaEdificacao, alturaPisoPiso }
-  })
+  }).map(semAlturasOcultas)
 }
 
 function hydrateState(saved) {
