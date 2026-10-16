@@ -10,6 +10,7 @@ import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 import InfoTip from '../ui/InfoTip'
 import { fmtUn, fmtNum } from '../../utils/numero'
 import { classificarPavimentos } from '../../utils/classificacao'
+import { CamposPBGerais } from '../pb/CamposPB'
 
 const blockTitle = 'text-[11px] font-medium text-ink-faint uppercase tracking-[.08em] mb-3 pb-2 border-b border-solid border-border flex items-center justify-between'
 const AREA_OCUPACAO_TIP = 'Informe a área dedicada a esta atividade neste pavimento. Esse valor ajuda a identificar as ocupações principal, secundária e subsidiária. A área informada aqui não aparece no memorial; nele é apresentada a área construída da estrutura.'
@@ -542,6 +543,8 @@ export default function Step4({ step, totalSteps }) {
             )
           })
       }
+
+      {state.tipoProjeto !== 'dimensionamento' && <CamposPBGerais/>}
 
       {openPav && <PavModal pav={openPav} onClose={() => setOpenId(null)}/>}
     </div>

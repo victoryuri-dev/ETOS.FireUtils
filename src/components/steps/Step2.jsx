@@ -11,7 +11,7 @@ import SwitchToggle from '../ui/SwitchToggle'
 import InfoTip from '../ui/InfoTip'
 import { Chip } from '../ui/EstruturaHeaderInfo'
 import { fmtUn } from '../../utils/numero'
-import { CamposPBGerais, EstagioExistentePB } from '../pb/CamposPB'
+import { EstagioExistentePB } from '../pb/CamposPB'
 import TipoProjetoBox from './TipoProjetoBox'
 
 const S = {
@@ -426,8 +426,6 @@ export default function Step2({ step, totalSteps }) {
           </div>)}
         </div>
       </FormSection>
-
-      {!dimensionamento && <CamposPBGerais/>}
 
       {openEst && <EstruturaModal est={openEst} index={openIndex} dispatch={dispatch} onClose={() => setOpenId(null)}/>}
     </div>

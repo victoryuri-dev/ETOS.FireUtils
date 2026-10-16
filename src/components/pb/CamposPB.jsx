@@ -28,7 +28,7 @@ function BoxPB({ item, children }) {
     <div className="mt-6">
     <FormSection
       title="Campos específicos da Paraíba"
-      description={`Pedidos pelo formulário do Memorial Descritivo do CBMPB${item ? ` (item ${item})` : ''} — não se aplicam a outros estados.`}
+      description={`Pedidos pelo formulário do Memorial Descritivo do CBMPB${item ? ` (item ${item})` : ''}.`}
     >
       <div className="flex flex-col gap-3">{children}</div>
     </FormSection>
@@ -96,7 +96,7 @@ export function EstagioExistentePB() {
   )
 }
 
-// ── Configuração (Etapa 2): item 3.1 ───────────────────────────────────────
+// ── Configuração (Classificação): item 3.1 ───────────────────────────────────────
 // (Item 2, forma de apresentação: enquadramento automático do tipo de
 // projeto — TipoProjetoBox. Item 3.6, estágio: box Situação —
 // EstagioExistentePB.)
