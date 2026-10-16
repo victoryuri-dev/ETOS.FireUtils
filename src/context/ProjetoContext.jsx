@@ -578,7 +578,6 @@ const INITIAL_STATE = {
   // Configuração (components/pb/CamposPB.jsx). Tudo
   // nasce em branco: nenhuma opção é marcada no documento sem o RT escolher.
   memorialPB: {
-    formaApresentacao: '',   // 'pci' | 'ptiot' | 'ptotep' (FORMAS_APRESENTACAO)
     obsNatureza: '',
     estagioConstrucao: '',   // ESTAGIOS_CONSTRUCAO; '' = deriva de state.situacao
     adaptacoes: '',          // adaptações da NT 16 / Resoluções Técnicas (3.6)

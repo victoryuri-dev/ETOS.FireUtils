@@ -89,3 +89,14 @@ Toda página de medida tem, no fim do bloco de cada estrutura, o campo **"Observ
 - Hidrantes continua com um campo único do sistema ("Observações complementares"), por ser um sistema só por projeto.
 - **Memorial do MA**: cada observação entra no trecho da própria estrutura (em Saídas e Extintores, logo após o título da estrutura, antes dos pavimentos; no Plano de Emergência, numa subseção no fim, com o nome de cada estrutura).
 - **Formulário da PB**: o campo de observações de cada seção lista as de todas as estruturas (com o nome da estrutura quando há mais de uma). Os rótulos impressos do formulário ("OBSERVAÇÕES LIVRES:") seguem o modelo do CBMPB.
+
+## Tipo de projeto (técnico × simplificado) — todos os estados
+
+Box **"Tipo de projeto"** na Etapa 2, logo após "Terreno e área construída" (`components/steps/TipoProjetoBox.jsx`). Só informa: o enquadramento é automático (`data/tipoProjeto.js`), pela área e altura de cada estrutura contra os limiares da tabela de medidas do estado — o mesmo critério que escolhe entre a Tabela 5 e a Tabela 6. Uma estrutura acima do limite torna o projeto técnico; faltando área/altura, fica pendente.
+
+| Estado | Técnico | Simplificado | Limite do simplificado |
+|---|---|---|---|
+| MA | Projeto Técnico (PT) | Projeto Técnico Simplificado (PTS) | área < 750 m² e altura < 12 m |
+| PB | Projeto de Segurança contra Incêndio (PCI) | Projeto Técnico de Segurança Contra Incêndio Simplificado (PCIS) | área ≤ 930 m² e altura ≤ 12 m |
+
+A ferramenta só gera esses dois tipos. No formulário da PB, a seção 2 marca PCI (com o tipo ao lado) e deixa PTIOT/PTOTEP em branco — o seletor manual de forma de apresentação foi removido. No memorial do MA, o tipo entra em "Sobre a Edificação → Dados do Imóvel".

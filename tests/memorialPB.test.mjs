@@ -60,10 +60,26 @@ test('identificação, natureza, altura, risco e nível saem do projeto', () => 
   assert.ok(x.includes('A edificação ainda será construída'))
 })
 
-test('sem forma de apresentação escolhida, nada é marcado', () => {
+test('forma de apresentação: PCI marcado pelo enquadramento automático do tipo de projeto', () => {
+  // Fallback offline: sem a tabela de medidas da PB não há limiares, nada é marcado.
   assert.deepEqual(marcados(secao(gerar(projeto()), '2.')), [])
-  assert.deepEqual(marcados(secao(gerar(projeto({ memorialPB:{ formaApresentacao:'ptiot' } })), '2.')),
-    ['Projeto Técnico para Instalação e Ocupação Temporária (PTIOT)'])
+})
+
+test('tipo de projeto: técnico ou simplificado pelos limiares de cada estado', async () => {
+  const { enquadrarTipoProjeto, rotuloTipoProjeto } = await server.ssrLoadModule('/src/data/tipoProjeto.js')
+  const est = (area, nPav, altura) => ({ id: `${area}-${altura}`, nome: 'E', areaTotal: String(area), nPavimentos: nPav, alturaEdificacao: altura, nSubsolos: 0 })
+  // MA (tabela estática): simplificado só abaixo de 750 m² e 12 m (estrito).
+  assert.equal(enquadrarTipoProjeto('MA', [est(500, 1, '')]).tipo, 'simplificado')
+  assert.equal(enquadrarTipoProjeto('MA', [est(750, 1, '')]).tipo, 'tecnico')
+  assert.equal(enquadrarTipoProjeto('MA', [est(500, 4, 12)]).tipo, 'tecnico')
+  // Uma estrutura acima do limite basta para o projeto ser técnico.
+  assert.equal(enquadrarTipoProjeto('MA', [est(500, 1, ''), est(800, 1, '')]).tipo, 'tecnico')
+  // Altura de edificação de vários pavimentos não informada: pendente, não "simplificado".
+  assert.equal(enquadrarTipoProjeto('MA', [est(500, 3, '')]).tipo, null)
+  assert.equal(enquadrarTipoProjeto('MA', [{ ...est(500, 1, ''), areaTotal: '' }]).tipo, null)
+  assert.equal(rotuloTipoProjeto('MA', 'simplificado'), 'Projeto Técnico Simplificado (PTS)')
+  assert.equal(rotuloTipoProjeto('PB', 'simplificado'), 'Projeto Técnico de Segurança Contra Incêndio Simplificado (PCIS)')
+  assert.equal(rotuloTipoProjeto('PB', 'tecnico'), 'Projeto de Segurança contra Incêndio (PCI)')
 })
 
 test('classe de GLP só marca com o risco especial GLP marcado', () => {
@@ -185,6 +201,16 @@ export const normasCarregadas = () => true`
     assert.deepEqual(exigidas(getMedidasObrigatorias('PB', ['M-4'], 20, 2000)), ['brigada', 'saida_emergencia'])
     assert.deepEqual(getGruposSemDados('PB', ['K-1', 'L-1', 'M-4'], 20, 2000), ['K', 'L'])
     assert.doesNotThrow(() => getMedidasObrigatorias('PB', ['K-1', 'L-1'], 20, 2000))
+
+    // Tipo de projeto na PB: 930 m² e 12 m ainda é PCIS; a seção 2 marca PCI.
+    const { enquadrarTipoProjeto } = await srv.ssrLoadModule('/src/data/tipoProjeto.js')
+    const e = (area, altura) => ({ id: 'x', nome: 'E', areaTotal: String(area), nPavimentos: 4, alturaEdificacao: altura, nSubsolos: 0 })
+    assert.equal(enquadrarTipoProjeto('PB', [e(930, 12)]).tipo, 'simplificado')
+    assert.equal(enquadrarTipoProjeto('PB', [e(931, 12)]).tipo, 'tecnico')
+    const { buildFormularioPB: build } = await srv.ssrLoadModule('/src/data/memorial/PB/formulario.js')
+    const st = { ...projeto(), estruturas: [{ ...projeto().estruturas[0], areaTotal: '900', nPavimentos: 3, alturaEdificacao: 9 }] }
+    const s2 = build(st, {}, []).secoes[1]
+    assert.deepEqual(marcados(s2), ['Projeto de Segurança contra Incêndio - PCI — Projeto Técnico de Segurança Contra Incêndio Simplificado (PCIS)'])
   } finally {
     await srv.close()
   }

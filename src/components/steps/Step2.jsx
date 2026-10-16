@@ -12,6 +12,7 @@ import InfoTip from '../ui/InfoTip'
 import { Chip } from '../ui/EstruturaHeaderInfo'
 import { fmtUn } from '../../utils/numero'
 import { CamposPBGerais } from '../pb/CamposPB'
+import TipoProjetoBox from './TipoProjetoBox'
 
 const S = {
   section: 'max-w-[980px] mx-auto pt-8 px-10 pb-20',
@@ -382,6 +383,8 @@ export default function Step2({ step, totalSteps }) {
           </div>
         )}
       </FormSection>
+
+      {!dimensionamento && <TipoProjetoBox/>}
 
       {/* Estruturas */}
       <FormSection title={<>Estruturas <Obrigatorio id="estruturas"/></>}>

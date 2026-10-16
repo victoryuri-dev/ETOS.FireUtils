@@ -373,7 +373,7 @@ export function getMedidasObrigatorias(uf, divisoes, altura, area) {
   const h = parseFloat(altura) || 0
   const a = parseFloat(area)   || 0
   const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = _partesMedidas(norma)
-  const simplificado = _ehSimplificado(LIMIARES, a, h)
+  const simplificado = ehSimplificado(LIMIARES, a, h)
 
   return simplificado
     ? _resolverSimplificado(TABELA_SIMPLIFICADA, divisoes)
@@ -400,7 +400,7 @@ export function getGruposSemDados(uf, divisoes, altura, area) {
   const h = parseFloat(altura) || 0
   const a = parseFloat(area)   || 0
   const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = _partesMedidas(norma)
-  const simplificado = _ehSimplificado(LIMIARES, a, h)
+  const simplificado = ehSimplificado(LIMIARES, a, h)
 
   const faltantes = new Set()
   divisoes.forEach(div => {
@@ -438,7 +438,7 @@ export function getNotaMedida(uf, divisao, medida) {
 // `inclusivo` = o próprio limite ainda é simplificado ("área menor ou igual a
 // 930 m² e altura inferior ou igual a 12 m", NT 04/2023 CBMPB); sem a marca,
 // "<" estrito (regra do MA).
-function _ehSimplificado(LIMIARES, area, altura) {
+export function ehSimplificado(LIMIARES, area, altura) {
   return LIMIARES.inclusivo
     ? area <= LIMIARES.areaMin && altura <= LIMIARES.alturaMin
     : area < LIMIARES.areaMin && altura < LIMIARES.alturaMin

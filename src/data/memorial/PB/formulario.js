@@ -44,6 +44,7 @@ import {
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../../brigada_calc'
 import { alarmeDaEstrutura, detectoresAtivos } from '../../deteccao_alarme_calc'
 import { observacoesDoProjeto } from '../../../utils/observacoes'
+import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../tipoProjeto'
 
 const vazio = v => v === '' || v === null || v === undefined
 const fmtM  = v => `${fmtNum(v, 2, String(v))} m`
@@ -120,11 +121,17 @@ function secaoIdentificacao(state) {
   }
 }
 
+// A ferramenta só gera projeto técnico ou simplificado (data/tipoProjeto.js):
+// os dois são PCI — PTIOT/PTOTEP (ocupação temporária) ficam desmarcados.
+// Sem área/altura para enquadrar, nada é marcado.
 function secaoFormaApresentacao(state, F) {
-  const m = state.memorialPB || {}
+  const { tipo } = enquadrarTipoProjeto(state.uf, state.estruturas)
   return {
     titulo: '2. FORMA DE APRESENTAÇÃO', nota: '(Marcar com X a que se refere o PCI)',
-    linhas: F.FORMAS_APRESENTACAO.map(f => ck({ x: m.formaApresentacao === f.key, label: f.label })),
+    linhas: F.FORMAS_APRESENTACAO.map(f => ck({
+      x: f.key === 'pci' && !!tipo,
+      label: f.key === 'pci' && tipo ? `${f.label} — ${rotuloTipoProjeto(state.uf, tipo)}` : f.label,
+    })),
   }
 }
 

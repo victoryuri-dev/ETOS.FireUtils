@@ -7,6 +7,7 @@ import { getCNAEsDivisao, getNts, getCompartimentacao } from '../../data/normas/
 import { classificarTipoEdificacao } from '../../data/compart_calc'
 import { classificarPavimentos } from '../../utils/classificacao'
 import { fmtNum, fmtUn } from '../../utils/numero'
+import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
 import Icon from '../../components/ui/Icon'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import MenuSecoes from '../../components/documentos/MenuSecoes'
@@ -267,6 +268,8 @@ function SobreEdificacao({ state }) {
       ['E-mail', state.propEmail],
     ] },
     { titulo: 'Dados do Imóvel', campos: [
+      // Enquadramento automático (área/altura × limiares da norma — data/tipoProjeto.js).
+      ['Tipo de projeto', rotuloTipoProjeto(state.uf, enquadrarTipoProjeto(state.uf, state.estruturas).tipo)],
       ['Situação', situacaoTxt],
       ['Endereço', endereco],
       ['Área construída total', state.areaConstruidaTotal ? fmtUn(state.areaConstruidaTotal, 'm²', 2, `${state.areaConstruidaTotal} m²`) : ''],

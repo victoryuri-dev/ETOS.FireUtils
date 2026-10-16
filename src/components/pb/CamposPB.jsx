@@ -13,6 +13,8 @@ import Checkbox from '../ui/Checkbox'
 // observações de cada seção, que vêm das "Observações complementares" por
 // estrutura (components/ui/ObservacoesComplementares.jsx).
 
+const SO_OUTRAS_FORMAS = new Set(['ptiot', 'ptotep'])
+
 function useCamposPB() {
   const { state, dispatch } = useProjeto()
   const m = state.memorialPB || {}
@@ -57,27 +59,21 @@ function Atestos({ lista, atestos, alternar }) {
 
 const Obs = ({ label, campo }) => <div className="fg"><label>{label}</label><textarea rows={2} {...campo}/></div>
 
-// ── Configuração (Etapa 2): itens 2, 3.1 e 3.6 ─────────────────────────────
+// ── Configuração (Etapa 2): itens 3.1 e 3.6 ────────────────────────────────
+// (O item 2, forma de apresentação, sai do enquadramento automático do tipo
+// de projeto — TipoProjetoBox / data/tipoProjeto.js.)
 export function CamposPBGerais() {
   const { state, campo, F } = useCamposPB()
   if (!F) return null
   return (
-    <BoxPB item="2, 3.1 e 3.6">
-      <div className="g2">
-        <div className="fg">
-          <label>Forma de apresentação</label>
-          <select {...campo('formaApresentacao')}>
-            <option value="">— não informada —</option>
-            {F.FORMAS_APRESENTACAO.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
-          </select>
-        </div>
-        <div className="fg">
-          <label>Estágio de construção</label>
-          <select {...campo('estagioConstrucao')}>
-            <option value="">{state.situacao === 'nova' ? 'Automático (edificação nova: ainda será construída)' : '— não informado —'}</option>
-            {F.ESTAGIOS_CONSTRUCAO.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
-          </select>
-        </div>
+    <BoxPB item="3.1 e 3.6">
+      <div className="fg">
+        <label>Estágio de construção</label>
+        <select {...campo('estagioConstrucao')}>
+          <option value="">{state.situacao === 'nova' ? 'Automático (edificação nova: ainda será construída)' : '— não informado —'}</option>
+          {/* PTIOT/PTOTEP são outras formas de apresentação, que a ferramenta não gera. */}
+          {F.ESTAGIOS_CONSTRUCAO.filter(e => !SO_OUTRAS_FORMAS.has(e.key)).map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
+        </select>
       </div>
       <Obs label="Adaptações da NT 16 e/ou Resoluções Técnicas utilizadas na edificação" campo={campo('adaptacoes')}/>
       <Obs label="Observações complementares — natureza da ocupação" campo={campo('obsNatureza')}/>
