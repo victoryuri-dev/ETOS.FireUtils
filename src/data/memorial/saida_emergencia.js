@@ -306,7 +306,7 @@ function blocosDaEstrutura(est, pavs, seNorma, temChuveiros, temDeteccao) {
     const tipoTexto = escada.exigido === '+' || escada.exigido === '-' ? t.nome : `${escada.exigido} — ${t.nome}`
     blocos.push({
       tipo: 'paragrafo',
-      texto: `Tipo de escada de emergência (Anexo C, Tabela 3): ${tipoTexto}, para altura piso a piso de ${fmt(parseFloat(est.alturaPisoPiso) || 0)} m (${escada.faixa.label}) e ocupação ${escada.porDivisao.map(p => p.divisao).join(', ')}.`,
+      texto: `Tipo de escada de emergência (Anexo C, Tabela 3): ${tipoTexto}, para altura piso a piso de ${fmt(parseFloat(est.alturaPisoPiso) || 0)} m (${escada.faixa.label}) e ocupação ${escada.porDivisao.map(p => p.divisao).join(', ')}.${escada.consultar && escada.exigido !== '+' ? ' Além do tipo indicado, consultar normas e regulamentos específicos.' : ''}`,
     })
   }
 

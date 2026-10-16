@@ -109,9 +109,11 @@ test('saídas de emergência saem do dimensionamento do projeto', () => {
 })
 
 test('atestos só aparecem marcados quando o RT marca', () => {
-  assert.equal(marcados(secao(gerar(projeto()), '10.')).length, 0)
+  // (o tipo de escada da seção 10 sai da Tabela 3 — não é atesto)
+  const atestos = s => marcados(s).filter(l => !/^(Não Enclausurada|Enclausurada Protegida|A prova de fumaça)/.test(l))
+  assert.equal(atestos(secao(gerar(projeto()), '10.')).length, 0)
   const s = secao(gerar(projeto({ memorialPB:{ atestos:{ se_guardas_5_8:true } } })), '10.')
-  assert.deepEqual(marcados(s), ['As guardas e corrimãos atendem aos requisitos do item 5.8 da NT 12'])
+  assert.deepEqual(atestos(s), ['As guardas e corrimãos atendem aos requisitos do item 5.8 da NT 12'])
 })
 
 test('extintores marcam o nível da carga; nível III depende da escolha do RT', () => {

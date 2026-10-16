@@ -57,12 +57,11 @@ Regras do gerador:
 
 ## Normas da PB que ainda faltam cadastrar
 
-Classificação e exigências da NT 04/2023 já estão no Supabase. A PB fica liberada para projeto completo também pelo formulário do código (`memorial_formulario`), mesmo que a linha `medidas_seguranca` não seja encontrada — nesse caso o memorial avisa no topo do documento. Faltam:
+Já no Supabase (PB): `ocupacoes`, `medidas_seguranca`, `memorial_formulario`, `saida_emergencia` (conferida: mesmo formato do MA; Tabela 1 = PDF da NT 12/2025, grupo C a 5 m²/pessoa), `carga_incendio` e `hidrantes` (a conferir). Tipos de escada (Anexo C, Tabela 3): migração `20261016150000_add_tipos_escada_saida_emergencia_pb.sql` — notas da tabela ainda não transcritas.
 
-1. **NT 02/2023**: carga de incêndio por CNAE (`carga_incendio`).
-2. **NT 08** (TRRF), **NT 36** (compartimentação), **NT 17/2024** (brigada, inclusive carga horária), **NT 14/2023** (acesso de viatura), **NT 15/2016** (hidrantes), **NT 12/2025** (tipos de escada, Anexo C).
+Faltam: `trrf` (NT 08), `compartimentacao` (NT 36), `controle_acabamento`, `extintores`, `brigada` (NT 17/2024), `acesso_viatura` (NT 14/2023), `iluminacao`, `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
 
-Enquanto não entram, as seções 7, 8 e 12 usam as tabelas do Maranhão (mesma base IT/CBPMESP).
+Na saída de emergência, L-4, M-2, M-6 e M-7 (NT 04/2023) não estão na Tabela 1 nem na Tabela 2 da NT 12/2025; H-2/H-3 têm larguras especiais que o cálculo ainda não modela.
 
 ## Padronização da tabela de exigências da PB (`medidas_seguranca`)
 

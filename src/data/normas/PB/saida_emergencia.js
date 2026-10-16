@@ -178,3 +178,52 @@ export const DISTANCIAS_MAXIMAS = {
     },
   },
 }
+
+// Anexo C, Tabela 3 da NT 12/2025 CBMPB — tipo de escada por ocupação e
+// faixa de altura (transcrita da tabela enviada pelo usuário). Diferenças
+// para o MA: B, D, E, J, K e L vêm por grupo inteiro (o site cai na linha
+// do grupo quando não há a da divisão — L-4 inclusive); G-3/G-4/G-5 acima
+// de 30 m pedem PF (no MA, EP); M-1 acima de 12 m traz "EP+"/"PF+" (o tipo
+// e, além dele, consultar normas específicas). As notas da tabela ainda
+// não foram transcritas — a nota (1) do A-2 acima de 30 m fica pendente.
+const ESC = s => s.split(' ')
+export const TIPOS_ESCADA = {
+  titulo: 'Anexo C — Tabela 3: Tipos de escada de emergência por ocupação',
+  faixas_altura: [
+    { id: 'ate_6',    label: 'H ≤ 6 m',        min: null, max: 6 },
+    { id: '6_12',     label: '6 < H ≤ 12 m',   min: 6,    max: 12 },
+    { id: '12_30',    label: '12 < H ≤ 30 m',  min: 12,   max: 30 },
+    { id: 'acima_30', label: 'Acima de 30 m',  min: 30,   max: null },
+  ],
+  tipos: {
+    NE:  { nome: 'Escada não enclausurada',      detalhe: 'escada comum',     rank: 1 },
+    EP:  { nome: 'Escada enclausurada protegida', detalhe: 'escada protegida', rank: 2 },
+    PF:  { nome: 'Escada à prova de fumaça',      detalhe: null,               rank: 3 },
+    '+': { nome: 'Consultar NT, normas ou regulamentos específicos', detalhe: 'ocupação não coberta por essa NT', rank: null },
+    '-': { nome: 'Não se aplica', detalhe: null, rank: null },
+  },
+  tabela: {
+    'A-1': ESC('NE NE - -'),   'A-2': ESC('NE NE EP PF'),  'A-3': ESC('NE NE EP PF'),
+    'B':   ESC('NE EP EP PF'),
+    'C-1': ESC('NE NE EP PF'), 'C-2': ESC('NE NE PF PF'),  'C-3': ESC('NE EP PF PF'),
+    'D':   ESC('NE NE EP PF'),
+    'E':   ESC('NE NE EP PF'),
+    'F-1': ESC('NE NE EP PF'), 'F-2': ESC('NE EP PF PF'),  'F-3': ESC('NE NE EP PF'),
+    'F-4': ESC('NE NE EP PF'), 'F-5': ESC('NE NE EP PF'),  'F-6': ESC('NE EP PF PF'),
+    'F-7': ESC('NE NE EP PF'), 'F-8': ESC('NE EP PF PF'),  'F-9': ESC('NE EP EP PF'),
+    'F-10': ESC('NE EP EP PF'), 'F-11': ESC('NE EP PF PF'),
+    'G-1': ESC('NE NE EP EP'), 'G-2': ESC('NE NE EP EP'),  'G-3': ESC('NE NE EP PF'),
+    'G-4': ESC('NE NE EP PF'), 'G-5': ESC('NE NE EP PF'),
+    'H-1': ESC('NE NE EP EP'), 'H-2': ESC('NE EP PF PF'),  'H-3': ESC('NE EP PF PF'),
+    'H-4': ESC('NE NE EP PF'), 'H-5': ESC('NE NE EP PF'),  'H-6': ESC('NE NE EP PF'),
+    'I-1': ESC('NE NE EP PF'), 'I-2': ESC('NE NE PF PF'),  'I-3': ESC('NE EP PF PF'),
+    'J':   ESC('NE NE EP PF'),
+    'K':   ESC('NE EP PF PF'),
+    'L':   ESC('NE EP PF PF'),
+    'M-1': ESC('NE NE EP+ PF+'), 'M-2': ESC('NE EP PF PF'), 'M-3': ESC('NE EP PF PF'),
+    'M-4': ESC('NE NE NE NE'),   'M-5': ESC('NE EP PF PF'),
+  },
+  notas: {},
+  notas_gerais: [],
+  notas_por_divisao: {},
+}

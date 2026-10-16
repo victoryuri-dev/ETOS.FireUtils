@@ -319,7 +319,12 @@ export function tipoEscadaEstrutura(estrutura, divisoes, tiposEscada) {
   const divs = [...new Set((divisoes || []).filter(Boolean))].filter(d => tiposEscada.tabela[chaveDe(d)])
   if (divs.length === 0) return { status: 'sem_divisao', faixa: tiposEscada.faixas_altura[idx] }
 
-  const porDivisao = divs.map(d => ({ divisao: d, tipo: tiposEscada.tabela[chaveDe(d)][idx] }))
+  // "EP+"/"PF+": o tipo indicado e, além dele, consultar normas específicas.
+  const porDivisao = divs.map(d => {
+    const celula = tiposEscada.tabela[chaveDe(d)][idx]
+    const comConsulta = celula?.length > 1 && celula.endsWith('+')
+    return { divisao: d, tipo: comConsulta ? celula.slice(0, -1) : celula, consultar: comConsulta || celula === '+' }
+  })
   const ranks = porDivisao.map(p => tiposEscada.tipos[p.tipo]?.rank).filter(r => r != null)
   const maxRank = ranks.length ? Math.max(...ranks) : null
   // Mais restritivo entre os que têm ranking; sem nenhum, mostra o símbolo
@@ -327,7 +332,7 @@ export function tipoEscadaEstrutura(estrutura, divisoes, tiposEscada) {
   const exigido = maxRank != null
     ? porDivisao.find(p => tiposEscada.tipos[p.tipo]?.rank === maxRank).tipo
     : porDivisao[0].tipo
-  const consultar = porDivisao.some(p => p.tipo === '+')
+  const consultar = porDivisao.some(p => p.consultar)
 
   // Notas: as específicas das divisões presentes + as gerais.
   const chaves = [

@@ -235,7 +235,7 @@ function TipoEscadaEstrutura({ estrutura, divisoes, tiposEscada }) {
             {r.consultar && (
               <div className="ibox amber mt-3">
                 <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-                <span className="text-xs">Ocupação não coberta pela tabela: consultar NT, normas ou regulamentos específicos.</span>
+                <span className="text-xs">{r.exigido === '+' ? 'Ocupação não coberta pela tabela: consultar' : 'Além do tipo indicado, consultar'} NT, normas ou regulamentos específicos.</span>
               </div>
             )}
             <div className="mt-3.5 pt-3 border-t border-solid border-border">

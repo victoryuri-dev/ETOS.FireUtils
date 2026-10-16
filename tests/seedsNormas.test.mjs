@@ -41,7 +41,28 @@ test('sem o sistema cadastrado para o estado, o getter devolve null (nunca a nor
     assert.equal(normas[get]('PB'), null, get)
   }
   assert.ok(normas.getSE('PB'))
-  assert.equal(normas.getSE('PB').TIPOS_ESCADA, null)
+})
+
+test('tipos de escada da PB: SQL = arquivo de seed', async () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261016150000_add_tipos_escada_saida_emergencia_pb.sql', import.meta.url), 'utf8')
+  const pb = await server.ssrLoadModule('/src/data/normas/PB/saida_emergencia.js')
+  assert.deepEqual(JSON.parse(sql.split('$j$')[1]), JSON.parse(JSON.stringify(pb.TIPOS_ESCADA)))
+})
+
+test('tipos de escada da PB: linha do grupo, diferenças do MA e "EP+"', async () => {
+  const { tipoEscadaEstrutura } = await server.ssrLoadModule('/src/data/se_calc.js')
+  const te = normas.getSE('PB').TIPOS_ESCADA
+  const est = h => ({ nPavimentos: 3, alturaPisoPiso: h })
+  const exigido = (h, divs) => tipoEscadaEstrutura(est(h), divs, te)
+  assert.equal(exigido(10, ['B-1']).exigido, 'EP')           // linha do grupo B
+  assert.equal(exigido(10, ['L-4']).exigido, 'EP')           // L-4 cai na linha do grupo L
+  assert.equal(exigido(40, ['G-3']).exigido, 'PF')           // MA: EP
+  assert.equal(tipoEscadaEstrutura(est(40), ['G-3'], normas.getSE('MA').TIPOS_ESCADA).exigido, 'EP')
+  const m1 = exigido(20, ['M-1'])
+  assert.equal(m1.exigido, 'EP')
+  assert.equal(m1.consultar, true)
+  assert.equal(exigido(10, ['M-1']).consultar, false)
+  assert.equal(exigido(20, ['M-1', 'C-2']).exigido, 'PF')    // mais restritivo
 })
 
 test('sinalização: pictograma casado pelo key, fora da base', () => {
