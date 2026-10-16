@@ -260,3 +260,22 @@ test('observações complementares: PB lista todas as estruturas; MA fica no con
   const seg = textoMemorialSegEstrutural({ ...uma, uf:'MA', estruturas: [{ ...uma.estruturas[0], obsSegEstrutural: 'Estrutura metálica protegida.' }] })
   assert.ok(seg.blocos.some(b => b.tipo === 'campo' && b.label === 'Observações complementares' && b.valor === 'Estrutura metálica protegida.'))
 })
+
+test('3.6 estágio de construção segue a Situação da Etapa 2', () => {
+  const marcadosDe36 = st => {
+    const s3 = secao(gerar(projeto(st)), '3.')
+    const i = s3.linhas.findIndex(l => l.tipo === 'sub' && l.titulo.startsWith('3.6'))
+    const linhas = s3.linhas.slice(i + 1)
+    return { x: linhas.flatMap(l => l.itens || []).filter(it => it.x).map(it => it.label), adapt: linhas.find(l => l.tipo === 'obs').valor }
+  }
+  assert.deepEqual(marcadosDe36({ situacao: 'nova' }).x, ['A edificação ainda será construída'])
+  // Escolha de existente feita antes de voltar para "nova" não vale.
+  assert.deepEqual(marcadosDe36({ situacao: 'nova', memorialPB: { estagioConstrucao: 'existente_rt', adaptacoes: 'RT 01' } }), { x: ['A edificação ainda será construída'], adapt: '' })
+  // Existente sem escolha: nada marcado.
+  assert.deepEqual(marcadosDe36({ situacao: 'existente' }).x, [])
+  const nt16 = marcadosDe36({ situacao: 'existente', memorialPB: { estagioConstrucao: 'existente_nt16', adaptacoes: 'Escada existente mantida.' } })
+  assert.deepEqual(nt16.x, ['A edificação já é existente (as built) e terá adaptações descritas na NT 16/2018 CBMPB'])
+  assert.equal(nt16.adapt, 'Escada existente mantida.')
+  // "Segurança atual" não leva adaptações, mesmo com texto antigo salvo.
+  assert.equal(marcadosDe36({ situacao: 'existente', memorialPB: { estagioConstrucao: 'existente_atual', adaptacoes: 'x' } }).adapt, '')
+})

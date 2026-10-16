@@ -65,6 +65,12 @@ const campo = (label, valor = '') => campos({ label, valor })
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 
+// 3.6 — opções de edificação existente ("as built") e as que pedem a
+// descrição das adaptações; usadas também pelo box Situação
+// (components/pb/CamposPB.jsx:EstagioExistentePB).
+export const ESTAGIOS_EXISTENTE = ['existente_nt16', 'existente_atual', 'existente_rt']
+export const ESTAGIOS_COM_ADAPTACOES = ['existente_nt16', 'existente_rt']
+
 // Campo de observações de uma seção = as "Observações complementares" que o
 // RT escreveu na página da medida, de todas as estruturas (o formulário tem
 // um campo só; com mais de uma estrutura, cada linha leva o nome dela).
@@ -212,13 +218,17 @@ function secaoParametros(state, F, ctx) {
   linhas.push(sub('3.5 Carga incêndio da edificação', '(Conforme dimensionamento descrito no anexo A e C da NT CBMPB nº 02/2023)'))
   F.NIVEIS_CARGA.forEach(n => linhas.push(ck({ x: nivel?.nivel === n.nivel, label: `Nível ${n.nivel}`, peso: 1 }, { label: n.label, peso: 4, semCaixa: true })))
 
-  // 3.6 Estágio — escolhido pelo RT; sem escolha, a edificação nova (Etapa 2)
-  // já responde "ainda será construída". Existente fica sem marca: o
-  // formulário tem três caminhos diferentes pra ela e só o RT sabe qual.
-  const estagio = m.estagioConstrucao || (state.situacao === 'nova' ? 'a_construir' : '')
+  // 3.6 Estágio — sai da Situação (Etapa 2): edificação nova = "ainda será
+  // construída"; existente = a opção "as built" escolhida no box Situação
+  // (só as três de existente valem — uma escolha feita antes de trocar para
+  // "nova" não fica marcada). Adaptações só com NT 16 / Resoluções Técnicas.
+  const estagio = state.situacao === 'nova' ? 'a_construir'
+    : state.situacao === 'existente' && ESTAGIOS_EXISTENTE.includes(m.estagioConstrucao) ? m.estagioConstrucao
+    : ''
   linhas.push(sub('3.6 Estágio de construção da edificação'))
   F.ESTAGIOS_CONSTRUCAO.forEach(e => linhas.push(ck({ x: estagio === e.key, label: e.label })))
-  linhas.push(obs('O responsável Técnico deverá indicar quais serão as adaptações da NT 16 e/ou Resoluções Técnicas utilizada na edificação:', m.adaptacoes || ''))
+  linhas.push(obs('O responsável Técnico deverá indicar quais serão as adaptações da NT 16 e/ou Resoluções Técnicas utilizada na edificação:',
+    ESTAGIOS_COM_ADAPTACOES.includes(estagio) ? m.adaptacoes || '' : ''))
 
   return { titulo: '3. PARÂMETROS DE DIMENSIONAMENTO', linhas }
 }

@@ -100,3 +100,7 @@ Box **"Tipo de projeto"** na Etapa 2, logo após "Terreno e área construída" (
 | PB | Projeto de Segurança contra Incêndio (PCI) | Projeto Técnico de Segurança Contra Incêndio Simplificado (PCIS) | área ≤ 930 m² e altura ≤ 12 m |
 
 A ferramenta só gera esses dois tipos. No formulário da PB, a seção 2 marca PCI (com o tipo ao lado) e deixa PTIOT/PTOTEP em branco — o seletor manual de forma de apresentação foi removido. No memorial do MA, o tipo entra em "Sobre a Edificação → Dados do Imóvel".
+
+## Estágio de construção (item 3.6) — box Situação
+
+O estágio sai da **Situação** da Etapa 2: edificação **nova** marca "A edificação ainda será construída". Edificação **existente** (só em projeto da PB) abre, dentro do próprio box Situação, as três opções "as built" do formulário (`EstagioExistentePB`); com "adaptações da NT 16" ou "Resoluções Técnicas", abre o campo para descrevê-las. Uma escolha de existente não vale depois de trocar para "nova", e o texto das adaptações só entra no formulário com essas duas opções. O box "Campos específicos da Paraíba" da Etapa 2 ficou só com a observação da natureza da ocupação (3.1).

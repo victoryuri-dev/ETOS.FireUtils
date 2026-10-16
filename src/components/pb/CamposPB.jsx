@@ -1,6 +1,6 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { getMemorialFormulario, getCompartimentacao } from '../../data/normas/index'
-import { ATESTOS_PB, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB } from '../../data/memorial/PB/formulario'
+import { ATESTOS_PB, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES } from '../../data/memorial/PB/formulario'
 import FormSection from '../ui/FormSection'
 import Checkbox from '../ui/Checkbox'
 
@@ -12,8 +12,6 @@ import Checkbox from '../ui/Checkbox'
 // formulário sai dos dados que essas mesmas páginas já pedem — inclusive as
 // observações de cada seção, que vêm das "Observações complementares" por
 // estrutura (components/ui/ObservacoesComplementares.jsx).
-
-const SO_OUTRAS_FORMAS = new Set(['ptiot', 'ptotep'])
 
 function useCamposPB() {
   const { state, dispatch } = useProjeto()
@@ -59,23 +57,54 @@ function Atestos({ lista, atestos, alternar }) {
 
 const Obs = ({ label, campo }) => <div className="fg"><label>{label}</label><textarea rows={2} {...campo}/></div>
 
-// ── Configuração (Etapa 2): itens 3.1 e 3.6 ────────────────────────────────
-// (O item 2, forma de apresentação, sai do enquadramento automático do tipo
-// de projeto — TipoProjetoBox / data/tipoProjeto.js.)
+// ── Configuração (Etapa 2), box Situação: item 3.6 ─────────────────────────
+// Edificação nova = "ainda será construída", sem pergunta. Existente: o RT
+// escolhe entre as três opções "as built" do formulário; adaptações da NT 16
+// ou Resoluções Técnicas pedem a descrição delas.
+
+export function EstagioExistentePB() {
+  const { state, m, set, campo, F } = useCamposPB()
+  if (!F || state.situacao !== 'existente') return null
+  const opcoes = F.ESTAGIOS_CONSTRUCAO.filter(e => ESTAGIOS_EXISTENTE.includes(e.key))
+  return (
+    <div className="mb-3.5 py-3 px-4 rounded-md border border-solid border-border">
+      <div className="text-[13px] font-medium text-ink mb-0.5">Estágio de construção (CBMPB)</div>
+      <div className="text-[11px] text-ink-faint mb-3">Item 3.6 do formulário do Memorial Descritivo da Paraíba.</div>
+      <div className="flex flex-col gap-2" role="radiogroup" aria-label="Estágio de construção">
+        {opcoes.map(e => {
+          const sel = m.estagioConstrucao === e.key
+          return (
+            <div key={e.key} role="radio" aria-checked={sel} tabIndex={0}
+              onClick={() => set({ estagioConstrucao: e.key })}
+              onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); set({ estagioConstrucao: e.key }) } }}
+              className={`border border-solid rounded-md py-2.5 px-3.5 flex items-center gap-3 cursor-pointer ${sel ? 'border-red-border bg-red-dim' : 'border-border bg-transparent'}`}>
+              <span className={`w-3.5 h-3.5 rounded-full border-[1.5px] border-solid shrink-0 flex items-center justify-center ${sel ? 'border-red' : 'border-ink-hint'}`}>
+                {sel && <span className="w-1.5 h-1.5 rounded-full bg-red"/>}
+              </span>
+              <span className={`text-[12.5px] ${sel ? 'text-ink font-medium' : 'text-ink-muted'}`}>{e.label}</span>
+            </div>
+          )
+        })}
+      </div>
+      {ESTAGIOS_COM_ADAPTACOES.includes(m.estagioConstrucao) && (
+        <div className="fg mt-3">
+          <label>{m.estagioConstrucao === 'existente_nt16' ? 'Adaptações da NT 16 utilizadas na edificação' : 'Resoluções Técnicas utilizadas na edificação'}</label>
+          <textarea rows={3} {...campo('adaptacoes')}/>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Configuração (Etapa 2): item 3.1 ───────────────────────────────────────
+// (Item 2, forma de apresentação: enquadramento automático do tipo de
+// projeto — TipoProjetoBox. Item 3.6, estágio: box Situação —
+// EstagioExistentePB.)
 export function CamposPBGerais() {
-  const { state, campo, F } = useCamposPB()
+  const { campo, F } = useCamposPB()
   if (!F) return null
   return (
-    <BoxPB item="3.1 e 3.6">
-      <div className="fg">
-        <label>Estágio de construção</label>
-        <select {...campo('estagioConstrucao')}>
-          <option value="">{state.situacao === 'nova' ? 'Automático (edificação nova: ainda será construída)' : '— não informado —'}</option>
-          {/* PTIOT/PTOTEP são outras formas de apresentação, que a ferramenta não gera. */}
-          {F.ESTAGIOS_CONSTRUCAO.filter(e => !SO_OUTRAS_FORMAS.has(e.key)).map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
-        </select>
-      </div>
-      <Obs label="Adaptações da NT 16 e/ou Resoluções Técnicas utilizadas na edificação" campo={campo('adaptacoes')}/>
+    <BoxPB item="3.1">
       <Obs label="Observações complementares — natureza da ocupação" campo={campo('obsNatureza')}/>
     </BoxPB>
   )

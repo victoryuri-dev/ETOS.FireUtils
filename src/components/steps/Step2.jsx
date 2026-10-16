@@ -11,7 +11,7 @@ import SwitchToggle from '../ui/SwitchToggle'
 import InfoTip from '../ui/InfoTip'
 import { Chip } from '../ui/EstruturaHeaderInfo'
 import { fmtUn } from '../../utils/numero'
-import { CamposPBGerais } from '../pb/CamposPB'
+import { CamposPBGerais, EstagioExistentePB } from '../pb/CamposPB'
 import TipoProjetoBox from './TipoProjetoBox'
 
 const S = {
@@ -303,9 +303,12 @@ export default function Step2({ step, totalSteps }) {
           {state.situacao === 'existente' && (
             <div className="ibox amber mt-2 mb-3.5">
               <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-              <span>Para edificacoes existentes o CBMMA pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
+              <span>Para edificacoes existentes o {state.uf === 'PB' ? 'CBMPB' : 'CBMMA'} pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
             </div>
           )}
+
+          {/* PB: estágio "as built" do formulário do memorial (item 3.6). */}
+          <EstagioExistentePB/>
 
           {/* Pergunta: informar alvará / AVCB / ano de construção? Projetos que já
               têm algum desses dados preenchidos contam como "sim". */}
