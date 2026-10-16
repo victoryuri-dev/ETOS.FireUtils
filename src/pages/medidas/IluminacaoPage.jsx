@@ -410,6 +410,7 @@ function RefLabel({ children }) {
 
 function ReferenciaNormativa({ iluNorma }) {
   const { ILUMINANCIA_MINIMA, RAZAO_UNIFORMIDADE_MAX, AUTONOMIA_MINIMA_HORAS, TEMPO_RESPOSTA_MAX_S, NOTAS } = iluNorma
+  const rotulo = (key, padrao) => iluNorma.ROTULOS_ILUMINANCIA?.[key] || padrao
   const [open, setOpen] = useState(false)
 
   return (
@@ -419,7 +420,7 @@ function ReferenciaNormativa({ iluNorma }) {
         onClick={() => setOpen(o => !o)}
         className="w-full py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 text-left"
       >
-        <span className="text-[13px] font-semibold text-ink">Parâmetros normativos (NT 18 CBMMA)</span>
+        <span className="text-[13px] font-semibold text-ink">Parâmetros normativos{iluNorma.NORMA?.sigla ? ` (${iluNorma.NORMA.sigla})` : ''}</span>
         <span className="text-[11px] text-ink-faint">iluminância mínima, autonomia e tempo de resposta</span>
         <Icon name="chevD" size={14} className={`ml-auto text-ink-faint transition-transform ${open ? 'rotate-180' : ''}`}/>
       </button>
@@ -427,8 +428,8 @@ function ReferenciaNormativa({ iluNorma }) {
         <div>
           <RefLabel>Iluminância mínima</RefLabel>
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Aclaramento (normal)</span><span className="font-mono font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_normal} lux</span></div>
-            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Aclaramento (risco/público)</span><span className="font-mono font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_risco} lux</span></div>
+            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">{rotulo('aclaramento_normal', 'Aclaramento (normal)')}</span><span className="font-mono font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_normal} lux</span></div>
+            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">{rotulo('aclaramento_risco', 'Aclaramento (risco/público)')}</span><span className="font-mono font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_risco} lux</span></div>
           </div>
         </div>
 
@@ -442,7 +443,7 @@ function ReferenciaNormativa({ iluNorma }) {
         </div>
 
         <div className="text-[11px] text-ink-faint leading-[1.6] pt-2 border-t border-solid border-border-2">
-          {NOTAS.aclaramento}<br/>{NOTAS.autonomia}<br/>{NOTAS.tempoResposta}
+          {Object.values(NOTAS || {}).map((n, i) => <span key={i}>{i > 0 && <br/>}{n}</span>)}
         </div>
       </div>}
     </Card>
@@ -568,7 +569,7 @@ export default function IluminacaoPage() {
             <LinkNorma sistema="iluminacao"/>
           </h2>
             <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
-              Escolha o sistema utilizado e os equipamentos de aclaramento, e depois cadastre as quantidades por pavimento, conforme a NT 18 CBMMA / NBR 10898.
+              Escolha o sistema utilizado e os equipamentos de aclaramento, e depois cadastre as quantidades por pavimento, conforme a {iluNorma.NORMA?.sigla || 'norma de iluminação do estado'} / NBR 10898.
             </p>
           </div>
           <div className="shrink-0 flex flex-col items-end gap-1.5">
@@ -631,7 +632,7 @@ export default function IluminacaoPage() {
                 {!exigido ? (
                   <div className="ibox green">
                     <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                    <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a iluminação de emergência, conforme NT 01 CBMMA.</span>
+                    <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a iluminação de emergência, conforme a tabela de exigências do estado.</span>
                   </div>
                 ) : (
                   <>

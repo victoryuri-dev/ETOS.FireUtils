@@ -5,6 +5,8 @@
 // Bombeiros. Confira contra a NT 18 CBMMA vigente antes de aplicar em
 // projeto real.
 
+export const NORMA = { sigla: 'NT 18 CBMMA' }
+
 // ── Tipos de sistema aceitos pelo CBMMA ─────────────────────────────────────
 export const TIPOS_SISTEMA = [
   { key: 'bloco_autonomo', label: 'Bloco autônomo',

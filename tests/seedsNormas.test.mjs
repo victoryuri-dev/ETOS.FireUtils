@@ -13,6 +13,7 @@ const server = await servidorComNormas({
     extintores: dadosDoSql('20261016170000_seed_normas_extintores_pb.sql'),
     brigada: dadosDoSql('20261016180000_seed_normas_brigada_pb.sql'),
     trrf: dadosDoSql('20261016190000_seed_normas_trrf_pb.sql'),
+    iluminacao: dadosDoSql('20261016200000_seed_normas_iluminacao_pb.sql'),
   },
   MA: {
     compartimentacao: dadosDoSql('20261016140000_seed_normas_compartimentacao_ma.sql'),
@@ -42,7 +43,7 @@ test('tipos de escada do MA: SQL = arquivo de seed', async () => {
 })
 
 test('sem o sistema cadastrado para o estado, o getter devolve null (nunca a norma de outro estado)', () => {
-  for (const get of ['getAV', 'getIluminacao', 'getSinalizacao', 'getCompartimentacao', 'getControleAcabamento', 'getHidrantes', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
+  for (const get of ['getAV', 'getSinalizacao', 'getCompartimentacao', 'getControleAcabamento', 'getHidrantes', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
     assert.equal(normas[get]('PB'), null, get)
   }
   assert.ok(normas.getSE('PB'))
@@ -178,4 +179,18 @@ test('TRRF da PB: valores do Anexo B da NT 08/2024 e textos com a norma da PB', 
   assert.equal(refsNormaTRRF(pb).terminologia, '')
   assert.equal(refsNormaTRRF(ma).naoRegressao, 'item 5.12 NT 01 CBMMA')
   assert.equal(refsNormaTRRF(ma).terminologia, ' (item 4.31, NT 03 CBMMA)')
+})
+
+test('iluminação da PB: SQL = arquivo de seed e parâmetros da NT 18/2024', async () => {
+  const esperado = await server.ssrLoadModule('/src/data/normas/PB/iluminacao.js')
+  const lido = normas.getIluminacao('PB')
+  for (const [k, v] of Object.entries(esperado)) assert.deepEqual(lido[k], JSON.parse(JSON.stringify(v)), k)
+  assert.deepEqual(lido.ILUMINANCIA_MINIMA, { aclaramento_normal: 3, aclaramento_risco: 5 })
+  assert.equal(lido.DISTANCIA_MAXIMA_PONTOS_M, 15)
+  assert.equal(lido.TENSAO_MAXIMA_V, 30)
+  assert.deepEqual(lido.TIPOS_SISTEMA.map(t => t.key), normas.getIluminacao('MA').TIPOS_SISTEMA.map(t => t.key))
+})
+
+test('iluminação do MA: SQL acrescenta a NORMA igual ao seed', async () => {
+  assert.deepEqual(dadosDoSql('20261016200001_add_norma_iluminacao_ma.sql'), { norma: (await seed('iluminacao')).NORMA })
 })

@@ -65,7 +65,9 @@ Brigada (NT 17/2024, Anexo A): `20261016180000_seed_normas_brigada_pb.sql` — T
 
 TRRF (NT 08/2024, Anexo B): `20261016190000_seed_normas_trrf_pb.sql` — tabela transcrita das imagens; ⚠ notas, divisões de subsolo sem ocupação e metodologias com textos do MA adaptados. Textos da tela/memorial citam a norma do estado (`norma` da linha 'trrf'; migração `20261016190001_add_norma_trrf_ma.sql` para o MA).
 
-Faltam: `compartimentacao` (NT 36), `controle_acabamento`, `acesso_viatura` (NT 14/2023), `iluminacao`, `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
+Iluminação (NT 18/2024): `20261016200000_seed_normas_iluminacao_pb.sql` — 3 lux (planos) / 5 lux (desnível), espaçamento 15 m / 7,5 m, 30 V, isenção de salas ≤ 50 m², balizamento em F-3/F-5/F-6/F-7/F-10/F-11; uniformidade e tempo de resposta da NBR 10898; autonomia 2 h (formulário do CBMPB). Sigla na tela/memorial: migração `20261016200001_add_norma_iluminacao_ma.sql` para o MA.
+
+Faltam: `compartimentacao` (NT 36, adiada), `controle_acabamento`, `acesso_viatura` (NT 14/2023), `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
 
 Na saída de emergência, L-4, M-2, M-6 e M-7 (NT 04/2023) não estão na Tabela 1 nem na Tabela 2 da NT 12/2025; H-2/H-3 têm larguras especiais que o cálculo ainda não modela.
 
