@@ -18,7 +18,7 @@
 export const TAXA_POPULACIONAL = {
   'A-1': { A: null, AD: 60,  ER: 45, PT: 100, obs: '2 pessoas por dormitório',                          notas: ['C']           },
   'A-2': { A: null, AD: 60,  ER: 45, PT: 100, obs: '2 pessoas por dormitório',                          notas: ['C']           },
-  'A-3': { A: 4,    AD: 60,  ER: 45, PT: 100, obs: '2 por dormitório + 1 por 4m² de alojamento',        notas: ['C','D']       },
+  'A-3': { A: 4,    AD: 60,  ER: 45, PT: 100, obs: '2 por dormitório + 1 por 4m² de alojamento',        notas: ['D']           },
   'B-1': { A: 15,   AD: 100, ER: 75, PT: 100, obs: '1 pessoa por 15m²',                                 notas: ['E','G']       },
   'B-2': { A: 15,   AD: 100, ER: 75, PT: 100, obs: '1 pessoa por 15m²',                                 notas: ['E','G']       },
   'C-1': { A: 5,    AD: 100, ER: 75, PT: 100, obs: '1 pessoa por 5m²',                                  notas: ['E','J','M']   },
@@ -75,12 +75,12 @@ export const TAXA_POPULACIONAL = {
 
 // ── Notas normativas (Tabela 1, Anexo A) ───────────────────────────────
 export const NOTAS_NORMATIVAS = {
-  A: '(A) os parâmetros dados nesta tabela são os mínimos aceitáveis para o cálculo da população.',
+  A: '(A) os parâmetros dados nesta tabela são os mínimos aceitáveis para o cálculo da população (ver 5.3).',
   B: '(B) as capacidades das unidades de passagem (1 UP = 0,55 m) em escadas e rampas estendem-se para lanços retos e saída descendente.',
   C: '(C) em apartamentos de até 2 dormitórios, a sala deve ser considerada como dormitório; em apartamentos maiores (3 e mais dormitórios), as salas, gabinetes e outras dependências que possam ser usadas como dormitórios (inclusive para empregadas) são consideradas como dormitórios. Em apartamentos mínimos, sem divisões em planta, considera-se uma pessoa para cada 6m² de área de pavimento.',
   D: '(D) alojamento = dormitório coletivo, com mais de 10m².',
-  E: '(E) por "Área" entende-se a área do pavimento que abriga a população em foco. Quando discriminado o tipo de área (por ex.: área do alojamento), é a área útil interna da dependência em questão.',
-  F: '(F) auditórios e assemelhados em escolas são considerados nos grupos de ocupação F-5, F-6 e outros, conforme o caso.',
+  E: '(E) por "Área" entende-se a "Área do pavimento" que abriga a população em foco, conforme terminologia da norma técnica específica de Terminologia de segurança contra incêndio. Quando discriminado o tipo de área (por ex.: área do alojamento), é a área útil interna da dependência em questão.',
+  F: '(F) auditórios e assemelhados, em escolas, bem como salões de festas e centros de convenções em hotéis são considerados nos grupos de ocupação F-5, F-6 e outros, conforme o caso.',
   G: '(G) as cozinhas e suas áreas de apoio, nas ocupações B, F-6 e F-8, têm sua ocupação admitida como grupo D, isto é, uma pessoa por 7m² de área.',
   H: '(H) em hospitais e clínicas com internamento (H-3), que tenham pacientes ambulatoriais, acresce-se à área calculada por leito a área de pavimento correspondente ao ambulatório, na base de uma pessoa por 7m².',
   I: '(I) o símbolo "+" indica necessidade de consultar normas e regulamentos específicos (não cobertos por esta NT).',
