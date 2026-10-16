@@ -132,15 +132,18 @@ function renomearDaBaseCentral(remoto, chaves) {
 // Fire Utils.tab/lib/normas/__init__.py._CHAVES_SAIDAS): tabela, notas,
 // larguras_minimas, distancias_maximas em vez de TAXA_POPULACIONAL,
 // NOTAS_NORMATIVAS, LARGURAS_MINIMAS, DISTANCIAS_MAXIMAS.
-function adaptarSEDaBaseCentral(remoto, uf) {
+function adaptarSEDaBaseCentral(remoto) {
   return {
     ...remoto,
     TAXA_POPULACIONAL: remoto.tabela,
     NOTAS_NORMATIVAS: remoto.notas,
     LARGURAS_MINIMAS: remoto.larguras_minimas,
     DISTANCIAS_MAXIMAS: remoto.distancias_maximas,
-    // Enquanto a migração dos tipos de escada não roda no banco, usa o arquivo local.
-    TIPOS_ESCADA: remoto.tipos_escada ?? NORMAS_SE[uf]?.TIPOS_ESCADA,
+    // Só da base central: linha remota sem `tipos_escada` (ex.: a migração
+    // 20260926140000_add_tipos_escada_saida_emergencia_ma.sql ainda não
+    // rodou no banco) fica SEM tabela — a tela avisa — em vez de completar
+    // em silêncio com o arquivo local e mascarar que o banco está incompleto.
+    TIPOS_ESCADA: remoto.tipos_escada ?? null,
   }
 }
 
@@ -220,7 +223,7 @@ export function getNorma(uf) {
 // não mais a fonte de verdade.
 export function getSE(uf) {
   const remoto = getNormaRemota(uf, 'saida_emergencia')
-  return remoto ? adaptarSEDaBaseCentral(remoto, uf) : (NORMAS_SE[uf] ?? NORMAS_SE['MA'])
+  return remoto ? adaptarSEDaBaseCentral(remoto) : (NORMAS_SE[uf] ?? NORMAS_SE['MA'])
 }
 export function getAV(uf) {
   const remoto = getNormaRemota(uf, 'acesso_viatura')

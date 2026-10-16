@@ -165,6 +165,19 @@ const TIPO_ESCADA_TOM = {
 function TipoEscadaEstrutura({ estrutura, divisoes, tiposEscada }) {
   const [verNotas, setVerNotas] = useState(false)
   const r = tipoEscadaEstrutura(estrutura, divisoes, tiposEscada)
+  // Sem a tabela na base central (normas_dados → saida_emergencia →
+  // tipos_escada): avisa, em vez de não mostrar nada — estrutura de um
+  // pavimento só não tem escada e continua sem aviso.
+  if (!tiposEscada) {
+    const totalPav = (parseInt(estrutura.nPavimentos) || 1) + (parseInt(estrutura.nSubsolos) || 0)
+    if (totalPav <= 1) return null
+    return (
+      <div className="ibox amber mb-3">
+        <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+        <span className="text-xs">Tipo de escada não determinado: a tabela de tipos de escada deste estado não está cadastrada na base normativa (Supabase — normas_dados, sistema saida_emergencia, chave tipos_escada).</span>
+      </div>
+    )
+  }
   if (!r || r.status === 'nao_aplica') return null
 
   const pronto = r.status === 'ok'
