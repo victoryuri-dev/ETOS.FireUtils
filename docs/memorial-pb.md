@@ -39,7 +39,7 @@ Regras do gerador:
 | **4. Medidas de proteção** | ✅ | `sistemas[].ativo`. Espuma e resfriamento ainda não existem no app (sempre em branco). |
 | **5. Riscos especiais** | ✅ | Lista por estado (`riscosEspeciaisDoEstado`); a PB acrescenta tendas/coberturas inflamáveis, estrutura montada, geradores e sistemas elétricos montados (Etapa 6). |
 | **6. Acesso de viatura** | 🔜 | A regra que decide a exigência é outra (20 m até a via / 50 m de caminhamento, NT 14/2023 CBMPB). Faixa de estacionamento (a–h) é nova. Hoje: só o Exigível. |
-| **7. Segurança estrutural** | ✅ | Grupo, divisão, classe e TRRF de `trrf_calc`. ⚠️ Usa a tabela de TRRF do MA até a NT 08 da PB ser cadastrada. |
+| **7. Segurança estrutural** | ✅ | Grupo, divisão, classe e TRRF de `trrf_calc`, pela tabela da NT 08/2024 da PB. |
 | **8. Compartimentação** | ✅ | Área máxima (a mais restritiva) e elementos marcados na tela de Compartimentação; característica de cada elemento nova (`especificacaoCompart`). ⚠️ Tabela de área máxima do MA até a NT 36 da PB. |
 | **9. CMAR** | ✅ | Linha marcada pelo grupo/divisão; observação nova. |
 | **10. Saídas de emergência** | ✅ | População e larguras de `se_calc`; distâncias por divisão. Tipo de escada: `memorialPB.tipoEscada` (a PB ainda não tem a tabela de tipos de escada). 4 atestos e observação novos. |
@@ -63,7 +63,9 @@ Extintores (NT 21/2024): `20261016170000_seed_normas_extintores_pb.sql` — Tabe
 
 Brigada (NT 17/2024, Anexo A): `20261016180000_seed_normas_brigada_pb.sql` — Tabela A.1 e notas conferidas contra o PDF; diferenças para o MA em H-1, H-3, H-4, H-5, H-6, M-5, B-2 (sem a nota 3), F-5 (nota 10) e F-7. Item 4.11.2 (`dimensionamento_publico`): F-7 sempre e, pela nota 10, F-2/F-3/F-5/F-6/F-11 com público acima de 250 pessoas — público = população da edificação inteira (soma dos pavimentos da estrutura na Saída de Emergência). Carga horária e simulados (Anexo B) seguem manuais.
 
-Faltam: `trrf` (NT 08), `compartimentacao` (NT 36), `controle_acabamento`, `acesso_viatura` (NT 14/2023), `iluminacao`, `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
+TRRF (NT 08/2024, Anexo B): `20261016190000_seed_normas_trrf_pb.sql` — tabela transcrita das imagens; ⚠ notas, divisões de subsolo sem ocupação e metodologias com textos do MA adaptados. Textos da tela/memorial citam a norma do estado (`norma` da linha 'trrf'; migração `20261016190001_add_norma_trrf_ma.sql` para o MA).
+
+Faltam: `compartimentacao` (NT 36), `controle_acabamento`, `acesso_viatura` (NT 14/2023), `iluminacao`, `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
 
 Na saída de emergência, L-4, M-2, M-6 e M-7 (NT 04/2023) não estão na Tabela 1 nem na Tabela 2 da NT 12/2025; H-2/H-3 têm larguras especiais que o cálculo ainda não modela.
 

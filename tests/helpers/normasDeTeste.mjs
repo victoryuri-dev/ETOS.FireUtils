@@ -32,6 +32,7 @@ import * as PB_SE   from '/src/data/normas/PB/saida_emergencia.js'
 import * as PB_MEMF from '/src/data/normas/PB/memorial_formulario.js'
 import * as PB_EXT  from '/src/data/normas/PB/extintores.js'
 import * as PB_BRIG from '/src/data/normas/PB/brigada_incendio.js'
+import * as PB_TRRF from '/src/data/normas/PB/trrf.js'
 
 const linha = m => Object.fromEntries(Object.entries(m).map(([k, v]) => [k.toLowerCase(), v]))
 const se = m => ({ tabela: m.TAXA_POPULACIONAL, notas: m.NOTAS_NORMATIVAS, larguras_minimas: m.LARGURAS_MINIMAS, distancias_maximas: m.DISTANCIAS_MAXIMAS, ...(m.TIPOS_ESCADA ? { tipos_escada: m.TIPOS_ESCADA } : {}) })
@@ -48,7 +49,7 @@ const DADOS = {
   },
   PB: {
     ocupacoes: { norma: PB_OC.NORMA, ocupacoes: PB_OC.OCUPACOES },
-    saida_emergencia: se(PB_SE), memorial_formulario: linha(PB_MEMF), extintores: linha(PB_EXT), brigada: linha(PB_BRIG),
+    saida_emergencia: se(PB_SE), memorial_formulario: linha(PB_MEMF), extintores: linha(PB_EXT), brigada: linha(PB_BRIG), trrf: linha(PB_TRRF),
   },
 }
 const SOBRESCREVER = ${JSON.stringify(sobrescrever || {})}

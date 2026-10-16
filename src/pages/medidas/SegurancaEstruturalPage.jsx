@@ -2,7 +2,7 @@ import LinkNorma from '../../components/ui/LinkNorma'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
-import { calcularTRRF, alturaEdificacaoBase, edificacaoEhTerrea } from '../../data/trrf_calc'
+import { calcularTRRF, alturaEdificacaoBase, edificacaoEhTerrea, refsNormaTRRF } from '../../data/trrf_calc'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
@@ -37,7 +37,7 @@ function LinhaPavimento({ linha }) {
   )
 }
 
-function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao, dispatch, exigido }) {
+function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao, dispatch, exigido, refs }) {
   const sub = parseInt(est.nSubsolos) || 0
   const resultado = calcularTRRF(pavimentos, est, tabela, classesAltura, classesSubsolo, divisoesSemOcupacao)
 
@@ -48,7 +48,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
     : !resultado.classeAltura ? statusEstrutura('pendente', 'Dados pendentes')
     : sub > 0 && !est.profundidadeSubsolo ? statusEstrutura('andamento', 'Em andamento')
     : resultado.pendenciasNaoRegressao.length > 0 ? statusEstrutura('atencao', 'Revisar TRRF')
-    : resultado.avisos.length > 0 ? statusEstrutura('andamento', 'Consultar SSCI')
+    : resultado.avisos.length > 0 ? statusEstrutura('andamento', `Consultar ${refs.orgaoAnalise}`)
     : statusEstrutura('concluido', 'TRRF definido')
 
   return (
@@ -56,7 +56,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
       {!exigido ? (
         <div className="ibox green">
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a segurança estrutural contra incêndio, conforme NT 01 CBMMA.</span>
+          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a segurança estrutural contra incêndio, conforme a tabela de exigências do estado.</span>
         </div>
       ) : (
       <>
@@ -71,7 +71,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
             </div>
             {resultado.subsoloSomado && (
               <div className="text-[10px] text-amber mt-1">
-                + {fmtNum(est.profundidadeSubsolo, 2, est.profundidadeSubsolo)} m de subsolo ocupado = {fmtNum(resultado.alturaEfetiva, 2, resultado.alturaEfetiva)} m para a classificação (item 4.31, NT 03 CBMMA)
+                + {fmtNum(est.profundidadeSubsolo, 2, est.profundidadeSubsolo)} m de subsolo ocupado = {fmtNum(resultado.alturaEfetiva, 2, resultado.alturaEfetiva)} m para a classificação{refs.terminologia}
               </div>
             )}
           </div>
@@ -114,7 +114,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
         <div key={i} className="ibox red mb-3">
           <Icon name="warn" size={14} color="var(--color-red)" className="shrink-0"/>
           <span className="text-xs">
-            ATENÇÃO: o TRRF de <strong>{pend.pavimentoInferior.label}</strong> ({pend.trrfInferior} min) é inferior ao TRRF de <strong>{pend.pavimentoSuperior.label}</strong>, imediatamente acima ({pend.trrfSuperior} min). Conforme item 5.12 da NT 01 CBMMA, essa elevação depende de avaliação de risco de colapso progressivo pelo responsável técnico — não é aplicada automaticamente. Confirme o julgamento antes de assinar o memorial.
+            ATENÇÃO: o TRRF de <strong>{pend.pavimentoInferior.label}</strong> ({pend.trrfInferior} min) é inferior ao TRRF de <strong>{pend.pavimentoSuperior.label}</strong>, imediatamente acima ({pend.trrfSuperior} min). Conforme {refs.naoRegressao}, essa elevação depende de avaliação de risco de colapso progressivo pelo responsável técnico — não é aplicada automaticamente. Confirme o julgamento antes de assinar o memorial.
           </span>
         </div>
       ))}
@@ -123,7 +123,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
         <div className="ibox amber mb-3">
           <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
           <span className="text-xs">
-            {resultado.avisos.length === 1 ? 'Um pavimento não teve' : `${resultado.avisos.length} pavimentos não tiveram`} o TRRF determinado diretamente pela tabela do Anexo B (combinação não enquadrada ou item específico do Anexo A) — consulte o SSCI do CBMMA antes de finalizar.
+            {resultado.avisos.length === 1 ? 'Um pavimento não teve' : `${resultado.avisos.length} pavimentos não tiveram`} o TRRF determinado diretamente pela tabela do Anexo B (combinação não enquadrada ou item específico do Anexo A) — consulte o {refs.orgaoAnalise} antes de finalizar.
           </span>
         </div>
       )}
@@ -171,6 +171,7 @@ export default function SegurancaEstruturalPage() {
           const pe = porEstrutura.find(p => p.estrutura.id === est.id)
           return (
             <EstruturaTRRF
+              refs={refsNormaTRRF(trrf)}
               key={est.id}
               est={est}
               pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}

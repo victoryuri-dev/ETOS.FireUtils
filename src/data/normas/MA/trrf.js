@@ -8,6 +8,9 @@
 // especialmente as linhas com "-" (combinação não coberta) ou "ver item X"
 // (grupos F e J), que têm colunas irregulares.
 
+// Sigla, órgão e referências citadas nos textos da tela e do memorial.
+export const NORMA = { sigla: 'NT 01 CBMMA', orgaoAnalise: 'SSCI do CBMMA', itemNaoRegressao: '5.12', terminologia: 'item 4.31, NT 03 CBMMA' }
+
 // ── Classes de altura da edificação (colunas P1-P8) ─────────────────────────
 export const CLASSES_ALTURA = [
   { classe: 'P1', min: 0,   max: 6   },

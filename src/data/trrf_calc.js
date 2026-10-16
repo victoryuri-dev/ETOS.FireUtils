@@ -173,3 +173,17 @@ function _resumoPorPosicao(linhas, posicao) {
     })
   return [...vistos.values()]
 }
+
+/** Referências da norma de TRRF do estado citadas nos textos (tela e
+ *  memorial) — NORMA da linha 'trrf'; sem ela, textos genéricos. */
+export function refsNormaTRRF(norma) {
+  const n = norma?.NORMA || {}
+  const sigla = n.sigla || 'norma de segurança estrutural do estado'
+  return {
+    sigla,
+    orgaoAnalise: n.orgaoAnalise || 'Corpo de Bombeiros',
+    naoRegressao: n.itemNaoRegressao ? `item ${n.itemNaoRegressao} ${sigla}` : sigla,
+    // "(item 4.31, NT 03 CBMMA)" — vazio quando a norma não indica
+    terminologia: n.terminologia ? ` (${n.terminologia})` : '',
+  }
+}

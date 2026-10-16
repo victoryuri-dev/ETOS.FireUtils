@@ -12,6 +12,7 @@ const server = await servidorComNormas({
   PB: {
     extintores: dadosDoSql('20261016170000_seed_normas_extintores_pb.sql'),
     brigada: dadosDoSql('20261016180000_seed_normas_brigada_pb.sql'),
+    trrf: dadosDoSql('20261016190000_seed_normas_trrf_pb.sql'),
   },
   MA: {
     compartimentacao: dadosDoSql('20261016140000_seed_normas_compartimentacao_ma.sql'),
@@ -41,7 +42,7 @@ test('tipos de escada do MA: SQL = arquivo de seed', async () => {
 })
 
 test('sem o sistema cadastrado para o estado, o getter devolve null (nunca a norma de outro estado)', () => {
-  for (const get of ['getAV', 'getTRRF', 'getIluminacao', 'getSinalizacao', 'getCompartimentacao', 'getControleAcabamento', 'getHidrantes', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
+  for (const get of ['getAV', 'getIluminacao', 'getSinalizacao', 'getCompartimentacao', 'getControleAcabamento', 'getHidrantes', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
     assert.equal(normas[get]('PB'), null, get)
   }
   assert.ok(normas.getSE('PB'))
@@ -146,4 +147,35 @@ test('brigada da PB: público do 4.11.2 = população da edificação inteira', 
   const pavs = [{ ambientes: [amb(150)] }, { ambientes: [amb(100), amb(50)] }]  // F-2: 1 pessoa/m²
   assert.equal(opcoesPublicoBrigada('PB', pavs).publico, 300)
   assert.deepEqual(opcoesPublicoBrigada('MA', pavs), {})
+})
+
+test('TRRF da PB: SQL = arquivo de seed (Infinity inclusive)', async () => {
+  const esperado = await server.ssrLoadModule('/src/data/normas/PB/trrf.js')
+  const lido = normas.getTRRF('PB')
+  for (const [k, v] of Object.entries(esperado)) assert.deepEqual(lido[k], v, k)
+  assert.equal(lido.CLASSES_SUBSOLO.at(-1).max, Infinity)
+})
+
+test('TRRF do MA: SQL acrescenta a NORMA igual ao seed', async () => {
+  const ma = await seed('trrf')
+  assert.deepEqual(dadosDoSql('20261016190001_add_norma_trrf_ma.sql'), { norma: ma.NORMA })
+})
+
+test('TRRF da PB: valores do Anexo B da NT 08/2024 e textos com a norma da PB', async () => {
+  const { buscarTRRF, refsNormaTRRF } = await server.ssrLoadModule('/src/data/trrf_calc.js')
+  const pb = normas.getTRRF('PB'), ma = normas.getTRRF('MA')
+  const v = (n, div, cl) => { const r = buscarTRRF(n.TABELA_TRRF, div, cl); return r.referencia || r.valor }
+  assert.equal(v(pb, 'E-1', 'P6'), 120)          // MA: 150
+  assert.equal(v(ma, 'E-1', 'P6'), 150)
+  assert.equal(v(pb, 'F-3', 'P2'), 'A.2.3.3')    // "ver item" ocupa P1 e P2
+  assert.equal(v(pb, 'F-3', 'P3'), 30)
+  assert.equal(v(pb, 'J-1', 'P2'), 'A.2.3.4')
+  assert.equal(v(pb, 'H-1', 'P3'), 60)
+  assert.equal(v(pb, 'K-1', 'P6'), 150)
+  assert.equal(v(pb, 'M-2', 'S1'), null)
+  assert.equal(v(pb, 'C-2', 'P8'), 180)
+  assert.equal(refsNormaTRRF(pb).sigla, 'NT 08/2024 CBMPB')
+  assert.equal(refsNormaTRRF(pb).terminologia, '')
+  assert.equal(refsNormaTRRF(ma).naoRegressao, 'item 5.12 NT 01 CBMMA')
+  assert.equal(refsNormaTRRF(ma).terminologia, ' (item 4.31, NT 03 CBMMA)')
 })
