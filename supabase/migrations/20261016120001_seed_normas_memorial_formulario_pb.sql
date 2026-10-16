@@ -12,8 +12,9 @@
 -- demais sistemas (ver renomearDaBaseCentral em src/data/normas/index.js).
 --
 -- A existência desta linha também é o que faz o site tratar a PB como estado
--- de "memorial em formulário" (usaMemorialFormulario) e liberar o projeto
--- completo para ela antes da tabela de exigências da NT 04/2023.
+-- de "memorial em formulário" (usaMemorialFormulario). Classificação e
+-- exigências ('ocupacoes' e 'medidas_seguranca' da PB) já estão no banco —
+-- esta migração não toca nelas.
 
 insert into public.normas_dados (uf, sistema, dados, versao) values
   ('PB', 'memorial_formulario', $j${

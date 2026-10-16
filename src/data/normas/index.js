@@ -90,13 +90,7 @@ function temSistemaCadastrado(uf, sistema, mapaEstatico) {
 // caem no fallback estático do MA quando o UF não tem base própria, sem
 // bloquear o projeto).
 function disponibilidadeEstado(uf) {
-  // Estado com memorial em formulário próprio do CBM (PB) já gera o
-  // documento do projeto completo mesmo antes da tabela de medidas: sem ela,
-  // useMedidasObrigatorias aplica o mínimo de referência
-  // (BASELINE_QUANDO_FALTA_DADO) e o formulário deixa em aberto o
-  // "Exigível/Não exigível" das demais medidas (ver memorial/PB/formulario.js).
-  const temExigencias = temSistemaCadastrado(uf, 'medidas_seguranca', NORMAS_MED) || temSistemaCadastrado(uf, 'memorial_formulario', NORMAS_MEMF)
-  const ativo = temSistemaCadastrado(uf, 'ocupacoes', NORMAS) && temExigencias
+  const ativo = temSistemaCadastrado(uf, 'ocupacoes', NORMAS) && temSistemaCadastrado(uf, 'medidas_seguranca', NORMAS_MED)
   const ativoDimensionamento = ativo || temSistemaCadastrado(uf, 'saida_emergencia', NORMAS_SE)
   return { ativo, ativoDimensionamento }
 }

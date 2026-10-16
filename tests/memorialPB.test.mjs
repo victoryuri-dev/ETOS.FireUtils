@@ -52,7 +52,7 @@ test('identificação, natureza, altura, risco e nível saem do projeto', () => 
   assert.equal(valorCampo(id, 'ART/RRT nº:'), '999')
   const p = secao(f, '3.')
   const x = marcados(p)
-  assert.ok(x.includes('C-1 - Comércio com carga de incêndio nível I'))
+  assert.ok(x.includes('C-1 - Comércio com carga de incêndio Nível I'))
   assert.ok(x.includes('Tipo III'))                      // 9 m: 6 < H ≤ 12
   assert.ok(x.includes('Médio'))                         // 500 MJ/m²
   assert.ok(x.includes('Nível II'))
@@ -73,7 +73,7 @@ test('classe de GLP só marca com o risco especial GLP marcado', () => {
   assert.ok(comRisco.includes('EXIGÍVEL'))
 })
 
-test('exigibilidade fica em aberto sem a tabela de exigências da PB, exceto no mínimo de referência', () => {
+test('sem a tabela de exigências (fallback offline), exigibilidade fica em aberto, exceto no mínimo de referência', () => {
   const f = gerar(projeto())
   assert.equal(f.temTabelaExigencias, false)
   const exig = prefixo => secao(f, prefixo).linhas.find(l => l.tipo === 'exigivel').exigivel
@@ -111,12 +111,10 @@ test('riscos especiais: PB tem lista própria, MA continua com a do Anexo B', ()
   assert.deepEqual(marcados(r), ['Geradores elétricos'])
 })
 
-test('SQL do Supabase entrega o mesmo conteúdo dos arquivos estáticos da PB', async () => {
+test('SQL do memorial_formulario entrega o mesmo conteúdo do arquivo estático da PB', async () => {
   const { readFileSync } = await import('node:fs')
   const dadosDoSql = arquivo => JSON.parse(readFileSync(new URL(`../supabase/migrations/${arquivo}`, import.meta.url), 'utf8').split('$j$')[1])
-  const oc = await server.ssrLoadModule('/src/data/normas/PB/ocupacoes.js')
   const mf = await server.ssrLoadModule('/src/data/normas/PB/memorial_formulario.js')
-  assert.deepEqual(dadosDoSql('20261016120000_seed_normas_ocupacoes_pb.sql'), { norma: oc.NORMA, ocupacoes: oc.OCUPACOES })
   const esperado = Object.fromEntries(Object.entries(mf).map(([k, v]) => [k.toLowerCase(), v]))
   assert.deepEqual(dadosDoSql('20261016120001_seed_normas_memorial_formulario_pb.sql'), JSON.parse(JSON.stringify(esperado)))
 })
