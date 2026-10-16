@@ -29,26 +29,26 @@ Regras do gerador:
 | Seção | Status | Origem dos dados / o que falta |
 |---|---|---|
 | **1. Identificação** | ✅ | `respRazaoSocial`/`nome`, endereço, `bairro`, `cidade`, `rtNome`, `rtConselho`, `artNumero`. |
-| **2. Forma de apresentação** | ✅ | Novo: `memorialPB.formaApresentacao` (PCI / PTIOT / PTOTEP). |
+| **2. Forma de apresentação** | ✅ | Automático pelo enquadramento técnico/simplificado (box "Tipo de projeto", Etapa 2): PCI ou PCIS. PTIOT e PTOTEP não são gerados pela ferramenta. |
 | **3.1 Natureza da ocupação** | ✅ | Divisões de todas as estruturas, com os rótulos da NT 04/2023 do banco. Observação livre nova (`obsNatureza`). A-1 não tem linha no formulário: cai na observação. |
 | **3.2 Altura (Tipo I–V)** | ✅ | Maior altura entre as estruturas, com a tabela do próprio formulário (até 30 m). |
 | **3.3 Área construída** | ✅ | `areaConstruidaTotal`; com várias estruturas, uma linha por estrutura (nome + área). |
-| **3.4 Risco e validade** e **3.5 Nível de carga** | ✅ | Maior carga de incêndio do projeto (≤300 / ≤1200 / >1200 MJ/m²). Na PB a carga é por levantamento até a NT 02/2023 ser cadastrada. |
+| **3.4 Risco e validade** e **3.5 Nível de carga** | ✅ | Maior carga de incêndio do projeto (≤300 / ≤1200 / >1200 MJ/m²), com o mapa de CNAEs da NT 02/2023 (`carga_incendio` da PB no Supabase). |
 | **3.4.1 Classe de GLP (NBR 15514)** | ✅ | Novo: `memorialPB.glpClasse`, só com o risco especial GLP marcado. |
-| **3.6 Estágio da construção** | ✅ | Novo: `memorialPB.estagioConstrucao` + `adaptacoes`. Sem escolha, edificação nova = "ainda será construída". |
+| **3.6 Estágio da construção** | ✅ | Box Situação (Etapa 2): nova = "ainda será construída"; existente = 3 opções "as built" + `adaptacoes` (NT 16 / Resoluções Técnicas). |
 | **4. Medidas de proteção** | ✅ | `sistemas[].ativo`. Espuma e resfriamento ainda não existem no app (sempre em branco). |
 | **5. Riscos especiais** | ✅ | Lista por estado (`riscosEspeciaisDoEstado`); a PB acrescenta tendas/coberturas inflamáveis, estrutura montada, geradores e sistemas elétricos montados (Etapa 6). |
 | **6. Acesso de viatura** | 🔜 | A regra que decide a exigência é outra (20 m até a via / 50 m de caminhamento, NT 14/2023 CBMPB). Faixa de estacionamento (a–h) é nova. Hoje: só o Exigível. |
 | **7. Segurança estrutural** | ✅ | Grupo, divisão, classe e TRRF de `trrf_calc`, pela tabela da NT 08/2024 da PB. |
-| **8. Compartimentação** | ✅ | Área máxima (a mais restritiva) e elementos marcados na tela de Compartimentação; característica de cada elemento nova (`especificacaoCompart`). ⚠️ Tabela de área máxima do MA até a NT 36 da PB. |
+| **8. Compartimentação** | ✅ | Área máxima (a mais restritiva) e elementos marcados na tela de Compartimentação; característica de cada elemento nova (`especificacaoCompart`). ⏸ NT 36 da PB não cadastrada (adiada): página com "norma não cadastrada" e seção em branco. |
 | **9. CMAR** | ✅ | Linha marcada pelo grupo/divisão; observação nova. |
-| **10. Saídas de emergência** | ✅ | População e larguras de `se_calc`; distâncias por divisão. Tipo de escada: `memorialPB.tipoEscada` (a PB ainda não tem a tabela de tipos de escada). 4 atestos e observação novos. |
+| **10. Saídas de emergência** | ✅ | População e larguras de `se_calc`; distâncias por divisão. Tipo de escada automático pela Tabela 3 (Anexo C) da NT 12/2025, ou o escolhido pelo RT (`memorialPB.tipoEscada`). 4 atestos e observação. |
 | **11.1 Plano de emergência** | ✅ | Novo: `memorialPB.planoModelo` (item 6 / Anexo B da NT 13/2023) + observação. |
-| **12. Brigada** | ✅ | Quantidade, divisão, risco e nível de `brigada_calc` (⚠️ Tabela A.1 do MA até a NT 17/2024 da PB). Carga horária e intervalo entre simulados manuais (sem tabela da NT 17 ainda); 2 atestos. |
+| **12. Brigada** | ✅ | Quantidade, divisão, risco e nível de `brigada_calc` com a Tabela A.1 da NT 17/2024 e o item 4.11.2 (público da edificação). Carga horária e intervalo entre simulados manuais (Anexo B não enviado); 2 atestos. |
 | **13. Iluminação** | 🔜 | Hoje só o tipo de sistema (bloco / central à bateria / gerador). Falta o tipo **UPS**, a altura de instalação e os ~40 atestos (13.1 a 13.4). |
 | **14. Alarme e detecção** | ✅ | Local da central (`centralLocal`); raio e altura dos detectores do tipo adotado (limites da norma usados no dimensionamento). Itens 14.1 viraram atestos. |
 | **15. Sinalização** | 🔜 | Atestos e placas M-1/M-2 (dá para tirar do quantitativo). |
-| **16. Extintores** | ✅ | Linha pelo nível de carga; nível III com escolha do RT (`extintorNivelIII`); linhas especiais pelos riscos (G-3, GLP, central de gás, fogos). |
+| **16. Extintores** | ✅ | NT 21/2024 da PB. Linha pelo nível de carga; nível III com escolha do RT (`extintorNivelIII`); linhas especiais pelos riscos (G-3, GLP, central de gás, fogos). |
 | **17. Hidrantes** | 🔜 | Tipos 1–5 da NT 15/2016 PB, vazão/pressão do Revit, RTI, NSTH, lances e tipo de mangueira, atestos da bomba. Hoje: só o Exigível. |
 | **18. Chuveiros automáticos (SPK)** | 🔜 | Não há tela no app. Hoje: só o Exigível. |
 | **19. SPDA** | 🔜 | Sem regra de exigência no app (análise de risco NBR 5419): "Exigível" só quando o RT adota. |
