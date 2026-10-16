@@ -94,11 +94,11 @@ export function textoMemorialExtintores(state) {
   const introducao = [
     {
       tipo: 'paragrafo',
-      texto: `A distância máxima a percorrer até o extintor, conforme o risco predominante de cada pavimento, é de ${distanciaTexto} (itens 5.1.2 e 5.1.5, NT 21 CBMMA).`,
+      texto: `A distância máxima a percorrer até o extintor, conforme o risco predominante de cada pavimento, é de ${distanciaTexto} (itens 5.1.2 e 5.1.5, ${norma.NORMA?.sigla || 'NT 21'}).`,
     },
     {
       tipo: 'paragrafo',
-      texto: `Os extintores fixados em suporte de parede ficam instalados com a parte superior a, no máximo, ${fmt(ALTURA_INSTALACAO.suporteParede.alturaMaxima)} m do piso acabado, e a base a, no mínimo, ${fmt(ALTURA_INSTALACAO.suporteParede.alturaMinimaBase)} m do piso; os apoiados sobre o piso, em suporte baixo, ficam com a base entre ${fmt(ALTURA_INSTALACAO.apoiadoPiso.min)} m e ${fmt(ALTURA_INSTALACAO.apoiadoPiso.max)} m de altura (itens 5.2.1.1 e 5.2.1.3, NT 21 CBMMA). ${NOTAS.entradaEscada}`,
+      texto: `Os extintores fixados em suporte de parede ficam instalados com a parte superior a, no máximo, ${fmt(ALTURA_INSTALACAO.suporteParede.alturaMaxima)} m do piso acabado, e a base a, no mínimo, ${fmt(ALTURA_INSTALACAO.suporteParede.alturaMinimaBase)} m do piso; os apoiados sobre o piso, em suporte baixo, ficam com a base entre ${fmt(ALTURA_INSTALACAO.apoiadoPiso.min)} m e ${fmt(ALTURA_INSTALACAO.apoiadoPiso.max)} m de altura (itens 5.2.1.1 e 5.2.1.3, ${norma.NORMA?.sigla || 'NT 21'}). ${NOTAS.entradaEscada}`,
     },
   ]
 

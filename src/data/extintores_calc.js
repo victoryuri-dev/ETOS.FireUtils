@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // extintores_calc.js — Funções universais de classificação e verificação da
-// proteção por extintores (NT 21 CBMMA). Recebem os dados normativos (tipos,
+// proteção por extintores (NT 21 de cada estado). Recebem os dados normativos (tipos,
 // distâncias, limites de área) como parâmetro; não importam nenhum arquivo de
 // estado diretamente. Mesmas funções alimentam a tela de dimensionamento e o
 // texto do memorial — nunca duas fontes de verdade.
@@ -56,33 +56,27 @@ export function classesAtendidas(extintores, tiposPortatil, tiposSobreRodas) {
   return [...classes]
 }
 
-// ── Capacidade extintora mínima por risco de incêndio (extintores
-// portáteis) — tabela de referência comum a vários Corpos de Bombeiros
-// estaduais (mesmo texto-base citado pela NT 21 CBMMA e pela NBR 12693),
-// valores gerais, não variam por estado. Classifica o nível (baixo/médio/
-// alto) a partir da mesma carga de incêndio já usada em classificarRisco/
-// LIMIARES_RISCO, e dá a unidade extintora mínima + distância máxima a
-// percorrer por classe de incêndio A e B. A distância da classe A coincide
-// com DISTANCIA_MAXIMA.portatil (mesma tabela, vista por dois ângulos); a
-// da classe B é fixa em 15 m, independente do risco.
-export const CAPACIDADE_MINIMA_POR_RISCO = {
-  A: {
-    baixo: { capacidade: '2-A',  distanciaMaxima: 25 },
-    medio: { capacidade: '3-A',  distanciaMaxima: 20 },
-    alto:  { capacidade: '4-A',  distanciaMaxima: 15 },
-  },
-  B: {
-    baixo: { capacidade: '20-B', distanciaMaxima: 15 },
-    medio: { capacidade: '40-B', distanciaMaxima: 15 },
-    alto:  { capacidade: '80-B', distanciaMaxima: 15 },
-  },
+// ── Capacidade extintora mínima e distância máxima por risco (classes A e
+// B, extintores portáteis) — CAPACIDADE_POR_NIVEL da norma do estado. Um
+// risco pode ter mais de uma opção (PB, nível III: 3-A a 15 m ou 4-A a
+// 20 m); `escolha` é a key da opção adotada (memorialPB.extintorNivelIII),
+// sem escolha vale a primeira.
+
+/** Opções de capacidade/distância cadastradas para o risco. */
+export function opcoesCapacidade(norma, risco) {
+  return norma?.CAPACIDADE_POR_NIVEL?.[risco] || []
 }
 
-/** Capacidade extintora mínima (+ distância máxima a percorrer) para a
- *  classe de incêndio informada ('A' ou 'B'), dado o risco predominante do
- *  pavimento — ver CAPACIDADE_MINIMA_POR_RISCO acima. */
-export function capacidadeMinimaPorRisco(risco, classeIncendio) {
-  return CAPACIDADE_MINIMA_POR_RISCO[classeIncendio]?.[risco] ?? null
+/** Opção adotada para o risco: a de key `escolha`, ou a primeira. */
+export function opcaoCapacidade(norma, risco, escolha) {
+  const ops = opcoesCapacidade(norma, risco)
+  return ops.find(o => o.key && o.key === escolha) || ops[0] || null
+}
+
+/** Distância máxima a percorrer até o extintor portátil (classe A da
+ *  opção adotada; sem a tabela, DISTANCIA_MAXIMA.portatil). */
+export function distanciaPortatil(norma, risco, escolha) {
+  return opcaoCapacidade(norma, risco, escolha)?.A?.distanciaMaxima ?? norma?.DISTANCIA_MAXIMA?.portatil?.[risco] ?? null
 }
 
 /** Resultado completo da verificação de um pavimento: classes atendidas,

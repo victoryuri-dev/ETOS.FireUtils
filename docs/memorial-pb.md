@@ -59,7 +59,9 @@ Regras do gerador:
 
 Já no Supabase (PB): `ocupacoes`, `medidas_seguranca`, `memorial_formulario`, `saida_emergencia` (conferida: mesmo formato do MA; Tabela 1 = PDF da NT 12/2025, grupo C a 5 m²/pessoa), `carga_incendio` e `hidrantes` (a conferir). Tipos de escada (Anexo C, Tabela 3): migração `20261016150000_add_tipos_escada_saida_emergencia_pb.sql` — notas da tabela ainda não transcritas.
 
-Faltam: `trrf` (NT 08), `compartimentacao` (NT 36), `controle_acabamento`, `extintores`, `brigada` (NT 17/2024), `acesso_viatura` (NT 14/2023), `iluminacao`, `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
+Extintores (NT 21/2024): `20261016170000_seed_normas_extintores_pb.sql` — Tabelas 1 a 5 da NT; nível III com duas opções (3-A a 15 m / 4-A a 20 m), escolhida no box da PB da página de extintores. ⚠ Distância de sobre rodas e classe D, altura de instalação, unidade única, proporção, locais de risco especial, entrada/escadas e classe K copiados do MA, a conferir.
+
+Faltam: `trrf` (NT 08), `compartimentacao` (NT 36), `controle_acabamento`, `brigada` (NT 17/2024), `acesso_viatura` (NT 14/2023), `iluminacao`, `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
 
 Na saída de emergência, L-4, M-2, M-6 e M-7 (NT 04/2023) não estão na Tabela 1 nem na Tabela 2 da NT 12/2025; H-2/H-3 têm larguras especiais que o cálculo ainda não modela.
 

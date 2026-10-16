@@ -8,7 +8,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { supabase } from '../../lib/supabase'
-import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica, capacidadeMinimaPorRisco } from '../../data/extintores_calc'
+import { riscoDoPavimento, calcularPavimento, areaLimiteUnidadeUnica, opcoesCapacidade, distanciaPortatil } from '../../data/extintores_calc'
 import Icon from '../../components/ui/Icon'
 import Checkbox from '../../components/ui/Checkbox'
 import InlineEditableNome from '../../components/ui/InlineEditableNome'
@@ -274,7 +274,7 @@ function UnidadeCard({ ext, tiposPortatil, tiposSobreRodas, onEdit, onRemove, se
 // ── Formulário de edição de uma unidade extintora (modal) ───────────────
 // Mesmo formato do AmbienteForm das Saídas de Emergência (se_shared.jsx):
 // campos em grade, rodapé com Cancelar/Salvar. A capacidade extintora nasce
-// preenchida com o mínimo normativo do tipo (item 5.1.1/5.1.4 NT 21 CBMMA),
+// preenchida com o mínimo normativo do tipo (tabelas de capacidade mínima da NT 21 do estado),
 // mas é livre para o projetista aumentar conforme a capacidade do agente
 // efetivamente aplicado no projeto — trocar formato/tipo repõe o mínimo.
 const inputClass = 'bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border'
@@ -425,6 +425,7 @@ function AmbienteCard({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil
 // ── Card de um pavimento ──────────────────────────────────────────────
 function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, extNorma, dispatch }) {
   const { LIMIARES_RISCO, AREA_LIMITE_UNIDADE_UNICA, TIPOS_PORTATIL, TIPOS_SOBRE_RODAS, DISTANCIA_MAXIMA, NOTAS } = extNorma
+  const { state } = useProjeto()
 
   const risco = riscoDoPavimento(pavimento, cargaState, LIMIARES_RISCO)
   const grupos = agruparPorAmbiente(extintoresDoPav)
@@ -555,7 +556,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
           {risco && (
             <div className="shrink-0 text-center border-l border-solid border-border pl-6">
               <div className="text-sm font-bold text-ink leading-none whitespace-nowrap">
-                {DISTANCIA_MAXIMA.portatil[risco]} m <span className="font-normal text-ink-faint">/</span> {DISTANCIA_MAXIMA.sobreRodas[risco]} m
+                {distanciaPortatil(extNorma, risco, state.memorialPB?.extintorNivelIII)} m <span className="font-normal text-ink-faint">/</span> {DISTANCIA_MAXIMA.sobreRodas[risco]} m
               </div>
               <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mt-1 whitespace-nowrap">dist. máx. portátil / sobre rodas</div>
             </div>
@@ -679,10 +680,10 @@ function RefLabel({ children }) {
 }
 
 // Unidade extintora mínima (extintores portáteis) e distância máxima a
-// percorrer por nível de risco (Tabela 3, mesma classificação de
-// classificarRisco/LIMIARES_RISCO), uma linha por risco — ver
-// capacidadeMinimaPorRisco em data/extintores_calc.js.
-function TabelaCapacidadePorRisco({ classe }) {
+// percorrer por nível de risco (CAPACIDADE_POR_NIVEL da norma), uma linha
+// por opção — a PB tem duas no nível III (ver opcoesCapacidade em
+// data/extintores_calc.js).
+function TabelaCapacidadePorRisco({ extNorma, classe }) {
   return (
     <table className="w-full border-collapse">
       <thead>
@@ -693,15 +694,15 @@ function TabelaCapacidadePorRisco({ classe }) {
         </tr>
       </thead>
       <tbody>
-        {RISCO_ROWS.map(r => {
-          const op = capacidadeMinimaPorRisco(r.key, classe)
-          return (
-            <tr key={r.key}>
-              <td className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2">{r.label}</td>
-              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op?.capacidade ?? '—'}</td>
-              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op ? `${op.distanciaMaxima} m` : '—'}</td>
+        {RISCO_ROWS.flatMap(r => {
+          const ops = opcoesCapacidade(extNorma, r.key)
+          return (ops.length ? ops : [null]).map((op, i) => (
+            <tr key={`${r.key}-${i}`}>
+              <td className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2">{i === 0 ? r.label : 'ou'}</td>
+              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op?.[classe]?.capacidade ?? '—'}</td>
+              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op?.[classe] ? `${op[classe].distanciaMaxima} m` : '—'}</td>
             </tr>
-          )
+          ))
         })}
       </tbody>
     </table>
@@ -719,7 +720,7 @@ function ReferenciaNormativa({ extNorma }) {
         onClick={() => setOpen(o => !o)}
         className="w-full py-3 px-[18px] border-b border-solid border-border bg-surface-2 flex items-center gap-2 text-left"
       >
-        <span className="text-[13px] font-semibold text-ink">Parâmetros normativos (NT 21 CBMMA)</span>
+        <span className="text-[13px] font-semibold text-ink">Parâmetros normativos{extNorma.NORMA?.sigla ? ` (${extNorma.NORMA.sigla})` : ''}</span>
         <span className="text-[11px] text-ink-faint">distâncias, capacidades mínimas e alturas de instalação</span>
         <Icon name="chevD" size={14} className={`ml-auto text-ink-faint transition-transform ${open ? 'rotate-180' : ''}`}/>
       </button>
@@ -758,13 +759,13 @@ function ReferenciaNormativa({ extNorma }) {
             <div>
               <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Classe A</div>
               <div className="border border-solid border-border rounded-md overflow-hidden">
-                <TabelaCapacidadePorRisco classe="A"/>
+                <TabelaCapacidadePorRisco extNorma={extNorma} classe="A"/>
               </div>
             </div>
             <div>
               <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Classe B</div>
               <div className="border border-solid border-border rounded-md overflow-hidden">
-                <TabelaCapacidadePorRisco classe="B"/>
+                <TabelaCapacidadePorRisco extNorma={extNorma} classe="B"/>
               </div>
             </div>
           </div>
@@ -947,7 +948,7 @@ export default function ExtintoresPage() {
             <LinkNorma sistema="extintores"/>
           </h2>
             <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
-              Distribuição de extintores por estrutura, pavimento e ambiente conforme a NT 21 CBMMA. Cadastre manualmente ou importe do plugin Revit — o risco predominante (que define a área-limite para unidade única) vem da carga de incêndio classificada na Etapa 5.
+              Distribuição de extintores por estrutura, pavimento e ambiente conforme a {extNorma.NORMA?.sigla || 'norma de extintores do estado'}. Cadastre manualmente ou importe do plugin Revit — o risco predominante (que define a área-limite para unidade única) vem da carga de incêndio classificada na Etapa 5.
             </p>
           </div>
           <div className="shrink-0 flex flex-col items-end gap-1.5">
@@ -1007,7 +1008,7 @@ export default function ExtintoresPage() {
               {!exigido ? (
                 <div className="ibox green">
                   <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-                  <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a proteção por extintores, conforme NT 01 CBMMA.</span>
+                  <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a proteção por extintores, conforme a tabela de exigências do estado.</span>
                 </div>
               ) : pavimentos.length === 0 ? (
                 <div className="ibox amber">

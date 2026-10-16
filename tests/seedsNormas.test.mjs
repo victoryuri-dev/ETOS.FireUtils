@@ -9,6 +9,7 @@ import { servidorComNormas } from './helpers/normasDeTeste.mjs'
 const dadosDoSql = arquivo => JSON.parse(readFileSync(new URL(`../supabase/migrations/${arquivo}`, import.meta.url), 'utf8').split('$j$')[1])
 
 const server = await servidorComNormas({
+  PB: { extintores: dadosDoSql('20261016170000_seed_normas_extintores_pb.sql') },
   MA: {
     compartimentacao: dadosDoSql('20261016140000_seed_normas_compartimentacao_ma.sql'),
     controle_acabamento: dadosDoSql('20261016140001_seed_normas_controle_acabamento_ma.sql'),
@@ -37,7 +38,7 @@ test('tipos de escada do MA: SQL = arquivo de seed', async () => {
 })
 
 test('sem o sistema cadastrado para o estado, o getter devolve null (nunca a norma de outro estado)', () => {
-  for (const get of ['getAV', 'getTRRF', 'getExtintores', 'getIluminacao', 'getSinalizacao', 'getCompartimentacao', 'getControleAcabamento', 'getHidrantes', 'getBrigada', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
+  for (const get of ['getAV', 'getTRRF', 'getIluminacao', 'getSinalizacao', 'getCompartimentacao', 'getControleAcabamento', 'getHidrantes', 'getBrigada', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
     assert.equal(normas[get]('PB'), null, get)
   }
   assert.ok(normas.getSE('PB'))
@@ -69,4 +70,29 @@ test('sinalização: pictograma casado pelo key, fora da base', () => {
   const placas = normas.getSinalizacao('MA').TIPOS_PLACA
   assert.ok(placas.length > 0)
   assert.ok(placas.every(p => p.img), 'toda placa com imagem')
+})
+
+test('extintores da PB: SQL = arquivo de seed', async () => {
+  const esperado = await server.ssrLoadModule('/src/data/normas/PB/extintores.js')
+  const lido = normas.getExtintores('PB')
+  for (const [k, v] of Object.entries(esperado)) assert.deepEqual(lido[k], JSON.parse(JSON.stringify(v)), k)
+})
+
+test('extintores do MA: SQL acrescenta norma e capacidade por nível iguais ao seed', async () => {
+  const ma = await seed('extintores')
+  const sql = dadosDoSql('20261016170001_add_capacidade_por_nivel_extintores_ma.sql')
+  assert.deepEqual(sql, JSON.parse(JSON.stringify({ norma: ma.NORMA, capacidade_por_nivel: ma.CAPACIDADE_POR_NIVEL })))
+})
+
+test('extintores: distância portátil pela opção adotada (PB nível III) e por risco (MA)', async () => {
+  const { distanciaPortatil, opcaoCapacidade } = await server.ssrLoadModule('/src/data/extintores_calc.js')
+  const pb = normas.getExtintores('PB'), ma = normas.getExtintores('MA')
+  assert.equal(distanciaPortatil(pb, 'baixo'), 20)
+  assert.equal(distanciaPortatil(pb, 'alto'), 15)
+  assert.equal(distanciaPortatil(pb, 'alto', 'nivel_III_4A'), 20)
+  assert.equal(opcaoCapacidade(pb, 'alto', 'nivel_III_4A').B.capacidade, '80-B')
+  assert.equal(opcaoCapacidade(pb, 'alto').B.distanciaMaxima, 10)
+  assert.deepEqual(['baixo', 'medio', 'alto'].map(r => distanciaPortatil(ma, r)), [25, 20, 15])
+  // a classe A da tabela coincide com DISTANCIA_MAXIMA.portatil nos dois estados
+  for (const n of [pb, ma]) assert.equal(distanciaPortatil(n, 'medio'), n.DISTANCIA_MAXIMA.portatil.medio)
 })

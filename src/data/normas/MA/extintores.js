@@ -9,6 +9,19 @@
 // <=1200, alto >1200.
 export const LIMIARES_RISCO = { baixo: 300, medio: 1200 }
 
+export const NORMA = { sigla: 'NT 21 CBMMA', nome: 'Sistema de Proteção por Extintores de Incêndio' }
+
+// ── Capacidade extintora mínima e distância máxima a percorrer por risco,
+// classes A e B (extintores portáteis). Uma opção por risco (a PB tem duas
+// no nível III — ver PB/extintores.js). Antes ficava fixa em
+// extintores_calc.js (CAPACIDADE_MINIMA_POR_RISCO); a classe A coincide com
+// DISTANCIA_MAXIMA.portatil, a B é 15 m em qualquer risco.
+export const CAPACIDADE_POR_NIVEL = {
+  baixo: [{ A: { capacidade: '2-A', distanciaMaxima: 25 }, B: { capacidade: '20-B', distanciaMaxima: 15 } }],
+  medio: [{ A: { capacidade: '3-A', distanciaMaxima: 20 }, B: { capacidade: '40-B', distanciaMaxima: 15 } }],
+  alto:  [{ A: { capacidade: '4-A', distanciaMaxima: 15 }, B: { capacidade: '80-B', distanciaMaxima: 15 } }],
+}
+
 // ── Distância máxima a percorrer até o extintor (itens 5.1.2, 5.1.3.1 e 5.1.5) ──
 export const DISTANCIA_MAXIMA = {
   portatil:   { baixo: 25, medio: 20, alto: 15 },
