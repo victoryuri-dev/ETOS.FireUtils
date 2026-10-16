@@ -12,6 +12,7 @@ import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { statusEstrutura } from '../../utils/statusEstrutura'
 import { CamposPBBrigada } from '../../components/pb/CamposPB'
+import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // ── Shared UI (mesmo estilo das demais páginas de medida) ────────────────
 function Card({ children, className = '' }) {
@@ -210,6 +211,7 @@ function EstruturaBrigada({ estrutura, pavimentos, cargaEst, cnaesDiv, limiaresR
         </div>
       </Card>
       )}
+      <ObservacoesComplementares estrutura={estrutura} medida="brigada"/>
     </EstruturaSection>
   )
 }

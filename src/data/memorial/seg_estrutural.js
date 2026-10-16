@@ -72,7 +72,7 @@ function blocosDaEstrutura(state, est, tabela, classesAltura, classesSubsolo, di
   }
 
   if (est.obsSegEstrutural?.trim()) {
-    blocos.push({ tipo: 'campo', label: 'Observações do responsável técnico', valor: est.obsSegEstrutural.trim() })
+    blocos.push({ tipo: 'campo', label: 'Observações complementares', valor: est.obsSegEstrutural.trim() })
   }
 
   return blocos

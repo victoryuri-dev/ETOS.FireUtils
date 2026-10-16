@@ -10,6 +10,7 @@ import {
 import {
   fmt, cita, listaDivisoes, estruturasDaMedida,
 } from './deteccao_alarme_comum'
+import { blocoObservacao } from '../../utils/observacoes'
 
 function blocosConcepcao(norma) {
   const c = norma.CENTRAL, ac = norma.ACIONADOR, f = norma.FIACAO
@@ -143,7 +144,7 @@ export function textoMemorialAlarmeIncendio(state, sistemas, porEstrutura) {
   const blocos = [
     ...blocosConcepcao(norma),
     ...(lista.length > 0
-      ? [{ tipo: 'titulo2', texto: 'Dimensionamento por edificação' }, ...lista.flatMap(item => blocosEstrutura(norma, item))]
+      ? [{ tipo: 'titulo2', texto: 'Dimensionamento por edificação' }, ...lista.flatMap(item => [...blocosEstrutura(norma, item), ...blocoObservacao(item.est, 'alarme')])]
       : [{ tipo: 'paragrafo', texto: 'Nenhuma edificação com o sistema de alarme exigido ou adotado até o momento.' }]),
   ]
   return { titulo: 'Alarme de Incêndio', blocos }

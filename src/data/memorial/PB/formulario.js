@@ -43,6 +43,7 @@ import {
 } from '../../se_calc'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../../brigada_calc'
 import { alarmeDaEstrutura, detectoresAtivos } from '../../deteccao_alarme_calc'
+import { observacoesDoProjeto } from '../../../utils/observacoes'
 
 const vazio = v => v === '' || v === null || v === undefined
 const fmtM  = v => `${fmtNum(v, 2, String(v))} m`
@@ -62,6 +63,11 @@ const campos = (...celulas) => ({ tipo: 'campos', celulas })
 const campo = (label, valor = '') => campos({ label, valor })
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
+
+// Campo de observações de uma seção = as "Observações complementares" que o
+// RT escreveu na página da medida, de todas as estruturas (o formulário tem
+// um campo só; com mais de uma estrutura, cada linha leva o nome dela).
+const obsDe = (state, medida) => observacoesDoProjeto(state.estruturas, medida)
 
 // ── Dados derivados do projeto (uma vez por documento) ─────────────────────
 
@@ -306,7 +312,7 @@ function secaoSegEstrutural(state, ctx) {
       campo('DIVISÃO:', divisao),
       campo('CLASSE (S2, S1, P1 até P8):', classe),
       campo('TRRF (em minutos):', trrf),
-      obs('OBSERVAÇÕES LIVRES:', exigivel ? texto(...(state.estruturas || []).map(e => e.obsSegEstrutural)) : ''),
+      obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'seg_estrutural')),
       { tipo: 'texto', negrito: true, texto: 'ORIENTAÇÃO (VERIFICAR AS NOTAS ESPECIFICAS NAS NTS):' },
     ],
   }
@@ -376,7 +382,6 @@ function secaoCompartimentacao(state, ctx) {
 }
 
 function secaoCmar(state, F, ctx) {
-  const m = state.memorialPB || {}
   const exigivel = exigibilidade(ctx, 'controle_acabamento')
   const casa = ocupacoes => [...ctx.divisoes].some(d => ocupacoes.includes(d) || ocupacoes.includes(d.charAt(0)))
   return {
@@ -384,7 +389,7 @@ function secaoCmar(state, F, ctx) {
     linhas: [
       { tipo: 'exigivel', exigivel },
       ...F.CMAR_LINHAS.map(l => ck({ x: !!exigivel && casa(l.ocupacoes), label: l.texto })),
-      obs('Observação:', m.obsCmar || ''),
+      obs('Observação:', obsDe(state, 'controle_acabamento')),
     ],
   }
 }
@@ -462,7 +467,7 @@ function secaoSaidas(state, ctx) {
         { x: !!exigivel && escadas.has('PF'), label: 'A prova de fumaça - PF' },
       ),
       ...ATESTOS_SAIDAS.map(([key, label]) => ck({ x: !!at[key], label })),
-      obs('OBSERVAÇÕES LIVRES:', m.obsSaidas || ''),
+      obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'saida_emergencia')),
     ],
   }
 }
@@ -476,7 +481,7 @@ function secaoGerenciamento(state, F, ctx) {
       sub('11.1 PLANO DE EMERGÊNCIA', '(Marcar X nas características do plano, conforme NT CBMPB 13/2023)'),
       { tipo: 'exigivel', exigivel },
       ...F.MODELOS_PLANO.map(p => ck({ x: !!exigivel && m.planoModelo === p.key, label: p.label })),
-      obs('OBSERVAÇÕES LIVRES:', m.obsPlano || ''),
+      obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'gerenciamento_risco')),
     ],
   }
 }
@@ -524,7 +529,7 @@ function secaoBrigada(state, ctx) {
       campo('Tempo entre simulados na edificação (máximo a cada 12 meses):', exigivel ? m.brigadaIntervaloSimulados || '' : ''),
       ...ATESTOS_BRIGADA.map(([key, label]) => ck({ x: !!at[key], label })),
       obs('DIMENSIONAMENTO:', m.brigadaDimensionamento || ''),
-      obs('Observação livre:', m.obsBrigada || ''),
+      obs('Observação livre:', obsDe(state, 'brigada')),
     ],
   }
 }
@@ -656,7 +661,7 @@ function secaoAlarmeDeteccao(state, ctx) {
       { tipo: 'exigivel', exigivel: exigAlarme },
       ...ATESTOS_ALARME.map(([key, label]) => ck({ x: !!at[key], label })),
       campo('Localização da central de alarme (cômodo):', exigAlarme ? localCentral('alarme') : ''),
-      obs('OBSERVAÇÕES LIVRES:', m.obsAlarme || ''),
+      obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'alarme')),
       sub('14.2 Sistema de Detecção de Incêndio', '(Informe as características do sistema de alarme, conforme NT 19/2024)'),
       { tipo: 'exigivel', exigivel: exigDet },
       campo('Localização da central do alarme:', exigDet ? localCentral('deteccao') || localCentral('alarme') : ''),
@@ -665,7 +670,7 @@ function secaoAlarmeDeteccao(state, ctx) {
       campo('Raio de atuação em detecção pontual de temperatura (máximo 4,2m):', v('temperatura_pontual', 'raio_m')),
       campo('Altura de instalação da detecção pontual de temperatura (máximo 5m):', v('temperatura_pontual', 'altura_max_m')),
       campo('Distanciamento entre detectores lineares (máximo 15m):', v('fumaca_linear', 'dist_entre_feixes_max_m')),
-      obs('OBSERVAÇÕES LIVRES:', m.obsDeteccao || ''),
+      obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'deteccao')),
     ],
   }
 }
@@ -711,7 +716,7 @@ function secaoExtintores(state, F, ctx) {
     linhas: [
       ...F.EXTINTORES_NIVEL.map(l => ck({ x: marcaNivel(l), label: l.texto, negrito: true, detalhe: l.detalhe })),
       ...especiais.map(([label, x]) => ck({ x: ativo && x, label })),
-      obs('OBSERVAÇÕES LIVRES:', m.obsExtintores || ''),
+      obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'extintores')),
     ],
   }
 }

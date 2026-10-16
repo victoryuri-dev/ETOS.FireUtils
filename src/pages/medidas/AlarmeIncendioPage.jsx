@@ -14,6 +14,7 @@ import {
 } from '../../data/deteccao_alarme_calc'
 import { Card, CampoNum, CampoComSugestoes, BotaoOpcao, LinhaChave, Erro, NotasDaNorma, QuadroParametros, TH, TD, inputBase } from '../../components/deteccao/DaUi'
 import { CamposPBAlarme } from '../../components/pb/CamposPB'
+import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // Conceitos de circuito da central endereçável (NBR 17240) — não variam por UF,
 // por isso ficam fixos aqui em vez de na base normativa.
@@ -224,6 +225,7 @@ function EstruturaAlarme({ estrutura, pavimentos, norma, exigido }) {
       <NotasDaNorma especificas={especificas} gerais={gerais} sigla={nrm.sigla}/>
       </>
       )}
+      <ObservacoesComplementares estrutura={estrutura} medida="alarme"/>
     </EstruturaSection>
   )
 }

@@ -14,6 +14,7 @@
 // isso entra como bloco próprio logo depois do item "Estrutura e Dimensões",
 // partindo a seção B.1 em duas listas.
 import { buildPlanoEmergenciaData } from '../../utils/planoEmergencia'
+import { blocoObservacao, ROTULO_OBSERVACOES } from '../../utils/observacoes'
 
 export function textoMemorialGerenciamentoRisco(state, sistemas) {
   const d = buildPlanoEmergenciaData(state, sistemas)
@@ -116,6 +117,16 @@ export function textoMemorialGerenciamentoRisco(state, sistemas) {
     { tipo: 'titulo2', texto: 'Procedimentos básicos de emergência contra incêndio' },
     { tipo: 'lista', itens: itensProcedimentos },
   ]
+
+  // Plano de emergência é do projeto, não tem trecho por estrutura: as
+  // observações complementares de cada uma entram juntas no fim, com o nome
+  // da estrutura quando há mais de uma.
+  const estruturas = state.estruturas || []
+  const obs = estruturas.map(est => ({ est, blocos: blocoObservacao(est, 'gerenciamento_risco') })).filter(o => o.blocos.length)
+  if (obs.length > 0) {
+    blocos.push({ tipo: 'titulo2', texto: ROTULO_OBSERVACOES })
+    obs.forEach(({ est, blocos: [b] }) => blocos.push(estruturas.length > 1 ? { ...b, label: est.nome } : b))
+  }
 
   return { titulo: 'Gerenciamento de Risco — Plano de Emergência', blocos }
 }

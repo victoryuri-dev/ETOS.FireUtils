@@ -14,6 +14,7 @@ import {
 import {
   fmt, cita, listaDivisoes, estruturasDaMedida,
 } from './deteccao_alarme_comum'
+import { blocoObservacao } from '../../utils/observacoes'
 
 // Base técnica dos parâmetros dos detectores, sem o comentário entre
 // parênteses que a base normativa guarda pra tela.
@@ -132,7 +133,7 @@ export function textoMemorialDeteccaoIncendio(state, sistemas, porEstrutura) {
   const blocos = [
     ...concepcao,
     ...(lista.length > 0
-      ? [{ tipo: 'titulo2', texto: 'Dimensionamento por edificação' }, ...lista.flatMap(item => blocosEstrutura(norma, item))]
+      ? [{ tipo: 'titulo2', texto: 'Dimensionamento por edificação' }, ...lista.flatMap(item => [...blocosEstrutura(norma, item), ...blocoObservacao(item.est, 'deteccao')])]
       : []),
   ]
   return { titulo: 'Detecção de Incêndio', blocos }

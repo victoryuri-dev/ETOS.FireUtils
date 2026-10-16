@@ -189,3 +189,48 @@ export const normasCarregadas = () => true`
     await srv.close()
   }
 })
+
+test('observações complementares: PB lista todas as estruturas; MA fica no contexto de cada estrutura', async () => {
+  const { observacaoDaEstrutura, observacoesDoProjeto } = await server.ssrLoadModule('/src/utils/observacoes.js')
+  const { textoMemorialSaidaEmergencia } = await server.ssrLoadModule('/src/data/memorial/saida_emergencia.js')
+  const { textoMemorialSegEstrutural } = await server.ssrLoadModule('/src/data/memorial/seg_estrutural.js')
+
+  // Campos que já existiam continuam sendo a fonte dessas duas medidas.
+  assert.equal(observacaoDaEstrutura({ obsSegEstrutural: ' x ' }, 'seg_estrutural'), 'x')
+  assert.equal(observacaoDaEstrutura({ obsCompartimentacao: 'y' }, 'compart_vertical'), 'y')
+  assert.equal(observacaoDaEstrutura({ observacoes: { brigada: 'z' } }, 'brigada'), 'z')
+
+  const base = projeto()
+  const e2 = { ...base.estruturas[0], id:'e2', nome:'Bloco B' }
+  const duas = projeto({
+    estruturas: [
+      { ...base.estruturas[0], observacoes: { saida_emergencia: 'Escada externa existente.' } },
+      { ...e2, observacoes: { saida_emergencia: 'Sem pavimento superior.' } },
+    ],
+    pavimentos: [...base.pavimentos, { ...base.pavimentos[0], id:'p2', estruturaId:'e2' }],
+  })
+  assert.equal(observacoesDoProjeto(duas.estruturas, 'saida_emergencia'), 'Bloco A: Escada externa existente.\nBloco B: Sem pavimento superior.')
+
+  // PB: o campo da seção 10 traz as duas, cada uma com o nome da estrutura.
+  const s10 = secao(gerar(duas), '10.')
+  assert.equal(s10.linhas.find(l => l.tipo === 'obs').valor, 'Bloco A: Escada externa existente.\nBloco B: Sem pavimento superior.')
+  // Uma estrutura só: sem prefixo.
+  const uma = projeto({ estruturas: [{ ...base.estruturas[0], observacoes: { saida_emergencia: 'Só uma.' } }] })
+  assert.equal(secao(gerar(uma), '10.').linhas.find(l => l.tipo === 'obs').valor, 'Só uma.')
+
+  // MA: cada observação logo depois do título da própria estrutura, antes do
+  // primeiro pavimento (mesmo nível de título).
+  const { blocos } = textoMemorialSaidaEmergencia({ ...duas, uf:'MA' }, {}, [])
+  const titulos = blocos.map((b, i) => [b, i]).filter(([b]) => b.tipo === 'titulo2').map(([b, i]) => [b.texto, i])
+  const idx = t => titulos.find(([x]) => x === t)[1]
+  const obsA = blocos.findIndex(b => b.tipo === 'campo' && b.valor === 'Escada externa existente.')
+  const obsB = blocos.findIndex(b => b.tipo === 'campo' && b.valor === 'Sem pavimento superior.')
+  assert.ok(obsA > idx('Bloco A') && obsA < idx('Bloco B'))
+  assert.ok(obsB > idx('Bloco B'))
+  assert.equal(blocos[obsA].label, 'Observações complementares')
+  assert.ok(obsA < blocos.findIndex((b, i) => i > idx('Bloco A') && b.tipo === 'titulo2' && b.texto.startsWith('Térreo')))
+
+  // Rótulo padronizado também onde o campo já existia.
+  const seg = textoMemorialSegEstrutural({ ...uma, uf:'MA', estruturas: [{ ...uma.estruturas[0], obsSegEstrutural: 'Estrutura metálica protegida.' }] })
+  assert.ok(seg.blocos.some(b => b.tipo === 'campo' && b.label === 'Observações complementares' && b.valor === 'Estrutura metálica protegida.'))
+})

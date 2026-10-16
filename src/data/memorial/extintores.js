@@ -10,6 +10,7 @@
 import { getExtintores } from '../normas/index'
 import { riscoDoPavimento, calcularPavimento } from '../extintores_calc'
 import { fmtNum } from '../../utils/numero'
+import { blocoObservacao } from '../../utils/observacoes'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 const fmt = n => fmtNum(n)
@@ -106,6 +107,7 @@ export function textoMemorialExtintores(state) {
     if (pavs.length === 0) return []
     return [
       { tipo: 'titulo2', texto: est.nome },
+      ...blocoObservacao(est, 'extintores'),
       ...pavs.flatMap(pav => blocosDoPavimento(pav, (state.extintores || []).filter(e => e.pavimentoId === pav.id), state, norma)),
     ]
   })

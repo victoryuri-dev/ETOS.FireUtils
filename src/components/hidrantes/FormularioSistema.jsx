@@ -241,7 +241,7 @@ export default function FormularioSistema() {
       </FormSection>
 
       {/* G — Observações */}
-      <FormSection title="Observações Complementares">
+      <FormSection title="Observações complementares">
         <textarea className={inputClass + ' min-h-[90px] resize-y'} placeholder="Qualquer particularidade do projeto que não se encaixa nos campos acima..."
           value={h.observacoes} onChange={e => set({ observacoes: e.target.value })}/>
       </FormSection>

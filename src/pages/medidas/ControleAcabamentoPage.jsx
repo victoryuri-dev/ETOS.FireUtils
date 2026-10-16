@@ -13,7 +13,7 @@ import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import InlineEditableNome from '../../components/ui/InlineEditableNome'
 import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
-import { CamposPBCmar } from '../../components/pb/CamposPB'
+import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // Descrição oficial da divisão (ex.: "A-3" -> "Habitação coletiva") — OCUPACOES
 // é indexado pela letra do grupo, com as divisões aninhadas em `.divisoes`
@@ -275,6 +275,7 @@ function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido }) {
           </button>
         </>
       )}
+      <ObservacoesComplementares estrutura={est} medida="controle_acabamento"/>
     </EstruturaSection>
   )
 }
@@ -339,7 +340,6 @@ export default function ControleAcabamentoPage() {
           )
         })}
 
-        <CamposPBCmar/>
       </div>
     </div>
   )

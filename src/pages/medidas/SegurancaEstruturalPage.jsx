@@ -130,7 +130,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
 
       <Card>
         <div className="py-3.5 px-[18px]">
-          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Observações do responsável técnico <Obrigatorio id={`${est.id}.obsSegEstrutural`}/></div>
+          <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1.5">Observações complementares <Obrigatorio id={`${est.id}.obsSegEstrutural`}/></div>
           <textarea
             value={est.obsSegEstrutural || ''}
             onChange={e => setObs(e.target.value)}

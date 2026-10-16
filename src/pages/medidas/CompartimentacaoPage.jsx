@@ -414,7 +414,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
 
       <Card>
         <div className="py-3.5 px-[18px]">
-          <SectionLabel>Observações do responsável técnico <Obrigatorio id={`${est.id}.obsCompartimentacao`}/></SectionLabel>
+          <SectionLabel>Observações complementares <Obrigatorio id={`${est.id}.obsCompartimentacao`}/></SectionLabel>
           <textarea
             value={est.obsCompartimentacao || ''}
             onChange={e => setObs(e.target.value)}

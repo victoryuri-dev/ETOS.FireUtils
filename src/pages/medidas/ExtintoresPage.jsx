@@ -20,6 +20,7 @@ import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { fmtUn } from '../../utils/numero'
 import { CamposPBExtintores } from '../../components/pb/CamposPB'
+import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // ── Importação do firedata.json (plugin Revit) ───────────────────────
 // Formato esperado — um item por extintor físico (cada família do Revit
@@ -1024,6 +1025,7 @@ export default function ExtintoresPage() {
                   dispatch={dispatch}
                 />
               ))}
+              <ObservacoesComplementares estrutura={est} medida="extintores"/>
             </EstruturaSection>
           )
         })}

@@ -9,7 +9,9 @@ import Checkbox from '../ui/Checkbox'
 // outra tela do projeto coleta — guardado em state.memorialPB. Cada box fica
 // no fim da página da medida correspondente (ou da etapa de Configuração,
 // para os parâmetros gerais), e só aparece em projetos da PB: o restante do
-// formulário sai dos dados que essas mesmas páginas já pedem.
+// formulário sai dos dados que essas mesmas páginas já pedem — inclusive as
+// observações de cada seção, que vêm das "Observações complementares" por
+// estrutura (components/ui/ObservacoesComplementares.jsx).
 
 function useCamposPB() {
   const { state, dispatch } = useProjeto()
@@ -78,7 +80,7 @@ export function CamposPBGerais() {
         </div>
       </div>
       <Obs label="Adaptações da NT 16 e/ou Resoluções Técnicas utilizadas na edificação" campo={campo('adaptacoes')}/>
-      <Obs label="Observação livre — natureza da ocupação" campo={campo('obsNatureza')}/>
+      <Obs label="Observações complementares — natureza da ocupação" campo={campo('obsNatureza')}/>
     </BoxPB>
   )
 }
@@ -130,13 +132,6 @@ export function CamposPBCompartimentacao() {
   )
 }
 
-// ── CMAR: item 9 ───────────────────────────────────────────────────────────
-export function CamposPBCmar() {
-  const { campo, F } = useCamposPB()
-  if (!F) return null
-  return <BoxPB item="9"><Obs label="Observação" campo={campo('obsCmar')}/></BoxPB>
-}
-
 // ── Saída de emergência: item 10.1 ─────────────────────────────────────────
 export function CamposPBSaidas() {
   const { campo, atestos, alternarAtesto, F } = useCamposPB()
@@ -153,7 +148,6 @@ export function CamposPBSaidas() {
         </select>
       </div>
       <Atestos lista={ATESTOS_PB.saidas} atestos={atestos} alternar={alternarAtesto}/>
-      <Obs label="Observações livres" campo={campo('obsSaidas')}/>
     </BoxPB>
   )
 }
@@ -171,7 +165,6 @@ export function CamposPBPlano() {
           {F.MODELOS_PLANO.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
         </select>
       </div>
-      <Obs label="Observações livres" campo={campo('obsPlano')}/>
     </BoxPB>
   )
 }
@@ -188,28 +181,19 @@ export function CamposPBBrigada() {
       </div>
       <Atestos lista={ATESTOS_PB.brigada} atestos={atestos} alternar={alternarAtesto}/>
       <Obs label="Dimensionamento" campo={campo('brigadaDimensionamento')}/>
-      <Obs label="Observação livre" campo={campo('obsBrigada')}/>
     </BoxPB>
   )
 }
 
 // ── Alarme: item 14.1 ──────────────────────────────────────────────────────
 export function CamposPBAlarme() {
-  const { campo, atestos, alternarAtesto, F } = useCamposPB()
+  const { atestos, alternarAtesto, F } = useCamposPB()
   if (!F) return null
   return (
     <BoxPB item="14.1">
       <Atestos lista={ATESTOS_PB.alarme} atestos={atestos} alternar={alternarAtesto}/>
-      <Obs label="Observações livres" campo={campo('obsAlarme')}/>
     </BoxPB>
   )
-}
-
-// ── Detecção: item 14.2 ────────────────────────────────────────────────────
-export function CamposPBDeteccao() {
-  const { campo, F } = useCamposPB()
-  if (!F) return null
-  return <BoxPB item="14.2"><Obs label="Observações livres" campo={campo('obsDeteccao')}/></BoxPB>
 }
 
 // ── Extintores: item 16 ────────────────────────────────────────────────────
@@ -227,7 +211,6 @@ export function CamposPBExtintores() {
           ))}
         </select>
       </div>
-      <Obs label="Observações livres" campo={campo('obsExtintores')}/>
     </BoxPB>
   )
 }

@@ -79,3 +79,13 @@ A linha `('PB','medidas_seguranca')` do Supabase (NT 04/2023) foi comparada camp
 | `notasEspecificas` por grupo, `tabelaAltura`, `tabela7_subsolos`, `tabelaCargaIncendio` | Extras da PB | Não lidos pelo motor hoje (sem efeito no cálculo) |
 
 O SQL só acrescenta chaves — nada existente é apagado. Se a `tabela5_edificacoesPequenas` for corrigida no banco, a `tabela_simplificada` precisa ser regerada.
+
+## Observações complementares (padrão para todos os estados)
+
+Toda página de medida tem, no fim do bloco de cada estrutura, o campo **"Observações complementares"** (`components/ui/ObservacoesComplementares.jsx`, dados em `utils/observacoes.js`):
+
+- Segurança estrutural e Compartimentação continuam usando os campos que já existiam (`obsSegEstrutural`, `obsCompartimentacao`) — só o rótulo mudou (era "Observações do responsável técnico").
+- CMAR, Saídas de emergência, Brigada, Alarme, Detecção, Extintores e Gerenciamento de risco: `estrutura.observacoes[medida]`. Gerenciamento de risco não tem bloco por estrutura: os campos de todas ficam listados juntos num box da página.
+- Hidrantes continua com um campo único do sistema ("Observações complementares"), por ser um sistema só por projeto.
+- **Memorial do MA**: cada observação entra no trecho da própria estrutura (em Saídas e Extintores, logo após o título da estrutura, antes dos pavimentos; no Plano de Emergência, numa subseção no fim, com o nome de cada estrutura).
+- **Formulário da PB**: o campo de observações de cada seção lista as de todas as estruturas (com o nome da estrutura quando há mais de uma). Os rótulos impressos do formulário ("OBSERVAÇÕES LIVRES:") seguem o modelo do CBMPB.

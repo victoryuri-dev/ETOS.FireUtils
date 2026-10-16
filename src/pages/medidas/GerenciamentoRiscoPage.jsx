@@ -10,6 +10,7 @@ import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { statusPorProgresso } from '../../utils/statusEstrutura'
 import { CamposPBPlano } from '../../components/pb/CamposPB'
+import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) com os poucos
 // dados que ainda não existem em outro lugar do projeto — endereço, área,
@@ -197,6 +198,12 @@ export default function GerenciamentoRiscoPage() {
             </div>
           ))}
         </div>
+      </FormSection>
+
+      <FormSection title="Observações complementares" description="Por estrutura — entram no memorial junto ao plano de emergência.">
+        {state.estruturas.map(est => (
+          <ObservacoesComplementares key={est.id} estrutura={est} medida="gerenciamento_risco" comNome={state.estruturas.length > 1}/>
+        ))}
       </FormSection>
 
       <CamposPBPlano/>

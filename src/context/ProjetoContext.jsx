@@ -587,19 +587,12 @@ const INITIAL_STATE = {
     // chave `h:<elemento>` ou `v:<elemento>` (chaves de
     // ELEMENTOS_COMPART_HORIZONTAL/VERTICAL em normas/<UF>/compartimentacao.js).
     especificacaoCompart: {},
-    obsCmar: '',
     tipoEscada: '',          // 'NE' | 'EP' | 'PF'; '' = deriva da norma (10.1)
-    obsSaidas: '',
     planoModelo: '',         // 'item6' | 'anexoB' (MODELOS_PLANO, 11.1)
-    obsPlano: '',
     brigadaCargaHoraria: '',
     brigadaIntervaloSimulados: '',
     brigadaDimensionamento: '',
-    obsBrigada: '',
     extintorNivelIII: '',    // 'nivel_III_3A' | 'nivel_III_4A' (EXTINTORES_NIVEL)
-    obsExtintores: '',
-    obsAlarme: '',
-    obsDeteccao: '',
     // Itens de "atesto" do formulário (as escadas atendem ao item 5.7 da NT
     // 12 etc.) — { [chave do item]: true }. Nunca marcados automaticamente:
     // é declaração do RT, não resultado de cálculo.

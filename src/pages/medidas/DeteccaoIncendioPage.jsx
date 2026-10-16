@@ -12,7 +12,7 @@ import {
   TIPOS_DETECTOR, deteccaoDaEstrutura, deteccaoPav, detectoresAtivos, resumoDeteccaoPavimento, notasAplicaveis, fmtNum,
 } from '../../data/deteccao_alarme_calc'
 import { Card, CampoNum, BotaoOpcao, LinhaChave, NotasDaNorma, QuadroParametros, inputBase, TH, TD } from '../../components/deteccao/DaUi'
-import { CamposPBDeteccao } from '../../components/pb/CamposPB'
+import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // ── Detecção de Incêndio ────────────────────────────────────────────────
 // Tipos e quantidades de detectores por pavimento (NT 19 — mesma norma do
@@ -144,6 +144,7 @@ function EstruturaDeteccao({ estrutura, pavimentos, norma, exigido }) {
       <NotasDaNorma especificas={especificas} gerais={gerais} sigla={nrm.sigla}/>
       </>
       )}
+      <ObservacoesComplementares estrutura={estrutura} medida="deteccao"/>
     </EstruturaSection>
   )
 }
@@ -195,7 +196,6 @@ export default function DeteccaoIncendioPage() {
           )
         })}
 
-        <CamposPBDeteccao/>
       </div>
     </div>
   )

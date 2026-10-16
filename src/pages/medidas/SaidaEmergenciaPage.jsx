@@ -17,6 +17,7 @@ import { fmtUn } from '../../utils/numero'
 import AcessosDescargasView from './AcessosDescargasView'
 import { calcPopPav, contarSaidasPavimento, getDistanciaPavimento, tipoEscadaEstrutura } from '../../data/se_calc'
 import { CamposPBSaidas } from '../../components/pb/CamposPB'
+import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // ── Helpers ───────────────────────────────────────────────────────────
 let _seq = 0
@@ -478,6 +479,7 @@ export default function SaidaEmergenciaPage() {
                       ))}
                     </tbody>
                   </DimTable>
+                  <ObservacoesComplementares estrutura={estrutura} medida="saida_emergencia"/>
                 </EstruturaSection>
               )
             })}

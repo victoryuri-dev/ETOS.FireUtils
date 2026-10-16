@@ -201,8 +201,8 @@ export function camposOpcionais(state, porEstrutura = []) {
       ;(pav.acess || []).forEach((a,i) => add(campoId(pav.id,'acess',i,'area'),`Área dedicada à ocupação ${i+2}`,a.area,config(4,'Classificação',`${est.nome} · ${pav.label}`)))
     }
     const sistemas = porEstrutura.find(pe => pe.estrutura.id === est.id)?.sistemas || {}
-    if (sistemas.seg_estrutural?.ativo) add(campoId(est.id,'obsSegEstrutural'),'Observações do responsável técnico',est.obsSegEstrutural,{rota:'medida/seg_estrutural',secao:'Segurança estrutural',contexto:est.nome,estruturaId:est.id})
-    if (sistemas.compart_horizontal?.ativo || sistemas.compart_vertical?.ativo) add(campoId(est.id,'obsCompartimentacao'),'Observações do responsável técnico',est.obsCompartimentacao,{rota:`medida/${sistemas.compart_horizontal?.ativo ? 'compart_horizontal' : 'compart_vertical'}`,secao:'Compartimentação',contexto:est.nome,estruturaId:est.id})
+    if (sistemas.seg_estrutural?.ativo) add(campoId(est.id,'obsSegEstrutural'),'Observações complementares',est.obsSegEstrutural,{rota:'medida/seg_estrutural',secao:'Segurança estrutural',contexto:est.nome,estruturaId:est.id})
+    if (sistemas.compart_horizontal?.ativo || sistemas.compart_vertical?.ativo) add(campoId(est.id,'obsCompartimentacao'),'Observações complementares',est.obsCompartimentacao,{rota:`medida/${sistemas.compart_horizontal?.ativo ? 'compart_horizontal' : 'compart_vertical'}`,secao:'Compartimentação',contexto:est.nome,estruturaId:est.id})
     if (sistemas.iluminacao?.ativo) for (const item of (state.iluminacao || []).filter(i => i.estruturaId === est.id)) add(campoId(item.id,'identificacao'),'Identificação do equipamento',item.identificacao,{rota:'medida/iluminacao',secao:'Iluminação',contexto:est.nome,estruturaId:est.id})
   }
   return campos

@@ -11,6 +11,7 @@
 
 import { getBrigada, getExtintores, getCNAEsDivisao } from '../normas/index'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL } from '../brigada_calc'
+import { blocoObservacao } from '../../utils/observacoes'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 
@@ -143,7 +144,7 @@ export function textoMemorialBrigadaIncendio(state, sistemas, porEstrutura) {
     const exigido = pe ? !!pe.sistemas?.brigada?.ativo : !!sistemas?.brigada?.ativo
     const r = blocosDaEstrutura(est, pavs, est.altura, est.areaTotal, state.cargaState[est.id] || {}, cnaesDiv, extNorma.LIMIARES_RISCO, TABELA_A1, NOTAS_TABELA_A1, exigido)
     if (r.temAsterisco) temAsterisco = true
-    return r.blocos
+    return [...r.blocos, ...blocoObservacao(est, 'brigada')]
   })
 
   if (blocos.length === 0) {

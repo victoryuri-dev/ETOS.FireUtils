@@ -158,7 +158,7 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
     }
 
     if (est.obsCompartimentacao?.trim()) {
-      blocos.push({ tipo: 'campo', label: 'Observações do responsável técnico', valor: est.obsCompartimentacao.trim() })
+      blocos.push({ tipo: 'campo', label: 'Observações complementares', valor: est.obsCompartimentacao.trim() })
     }
   })
 

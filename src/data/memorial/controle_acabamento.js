@@ -20,6 +20,7 @@
 // exigido para ela.
 
 import { montarLinhas } from '../cmar_calc'
+import { blocoObservacao } from '../../utils/observacoes'
 
 function fmtMaterial(item) {
   if (item?.origem === 'nao_possui') return 'N/A'
@@ -86,7 +87,7 @@ export function textoMemorialControleAcabamento(state, sistemas, porEstrutura) {
 
   const blocos = (state.estruturas || [])
     .filter(exigidaEm)
-    .flatMap(est => blocosDaEstrutura(state, est))
+    .flatMap(est => [...blocosDaEstrutura(state, est), ...blocoObservacao(est, 'controle_acabamento')])
 
   if (blocos.length === 0) {
     blocos.push({ tipo: 'paragrafo', texto: 'Não há dados suficientes para a análise do CMAR — pendente de definição pelo responsável técnico.' })

@@ -21,6 +21,7 @@ import {
   calcDimsAcesso, dimsDoAcesso, calcNoAmbientePT, tipoEscadaEstrutura,
 } from '../se_calc'
 import { fmtNum } from '../../utils/numero'
+import { blocoObservacao } from '../../utils/observacoes'
 
 const fmt  = n => fmtNum(n, 2, '0')
 const fmtM = n => `${fmt(n)} m`
@@ -309,6 +310,9 @@ function blocosDaEstrutura(est, pavs, seNorma, temChuveiros, temDeteccao) {
     })
   }
 
+  // Antes dos pavimentos: o título de cada pavimento é do mesmo nível do da
+  // estrutura, e a observação ficaria parecendo do último pavimento.
+  blocos.push(...blocoObservacao(est, 'saida_emergencia'))
   blocos.push(...pavs.flatMap(pav => blocosDoPavimento(pav, seNorma, temChuveiros, temDeteccao)))
   return blocos
 }
