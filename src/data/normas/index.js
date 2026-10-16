@@ -372,7 +372,7 @@ export function getMedidasObrigatorias(uf, divisoes, altura, area) {
 
   const h = parseFloat(altura) || 0
   const a = parseFloat(area)   || 0
-  const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = norma
+  const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = _partesMedidas(norma)
   const simplificado = a < LIMIARES.areaMin && h < LIMIARES.alturaMin
 
   return simplificado
@@ -399,7 +399,7 @@ export function getGruposSemDados(uf, divisoes, altura, area) {
 
   const h = parseFloat(altura) || 0
   const a = parseFloat(area)   || 0
-  const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = norma
+  const { LIMIARES, TABELA_SIMPLIFICADA, MEDIDAS } = _partesMedidas(norma)
   const simplificado = a < LIMIARES.areaMin && h < LIMIARES.alturaMin
 
   const faltantes = new Set()
@@ -427,6 +427,19 @@ export function getNotaMedida(uf, divisao, medida) {
   if (!norma?.NOTAS_ESPECIFICAS) return null
   const notas = norma.NOTAS_ESPECIFICAS
   return notas[divisao.charAt(0)]?.[medida] ?? null
+}
+
+// Partes da tabela de medidas com fallback vazio: uma linha da base central
+// que venha sem a tabela simplificada (ou sem a normal) não pode derrubar a
+// tela — a divisão sem dado vira "grupo sem dados" (getGruposSemDados) e o
+// motor aplica o mínimo de referência (useMedidasObrigatorias), como já
+// acontece com uma divisão que a tabela não cobre.
+function _partesMedidas(norma) {
+  return {
+    LIMIARES: norma.LIMIARES || { areaMin: 0, alturaMin: 0 },
+    TABELA_SIMPLIFICADA: norma.TABELA_SIMPLIFICADA || {},
+    MEDIDAS: norma.MEDIDAS || {},
+  }
 }
 
 // Resolve Tabela 5 — processo simplificado

@@ -118,3 +118,27 @@ test('SQL do memorial_formulario entrega o mesmo conteúdo do arquivo estático 
   const esperado = Object.fromEntries(Object.entries(mf).map(([k, v]) => [k.toLowerCase(), v]))
   assert.deepEqual(dadosDoSql('20261016120001_seed_normas_memorial_formulario_pb.sql'), JSON.parse(JSON.stringify(esperado)))
 })
+
+test('tabela de medidas incompleta na base central não quebra o motor de normas', async () => {
+  // Servidor à parte com normasRemote.js trocado por um stub: a linha
+  // ('PB','medidas_seguranca') chega só com limiares e MEDIDAS, sem a
+  // tabela simplificada — o caso que derrubava a criação de projeto.
+  const stub = `export const getNormaRemota = (uf, s) => (uf === 'PB' && s === 'medidas_seguranca' ? { limiares: { areaMin: 750, alturaMin: 12 }, medidas: {} } : null)
+export const sistemaExisteNoCatalogo = () => false
+export const carregarNormasRemotas = async () => {}
+export const carregarCatalogoNormas = async () => {}
+export const normasCarregadas = () => true`
+  const srv = await createServer({ server:{ middlewareMode:true }, appType:'custom', plugins:[{
+    name:'stub-normas-remotas', enforce:'pre',
+    resolveId: id => (id.endsWith('lib/normasRemote') || id.endsWith('lib/normasRemote.js') ? '\0stub-normas' : null),
+    load: id => (id === '\0stub-normas' ? stub : null),
+  }] })
+  try {
+    const { getMedidasObrigatorias, getGruposSemDados } = await srv.ssrLoadModule('/src/data/normas/index.js')
+    assert.doesNotThrow(() => getMedidasObrigatorias('PB', ['C-1'], 0, 0))      // simplificado, sem tabela
+    assert.doesNotThrow(() => getMedidasObrigatorias('PB', ['C-1'], 20, 2000))  // normal, grupo sem dado
+    assert.deepEqual(getGruposSemDados('PB', ['C-1'], 0, 0), ['C'])
+  } finally {
+    await srv.close()
+  }
+})
