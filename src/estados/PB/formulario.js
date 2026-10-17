@@ -31,7 +31,7 @@
 
 import {
   getMemorialFormulario, getMedidas, getOcupacoes, getTRRF, getCompartimentacao,
-  getBrigada, getExtintores, getCNAEsDivisao, getDeteccaoAlarme,
+  getBrigada, getExtintores, getCNAEsDivisao,
 } from '../../data/normas/index'
 import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
 import { fmtNum } from '../../utils/numero'
@@ -760,6 +760,33 @@ const ATESTOS_ALARME = [
   ['alarme_altura_avisadores', 'Altura de instalação dos avisadores áudio e visuais entre 2,2m e 3,5m'],
 ]
 
+// 14.2 — tipos de detector do formulário e os campos de cada um, com o
+// máximo impresso no próprio formulário do CBMPB. O RT informa o valor de
+// projeto na página da Detecção (memorialPB.deteccao[tipo][campo]); sem
+// valor, vale o máximo.
+export const DETECTORES_PB = [
+  { key: 'fumaca_pontual', label: 'Fumaça pontual', campos: [
+    { key: 'raio', label: 'Raio de atuação', maximo: 6.3 },
+    { key: 'altura', label: 'Altura de instalação', maximo: 8 },
+  ] },
+  { key: 'temperatura_pontual', label: 'Temperatura pontual', campos: [
+    { key: 'raio', label: 'Raio de atuação', maximo: 4.2 },
+    { key: 'altura', label: 'Altura de instalação', maximo: 5 },
+  ] },
+  { key: 'fumaca_linear', label: 'Fumaça linear', campos: [
+    { key: 'distancia', label: 'Distanciamento entre detectores', maximo: 15 },
+  ] },
+]
+
+/** Valor de projeto de um campo de detector: o informado (limitado ao
+ *  máximo do formulário) ou o próprio máximo. */
+export function valorDetectorPB(m, tipo, campoKey) {
+  const def = DETECTORES_PB.find(d => d.key === tipo)?.campos.find(c => c.key === campoKey)
+  if (!def) return null
+  const n = parseFloat(String(m?.deteccao?.[tipo]?.[campoKey] ?? '').replace(',', '.'))
+  return n > 0 ? Math.min(n, def.maximo) : def.maximo
+}
+
 function secaoAlarmeDeteccao(state, ctx) {
   const m = state.memorialPB || {}
   const at = m.atestos || {}
@@ -769,11 +796,10 @@ function secaoAlarmeDeteccao(state, ctx) {
   // informados nas páginas da PB.
   const localCentral = () => m.alarmeCentralLocal || ''
 
-  // Valores de projeto dos detectores = os limites da norma, só para os
+  // Valores de projeto dos detectores (página da Detecção), só para os
   // tipos de detector adotados.
   const tiposDet = new Set(m.detectoresTipos || [])
-  const det = exigDet ? (getDeteccaoAlarme(state.uf)?.DETECTORES?.tipos || {}) : {}
-  const v = (tipo, campoNorma) => (tiposDet.has(tipo) && det[tipo]?.[campoNorma] != null ? fmtM(det[tipo][campoNorma]) : '')
+  const v = (tipo, campoKey) => (exigDet && tiposDet.has(tipo) ? fmtM(valorDetectorPB(m, tipo, campoKey)) : '')
 
   return {
     titulo: '14. SISTEMA DE ALARME E DETECÇÃO DE INCÊNDIO',
@@ -786,11 +812,11 @@ function secaoAlarmeDeteccao(state, ctx) {
       sub('14.2 Sistema de Detecção de Incêndio', '(Informe as características do sistema de alarme, conforme NT 19/2024)'),
       { tipo: 'exigivel', exigivel: exigDet },
       campo('Localização da central do alarme:', exigDet ? localCentral() : ''),
-      campo('Raio de atuação em detecção pontual de fumaça (máximo 6,3m):', v('fumaca_pontual', 'raio_m')),
-      campo('Altura de instalação da detecção pontual de fumaça (máximo 8m):', v('fumaca_pontual', 'altura_max_m')),
-      campo('Raio de atuação em detecção pontual de temperatura (máximo 4,2m):', v('temperatura_pontual', 'raio_m')),
-      campo('Altura de instalação da detecção pontual de temperatura (máximo 5m):', v('temperatura_pontual', 'altura_max_m')),
-      campo('Distanciamento entre detectores lineares (máximo 15m):', v('fumaca_linear', 'dist_entre_feixes_max_m')),
+      campo('Raio de atuação em detecção pontual de fumaça (máximo 6,3m):', v('fumaca_pontual', 'raio')),
+      campo('Altura de instalação da detecção pontual de fumaça (máximo 8m):', v('fumaca_pontual', 'altura')),
+      campo('Raio de atuação em detecção pontual de temperatura (máximo 4,2m):', v('temperatura_pontual', 'raio')),
+      campo('Altura de instalação da detecção pontual de temperatura (máximo 5m):', v('temperatura_pontual', 'altura')),
+      campo('Distanciamento entre detectores lineares (máximo 15m):', v('fumaca_linear', 'distancia')),
       obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'deteccao')),
     ],
   }

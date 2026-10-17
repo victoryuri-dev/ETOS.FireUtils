@@ -383,6 +383,21 @@ test('14: central e detectores informados na página da PB', () => {
   assert.equal(marcados(s14).filter(l => /acionador manual até 30m|Autonomia sem alarme|Autonomia com todo|acionadores entre|avisadores áudio/.test(l)).length, 5)
 })
 
+test('14.2: valores dos detectores informados na página (vazio = máximo; acima do máximo, o máximo)', () => {
+  const p = projeto({
+    sistemasPorEstrutura: { e1: { alarme: true, deteccao: true } },
+    memorialPB: {
+      detectoresTipos: ['fumaca_pontual', 'fumaca_linear'],
+      deteccao: { fumaca_pontual: { raio: '5', altura: '' }, fumaca_linear: { distancia: '20' }, temperatura_pontual: { raio: '3' } },
+    },
+  })
+  const s14 = secao(gerar(p), '14.')
+  assert.equal(valorCampo(s14, 'Raio de atuação em detecção pontual de fumaça (máximo 6,3m):'), '5 m')
+  assert.equal(valorCampo(s14, 'Altura de instalação da detecção pontual de fumaça (máximo 8m):'), '8 m')
+  assert.equal(valorCampo(s14, 'Distanciamento entre detectores lineares (máximo 15m):'), '15 m')
+  assert.equal(valorCampo(s14, 'Raio de atuação em detecção pontual de temperatura (máximo 4,2m):'), '')   // tipo não adotado
+})
+
 test('6. acesso de viatura: as distâncias informadas marcam a linha certa do formulário', () => {
   const sec = (av, hid = false) => secao(gerar(projeto({
     sistemasPorEstrutura: { e1: { acesso_viatura: true, hidrantes: hid } },

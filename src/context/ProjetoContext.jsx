@@ -608,6 +608,7 @@ const INITIAL_STATE = {
     iluAlturaInstalacao: '', // m — item 13 (distância máx. entre pontos = 4 × altura)
     alarmeCentralLocal: '',  // 14.1 e 14.2 (a mesma central)
     detectoresTipos: [],     // 'fumaca_pontual' | 'temperatura_pontual' | 'fumaca_linear' (14.2)
+    deteccao: {},            // 14.2: { [tipo]: { raio, altura, distancia } } — vazio = o máximo do formulário
     // 6 — distanciaEdificacao, distanciaRecalque e dados da via (vazios =
     // padrão: largura 6 m, altura livre 4,5 m, portão 4 × 4,5 m); switches
     // sim/não (true = sim; desligado = não): cargaConfirmada, temPortao.

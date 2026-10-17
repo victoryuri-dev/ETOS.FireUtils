@@ -5,7 +5,7 @@ import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { getMemorialFormulario } from '../../data/normas/index'
 import {
   ATESTOS_PB, atestoMarcado, resumoBrigadaPB, INTERVALO_SIMULADOS_PADRAO, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
-  distanciaMaximaPontosPB, tiposIluminacaoPB, secoesIluminacaoPB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
+  distanciaMaximaPontosPB, tiposIluminacaoPB, secoesIluminacaoPB, DETECTORES_PB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
@@ -15,6 +15,7 @@ import FormSection from '../../components/ui/FormSection'
 import Checkbox from '../../components/ui/Checkbox'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import { EscolhaSistemaIluminacao } from '../../pages/medidas/IluminacaoPage'
+import { BotaoOpcao } from '../../components/deteccao/DaUi'
 
 // Campos do formulário do Memorial Descritivo do CBMPB — só o que o
 // formulário pede e nenhuma outra tela coleta, guardado em state.memorialPB
@@ -277,11 +278,6 @@ export function CamposIluminacaoPB() {
 
 // 14 — local da central, atestos do alarme (14.1) e tipos de detector (14.2),
 // cada medida na sua página.
-const DETECTORES_FORMULARIO = [
-  ['fumaca_pontual', 'Detecção pontual de fumaça'],
-  ['temperatura_pontual', 'Detecção pontual de temperatura'],
-  ['fumaca_linear', 'Detecção linear de fumaça'],
-]
 // Local da central: um só campo para alarme e detecção (a central é a
 // mesma) — fica na página do alarme; a da detecção só o mostra quando o
 // alarme não é exigido (sem página de alarme para preenchê-lo).
@@ -299,17 +295,56 @@ export function CamposAlarmePB() {
   )
 }
 
-export function CamposDeteccaoPB() {
-  const { m, campo, alternarEm } = useCamposPB()
-  const { sistemas } = useMedidasObrigatorias()
+// Valor de detector com teto (o máximo do formulário): já vem com o máximo;
+// ao sair do campo, um valor acima dele volta para o máximo.
+function NumeroMaximo({ label, value, onChange, maximo, sufixo = 'm' }) {
+  const exibido = value === '' || value == null ? String(maximo) : value
+  const aoSair = () => {
+    const n = parseFloat(String(value ?? '').replace(',', '.'))
+    if (Number.isFinite(n) && n > maximo) onChange(String(maximo))
+  }
   return (
-    <BoxPB item="14.2">
-      {!sistemas?.alarme?.ativo && <CampoCentralPB campo={campo}/>}
-      <div className="flex flex-col gap-2">
-        <Rotulo>Tipos de detector adotados</Rotulo>
-        {DETECTORES_FORMULARIO.map(([key, label]) => <Marcador key={key} label={label} checked={(m.detectoresTipos || []).includes(key)} onChange={() => alternarEm('detectoresTipos', key)}/>)}
+    <div className="fg">
+      <label>{label} (máximo {fmtNum(maximo, 2)} {sufixo})</label>
+      <div className="relative">
+        <input type="number" step="0.1" min="0" max={maximo} value={exibido} onChange={e => onChange(e.target.value)} onBlur={aoSair} className="pr-8"/>
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">{sufixo}</span>
       </div>
-    </BoxPB>
+    </div>
+  )
+}
+
+// 14.2 — tipos de detector (botões, como na página do MA) e, para cada tipo
+// ativo, os campos do formulário. Preenchimento geral, não por estrutura.
+export function CamposDeteccaoPB() {
+  const { m, set, campo, alternarEm } = useCamposPB()
+  const { sistemas } = useMedidasObrigatorias()
+  const tipos = m.detectoresTipos || []
+  const setValor = (tipo, key, valor) => set({ deteccao: { ...(m.deteccao || {}), [tipo]: { ...(m.deteccao?.[tipo] || {}), [key]: valor } } })
+  return (
+    <>
+      <BoxPB item="14.2">
+        {!sistemas?.alarme?.ativo && <CampoCentralPB campo={campo}/>}
+        <div className="flex flex-col gap-2">
+          <Rotulo>Tipos de detector utilizados</Rotulo>
+          <div className="flex gap-2">
+            {DETECTORES_PB.map(d => (
+              <BotaoOpcao key={d.key} ativo={tipos.includes(d.key)} onClick={() => alternarEm('detectoresTipos', d.key)}>{d.label}</BotaoOpcao>
+            ))}
+          </div>
+        </div>
+      </BoxPB>
+      {DETECTORES_PB.filter(d => tipos.includes(d.key)).map(d => (
+        <FormSection key={d.key} title={`Detecção — ${d.label.toLowerCase()}`}>
+          <div className="g2">
+            {d.campos.map(c => (
+              <NumeroMaximo key={c.key} label={c.label} maximo={c.maximo}
+                value={m.deteccao?.[d.key]?.[c.key] ?? ''} onChange={v => setValor(d.key, c.key, v)}/>
+            ))}
+          </div>
+        </FormSection>
+      ))}
+    </>
   )
 }
 
