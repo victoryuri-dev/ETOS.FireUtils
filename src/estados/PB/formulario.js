@@ -685,10 +685,10 @@ export function secoesIluminacaoPB(tipos) {
     ['circuitoBaterias', 'Circuitos de alimentação das baterias'],
     ['circuitoLuminarias', 'Circuitos de alimentação das luminárias'],
     ['luminarias', 'Luminárias'],
-    ['blocos', '13.1 Conjunto de blocos autônomos'],
-    ['central_bateria', '13.2 Sistema centralizado por baterias recarregáveis'],
-    ['ups', '13.3 Sistema centralizado por UPS'],
-    ['gerador', '13.4 Sistema centralizado por grupo motogerador'],
+    ['blocos', 'Conjunto de blocos autônomos'],
+    ['central_bateria', 'Sistema centralizado por baterias recarregáveis'],
+    ['ups', 'Sistema centralizado por UPS'],
+    ['gerador', 'Sistema centralizado por grupo motogerador'],
   ]
     .filter(([chave]) => valeParaTipos(chave, tipos))
     .map(([chave, titulo]) => ({ chave, titulo, lista: G[chave].filter(([key]) => valeParaTipos(key, tipos)) }))
