@@ -29,7 +29,7 @@ export default function ComPrevia({ sistKey, children }) {
   const colunaRef = useRef(null)
   const painelRef = useRef(null)
   const conteudoRef = useRef(null)
-  const [aberto, setAberto] = useState(false)
+  const botaoRef = useRef(null)
   const [montado, setMontado] = useState(false)
   const [expandido, setExpandido] = useState(false)
   const [posBotao, setPosBotao] = useState(null)
@@ -43,7 +43,7 @@ export default function ComPrevia({ sistKey, children }) {
     const c = coluna.getBoundingClientRect()
     const form = coluna.querySelector('[class*="max-w-"]')
     const direita = form ? form.getBoundingClientRect().right : c.right - 24
-    setPosBotao(Math.min(direita + 16, c.right - BOTAO - 16) - r.left)
+    setPosBotao(Math.min(direita + 8, c.right - BOTAO - 8) - r.left)
   }, [])
 
   useLayoutEffect(() => {
@@ -63,6 +63,13 @@ export default function ComPrevia({ sistKey, children }) {
     gsap.fromTo(conteudoRef.current, { x: 48, opacity: 0 }, { x: 0, opacity: 1, duration: .45 * d, delay: .12 * d, ease: 'power3.out' })
   }, [montado]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Botão volta (painel recolhido): entra com fade e leve escala.
+  useLayoutEffect(() => {
+    if (montado || !botaoRef.current) return
+    const d = reduzMovimento() ? 0 : 1
+    gsap.fromTo(botaoRef.current, { opacity: 0, scale: .8 }, { opacity: 1, scale: 1, duration: .25 * d, ease: 'back.out(2)', clearProps: 'opacity,transform' })
+  }, [montado])
+
   // Janela redimensionada com o painel aberto: acompanha a largura alvo.
   useEffect(() => {
     if (!montado) return
@@ -75,9 +82,8 @@ export default function ComPrevia({ sistKey, children }) {
     return () => window.removeEventListener('resize', aoRedimensionar)
   }, [montado, expandido, posicionar])
 
-  const abrir = () => { setAberto(true); setMontado(true) }
+  const abrir = () => setMontado(true)
   const fechar = () => {
-    setAberto(false)
     const d = reduzMovimento() ? 0 : 1
     gsap.to(conteudoRef.current, { x: 48, opacity: 0, duration: .18 * d, ease: 'power2.in' })
     gsap.to(painelRef.current, {
@@ -103,7 +109,7 @@ export default function ComPrevia({ sistKey, children }) {
         <aside ref={painelRef} className="shrink-0 h-full overflow-hidden border-l border-solid border-border bg-surface-2" aria-label="Prévia do documento">
           <div ref={conteudoRef} className="h-full flex flex-col">
             <div className="flex items-center gap-2 py-3 px-4 border-b border-solid border-border shrink-0">
-              <Icon name="fileText" size={15} color="var(--color-red)"/>
+              <Icon name="documentosMedida" size={15} color="var(--color-red)"/>
               <span className="text-[13px] font-semibold text-ink flex-1">Prévia do documento</span>
               <button type="button" className="btn-ghost py-1 px-2" onClick={alternarExpansao}
                 title={expandido ? 'Reduzir prévia' : 'Expandir prévia'} aria-label={expandido ? 'Reduzir prévia' : 'Expandir prévia'}>
@@ -122,21 +128,21 @@ export default function ComPrevia({ sistKey, children }) {
         </aside>
       )}
 
-      {/* Botão flutuante: fixo na tela (fora da rolagem da coluna), ao lado
-          do formulário; abre e fecha a prévia. */}
-      {posBotao != null && (
-        <div className="group absolute z-30 w-12 h-12" style={{ top: TOPO_BOTAO, left: posBotao }}>
-          <button
-            type="button"
-            onClick={() => (aberto ? fechar() : abrir())}
-            title={aberto ? 'Fechar prévia do documento' : 'Prévia do documento'}
-            aria-label={aberto ? 'Fechar prévia do documento' : 'Prévia do documento'}
-            aria-expanded={aberto}
-            className={`absolute inset-0 grid place-items-center border border-solid text-white shadow-[0_8px_24px_rgba(0,0,0,.38)] transition-[background-color,border-color,box-shadow,scale] duration-300 ease-out hover:scale-105 group-hover:border-red group-hover:bg-red ${aberto ? 'border-red bg-red' : 'border-[rgba(255,255,255,.16)] bg-[#24252c]'}`}
-          >
-            <Icon name={aberto ? 'x' : 'fileText'} size={22} strokeWidth={aberto ? 3 : 2}/>
-          </button>
-        </div>
+      {/* Botão flutuante: fixo na tela (fora da rolagem da coluna), colado
+          ao formulário; some enquanto a prévia está aberta (o painel tem o
+          próprio fechar). */}
+      {posBotao != null && !montado && (
+        <button
+          ref={botaoRef}
+          type="button"
+          onClick={abrir}
+          title="Prévia do documento"
+          aria-label="Prévia do documento"
+          style={{ top: TOPO_BOTAO, left: posBotao }}
+          className="absolute z-30 w-12 h-12 grid place-items-center border border-solid border-[rgba(255,255,255,.16)] bg-[#24252c] text-white shadow-[0_8px_24px_rgba(0,0,0,.38)] transition-[background-color,border-color] duration-300 ease-out hover:border-red hover:bg-red"
+        >
+          <Icon name="documentosMedida" size={22}/>
+        </button>
       )}
     </div>
   )

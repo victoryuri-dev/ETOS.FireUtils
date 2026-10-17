@@ -6,7 +6,7 @@ import {
   BrickWallFire, AlarmSmoke, BellElectric, Van, ShieldAlert, Loader2, CircleCheck,
   SeparatorHorizontal, GripVertical, Copy, MoreVertical, SquareArrowRightExit,
   Bold, Italic, Underline, Strikethrough, List, Palette, Lock, ExternalLink,
-  NotebookPen, MessageCircle, FileText, Maximize2, Minimize2,
+  NotebookPen, MessageCircle, Maximize2, Minimize2,
 } from 'lucide-react'
 import hidranteIconSvg from '../../assets/icons/hidrante-icon.svg?raw'
 import extintorIconSvg from '../../assets/icons/extintor-icon.svg?raw'
@@ -39,7 +39,7 @@ const ICONS = {
   bold: Bold, italic: Italic, underline: Underline, strike: Strikethrough, list: List, palette: Palette,
   lock: Lock, externalLink: ExternalLink,
   notebookPen: NotebookPen, feedback: MessageCircle,
-  fileText: FileText, maximize: Maximize2, minimize: Minimize2,
+  maximize: Maximize2, minimize: Minimize2,
 }
 
 // Ícones próprios (SVG entregue pelo design, path fill="currentColor") em vez
