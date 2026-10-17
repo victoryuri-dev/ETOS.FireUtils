@@ -40,7 +40,7 @@ import { calcularAreaMaximaCompartimentacao } from '../../data/compart_calc'
 import { resumoSaidasPB } from './saidas'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
-import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../../data/brigada_calc'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL, maiorRisco, maiorNivel } from '../../data/brigada_calc'
 import { observacoesDoProjeto, ROTULO_OBSERVACOES } from '../../utils/observacoes'
 import { textoMemorialBrigadaIncendio } from '../../data/memorial/brigada_incendio'
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
@@ -490,7 +490,6 @@ const ATESTOS_BRIGADA = [
   ['brigada_a_construir', 'Edificações, a construir, sem brigada definida, deverá solicitar o recarimbo após brigada definida'],
 ]
 
-const ORDEM_NIVEL = { basico: 1, intermediario: 2, avancado: 3 }
 export const INTERVALO_SIMULADOS_PADRAO = '12 meses'
 /** Tempo entre simulados: o informado, ou o padrão de 12 meses. */
 export const intervaloSimuladosPB = m => (m?.brigadaIntervaloSimulados || '').trim() || INTERVALO_SIMULADOS_PADRAO
@@ -521,7 +520,6 @@ function resumoBrigada(state, ctx) {
   const cnaesDiv = divisao => getCNAEsDivisao(state.uf, divisao)
   let total = 0, temTotal = false
   const divisoes = [], riscos = [], niveis = []
-  let nivelMax = null
   const comBrigada = (ctx.porEstrutura || []).filter(pe => pe.sistemas?.brigada?.ativo)
   comBrigada.forEach(({ estrutura: est }) => {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
@@ -531,18 +529,21 @@ function resumoBrigada(state, ctx) {
       const { linha, resultado, nivelTreinamento } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, est.altura, TABELA_A1, est.areaTotal, opcoes)
       if (!linha || linha.isento) return
       divisoes.push(pav.divisao)
-      riscos.push(RISCO_LABEL[risco])
-      if (nivelTreinamento) {
-        niveis.push(NIVEL_LABEL[nivelTreinamento.nivel] || nivelTreinamento.label)
-        const chave = nivelTreinamento.nivel === 'misto' ? 'intermediario' : nivelTreinamento.nivel
-        if ((ORDEM_NIVEL[chave] || 0) > (ORDEM_NIVEL[nivelMax] || 0)) nivelMax = chave
-      }
+      riscos.push(risco)
+      niveis.push(nivelTreinamento)
       if (resultado?.brigadistas != null) { total += resultado.brigadistas; temTotal = true }
     })
   })
+  // Grau de risco e nível de treinamento: os maiores entre os pavimentos (a
+  // carga horária da Tabela B.2 sai desse nível; o misto conta como
+  // intermediário).
+  const risco = maiorRisco(riscos)
+  const nivel = maiorNivel(niveis)
+  const nivelMax = nivel?.nivel ? (nivel.nivel === 'misto' ? 'intermediario' : nivel.nivel) : null
   const carga = nivelMax ? brig.CARGA_HORARIA_TREINAMENTO?.[nivelMax] : null
   return {
-    total: temTotal ? String(total) : '', divisoes: juntar(divisoes), riscos: juntar(riscos), niveis: juntar(niveis),
+    total: temTotal ? String(total) : '', divisoes: juntar(divisoes), riscos: risco ? RISCO_LABEL[risco] : '',
+    niveis: nivel ? (NIVEL_LABEL[nivel.nivel] || nivel.label) : '',
     dimensionamento: dimensionamentoBrigada(state, ctx, comBrigada), nivelMax, cargaHoraria: carga?.total ?? null, cargaHorariaPartes: carga?.partes || [],
   }
 }

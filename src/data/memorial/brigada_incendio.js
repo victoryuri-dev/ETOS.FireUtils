@@ -7,11 +7,12 @@
 // por divisão realmente usada, só com as colunas da Tabela A.1 que se
 // aplicam, com as notas do rodapé logo abaixo), o resultado calculado por
 // pavimento (com as parcelas até 10 / acima de 10 / total quando houver
-// acréscimo da Nota 5) com o total, e os níveis de treinamento/instalação.
+// acréscimo da Nota 5) com o total, e o maior grau de risco e os maiores
+// níveis de treinamento/instalação da estrutura.
 
 import { getBrigada, getExtintores, getCNAEsDivisao } from '../normas/index'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
-import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL, COLUNAS_FAIXA } from '../brigada_calc'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL, COLUNAS_FAIXA, maiorRisco, maiorNivel } from '../brigada_calc'
 import { blocoObservacao } from '../../utils/observacoes'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
@@ -93,7 +94,7 @@ function tabelaResultado(linhasCalculadas) {
     linhas: linhasCalculadas.map(l => {
       const p = l.resultado?.parcelas
       if (!p) return [...inicio(l), '—', '—', brigadistasTexto(l.linha, l.resultado)]
-      const acima = p.acrescimo > 0 ? `${p.acrescimo} (⌈(${p.populacao} − 10) / ${p.grupo}⌉)` : '—'
+      const acima = p.acrescimo > 0 ? String(p.acrescimo) : '—'
       return [...inicio(l), String(p.base), acima, String(l.resultado.brigadistas)]
     }),
   }
@@ -147,13 +148,19 @@ function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiares
   }
 
   // ── Níveis de treinamento (Anexo B) e de instalação (Tabela A.2) — tabela
-  // própria, por pavimento (os pavimentos isentos ficam de fora).
+  // própria, uma linha para a estrutura: maior grau de risco e maior nível
+  // entre os pavimentos (os isentos ficam de fora).
   const comNivel = linhasCalculadas.filter(l => l.linha && !l.linha.isento)
   if (comNivel.length > 0) {
+    const risco = maiorRisco(comNivel.map(l => l.risco))
     blocos.push({
       tipo: 'tabela',
-      colunas: ['Pavimento', 'Divisão', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'],
-      linhas: comNivel.map(({ pav, nivelTreinamento, nivelInstalacao }) => [pav.label, pav.divisao || '—', labelNivel(nivelTreinamento), labelNivel(nivelInstalacao)]),
+      colunas: ['Maior grau de risco', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'],
+      linhas: [[
+        risco ? RISCO_LABEL[risco] : 'Não classificado',
+        labelNivel(maiorNivel(comNivel.map(l => l.nivelTreinamento))),
+        labelNivel(maiorNivel(comNivel.map(l => l.nivelInstalacao))),
+      ]],
     })
   }
 

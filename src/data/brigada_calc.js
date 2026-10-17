@@ -15,6 +15,26 @@ const num = v => parseFloat(v) || 0
 
 export const NIVEL_LABEL = { basico: 'Básico', intermediario: 'Intermediário', avancado: 'Avançado', misto: 'Básico e Intermediário' }
 
+// Ordem dos graus de risco e dos níveis (treinamento/instalação) para achar
+// o maior da estrutura — 'misto' (básico e intermediário, Nota 1) fica entre
+// o básico e o intermediário.
+const ORDEM_RISCO = { baixo: 1, medio: 2, alto: 3 }
+const ORDEM_NIVEL = { basico: 1, misto: 1.5, intermediario: 2, avancado: 3 }
+
+/** Maior grau de risco ('baixo'/'medio'/'alto') de uma lista; null se vazia. */
+export function maiorRisco(riscos) {
+  return riscos.reduce((m, r) => ((ORDEM_RISCO[r] || 0) > (ORDEM_RISCO[m] || 0) ? r : m), null)
+}
+
+/** Maior nível (objeto de calcularNivel) de uma lista; sem nenhum nível
+ *  resolvido, devolve o primeiro dinâmico ("A confirmar"), se houver. */
+export function maiorNivel(niveis) {
+  const validos = niveis.filter(Boolean)
+  const resolvidos = validos.filter(n => n.nivel)
+  if (resolvidos.length === 0) return validos[0] || null
+  return resolvidos.reduce((m, n) => ((ORDEM_NIVEL[n.nivel] || 0) > (ORDEM_NIVEL[m.nivel] || 0) ? n : m))
+}
+
 /** Carga de incêndio (MJ/m²) de uma divisão, priorizando o valor resolvido ao
  *  vivo pela tabela normativa (CNAE → carga) e caindo para o valor já gravado
  *  em cargaState quando a busca por CNAE não encontra nada. Mesma robustez
