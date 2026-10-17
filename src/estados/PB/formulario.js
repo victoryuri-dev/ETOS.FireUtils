@@ -508,7 +508,7 @@ function dimensionamentoBrigada(state, ctx, comBrigada) {
   if (comBrigada.length === 0) return []
   const ids = new Set(comBrigada.map(pe => pe.estrutura.id))
   const estado = { ...state, estruturas: (state.estruturas || []).filter(e => ids.has(e.id)) }
-  return textoMemorialBrigadaIncendio(estado, ctx.sistemas, ctx.porEstrutura).blocos
+  return textoMemorialBrigadaIncendio(estado, ctx.sistemas, ctx.porEstrutura, { soDimensionamento: true }).blocos
     .filter(b => !(b.tipo === 'campo' && b.label === ROTULO_OBSERVACOES))
 }
 

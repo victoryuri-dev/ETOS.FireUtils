@@ -123,20 +123,25 @@ export function calcularBrigadistas(linha, populacaoFixa, { publico, dimensionam
 
   const [v2, v4, v6, v8, v10] = linha.faixas
   let brigadistas, faixaUsada, notasDinamicas = []
-  if (pop <= 2)       { brigadistas = v2;  faixaUsada = 'Até 2' }
-  else if (pop <= 4)  { brigadistas = v4;  faixaUsada = 'Até 4' }
-  else if (pop <= 6)  { brigadistas = v6;  faixaUsada = 'Até 6' }
-  else if (pop <= 8)  { brigadistas = v8;  faixaUsada = 'Até 8' }
-  else if (pop <= 10) { brigadistas = v10; faixaUsada = 'Até 10' }
+  // `parcelas`: de onde sai o número — coluna "Até N" usada (índice em
+  // COLUNAS_FAIXA), valor dela e o acréscimo da Nota 5 acima de 10 pessoas
+  // (o memorial mostra cada parcela numa coluna).
+  let parcelas
+  if (pop <= 2)       { brigadistas = v2;  faixaUsada = 'Até 2';  parcelas = { coluna: 0, base: v2, acrescimo: 0 } }
+  else if (pop <= 4)  { brigadistas = v4;  faixaUsada = 'Até 4';  parcelas = { coluna: 1, base: v4, acrescimo: 0 } }
+  else if (pop <= 6)  { brigadistas = v6;  faixaUsada = 'Até 6';  parcelas = { coluna: 2, base: v6, acrescimo: 0 } }
+  else if (pop <= 8)  { brigadistas = v8;  faixaUsada = 'Até 8';  parcelas = { coluna: 3, base: v8, acrescimo: 0 } }
+  else if (pop <= 10) { brigadistas = v10; faixaUsada = 'Até 10'; parcelas = { coluna: 4, base: v10, acrescimo: 0 } }
   else {
     const grupo = GRUPO_NOTA5[linha.risco] || 20
     const extra = Math.ceil((pop - 10) / grupo)
     brigadistas = v10 + extra
     faixaUsada = `Acima de 10 (+${extra} pela Nota 5, grupos de até ${grupo})`
     notasDinamicas = [5]
+    parcelas = { coluna: 4, base: v10, acrescimo: extra, grupo, populacao: pop }
   }
 
-  return { brigadistas, especial: false, faixaUsada, detalhe: null, notasDinamicas }
+  return { brigadistas, especial: false, faixaUsada, detalhe: null, notasDinamicas, parcelas }
 }
 
 /** Nível de treinamento/instalação exigido (Básico/Intermediário/Avançado),
@@ -178,6 +183,9 @@ export function calcularNivel(nivelBase, brigadistas, alturaEdificacao, temNota4
 
   return { nivel, dinamico: false, label: NIVEL_LABEL[nivel] || nivel, detalhe: null, podeReduzirParaBasico, notasDinamicas }
 }
+
+/** Rótulos das colunas "Até N" da Tabela A.1, na ordem de `linha.faixas`. */
+export const COLUNAS_FAIXA = ['Até 2', 'Até 4', 'Até 6', 'Até 8', 'Até 10']
 
 const RISCO_LABEL_BRUTO = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 

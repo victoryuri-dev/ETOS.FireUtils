@@ -3,15 +3,15 @@
 // (brigada_calc.js) que alimenta a tela de dimensionamento — o texto nunca
 // duplica a lógica de faixa/nota, só narra o resultado.
 //
-// Cada estrutura entra com duas tabelas: primeiro o trecho normativo bruto
-// (uma linha por divisão realmente usada, exatamente como impresso na
-// Tabela A.1, com as notas do rodapé logo abaixo), depois a tabela de
-// resultado calculado (mesmas colunas da tela: Pavimento, Divisão, Risco,
-// População fixa, Brigadistas, Treinamento, Instalação) com o total.
+// Cada estrutura entra com três tabelas: o trecho normativo bruto (uma linha
+// por divisão realmente usada, só com as colunas da Tabela A.1 que se
+// aplicam, com as notas do rodapé logo abaixo), o resultado calculado por
+// pavimento (com as parcelas até 10 / acima de 10 / total quando houver
+// acréscimo da Nota 5) com o total, e os níveis de treinamento/instalação.
 
 import { getBrigada, getExtintores, getCNAEsDivisao } from '../normas/index'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
-import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL } from '../brigada_calc'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL, COLUNAS_FAIXA } from '../brigada_calc'
 import { blocoObservacao } from '../../utils/observacoes'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
@@ -22,22 +22,43 @@ function labelNivel(nivel) {
   return NIVEL_LABEL[nivel.nivel] || nivel.label
 }
 
-function linhaTabela(pav, risco, linha, resultado, nivelTreinamento, nivelInstalacao) {
-  const brigadistas = linha?.isento ? 'Isento' : (resultado?.brigadistas != null ? String(resultado.brigadistas) : 'A calcular *')
-  return [
-    pav.label,
-    pav.divisao || '—',
-    risco ? RISCO_LABEL[risco] : 'Não classificado',
-    pav.populacaoFixa || '—',
-    brigadistas,
-    linha?.isento ? '—' : labelNivel(nivelTreinamento),
-    linha?.isento ? '—' : labelNivel(nivelInstalacao),
-  ]
+const brigadistasTexto = (linha, resultado) =>
+  linha?.isento ? 'Isento' : (resultado?.brigadistas != null ? String(resultado.brigadistas) : 'A calcular *')
+
+// Colunas do trecho normativo que se aplicam à estrutura: só as faixas
+// "Até N" realmente usadas pelos pavimentos, "Acima de 10" quando algum
+// pavimento passou de 10 pessoas, e "Regra" para as linhas sem faixa
+// numérica (isento, % da população, item próprio etc.). Sem nenhuma
+// população informada ainda, cai nas cinco faixas da tabela.
+function colunasAplicaveis(linhasCalculadas) {
+  const faixas = new Set()
+  let acima10 = false, regra = false
+  linhasCalculadas.forEach(({ linha, resultado }) => {
+    if (!linha) return
+    const p = resultado?.parcelas
+    if (p) {
+      faixas.add(p.coluna)
+      if (p.acrescimo > 0) acima10 = true
+    } else if (linha.isento || !linha.faixas || resultado?.brigadistas != null) {
+      regra = true
+    }
+  })
+  const temFaixa = linhasCalculadas.some(({ linha }) => linha?.faixas && !linha.isento)
+  if (faixas.size === 0 && !acima10 && temFaixa) COLUNAS_FAIXA.forEach((_, i) => faixas.add(i))
+  return { faixas: [...faixas].sort((a, b) => a - b), acima10, regra }
 }
 
-function linhaReferencia(divisao, linha) {
+function linhaReferencia(divisao, linha, resultados, cols) {
   const b = linhaTabelaA1Bruta(divisao, linha)
-  return [b.divisao, b.risco, ...b.celulas, b.acima10, b.nivelTreinamento, b.nivelInstalacao]
+  const celulas = cols.faixas.map(i => (linha.faixas && !linha.isento ? b.celulas[i] : '—'))
+  if (cols.acima10) celulas.push(linha.faixas && !linha.isento ? b.acima10 : '—')
+  if (cols.regra) {
+    const regra = linha.isento ? 'Isento'
+      : !linha.faixas ? b.celulas[0]
+      : resultados.find(r => !r?.parcelas && r?.faixaUsada)?.faixaUsada || '—'
+    celulas.push(regra)
+  }
+  return [b.divisao, b.risco, ...celulas]
 }
 
 // Uma linha do Anexo A por divisão distinta usada na estrutura (não por
@@ -45,10 +66,37 @@ function linhaReferencia(divisao, linha) {
 // uma única vez), na ordem em que a divisão aparece pela primeira vez.
 function divisoesUsadas(linhasCalculadas) {
   const vistas = new Map()
-  linhasCalculadas.forEach(({ pav, linha }) => {
-    if (linha && !vistas.has(linha)) vistas.set(linha, pav.divisao)
+  linhasCalculadas.forEach(({ pav, linha, resultado }) => {
+    if (!linha) return
+    if (!vistas.has(linha)) vistas.set(linha, { divisao: pav.divisao, resultados: [] })
+    vistas.get(linha).resultados.push(resultado)
   })
-  return [...vistas.entries()].map(([linha, divisao]) => ({ divisao, linha }))
+  return [...vistas.entries()].map(([linha, v]) => ({ linha, ...v }))
+}
+
+// Resultado por pavimento: com algum pavimento acima de 10 pessoas, mostra
+// as parcelas do cálculo — valor da Tabela A.1 até 10 pessoas, acréscimo da
+// Nota 5 e o total; senão, só a coluna de brigadistas.
+function tabelaResultado(linhasCalculadas) {
+  const comAcrescimo = linhasCalculadas.some(l => l.resultado?.parcelas?.acrescimo > 0)
+  const inicio = ({ pav, risco }) => [pav.label, pav.divisao || '—', risco ? RISCO_LABEL[risco] : 'Não classificado', pav.populacaoFixa || '—']
+  if (!comAcrescimo) {
+    return {
+      tipo: 'tabela',
+      colunas: ['Pavimento', 'Divisão', 'Risco', 'Pop. fixa', 'Brigadistas'],
+      linhas: linhasCalculadas.map(l => [...inicio(l), brigadistasTexto(l.linha, l.resultado)]),
+    }
+  }
+  return {
+    tipo: 'tabela',
+    colunas: ['Pavimento', 'Divisão', 'Risco', 'Pop. fixa', 'Até 10', 'Acima de 10 (Nota 5)', 'Total'],
+    linhas: linhasCalculadas.map(l => {
+      const p = l.resultado?.parcelas
+      if (!p) return [...inicio(l), '—', '—', brigadistasTexto(l.linha, l.resultado)]
+      const acima = p.acrescimo > 0 ? `${p.acrescimo} (⌈(${p.populacao} − 10) / ${p.grupo}⌉)` : '—'
+      return [...inicio(l), String(p.base), acima, String(l.resultado.brigadistas)]
+    }),
+  }
 }
 
 function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiaresRisco, tabela, notasTabela, exigido, uf) {
@@ -72,13 +120,15 @@ function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiares
     linha && !linha.isento && (resultado?.brigadistas == null || nivelTreinamento?.dinamico || nivelInstalacao?.dinamico))
 
   // ── Trecho normativo (Anexo A) — uma linha por divisão usada, tal como
-  // impressa na Tabela A.1, com as notas do rodapé logo abaixo.
+  // impressa na Tabela A.1 (só as colunas que se aplicam), com as notas do
+  // rodapé logo abaixo.
   const usadas = divisoesUsadas(linhasCalculadas)
   if (usadas.length > 0) {
+    const cols = colunasAplicaveis(linhasCalculadas)
     blocos.push({
       tipo: 'tabela',
-      colunas: ['Divisão', 'Grau de risco', 'Até 2', 'Até 4', 'Até 6', 'Até 8', 'Até 10', 'Acima de 10', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'],
-      linhas: usadas.map(({ divisao, linha }) => linhaReferencia(divisao, linha)),
+      colunas: ['Divisão', 'Grau de risco', ...cols.faixas.map(i => COLUNAS_FAIXA[i]), ...(cols.acima10 ? ['Acima de 10'] : []), ...(cols.regra ? ['Regra'] : [])],
+      linhas: usadas.map(({ divisao, linha, resultados }) => linhaReferencia(divisao, linha, resultados, cols)),
     })
 
     const notasDaTabela = [...new Set(usadas.flatMap(({ linha }) => linha.notas || []))].sort((a, b) => a - b)
@@ -88,17 +138,23 @@ function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiares
   }
 
   // ── Resultado calculado — uma linha por pavimento, com o total.
-  blocos.push({
-    tipo: 'tabela',
-    colunas: ['Pavimento', 'Divisão', 'Risco', 'Pop. fixa', 'Brigadistas', 'Treinamento', 'Instalação'],
-    linhas: linhasCalculadas.map(({ pav, risco, linha, resultado, nivelTreinamento, nivelInstalacao }) =>
-      linhaTabela(pav, risco, linha, resultado, nivelTreinamento, nivelInstalacao)),
-  })
+  blocos.push(tabelaResultado(linhasCalculadas))
 
   const totalBrigadistas = linhasCalculadas.reduce((s, l) => s + (l.resultado?.brigadistas || 0), 0)
   const totalNumerico = linhasCalculadas.some(l => l.resultado?.brigadistas != null)
   if (totalNumerico) {
     blocos.push({ tipo: 'campo', label: 'Total de brigadistas exigidos na estrutura', valor: String(totalBrigadistas) })
+  }
+
+  // ── Níveis de treinamento (Anexo B) e de instalação (Tabela A.2) — tabela
+  // própria, por pavimento (os pavimentos isentos ficam de fora).
+  const comNivel = linhasCalculadas.filter(l => l.linha && !l.linha.isento)
+  if (comNivel.length > 0) {
+    blocos.push({
+      tipo: 'tabela',
+      colunas: ['Pavimento', 'Divisão', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'],
+      linhas: comNivel.map(({ pav, nivelTreinamento, nivelInstalacao }) => [pav.label, pav.divisao || '—', labelNivel(nivelTreinamento), labelNivel(nivelInstalacao)]),
+    })
   }
 
   // Observações sem número de nota (não cabem no rodapé da tabela de
@@ -124,13 +180,15 @@ function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiares
   return { blocos, temAsterisco }
 }
 
-export function textoMemorialBrigadaIncendio(state, sistemas, porEstrutura) {
+/** `opcoes.soDimensionamento`: sem o parágrafo introdutório (campo
+ *  DIMENSIONAMENTO do formulário da PB). */
+export function textoMemorialBrigadaIncendio(state, sistemas, porEstrutura, opcoes = {}) {
   const brigNorma = getBrigada(state.uf)
   const extNorma  = getExtintores(state.uf)
   const { NORMA, TABELA_A1, NOTAS_TABELA_A1, NOTAS_GERAIS } = brigNorma
   const cnaesDiv = divisao => getCNAEsDivisao(state.uf, divisao)
 
-  const introducao = [{
+  const introducao = opcoes.soDimensionamento ? [] : [{
     tipo: 'paragrafo',
     texto: `O dimensionamento da brigada de incêndio orgânica segue o Anexo A (Tabela A.1) da ${NORMA.nome}, considerando a divisão de ocupação, o grau de risco e a população fixa de cada pavimento. ${NOTAS_GERAIS.a}`,
   }]

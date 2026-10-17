@@ -414,19 +414,37 @@ test('Anexo A: só o dimensionamento por estrutura, sem as generalidades', async
   assert.ok(so.includes('Bloco A'))
 })
 
-test('12. dimensionamento da brigada no formato do memorial do MA (Tabela A.1 + resultado por pavimento)', () => {
+test('12. dimensionamento da brigada no formato do memorial do MA, sem a introdução', () => {
   const p = projeto({ sistemasPorEstrutura: { e1: { brigada: true } } })
   p.pavimentos[0].populacaoFixa = '8'
   const s = secao(gerar(p), '12.')
   const blocos = s.linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:').blocos
-  assert.ok(blocos.some(b => b.tipo === 'titulo2' && b.texto === 'Bloco A'))
-  const tabelas = blocos.filter(b => b.tipo === 'tabela')
-  assert.equal(tabelas.length, 2)                                   // trecho da Tabela A.1 + resultado
-  assert.deepEqual(tabelas[1].linhas[0].slice(0, 4), ['Térreo', 'C-1', 'Médio', '8'])
+  assert.equal(blocos[0].tipo, 'titulo2')                          // sem o parágrafo introdutório
+  assert.equal(blocos[0].texto, 'Bloco A')
+  const [ref, res, niveis] = blocos.filter(b => b.tipo === 'tabela')
+  assert.deepEqual(ref.colunas, ['Divisão', 'Grau de risco', 'Até 8'])   // só a faixa usada
+  assert.deepEqual(res.colunas, ['Pavimento', 'Divisão', 'Risco', 'Pop. fixa', 'Brigadistas'])
+  assert.deepEqual(res.linhas[0].slice(0, 4), ['Térreo', 'C-1', 'Médio', '8'])
+  assert.deepEqual(niveis.colunas, ['Pavimento', 'Divisão', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'])
   assert.ok(blocos.some(b => b.tipo === 'campo' && b.label === 'Total de brigadistas exigidos na estrutura'))
   // sem brigada exigida, o campo fica vazio
   const sem = secao(gerar(projeto({ sistemasPorEstrutura: { e1: { brigada: false } } })), '12.').linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:')
   assert.equal(sem.blocos.length, 0)
+})
+
+test('12. acima de 10 pessoas: colunas Até 10 / Acima de 10 (Nota 5) / Total', () => {
+  const p = projeto({ sistemasPorEstrutura: { e1: { brigada: true } } })
+  p.pavimentos[0].populacaoFixa = '40'
+  p.pavimentos.push({ ...p.pavimentos[0], id: 'p2', label: 'Pavimento 2', tipo: 'tipo', pisoDescarga: false, populacaoFixa: '5' })
+  const blocos = secao(gerar(p), '12.').linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:').blocos
+  const [ref, res] = blocos.filter(b => b.tipo === 'tabela')
+  assert.deepEqual(ref.colunas, ['Divisão', 'Grau de risco', 'Até 6', 'Até 10', 'Acima de 10'])
+  assert.deepEqual(res.colunas, ['Pavimento', 'Divisão', 'Risco', 'Pop. fixa', 'Até 10', 'Acima de 10 (Nota 5)', 'Total'])
+  const [terreo, pav2] = res.linhas
+  const [base, acima, total] = terreo.slice(4)
+  assert.match(acima, /^2 \(⌈\(40 − 10\) \/ 20⌉\)$/)                 // linha da C-1 (risco baixo): grupos de até 20
+  assert.equal(Number(total), Number(base) + 2)
+  assert.equal(pav2[5], '—')
 })
 
 test('12. carga horária pela Tabela B.2 (maior nível exigido) e simulados com 12 meses por padrão', () => {
