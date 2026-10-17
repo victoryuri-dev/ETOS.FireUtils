@@ -572,9 +572,13 @@ export function CamposAcessoViaturaPB() {
       )}
 
       {r?.obrigatorio && (
-        <FormSection title="Portão de acesso">
+        <FormSection title="Há portão de acesso?" extra={
+          <div className="flex items-center gap-2">
+            <span className={`text-xs ${av.temPortao === true ? 'text-ink font-medium' : 'text-ink-faint'}`}>{av.temPortao === true ? 'Sim' : 'Não'}</span>
+            <SwitchToggle checked={av.temPortao === true} onChange={v => setAv({ temPortao: v })}/>
+          </div>
+        }>
           <div className="flex flex-col gap-3">
-            {pergunta('temPortao', 'Há portão de acesso?')}
             {av.temPortao === true && (
               <div className="g2">
                 {numero('portaoLargura', `Largura do portão (mín. ${fmtNum(P.portao.larguraMin, 2)} m)`, { padrao: P.portao.larguraMin, minimo: P.portao.larguraMin })}
