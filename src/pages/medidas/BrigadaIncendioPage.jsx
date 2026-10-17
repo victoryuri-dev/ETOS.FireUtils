@@ -27,7 +27,7 @@ function RiscoBadge({ risco }) {
   return <span className={`carga-class ${map[risco]}`}>{labels[risco]}</span>
 }
 
-// ── Selo de nível de treinamento/instalação ──────────────────────────
+// ── Selo de nível de treinamento ──────────────────────────
 function NivelBadge({ nivel }) {
   if (!nivel) return <span className="text-[11px] text-ink-faint">—</span>
   const map = { basico: 'low', intermediario: 'med', misto: 'med', avancado: 'high' }
@@ -40,7 +40,7 @@ function NivelBadge({ nivel }) {
 const TH = 'py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium'
 const TD = 'py-2 px-3 text-xs'
 
-function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, nivelInstalacao, dispatch }) {
+function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, dispatch }) {
   const divisao = pavimento.divisao
   const setPopulacao = v => dispatch({ type: 'UPDATE_PAV', id: pavimento.id, changes: { populacaoFixa: v } })
   const isento = linha?.isento
@@ -62,7 +62,7 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
         />
       </td>
       {!linha ? (
-        <td className={TD} colSpan={3}>
+        <td className={TD} colSpan={2}>
           <span className="text-[11px] text-amber flex items-center gap-1.5">
             <Icon name="warn" size={12} color="var(--color-amber)" className="shrink-0"/>
             {divisao ? `Divisão ${divisao} não cadastrada na Tabela A.1 — verifique com o CBM competente.` : 'Classifique a divisão de ocupação na Etapa 4.'}
@@ -75,7 +75,6 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
             {especial && <Icon name="warn" size={11} color="var(--color-amber)" className="inline-block ml-1 align-text-top" title={resultado.detalhe}/>}
           </td>
           <td className={TD}><NivelBadge nivel={nivelTreinamento}/></td>
-          <td className={TD}><NivelBadge nivel={nivelInstalacao}/></td>
         </>
       )}
     </tr>
@@ -112,59 +111,63 @@ function DivisaoTurnos({ estrutura, total, dispatch }) {
     gravar({ valores: { ...cfg.valores, [key]: digitado === '' ? '' : valor } })
   }
 
+  const ativos = turnosAtivos(cfg)
+  const ibox = texto => (
+    <div className="ibox amber mt-3">
+      <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+      <span className="text-xs">{texto}</span>
+    </div>
+  )
+
   return (
-    <div className="mt-4 pt-3.5 border-t border-solid border-border">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <span className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium">Divisão por turno</span>
+    <Card className="mt-4">
+      <div className="py-3.5 px-[18px] flex flex-wrap items-center justify-between gap-3 border-b border-solid border-border">
+        <span className="text-xs font-bold text-ink">Divisão por turno</span>
         <label className="flex items-center gap-2 text-xs text-ink-muted cursor-pointer">
           Dividir igualmente entre os turnos
           <SwitchToggle checked={cfg.dividirIgual} onChange={alternarDivisao}/>
         </label>
       </div>
-      <div className="flex flex-wrap gap-3">
-        {TURNOS.map(t => {
-          const ativo = !!cfg.ativos[t.key]
-          return (
-            <div key={t.key} className={`flex items-center gap-2.5 py-2 px-3 rounded-md border border-solid ${ativo ? 'border-border-2' : 'border-border opacity-60'}`}>
-              <label className="flex items-center gap-1.5 text-xs text-ink cursor-pointer">
-                <input type="checkbox" checked={ativo} onChange={() => alternarTurno(t.key)} className="accent-red"/>
-                {t.label}
-              </label>
-              <input
-                type="number" min="0" step="1"
-                value={ativo ? (cfg.dividirIgual ? valores[t.key] : (cfg.valores[t.key] ?? '')) : ''}
-                placeholder={ativo ? '0' : '—'}
-                disabled={!ativo || cfg.dividirIgual}
-                onChange={e => alterarValor(t.key, e.target.value)}
-                className="w-14 text-right disabled:opacity-60 disabled:cursor-not-allowed"
-              />
-            </div>
-          )
-        })}
+      <div className="py-3.5 px-[18px]">
+        {/* Turno = botão ativável (vermelho quando ligado, mesmo desenho dos
+            riscos especiais da Etapa 6); ligado, mostra o quantitativo
+            embaixo do nome. */}
+        <div className="grid grid-cols-3 gap-3">
+          {TURNOS.map(t => {
+            const on = !!cfg.ativos[t.key]
+            return (
+              <div key={t.key}
+                role="switch"
+                aria-checked={on}
+                tabIndex={0}
+                onClick={() => alternarTurno(t.key)}
+                onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); alternarTurno(t.key) } }}
+                className={`border border-solid rounded-md p-3.5 flex flex-col gap-2.5 cursor-pointer transition-[border-color,background-color] duration-150 ${on ? 'border-red-border bg-red-dim' : 'border-border bg-transparent'}`}>
+                <span className={`text-xs font-semibold ${on ? 'text-ink' : 'text-ink-muted'}`}>{t.label}</span>
+                {on && (
+                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    <input
+                      type="number" min="0" step="1"
+                      value={cfg.dividirIgual ? valores[t.key] : (cfg.valores[t.key] ?? '')}
+                      placeholder="0"
+                      disabled={cfg.dividirIgual}
+                      onChange={e => alterarValor(t.key, e.target.value)}
+                      className="w-16 text-right disabled:opacity-60 disabled:cursor-not-allowed"
+                    />
+                    <span className="text-[11px] text-ink-faint">brigadista{valores[t.key] === 1 ? '' : 's'}</span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        {aviso && ibox(aviso)}
+        {!aviso && ativos.length > 0 && soma !== total && ibox(soma < total
+          ? `Faltam ${total - soma} brigadista${total - soma === 1 ? '' : 's'} para completar o total calculado (${total}).`
+          : `A soma dos turnos (${soma}) passa do total calculado (${total}) — ajuste os valores.`)}
+        {ativos.length === 0 && ibox('Ative ao menos um turno.')}
       </div>
-      {aviso && (
-        <div className="ibox amber mt-3">
-          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">{aviso}</span>
-        </div>
-      )}
-      {!aviso && turnosAtivos(cfg).length > 0 && soma !== total && (
-        <div className="ibox amber mt-3">
-          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">
-            {soma < total
-              ? `Faltam ${total - soma} brigadista${total - soma === 1 ? '' : 's'} para completar o total calculado (${total}).`
-              : `A soma dos turnos (${soma}) passa do total calculado (${total}) — ajuste os valores.`}
-          </span>
-        </div>
-      )}
-      {turnosAtivos(cfg).length === 0 && (
-        <div className="ibox amber mt-3">
-          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">Marque ao menos um turno.</span>
-        </div>
-      )}
-    </div>
+    </Card>
   )
 }
 
@@ -199,10 +202,9 @@ function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limia
   // nota (ex.: "informe a população fixa", regra 80% dos funcionários).
   const notasNumeros = new Set()
   const observacoesLivres = new Set()
-  linhasCalculadas.forEach(({ resultado, nivelTreinamento, nivelInstalacao, notasIdentificadas }) => {
+  linhasCalculadas.forEach(({ resultado, nivelTreinamento, notasIdentificadas }) => {
     if (resultado?.detalhe) observacoesLivres.add(resultado.detalhe)
     if (nivelTreinamento?.detalhe) observacoesLivres.add(nivelTreinamento.detalhe)
-    if (nivelInstalacao?.detalhe) observacoesLivres.add(nivelInstalacao.detalhe)
     notasIdentificadas?.forEach(n => notasNumeros.add(n))
   })
   const notasTexto = [...notasNumeros].sort((a, b) => a - b).map(n => `Nota ${n}: ${notasTabela[n]}`)
@@ -215,7 +217,6 @@ function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limia
     .filter(n => n && !n.dinamico)
     .reduce((max, n) => (!max || ORDEM_NIVEL[n.nivel] > ORDEM_NIVEL[max.nivel]) ? n : max, null)
   const treinamentoMax = nivelMaisAlto('nivelTreinamento')
-  const instalacaoMax = nivelMaisAlto('nivelInstalacao')
 
   return (
     <EstruturaSection titulo={estrutura.nome} extra={<EstruturaHeaderInfo estrutura={estrutura} semArea/>} status={status} conclusao={exigido && pavimentos.length > 0 ? { estruturaId: estrutura.id, medida: 'brigada' } : null} defaultOpen={false}>
@@ -260,11 +261,10 @@ function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limia
                     </th>
                     <th className={`${TH} text-center`}>Brigadistas</th>
                     <th className={TH}>Treinamento</th>
-                    <th className={TH}>Instalação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-solid divide-border">
-                  {linhasCalculadas.map(({ pav, risco, linha, resultado, nivelTreinamento, nivelInstalacao }) => (
+                  {linhasCalculadas.map(({ pav, risco, linha, resultado, nivelTreinamento }) => (
                     <LinhaPavimento
                       key={pav.id}
                       pavimento={pav}
@@ -272,7 +272,6 @@ function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limia
                       linha={linha}
                       resultado={resultado}
                       nivelTreinamento={nivelTreinamento}
-                      nivelInstalacao={nivelInstalacao}
                       dispatch={dispatch}
                     />
                   ))}
@@ -283,16 +282,11 @@ function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limia
                       <td className={`${TD} font-semibold text-ink`} colSpan={4}>Total da estrutura</td>
                       <td className={`${TD} text-center text-base font-bold text-ink`}>{totalBrigadistas}</td>
                       <td className={TD}><NivelBadge nivel={treinamentoMax}/></td>
-                      <td className={TD}><NivelBadge nivel={instalacaoMax}/></td>
                     </tr>
                   </tfoot>
                 )}
               </table>
             </div>
-          )}
-
-          {totalNumerico && totalBrigadistas > 0 && (
-            <DivisaoTurnos estrutura={estrutura} total={totalBrigadistas} dispatch={dispatch}/>
           )}
 
           {observacoes.length > 0 && (
@@ -303,6 +297,9 @@ function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limia
 
         </div>
       </Card>
+      )}
+      {exigido && totalNumerico && totalBrigadistas > 0 && (
+        <DivisaoTurnos estrutura={estrutura} total={totalBrigadistas} dispatch={dispatch}/>
       )}
       <ObservacoesComplementares estrutura={estrutura} medida="brigada"/>
     </EstruturaSection>
