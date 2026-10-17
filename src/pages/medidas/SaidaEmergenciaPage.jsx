@@ -261,7 +261,9 @@ function TipoEscadaEstrutura({ estrutura, divisoes, tiposEscada }) {
   )
 }
 
-export default function SaidaEmergenciaPage() {
+// `extra`: conteúdo do estado no fim da página (ex.: PB, declarações do
+// formulário do CBMPB — ver estados/PB/paginas.jsx).
+export default function SaidaEmergenciaPage({ extra = null }) {
   const { state, dispatch } = useProjeto()
   const { uf, info, ocupacoes } = useNorma()
   const { porEstrutura: medidasPorEstrutura } = useMedidasObrigatorias()
@@ -498,6 +500,7 @@ export default function SaidaEmergenciaPage() {
           </div>
         )}
 
+        {extra}
       </div>
 
       {viewPav && <AcessosDescargasView pav={viewPav} seNorma={seNorma} ocupacoes={ocupacoes} dispatch={dispatch} onClose={() => setViewPavId(null)}/>}

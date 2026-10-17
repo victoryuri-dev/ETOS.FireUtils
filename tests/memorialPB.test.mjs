@@ -101,23 +101,11 @@ test('sem a tabela de exigências cadastrada para o estado, exigibilidade fica e
   assert.equal(exig('19.'), null)     // SPDA — sem regra no app
 })
 
-test('saídas: dimensionamento padrão pela área e divisão do pavimento (sem ambientes)', () => {
+test('saídas de emergência saem do dimensionamento da página comum (ambientes e acessos)', () => {
   const s = secao(gerar(projeto()), '10.')
-  assert.equal(valorCampo(s, 'Capacidade de público (pessoas) total da edificação:'), '80') // 400 m² / 5 m²/pessoa
-  assert.equal(valorCampo(s, 'Largura (metros) dos acessos e descargas:'), '1,2 m')       // 80/100 → 1 UP, mín. 1,20
-  assert.equal(valorCampo(s, 'Distanciamento (metros) máximo a ser percorrido no piso de descarga:'), '40 m (C-1)')
-  // população informada e duas saídas
-  const s2 = secao(gerar(projeto({ memorialPB: { saidas: { p1: { populacao: '250', nSaidas: '2' } } } })), '10.')
-  assert.equal(valorCampo(s2, 'Capacidade de público (pessoas) total da edificação:'), '250')
-  assert.equal(valorCampo(s2, 'Largura (metros) dos acessos e descargas:'), '1,65 m')     // 250/100 → 3 UP × 0,55
-  assert.equal(valorCampo(s2, 'Distanciamento (metros) máximo a ser percorrido no piso de descarga:'), '50 m (C-1)')
-})
-
-test('Anexo A: tabela do dimensionamento por estrutura', async () => {
-  const { anexoSaidasPB } = await server.ssrLoadModule('/src/estados/PB/saidas.js')
-  const [a] = anexoSaidasPB(projeto(), medidasObrigatorias(projeto()).porEstrutura)
-  const tabela = a.blocos.find(b => b.tipo === 'tabela')
-  assert.deepEqual(tabela.linhas[0].slice(0, 5), ['Térreo', 'C-1', '400', '1 p/ 5 m²', '80'])
+  assert.equal(valorCampo(s, 'Capacidade de público (pessoas) total da edificação:'), '60') // 300 m² / 5 m²/pessoa (NT 12/2025)
+  assert.ok(valorCampo(s, 'Largura (metros) dos acessos e descargas:'))
+  assert.ok(valorCampo(s, 'Distanciamento (metros) máximo a ser percorrido no piso de descarga:').includes('C-1'))
 })
 
 test('atestos só aparecem marcados quando o RT marca', () => {

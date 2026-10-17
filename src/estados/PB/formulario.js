@@ -37,7 +37,7 @@ import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
 import { fmtNum } from '../../utils/numero'
 import { alturaEdificacaoBase, edificacaoEhTerrea, calcularTRRF } from '../../data/trrf_calc'
 import { calcularAreaMaximaCompartimentacao } from '../../data/compart_calc'
-import { dimensionamentoSaidasPB } from './saidas'
+import { resumoSaidasPB } from './saidas'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../../data/brigada_calc'
@@ -434,11 +434,11 @@ function secaoSaidas(state, ctx) {
   const m = state.memorialPB || {}
   const at = m.atestos || {}
   const exigivel = exigibilidade(ctx, 'saida_emergencia')
-  const r = exigivel ? dimensionamentoSaidasPB(state, ctx.porEstrutura) : null
+  const r = exigivel ? resumoSaidasPB(state, ctx.porEstrutura) : null
   const val = v => (r && v > 0 ? String(v) : '')
   const lar = v => (r && v > 0 ? fmtM(v) : '')
   const dist = lista => juntar((lista || []).map(d => `${fmtM(d.valor)} (${d.divisao})`))
-  const escadas = new Set(m.tipoEscada ? [m.tipoEscada] : (r?.escadas || []))
+  const escadas = new Set(r?.escadas || [])
   return {
     titulo: '10. SAÍDA DE EMERGÊNCIA', nota: '(Informar as características das saídas de emergência, conforme tabela B da NT CBMPB 12/2015)',
     linhas: [

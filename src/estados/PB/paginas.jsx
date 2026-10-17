@@ -1,4 +1,5 @@
 import PaginaPB from './PaginaPB'
+import SaidaEmergenciaPage from '../../pages/medidas/SaidaEmergenciaPage'
 import {
   CamposCompartimentacaoPB, CamposSaidasPB, CamposPlanoPB, CamposBrigadaPB, CamposIluminacaoPB,
   CamposAlarmeDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB, ResultadoCmarPB,
@@ -32,7 +33,9 @@ export const PAGINAS_PB = {
   compart_horizontal: compart,
   compart_vertical: compart,
   controle_acabamento: <PaginaPB titulo="Controle de Materiais de Acabamento (CMAR)" secoes={['9.']} observacoes="controle_acabamento"><ResultadoCmarPB/></PaginaPB>,
-  saida_emergencia: <PaginaPB titulo="Saídas de Emergência" secoes={['10.']} observacoes="saida_emergencia"><CamposSaidasPB/></PaginaPB>,
+  // Saídas: a página comum (dimensionamento completo, base do Anexo A) com a
+  // NT 12/2025 da PB, mais as declarações do formulário no fim.
+  saida_emergencia: <SaidaEmergenciaPage extra={<CamposSaidasPB/>}/>,
   gerenciamento_risco: <PaginaPB titulo="Gerenciamento de Risco de Incêndio" secoes={['11']} observacoes="gerenciamento_risco"><CamposPlanoPB/></PaginaPB>,
   brigada: <PaginaPB titulo="Brigada de Incêndio" secoes={['12.']} observacoes="brigada"><CamposBrigadaPB/></PaginaPB>,
   iluminacao: <PaginaPB titulo="Iluminação de Emergência" secoes={['13.']} observacoes="iluminacao"><CamposIluminacaoPB/></PaginaPB>,

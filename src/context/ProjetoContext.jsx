@@ -601,10 +601,6 @@ const INITIAL_STATE = {
     // `h:<elemento>` ou `v:<elemento>`.
     compartElementos: { h: [], v: [] },
     especificacaoCompart: {},
-    // Saídas (10), por pavimento: { [pavId]: { nSaidas, populacao } } —
-    // população em branco = área ÷ taxa da divisão (estados/PB/saidas.js).
-    saidas: {},
-    tipoEscada: '',          // 'NE' | 'EP' | 'PF'; '' = deriva da norma (10.1)
     planoModelo: '',         // 'item6' | 'anexoB' (MODELOS_PLANO, 11.1)
     brigadaCargaHoraria: '',
     brigadaIntervaloSimulados: '',

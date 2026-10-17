@@ -42,7 +42,7 @@ Regras do gerador:
 | **7. Segurança estrutural** | ✅ | Grupo, divisão, classe e TRRF de `trrf_calc`, pela tabela da NT 08/2024 da PB. |
 | **8. Compartimentação** | ✅ | Área máxima (a mais restritiva) e elementos marcados na tela de Compartimentação; característica de cada elemento nova (`especificacaoCompart`). ⏸ NT 36 da PB não cadastrada (adiada): página com "norma não cadastrada" e seção em branco. |
 | **9. CMAR** | ✅ | Linha marcada pelo grupo/divisão; observação nova. |
-| **10. Saídas de emergência** | ✅ | População e larguras de `se_calc`; distâncias por divisão. Tipo de escada automático pela Tabela 3 (Anexo C) da NT 12/2025, ou o escolhido pelo RT (`memorialPB.tipoEscada`). 4 atestos e observação. |
+| **10. Saídas de emergência** | ✅ | Página comum de Saída de Emergência (ambientes, acessos, tipo de escada) com a norma da PB; no fim, as declarações do RT do item 10. Anexo A = texto do dimensionamento. |
 | **11.1 Plano de emergência** | ✅ | Novo: `memorialPB.planoModelo` (item 6 / Anexo B da NT 13/2023) + observação. |
 | **12. Brigada** | ✅ | Quantidade, divisão, risco e nível de `brigada_calc` com a Tabela A.1 da NT 17/2024 e o item 4.11.2 (público da edificação). Carga horária e intervalo entre simulados manuais (Anexo B não enviado); 2 atestos. |
 | **13. Iluminação** | ✅ | Box da PB na página de Iluminação: altura de instalação (`memorialPB.iluAlturaInstalacao`) → distância máxima 4 × H; atestos por grupo (gerais, circuitos, luminárias, 13.1–13.4 só do tipo adotado). Fluxo exato = fluxos cadastrados no projeto. Tipo UPS na norma da PB. Observações complementares por estrutura. |
@@ -123,7 +123,7 @@ O MA e a PB preenchem de formas diferentes: o MA tem páginas de medida detalhad
 - `src/estados/registro.js`: qual página cada medida abre por estado. Projeto da PB → `estados/PB/paginas.jsx`; sem entrada → páginas de `src/pages/medidas` (MA). Rotas, menu lateral e dashboard continuam os mesmos (`/medida/:sistKey`).
 - `src/estados/ExtensaoConfig.jsx`: campos do estado nas etapas comuns (PB: estágio "as built" no box Situação, observação da natureza da ocupação, classe de GLP).
 - `src/estados/PB/PaginaPB.jsx`: layout de cada página da PB — Exigível/Não exigível, campos do formulário, observações complementares por estrutura e a prévia da seção como sai no documento.
-- `src/estados/PB/campos.jsx`: os campos (state.memorialPB). `src/estados/PB/formulario.js`: o formulário. `src/estados/PB/saidas.js`: saídas pelo dimensionamento padrão (área ÷ taxa da divisão, ou população informada; nº de saídas por pavimento) e o Anexo A.
+- `src/estados/PB/campos.jsx`: os campos (state.memorialPB). `src/estados/PB/formulario.js`: o formulário. `src/estados/PB/saidas.js`: resumo do item 10 a partir do dimensionamento da página de Saída de Emergência (comum aos estados, com a NT 12/2025); o Anexo A é o texto desse dimensionamento.
 - `src/estados/fluxos.js`: estados com fluxo próprio — a auditoria não cobra deles os campos das páginas do MA.
 - O formulário da PB não lê nada das páginas do MA: iluminação (tipo, fluxo, altura), alarme/detecção (centrais, tipos de detector), compartimentação (elementos), saídas e hidrantes (tipo, vazão/pressão, RTI, mangueiras, bombas, Anexo B) vêm de `state.memorialPB`.
 

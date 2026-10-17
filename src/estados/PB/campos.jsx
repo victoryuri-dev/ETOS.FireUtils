@@ -2,12 +2,11 @@ import { useState } from 'react'
 import Icon from '../../components/ui/Icon'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
-import { getMemorialFormulario, getSE, getIluminacao } from '../../data/normas/index'
+import { getMemorialFormulario, getIluminacao } from '../../data/normas/index'
 import {
   ATESTOS_PB, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
   distanciaMaximaPontosPB, TIPOS_HIDRANTE_PB, RESERVATORIOS_PB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
-import { dimensionamentoSaidasPB } from './saidas'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
 import { fmtNum } from '../../utils/numero'
@@ -60,7 +59,7 @@ function Rotulo({ children }) {
 function Atestos({ lista, atestos, alternar, titulo = 'Declarações do responsável técnico' }) {
   return (
     <div className="flex flex-col gap-2">
-      <Rotulo>{titulo}</Rotulo>
+      {titulo && <Rotulo>{titulo}</Rotulo>}
       {lista.map(([key, label]) => <Marcador key={key} label={label} checked={!!atestos[key]} onChange={() => alternar(key)}/>)}
     </div>
   )
@@ -160,7 +159,7 @@ export function CamposCompartimentacaoPB() {
   }
   const grupo = (sentido, titulo, lista) => (
     <div className="flex flex-col gap-2">
-      <Rotulo>{titulo}</Rotulo>
+      {titulo && <Rotulo>{titulo}</Rotulo>}
       {lista.map(([key, label]) => {
         const marcado = (el[sentido] || []).includes(key)
         return (
@@ -183,73 +182,16 @@ export function CamposCompartimentacaoPB() {
   )
 }
 
-// 10 — número de saídas por pavimento (e a população quando a divisão não
-// tem taxa por área), tipo de escada e atestos. O resto sai do cálculo.
+// 10 — declarações do RT (o dimensionamento vem da página de Saída de
+// Emergência, comum aos estados).
 export function CamposSaidasPB() {
-  const { state, m, set, campo, atestos, alternarAtesto } = useCamposPB()
-  const { porEstrutura } = useMedidasObrigatorias()
-  const se = getSE(state.uf)
-  const r = dimensionamentoSaidasPB(state, porEstrutura)
-  const entradas = m.saidas || {}
-  const setPav = (id, changes) => set({ saidas: { ...entradas, [id]: { ...(entradas[id] || {}), ...changes } } })
+  const { atestos, alternarAtesto } = useCamposPB()
   return (
-    <BoxPB item="10">
-      {!se && <p className="text-[12.5px] text-ink-faint m-0">A norma de saídas de emergência da PB não está cadastrada (Supabase) — o dimensionamento fica em branco.</p>}
-      {r?.estruturas.map(({ est, pavs, er }) => (
-        <div key={est.id} className="flex flex-col gap-2">
-          <Rotulo>{est.nome}</Rotulo>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[12px]">
-              <thead>
-                <tr className="text-[10px] text-ink-faint uppercase tracking-[.06em] text-left">
-                  <th className="py-1.5 pr-2 font-medium">Pavimento</th>
-                  <th className="py-1.5 pr-2 font-medium">Divisão</th>
-                  <th className="py-1.5 pr-2 font-medium">Área</th>
-                  <th className="py-1.5 pr-2 font-medium">População</th>
-                  <th className="py-1.5 pr-2 font-medium">Nº de saídas</th>
-                  <th className="py-1.5 pr-2 font-medium text-right">Acessos / portas</th>
-                  <th className="py-1.5 font-medium text-right">Dist. máx.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pavs.map(p => (
-                  <tr key={p.pav.id} className="border-t border-solid border-border-2">
-                    <td className="py-1.5 pr-2 text-ink">{p.pav.label}</td>
-                    <td className="py-1.5 pr-2">{p.pav.divisao || '—'}</td>
-                    <td className="py-1.5 pr-2">{p.pav.area ? `${fmtNum(p.pav.area, 2)} m²` : '—'}</td>
-                    <td className="py-1.5 pr-2">
-                      <input className="w-24" type="number" min="0" step="1" value={entradas[p.pav.id]?.populacao || ''}
-                        placeholder={p.origem === 'area' ? String(p.populacao) : 'informar'}
-                        title={p.taxa?.obs || ''}
-                        onChange={e => setPav(p.pav.id, { populacao: e.target.value })}/>
-                    </td>
-                    <td className="py-1.5 pr-2">
-                      <input className="w-16" type="number" min="1" step="1" value={entradas[p.pav.id]?.nSaidas || ''} placeholder="1"
-                        onChange={e => setPav(p.pav.id, { nSaidas: e.target.value })}/>
-                    </td>
-                    <td className="py-1.5 pr-2 text-right font-mono">{p.ad ? `${fmtNum(p.ad.la, 2)} / ${fmtNum(p.pt.la, 2)} m` : '—'}</td>
-                    <td className="py-1.5 text-right font-mono">{p.distancia != null ? `${fmtNum(p.distancia, 0)} m` : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <span className="text-[11.5px] text-ink-faint">
-            População pela área ÷ taxa da divisão (deixe em branco) ou informada. {er ? `Escadas/rampas: ${er.n} UP — ${fmtNum(er.la, 2)} m (pela população de ${er.pavimento}).` : ''}
-          </span>
-        </div>
-      ))}
-      <div className="fg">
-        <label>Tipo de escada usada na edificação</label>
-        <select {...campo('tipoEscada')}>
-          <option value="">Automático (Tabela 3 da NT 12/2025)</option>
-          <option value="NE">Não Enclausurada - NE</option>
-          <option value="EP">Enclausurada Protegida - EP</option>
-          <option value="PF">A prova de fumaça - PF</option>
-        </select>
-      </div>
-      <Atestos lista={ATESTOS_PB.saidas} atestos={atestos} alternar={alternarAtesto}/>
-    </BoxPB>
+    <div className="mt-6">
+      <BoxPB titulo="Declarações do responsável técnico" item="10">
+        <Atestos titulo="" lista={ATESTOS_PB.saidas} atestos={atestos} alternar={alternarAtesto}/>
+      </BoxPB>
+    </div>
   )
 }
 
