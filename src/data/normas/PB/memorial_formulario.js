@@ -125,7 +125,8 @@ export const MODELOS_PLANO = [
 
 // 16. Extintores (NT CBMPB 21/2024) — capacidade extintora mínima pelo
 // nível de carga de incêndio (3.5). O nível III tem duas opções no
-// formulário; o RT escolhe qual adotou (memorialPB.extintorNivelIII).
+// formulário: 3A/40BC é a automática; o RT marca se adotou 4A/80BC
+// (memorialPB.extintorNivelIII = 'nivel_III_4A').
 export const EXTINTORES_NIVEL = [
   { key: 'nivel_I',      nivel: 'I',   texto: 'Edificação de nível I com capacidade extintora mínima de 2A e 20BC' },
   { key: 'nivel_II',     nivel: 'II',  texto: 'Edificação de nível II com capacidade extintora mínima de 3A e 40BC' },

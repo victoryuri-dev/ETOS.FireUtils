@@ -618,7 +618,7 @@ const INITIAL_STATE = {
     // 17 — só o que a página de hidrantes comum não tem: manancial, nsth,
     // tubDiametro, lancesInternos, lancesExternos, mangueira.
     hidrantes: {},
-    extintorNivelIII: '',    // 'nivel_III_3A' | 'nivel_III_4A' (EXTINTORES_NIVEL)
+    extintorNivelIII: '',    // 'nivel_III_4A' = RT adotou 4A/80BC; vazio = 3A/40BC (automático)
     // Itens de "atesto" do formulário (as escadas atendem ao item 5.7 da NT
     // 12 etc.) — { [chave do item]: true }. Nunca marcados automaticamente:
     // é declaração do RT, não resultado de cálculo.

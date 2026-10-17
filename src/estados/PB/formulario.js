@@ -45,6 +45,7 @@ import { observacoesDoProjeto, ROTULO_OBSERVACOES } from '../../utils/observacoe
 import { textoMemorialBrigadaIncendio } from '../../data/memorial/brigada_incendio'
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
+import { opcaoCapacidade } from '../../data/extintores_calc'
 
 const vazio = v => v === '' || v === null || v === undefined
 const fmtM  = v => `${fmtNum(v, 2, String(v))} m`
@@ -852,25 +853,49 @@ function secaoSinalizacao(state, ctx) {
   }
 }
 
-function secaoExtintores(state, F, ctx) {
+// 16 — nível de carga → capacidade extintora mínima e caminhamento (Tabelas
+// 4 e 5 da NT 21/2024). Nível I, II e III (3A/40BC) saem sozinhos; o RT só
+// marca se adotou 4A/80BC no nível III.
+const RISCO_DO_NIVEL = { I: 'baixo', II: 'medio', III: 'alto' }
+
+/** Resultado do item 16: nível de carga do projeto e a opção de capacidade
+ *  (A e B, com a distância máxima a percorrer) adotada. */
+export function resultadoExtintoresPB(state, ctx) {
+  const F = getMemorialFormulario(state.uf)
+  const nivel = F && ctx.cargaMaxima > 0 ? faixaDe(F.NIVEIS_CARGA, ctx.cargaMaxima)?.nivel : null
+  if (!nivel) return null
+  const escolha = nivel === 'III' && state.memorialPB?.extintorNivelIII === 'nivel_III_4A' ? 'nivel_III_4A' : null
+  const opcao = opcaoCapacidade(getExtintores(state.uf), RISCO_DO_NIVEL[nivel], escolha)
+  return { nivel, linha: escolha || F.EXTINTORES_NIVEL.find(l => l.nivel === nivel)?.key || null, opcao }
+}
+
+/** Linhas especiais do item 16 — marcáveis pelo RT; sem escolha, vale a
+ *  sugestão automática (`auto`, pela ocupação/riscos do projeto). */
+export function especiaisExtintoresPB(state, ctx) {
   const m = state.memorialPB || {}
+  return [
+    ['ext_posto', 'Postos de abastecimento com tanques enterrados, além dos extintores previstos, devem ser instalados dois extintores portáteis de pó químico (ABC ou BC) ou espuma mecânica, próximos ao setor de abastecimento.', ctx.divisoes.has('G-3')],
+    ['ext_carga_descarga', 'As áreas de carga e descarga de líquidos inflamáveis devem possuir extintores sobrerrodas com capacidade mínima de 80-B, localizados a no máximo 22,5 m de distância do tanque', false],
+    ['ext_glp_revenda', 'Quantidade de extintores para revenda e armazenamento de GLP conforme Tabela 6 NBR 15514', ctx.riscos.has('glp') && !!m.glpClasse],
+    ['ext_central_glp', 'Quantidade de extintores para Central predial de GLP conforme tabela 9 NBR 13523', !!ctx.sistemas?.central_gas?.ativo],
+    ['ext_fogos', 'Quantidade de extintores para revenda de fogos de artifício conforme NT CBMPB 01/2018', ctx.riscos.has('fogos_artificio')],
+    ['ext_heliponto', 'Quantidade de extintores para helipontos e heliportos conforme item 5.4.4.5 NBR 12693', false],
+    ['ext_tanques_superficie', 'Quantidade de extintores para tanques de combustível na superfície conforme tabela 1 NBR 12693', false],
+  ].map(([key, label, auto]) => ({ key, label, auto }))
+}
+
+/** Linha especial marcada: a escolha do RT, ou a sugestão automática. */
+export const especialMarcado = (atestos, e) => (e.key in (atestos || {}) ? !!atestos[e.key] : e.auto)
+
+function secaoExtintores(state, F, ctx) {
+  const at = state.memorialPB?.atestos || {}
   const ativo = !!ctx.sistemas?.extintores?.ativo
-  const nivel = ctx.cargaMaxima > 0 ? faixaDe(F.NIVEIS_CARGA, ctx.cargaMaxima)?.nivel : null
-  const marcaNivel = l => ativo && l.nivel === nivel && (nivel !== 'III' || m.extintorNivelIII === l.key)
-  const especiais = [
-    ['Postos de abastecimento com tanques enterrados, além dos extintores previstos, devem ser instalados dois extintores portáteis de pó químico (ABC ou BC) ou espuma mecânica, próximos ao setor de abastecimento.', ctx.divisoes.has('G-3')],
-    ['As áreas de carga e descarga de líquidos inflamáveis devem possuir extintores sobrerrodas com capacidade mínima de 80-B, localizados a no máximo 22,5 m de distância do tanque', false],
-    ['Quantidade de extintores para revenda e armazenamento de GLP conforme Tabela 6 NBR 15514', ctx.riscos.has('glp') && !!m.glpClasse],
-    ['Quantidade de extintores para Central predial de GLP conforme tabela 9 NBR 13523', !!ctx.sistemas?.central_gas?.ativo],
-    ['Quantidade de extintores para revenda de fogos de artifício conforme NT CBMPB 01/2018', ctx.riscos.has('fogos_artificio')],
-    ['Quantidade de extintores para helipontos e heliportos conforme item 5.4.4.5 NBR 12693', false],
-    ['Quantidade de extintores para tanques de combustível na superfície conforme tabela 1 NBR 12693', false],
-  ]
+  const r = resultadoExtintoresPB(state, ctx)
   return {
     titulo: '16. EXTINTORES DE INCÊNDIO', nota: '(Marque X nas características dos extintores, conforme NT CBMPB 21/2024)',
     linhas: [
-      ...F.EXTINTORES_NIVEL.map(l => ck({ x: marcaNivel(l), label: l.texto, negrito: true, detalhe: l.detalhe })),
-      ...especiais.map(([label, x]) => ck({ x: ativo && x, label })),
+      ...F.EXTINTORES_NIVEL.map(l => ck({ x: ativo && l.key === r?.linha, label: l.texto, negrito: true, detalhe: l.detalhe })),
+      ...especiaisExtintoresPB(state, ctx).map(e => ck({ x: ativo && especialMarcado(at, e), label: e.label })),
       obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'extintores')),
     ],
   }

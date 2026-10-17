@@ -5,7 +5,8 @@ import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { getMemorialFormulario } from '../../data/normas/index'
 import {
   ATESTOS_PB, atestoMarcado, resumoBrigadaPB, INTERVALO_SIMULADOS_PADRAO, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
-  distanciaMaximaPontosPB, tiposIluminacaoPB, secoesIluminacaoPB, DETECTORES_PB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
+  distanciaMaximaPontosPB, tiposIluminacaoPB, secoesIluminacaoPB, DETECTORES_PB,
+  contextoFormularioPB, resultadoExtintoresPB, especiaisExtintoresPB, especialMarcado, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
@@ -360,15 +361,42 @@ export function CamposSinalizacaoPB() {
 
 // 16 — capacidade extintora do nível III (as demais linhas são automáticas).
 export function CamposExtintoresPB() {
-  const { m, set, F } = useCamposPB()
-  if (!F) return null
+  const { state, m, set, atestos } = useCamposPB()
+  const { sistemas, porEstrutura } = useMedidasObrigatorias()
+  const ctx = contextoFormularioPB(state, sistemas, porEstrutura)
+  const r = resultadoExtintoresPB(state, ctx)
+  const especiais = especiaisExtintoresPB(state, ctx)
+  const alternarEspecial = e => set({ atestos: { ...atestos, [e.key]: !especialMarcado(atestos, e) } })
+  const op = r?.opcao
   return (
-    <BoxPB item="16">
-      <Opcoes titulo="Capacidade extintora adotada para edificação de nível III"
-        lista={F.EXTINTORES_NIVEL.filter(l => l.nivel === 'III').map(l => [l.key, `${l.texto.replace('Edificação de nível III com capacidade extintora mínima de ', '')}${l.detalhe ? ' (distância máxima reduzida)' : ''}`])}
-        valor={m.extintorNivelIII} onChange={v => set({ extintorNivelIII: v })}/>
-      <span className="text-[11.5px] text-ink-faint">O nível de carga (I, II ou III) e as linhas especiais (G-3, GLP, central de gás, fogos) são marcados automaticamente.</span>
-    </BoxPB>
+    <>
+      {/* Resultado: o nível vem da carga de incêndio; o formulário marca a
+          linha do nível sozinho (I, II ou III com 3A/40BC). */}
+      <BoxPB titulo="Capacidade extintora e caminhamento" item="16">
+        {!r ? (
+          <span className="text-[12px] text-ink-faint">Classifique a carga de incêndio do projeto para definir o nível (I, II ou III).</span>
+        ) : (
+          <>
+            <div className="g2">
+              <div className="fg"><label>Nível da edificação</label><input readOnly value={`Nível ${r.nivel}`}/></div>
+              <div className="fg"><label>Capacidade extintora mínima</label><input readOnly value={op ? `${op.A.capacidade} e ${op.B.capacidade}:C` : ''}/></div>
+              <div className="fg"><label>Caminhamento máximo — classe A</label><input readOnly value={op?.A?.distanciaMaxima != null ? `${op.A.distanciaMaxima} m` : ''}/></div>
+              <div className="fg"><label>Caminhamento máximo — classes B e C</label><input readOnly value={op?.B?.distanciaMaxima != null ? `${op.B.distanciaMaxima} m` : ''}/></div>
+            </div>
+            {r.nivel === 'III' && (
+              <Marcador label="Adotar capacidade extintora mínima de 4A e 80BC (no lugar de 3A e 40BC com distância reduzida)"
+                checked={m.extintorNivelIII === 'nivel_III_4A'}
+                onChange={() => set({ extintorNivelIII: m.extintorNivelIII === 'nivel_III_4A' ? '' : 'nivel_III_4A' })}/>
+            )}
+          </>
+        )}
+      </BoxPB>
+      <FormSection title="Situações específicas">
+        <div className="flex flex-col gap-2">
+          {especiais.map(e => <Marcador key={e.key} label={e.label} checked={especialMarcado(atestos, e)} onChange={() => alternarEspecial(e)}/>)}
+        </div>
+      </FormSection>
+    </>
   )
 }
 

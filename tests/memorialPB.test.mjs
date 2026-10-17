@@ -121,12 +121,33 @@ test('10. declarações: só com mais de um pavimento; 5.7 e 5.8 já nascem marc
   assert.equal(atestos(secao(gerar(terrea), '10.')).length, 0)
 })
 
-test('extintores marcam o nível da carga; nível III depende da escolha do RT', () => {
+test('extintores marcam o nível da carga; nível III: 3A/40BC automático, 4A/80BC se o RT marcar', () => {
   assert.ok(marcados(secao(gerar(projeto()), '16.')).some(l => l.includes('nível II')))
   const alto = projeto({ cargaState:{ e1:{ 'C-1':{ metodo:'levantamento', valorManual:'1500' } } } })
-  assert.equal(marcados(secao(gerar(alto), '16.')).length, 0)
+  assert.deepEqual(marcados(secao(gerar(alto), '16.')), ['Edificação de nível III com capacidade extintora mínima de 3A e 40BC'])
   alto.memorialPB = { extintorNivelIII:'nivel_III_4A' }
   assert.deepEqual(marcados(secao(gerar(alto), '16.')), ['Edificação de nível III com capacidade extintora mínima de 4A e 80BC'])
+})
+
+test('16. resultado (capacidade e caminhamento) e linhas especiais marcáveis com sugestão automática', async () => {
+  const { resultadoExtintoresPB, contextoFormularioPB } = await server.ssrLoadModule('/src/estados/PB/formulario.js')
+  const alto = projeto({ cargaState:{ e1:{ 'C-1':{ metodo:'levantamento', valorManual:'1500' } } } })
+  const ctx = st => { const { sistemas, porEstrutura } = medidasObrigatorias(st); return contextoFormularioPB(st, sistemas, porEstrutura) }
+  const r = resultadoExtintoresPB(alto, ctx(alto))
+  assert.equal(r.nivel, 'III')
+  assert.deepEqual([r.opcao.A.capacidade, r.opcao.A.distanciaMaxima, r.opcao.B.capacidade, r.opcao.B.distanciaMaxima], ['3-A', 15, '40-B', 10])
+  alto.memorialPB = { extintorNivelIII: 'nivel_III_4A' }
+  assert.equal(resultadoExtintoresPB(alto, ctx(alto)).opcao.A.distanciaMaxima, 20)
+
+  const HELI = 'Quantidade de extintores para helipontos e heliportos conforme item 5.4.4.5 NBR 12693'
+  const comExt = (atestos, extra = {}) => projeto({ sistemas: { ...SISTEMAS, extintores: { obrigatorio: false, ativo: true } }, memorialPB: { atestos }, ...extra })
+  assert.ok(!marcados(secao(gerar(comExt({})), '16.')).includes(HELI))
+  assert.ok(marcados(secao(gerar(comExt({ ext_heliponto: true })), '16.')).includes(HELI))
+  // sugestão automática (fogos de artifício) e o RT desmarcando
+  const FOGOS = 'Quantidade de extintores para revenda de fogos de artifício conforme NT CBMPB 01/2018'
+  const fogos = { riscosEspeciaisPorEstrutura: { e1: { fogos_artificio: true } } }
+  assert.ok(marcados(secao(gerar(comExt({}, fogos)), '16.')).includes(FOGOS))
+  assert.ok(!marcados(secao(gerar(comExt({ ext_fogos: false }, fogos)), '16.')).includes(FOGOS))
 })
 
 test('riscos especiais: PB tem lista própria, MA continua com a do Anexo B', () => {
