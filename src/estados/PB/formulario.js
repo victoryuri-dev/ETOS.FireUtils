@@ -489,6 +489,17 @@ const ATESTOS_BRIGADA = [
   ['brigada_a_construir', 'Edificações, a construir, sem brigada definida, deverá solicitar o recarimbo após brigada definida'],
 ]
 
+const ORDEM_NIVEL = { basico: 1, intermediario: 2, avancado: 3 }
+export const INTERVALO_SIMULADOS_PADRAO = '12 meses'
+/** Tempo entre simulados: o informado, ou o padrão de 12 meses. */
+export const intervaloSimuladosPB = m => (m?.brigadaIntervaloSimulados || '').trim() || INTERVALO_SIMULADOS_PADRAO
+
+/** Resumo da brigada (item 12) — exportado para a página da PB mostrar o
+ *  nível e a carga horária (Tabela B.2) de onde vem o valor do formulário. */
+export function resumoBrigadaPB(state, sistemas, porEstrutura) {
+  return resumoBrigada(state, { sistemas, porEstrutura })
+}
+
 function resumoBrigada(state, ctx) {
   const brig = getBrigada(state.uf)
   const ext = getExtintores(state.uf)
@@ -498,6 +509,7 @@ function resumoBrigada(state, ctx) {
   const cnaesDiv = divisao => getCNAEsDivisao(state.uf, divisao)
   let total = 0, temTotal = false
   const divisoes = [], riscos = [], niveis = []
+  let nivelMax = null
   // Dimensionamento (campo do formulário): o mesmo cálculo da página de
   // brigada, uma linha por pavimento, agrupado por estrutura.
   const dimensionamento = []
@@ -520,12 +532,20 @@ function resumoBrigada(state, ctx) {
       dimensionamento.push(`${comBrigada.length > 1 ? '  ' : ''}${partes.join(': ').replace(/: (nível [^:]*)$/, '; $1')}.`)
       divisoes.push(pav.divisao)
       riscos.push(RISCO_LABEL[risco])
-      if (nivelTreinamento) niveis.push(NIVEL_LABEL[nivelTreinamento.nivel] || nivelTreinamento.label)
+      if (nivelTreinamento) {
+        niveis.push(NIVEL_LABEL[nivelTreinamento.nivel] || nivelTreinamento.label)
+        const chave = nivelTreinamento.nivel === 'misto' ? 'intermediario' : nivelTreinamento.nivel
+        if ((ORDEM_NIVEL[chave] || 0) > (ORDEM_NIVEL[nivelMax] || 0)) nivelMax = chave
+      }
       if (resultado?.brigadistas != null) { total += resultado.brigadistas; temTotal = true }
     })
   })
   if (temTotal) dimensionamento.push(`Total: ${total} brigadista${total === 1 ? '' : 's'}.`)
-  return { total: temTotal ? String(total) : '', divisoes: juntar(divisoes), riscos: juntar(riscos), niveis: juntar(niveis), dimensionamento: dimensionamento.join('\n') }
+  const carga = nivelMax ? brig.CARGA_HORARIA_TREINAMENTO?.[nivelMax] : null
+  return {
+    total: temTotal ? String(total) : '', divisoes: juntar(divisoes), riscos: juntar(riscos), niveis: juntar(niveis),
+    dimensionamento: dimensionamento.join('\n'), nivelMax, cargaHoraria: carga?.total ?? null, cargaHorariaPartes: carga?.partes || [],
+  }
 }
 
 function secaoBrigada(state, ctx) {
@@ -541,8 +561,8 @@ function secaoBrigada(state, ctx) {
       campo('Divisão da edificação:', r?.divisoes || ''),
       campo('Grau de risco:', r?.riscos || ''),
       campo('Nível de treinamento:', r?.niveis || ''),
-      campo('Carga horária mínima do treinamento (conforme nível de treinamento):', exigivel ? m.brigadaCargaHoraria || '' : ''),
-      campo('Tempo entre simulados na edificação (máximo a cada 12 meses):', exigivel ? m.brigadaIntervaloSimulados || '' : ''),
+      campo('Carga horária mínima do treinamento (conforme nível de treinamento):', r?.cargaHoraria != null ? `${r.cargaHoraria} horas` : ''),
+      campo('Tempo entre simulados na edificação (máximo a cada 12 meses):', exigivel ? intervaloSimuladosPB(m) : ''),
       ...ATESTOS_BRIGADA.map(([key, label]) => ck({ x: !!at[key], label })),
       obs('DIMENSIONAMENTO:', r?.dimensionamento || ''),
       obs('Observação livre:', obsDe(state, 'brigada')),

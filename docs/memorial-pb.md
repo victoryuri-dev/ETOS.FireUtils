@@ -44,7 +44,7 @@ Regras do gerador:
 | **9. CMAR** | ✅ | Linha marcada pelo grupo/divisão; observação nova. |
 | **10. Saídas de emergência** | ✅ | Página comum de Saída de Emergência (ambientes, acessos, tipo de escada) com a norma da PB; no fim, as declarações do RT do item 10. Anexo A = texto do dimensionamento. |
 | **11.1 Plano de emergência** | ✅ | Novo: `memorialPB.planoModelo` (item 6 / Anexo B da NT 13/2023) + observação. |
-| **12. Brigada** | ✅ | Quantidade, divisão, risco e nível de `brigada_calc` com a Tabela A.1 da NT 17/2024 e o item 4.11.2 (público da edificação). Carga horária e intervalo entre simulados manuais (Anexo B não enviado); 2 atestos. |
+| **12. Brigada** | ✅ | Quantidade, divisão, risco e nível de `brigada_calc` com a Tabela A.1 da NT 17/2024 e o item 4.11.2 (público da edificação). Carga horária pela Tabela B.2 da NT 17/2024 (maior nível exigido: básico 4 h, intermediário 8 h, avançado 24 h), mostrada com a origem na página; tempo entre simulados com 12 meses por padrão; dimensionamento preenchido pelo cálculo; 2 atestos. |
 | **13. Iluminação** | ✅ | Box da PB na página de Iluminação: altura de instalação (`memorialPB.iluAlturaInstalacao`) → distância máxima 4 × H; atestos por grupo (gerais, circuitos, luminárias, 13.1–13.4 só do tipo adotado). Fluxo exato = fluxos cadastrados no projeto. Tipo UPS na norma da PB. Observações complementares por estrutura. |
 | **14. Alarme e detecção** | ✅ | Local da central (`centralLocal`); raio e altura dos detectores do tipo adotado (limites da norma usados no dimensionamento). Itens 14.1 viraram atestos. |
 | **15. Sinalização** | 🔜 | Atestos e placas M-1/M-2 (dá para tirar do quantitativo). |
@@ -61,7 +61,7 @@ Já no Supabase (PB): `ocupacoes`, `medidas_seguranca`, `memorial_formulario`, `
 
 Extintores (NT 21/2024): `20261016170000_seed_normas_extintores_pb.sql` — Tabelas 1 a 5 da NT; nível III com duas opções (3-A a 15 m / 4-A a 20 m), escolhida no box da PB da página de extintores. ⚠ Distância de sobre rodas e classe D, altura de instalação, unidade única, proporção, locais de risco especial, entrada/escadas e classe K copiados do MA, a conferir.
 
-Brigada (NT 17/2024, Anexo A): `20261016180000_seed_normas_brigada_pb.sql` — Tabela A.1 e notas conferidas contra o PDF; diferenças para o MA em H-1, H-3, H-4, H-5, H-6, M-5, B-2 (sem a nota 3), F-5 (nota 10) e F-7. Item 4.11.2 (`dimensionamento_publico`): F-7 sempre e, pela nota 10, F-2/F-3/F-5/F-6/F-11 com público acima de 250 pessoas — público = população da edificação inteira (soma dos pavimentos da estrutura na Saída de Emergência). Carga horária e simulados (Anexo B) seguem manuais.
+Brigada (NT 17/2024, Anexo A): `20261016180000_seed_normas_brigada_pb.sql` — Tabela A.1 e notas conferidas contra o PDF; diferenças para o MA em H-1, H-3, H-4, H-5, H-6, M-5, B-2 (sem a nota 3), F-5 (nota 10) e F-7. Item 4.11.2 (`dimensionamento_publico`): F-7 sempre e, pela nota 10, F-2/F-3/F-5/F-6/F-11 com público acima de 250 pessoas — público = população da edificação inteira (soma dos pavimentos da estrutura na Saída de Emergência). Carga horária pela Tabela B.2 (`carga_horaria_treinamento`).
 
 TRRF (NT 08/2024, Anexo B): `20261016190000_seed_normas_trrf_pb.sql` — tabela transcrita das imagens; ⚠ notas, divisões de subsolo sem ocupação e metodologias com textos do MA adaptados. Textos da tela/memorial citam a norma do estado (`norma` da linha 'trrf'; migração `20261016190001_add_norma_trrf_ma.sql` para o MA).
 

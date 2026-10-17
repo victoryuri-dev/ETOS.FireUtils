@@ -4,12 +4,13 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { getMemorialFormulario, getIluminacao } from '../../data/normas/index'
 import {
-  ATESTOS_PB, atestoMarcado, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
+  ATESTOS_PB, atestoMarcado, resumoBrigadaPB, INTERVALO_SIMULADOS_PADRAO, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
   distanciaMaximaPontosPB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
 import { fmtNum } from '../../utils/numero'
+import { NIVEL_LABEL } from '../../data/brigada_calc'
 import FormSection from '../../components/ui/FormSection'
 import Checkbox from '../../components/ui/Checkbox'
 import SwitchToggle from '../../components/ui/SwitchToggle'
@@ -215,13 +216,30 @@ export function CamposPlanoPB() {
 // intervalo entre simulados e declarações. O campo "Dimensionamento" do
 // formulário sai do próprio cálculo da página.
 export function CamposBrigadaPB() {
-  const { campo, atestos, alternarAtesto } = useCamposPB()
+  const { state, m, set, atestos, alternarAtesto } = useCamposPB()
+  const { sistemas, porEstrutura } = useMedidasObrigatorias()
+  const r = resumoBrigadaPB(state, sistemas, porEstrutura)
+  const simulados = m.brigadaIntervaloSimulados ?? INTERVALO_SIMULADOS_PADRAO
   return (
     <div className="mt-6">
       <BoxPB titulo="Formulário do CBMPB — item 12" item="12">
-        <div className="g2">
-          <div className="fg"><label>Carga horária mínima do treinamento</label><input {...campo('brigadaCargaHoraria')} placeholder="Ex.: 16 h"/></div>
-          <div className="fg"><label>Tempo entre simulados (máximo 12 meses)</label><input {...campo('brigadaIntervaloSimulados')} placeholder="Ex.: 6 meses"/></div>
+        <div className="flex flex-col gap-2">
+          <Rotulo>Carga horária mínima do treinamento</Rotulo>
+          {r?.cargaHoraria != null ? (
+            <div className="rounded-md border border-solid border-border py-2.5 px-3 flex flex-col gap-1.5">
+              <div className="text-[13px] text-ink"><strong>{r.cargaHoraria} horas</strong> — nível {(NIVEL_LABEL[r.nivelMax] || '').toLowerCase()}, o maior exigido no dimensionamento acima</div>
+              <div className="text-[11.5px] text-ink-faint">Tabela B.2 da NT 17/2024 (módulo e carga horária mínima por nível do treinamento):</div>
+              <ul className="m-0 pl-4 flex flex-col gap-0.5 text-xs text-ink-muted">
+                {r.cargaHorariaPartes.map(([parte, h]) => <li key={parte}>{parte}: {h} h</li>)}
+              </ul>
+            </div>
+          ) : (
+            <span className="text-[12px] text-ink-faint">Sai do nível de treinamento do dimensionamento acima (Tabela B.2): básico 4 h, intermediário 8 h, avançado 24 h.</span>
+          )}
+        </div>
+        <div className="fg">
+          <label>Tempo entre simulados</label>
+          <input value={simulados} placeholder={INTERVALO_SIMULADOS_PADRAO} onChange={e => set({ brigadaIntervaloSimulados: e.target.value })}/>
         </div>
         <Atestos lista={ATESTOS_PB.brigada} atestos={atestos} alternar={alternarAtesto}/>
       </BoxPB>

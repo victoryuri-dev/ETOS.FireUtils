@@ -105,7 +105,7 @@ test('extintores: distância portátil pela opção adotada (PB nível III) e po
 test('brigada da PB: SQL = arquivo de seed', async () => {
   const esperado = await server.ssrLoadModule('/src/data/normas/PB/brigada_incendio.js')
   const lido = normas.getBrigada('PB')
-  for (const k of ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'OBSERVACOES_TRANSCRICAO', 'DIMENSIONAMENTO_PUBLICO']) assert.deepEqual(lido[k], JSON.parse(JSON.stringify(esperado[k])), k)
+  for (const k of ['NORMA', 'TABELA_A1', 'NOTAS_TABELA_A1', 'NOTAS_GERAIS', 'OBSERVACOES_TRANSCRICAO', 'DIMENSIONAMENTO_PUBLICO', 'CARGA_HORARIA_TREINAMENTO']) assert.deepEqual(lido[k], JSON.parse(JSON.stringify(esperado[k])), k)
 })
 
 test('brigada da PB: exemplos da NT 17/2024 (Anexo A) e diferenças para o MA', async () => {

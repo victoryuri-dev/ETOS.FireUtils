@@ -5,6 +5,63 @@
 
 insert into public.normas_dados (uf, sistema, dados, versao) values
   ('PB', 'brigada', $j${
+  "carga_horaria_treinamento": {
+    "basico": {
+      "total": 4,
+      "partes": [
+        [
+          "Teórica de combate a incêndio",
+          1
+        ],
+        [
+          "Prática de combate a incêndio",
+          2
+        ],
+        [
+          "Teórica e prática de primeiros socorros",
+          1
+        ]
+      ]
+    },
+    "intermediario": {
+      "total": 8,
+      "partes": [
+        [
+          "Teórica de combate a incêndio",
+          2
+        ],
+        [
+          "Prática de combate a incêndio",
+          3
+        ],
+        [
+          "Teórica e prática de primeiros socorros",
+          3
+        ]
+      ]
+    },
+    "avancado": {
+      "total": 24,
+      "partes": [
+        [
+          "Teórica de combate a incêndio",
+          6
+        ],
+        [
+          "Prática de combate a incêndio",
+          8
+        ],
+        [
+          "Teórica de primeiros socorros",
+          4
+        ],
+        [
+          "Prática de primeiros socorros",
+          6
+        ]
+      ]
+    }
+  },
   "dimensionamento_publico": {
     "item": "4.11.2",
     "nota": 10,

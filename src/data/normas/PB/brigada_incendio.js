@@ -170,3 +170,12 @@ export const NOTAS_GERAIS = {
   e: 'As edificações que não possuírem hidrantes em suas instalações podem optar pelo nível de treinamento básico de combate a incêndio.',
   f: 'Para edificações que possuam riscos especiais (caldeiras, sistemas de GLP, central de distribuição elétrica, produtos perigosos e espaços confinados) a brigada deverá ter formação intermediário.',
 }
+
+// ── Anexo B, Tabela B.2: carga horária mínima por nível de treinamento ───
+// (horas). O formulário (item 12) usa o total do maior nível exigido no
+// projeto; as partes só detalham de onde vem o total.
+export const CARGA_HORARIA_TREINAMENTO = {
+  basico: { total: 4, partes: [['Teórica de combate a incêndio', 1], ['Prática de combate a incêndio', 2], ['Teórica e prática de primeiros socorros', 1]] },
+  intermediario: { total: 8, partes: [['Teórica de combate a incêndio', 2], ['Prática de combate a incêndio', 3], ['Teórica e prática de primeiros socorros', 3]] },
+  avancado: { total: 24, partes: [['Teórica de combate a incêndio', 6], ['Prática de combate a incêndio', 8], ['Teórica de primeiros socorros', 4], ['Prática de primeiros socorros', 6]] },
+}

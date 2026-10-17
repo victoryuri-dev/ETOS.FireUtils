@@ -422,3 +422,13 @@ test('12. dimensionamento da brigada sai do cálculo da página, por pavimento',
   assert.match(dim, /^Térreo \(C-1, risco médio, população fixa de 8 pessoas\): \d+ brigadistas? — Até 8/)
   assert.match(dim, /Total: \d+ brigadistas?\.$/)
 })
+
+test('12. carga horária pela Tabela B.2 (maior nível exigido) e simulados com 12 meses por padrão', () => {
+  const p = projeto({ sistemasPorEstrutura: { e1: { brigada: true } } })
+  p.pavimentos[0].populacaoFixa = '8'
+  const s = secao(gerar(p), '12.')
+  assert.equal(valorCampo(s, 'Carga horária mínima do treinamento (conforme nível de treinamento):'), '4 horas')   // nível básico
+  assert.equal(valorCampo(s, 'Tempo entre simulados na edificação (máximo a cada 12 meses):'), '12 meses')
+  p.memorialPB = { brigadaIntervaloSimulados: '6 meses' }
+  assert.equal(valorCampo(secao(gerar(p), '12.'), 'Tempo entre simulados na edificação (máximo a cada 12 meses):'), '6 meses')
+})
