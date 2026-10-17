@@ -7,10 +7,8 @@ import Icon from '../ui/Icon'
 
 const reduzMovimento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-// Largura do painel da prévia: normal (~45% da área) ou expandido (~70%).
-const larguraAlvo = (total, expandido) => Math.round(expandido
-  ? Math.max(480, total * 0.7)
-  : Math.min(820, Math.max(420, total * 0.45)))
+// Largura do painel da prévia: ~45% da área da página.
+const larguraAlvo = total => Math.round(Math.min(820, Math.max(420, total * 0.45)))
 
 const TOPO_BOTAO = 150   // alinhado ao primeiro bloco do formulário
 const BOTAO = 48
@@ -32,7 +30,6 @@ export default function ComPrevia({ sistKey, children }) {
   const conteudoRef = useRef(null)
   const botaoRef = useRef(null)
   const [montado, setMontado] = useState(false)
-  const [expandido, setExpandido] = useState(false)
   const [posBotao, setPosBotao] = useState(null)
 
   // Botão colado à direita dos blocos do formulário — que é centralizado,
@@ -66,7 +63,7 @@ export default function ComPrevia({ sistKey, children }) {
   useLayoutEffect(() => {
     if (!montado || !painelRef.current) return
     const d = reduzMovimento() ? 0 : 1
-    const alvo = larguraAlvo(raizRef.current.clientWidth, expandido)
+    const alvo = larguraAlvo(raizRef.current.clientWidth)
     gsap.set(conteudoRef.current, { width: alvo })
     gsap.fromTo(painelRef.current, { width: 0 }, { width: alvo, duration: .5 * d, ease: 'power3.out', onUpdate: posicionar, onComplete: posicionar })
     gsap.fromTo(conteudoRef.current, { x: 48, opacity: 0 }, { x: 0, opacity: 1, duration: .45 * d, delay: .12 * d, ease: 'power3.out' })
@@ -83,13 +80,13 @@ export default function ComPrevia({ sistKey, children }) {
   useEffect(() => {
     if (!montado) return
     const aoRedimensionar = () => {
-      const alvo = larguraAlvo(raizRef.current.clientWidth, expandido)
+      const alvo = larguraAlvo(raizRef.current.clientWidth)
       gsap.set([painelRef.current, conteudoRef.current], { width: alvo })
       posicionar()
     }
     window.addEventListener('resize', aoRedimensionar)
     return () => window.removeEventListener('resize', aoRedimensionar)
-  }, [montado, expandido, posicionar])
+  }, [montado, posicionar])
 
   const abrir = () => setMontado(true)
   const fechar = () => {
@@ -97,17 +94,8 @@ export default function ComPrevia({ sistKey, children }) {
     gsap.to(conteudoRef.current, { x: 48, opacity: 0, duration: .18 * d, ease: 'power2.in' })
     gsap.to(painelRef.current, {
       width: 0, duration: .4 * d, delay: .08 * d, ease: 'power3.inOut', onUpdate: posicionar,
-      onComplete: () => { setMontado(false); setExpandido(false); posicionar() },
+      onComplete: () => { setMontado(false); posicionar() },
     })
-  }
-  // Expandir/recolher: o painel muda de largura animado; o conteúdo
-  // acompanha.
-  const alternarExpansao = () => {
-    const novo = !expandido
-    setExpandido(novo)
-    const alvo = larguraAlvo(raizRef.current.clientWidth, novo)
-    const d = reduzMovimento() ? 0 : 1
-    gsap.to([painelRef.current, conteudoRef.current], { width: alvo, duration: .45 * d, ease: 'power3.inOut', onUpdate: posicionar, onComplete: posicionar })
   }
 
   return (
@@ -120,10 +108,6 @@ export default function ComPrevia({ sistKey, children }) {
             <div className="flex items-center gap-2 py-3 px-4 border-b border-solid border-border shrink-0">
               <Icon name="documentosMedida" size={15} color="var(--color-red)"/>
               <span className="text-[13px] font-semibold text-ink flex-1">Prévia do documento</span>
-              <button type="button" className="btn-ghost py-1 px-2" onClick={alternarExpansao}
-                title={expandido ? 'Reduzir prévia' : 'Expandir prévia'} aria-label={expandido ? 'Reduzir prévia' : 'Expandir prévia'}>
-                <Icon name={expandido ? 'minimize' : 'maximize'} size={14}/>
-              </button>
               <button type="button" className="btn-ghost py-1 px-2" onClick={fechar} title="Fechar prévia" aria-label="Fechar prévia">
                 <Icon name="x" size={14}/>
               </button>
