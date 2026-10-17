@@ -10,6 +10,7 @@ import { decidirAcessoViaturaPB } from './acessoViatura'
 import { fmtNum } from '../../utils/numero'
 import FormSection from '../../components/ui/FormSection'
 import Checkbox from '../../components/ui/Checkbox'
+import SwitchToggle from '../../components/ui/SwitchToggle'
 
 // Campos do formulário do Memorial Descritivo do CBMPB — só o que o
 // formulário pede e nenhuma outra tela coleta, guardado em state.memorialPB
@@ -438,21 +439,17 @@ const LINHA_AV = {
   4: 'Recalque a até 20 m e edificação a mais de 50 m da via — acesso obrigatório.',
   5: 'Recalque a mais de 20 m e edificação a mais de 50 m da via — acesso obrigatório.',
 }
-// Pergunta de sim/não (botões). Sem resposta = nenhum dos dois marcado.
+// Pergunta de sim/não com switch (o mesmo SwitchToggle das outras páginas):
+// ligado = sim, desligado = não.
 function SimNao({ pergunta, valor, onChange }) {
-  const botao = (v, rotulo) => {
-    const sel = valor === v
-    return (
-      <button type="button" onClick={() => onChange(v)} aria-pressed={sel}
-        className={`py-1 px-3 text-xs border border-solid rounded-md cursor-pointer ${sel ? 'border-red-border bg-red-dim text-ink font-medium' : 'border-border bg-transparent text-ink-faint'}`}>
-        {rotulo}
-      </button>
-    )
-  }
+  const sim = valor === true
   return (
     <div className="flex items-center justify-between gap-3 text-[12.5px] text-ink-muted">
       <span>{pergunta}</span>
-      <div className="flex gap-1.5 shrink-0">{botao(true, 'Sim')}{botao(false, 'Não')}</div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`text-xs w-7 text-right ${sim ? 'text-ink font-medium' : 'text-ink-faint'}`}>{sim ? 'Sim' : 'Não'}</span>
+        <SwitchToggle checked={sim} onChange={onChange}/>
+      </div>
     </div>
   )
 }
