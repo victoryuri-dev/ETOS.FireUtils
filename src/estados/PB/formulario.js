@@ -425,7 +425,14 @@ function secaoCmar(state, F, ctx) {
 }
 
 // Atestos que já nascem marcados (o RT desmarca se não valer).
-export const ATESTOS_PADRAO_MARCADOS = new Set(['se_escadas_5_7', 'se_guardas_5_8'])
+export const ATESTOS_PADRAO_MARCADOS = new Set([
+  'se_escadas_5_7', 'se_guardas_5_8',
+  // Iluminação de emergência (13) — requisitos que o sistema sempre tem de
+  // atender; o RT ainda pode desmarcar.
+  'ilu_autonomia_2h', 'ilu_planos_3lux', 'ilu_desnivel_5lux', 'ilu_planos_aberta_1lux', 'ilu_desnivel_aberta_3lux',
+  'ilu_balizamento_f', 'ilu_tarefa_alto_risco', 'ilu_fumaca_15lux',
+  'ilu_lum_30vcc', 'ilu_lum_fluxo', 'ilu_lum_70c',
+])
 /** Atesto marcado: o que o RT escolheu, ou o padrão quando ainda não mexeu. */
 export const atestoMarcado = (atestos, key) => (key in (atestos || {}) ? !!atestos[key] : ATESTOS_PADRAO_MARCADOS.has(key))
 
@@ -563,7 +570,7 @@ function secaoBrigada(state, ctx) {
       campo('Nível de treinamento:', r?.niveis || ''),
       campo('Carga horária mínima do treinamento (conforme nível de treinamento):', r?.cargaHoraria != null ? `${r.cargaHoraria} horas` : ''),
       campo('Tempo entre simulados na edificação (máximo a cada 12 meses):', exigivel ? intervaloSimuladosPB(m) : ''),
-      ...ATESTOS_BRIGADA.map(([key, label]) => ck({ x: !!at[key], label })),
+      ...ATESTOS_BRIGADA.map(([key, label]) => ck({ x: atestoMarcado(at, key), label })),
       { tipo: 'obs', label: 'DIMENSIONAMENTO:', blocos: r?.dimensionamento || [] },
       obs('Observação livre:', obsDe(state, 'brigada')),
     ],
@@ -661,7 +668,7 @@ function secaoIluminacao(state, ctx) {
   const at = m.atestos || {}
   const tipos = tiposIluminacaoPB(state)
   const ativo = !!ctx.sistemas?.iluminacao?.ativo
-  const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && !!at[key], label }))
+  const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && atestoMarcado(at, key), label }))
   const h = parseFloat(String(m.iluAlturaInstalacao ?? '').replace(',', '.'))
   const dist = distanciaMaximaPontosPB(m.iluAlturaInstalacao)
   // Fluxo exato: o informado pelo RT na página de Iluminação da PB.
@@ -680,7 +687,7 @@ function secaoIluminacao(state, ctx) {
       ...atestos(G.circuitoLuminarias),
       sub('Características das luminárias:'),
       ...atestos([G.luminarias[0]]),
-      ck({ x: ativo && !!at[fluxoKey], label: `${fluxoLabel} (Fluxo exato: ${ativo && fluxos ? `${fluxos} lm` : '______ lm'})` }),
+      ck({ x: ativo && atestoMarcado(at, fluxoKey), label: `${fluxoLabel} (Fluxo exato: ${ativo && fluxos ? `${fluxos} lm` : '______ lm'})` }),
       ...atestos(G.luminarias.slice(2)),
       sub('Tipo de sistema:'),
       ck(
@@ -729,7 +736,7 @@ function secaoAlarmeDeteccao(state, ctx) {
     linhas: [
       sub('14.1 Sistema de Alarme de Incêndio', '(Informe as características do sistema de alarme, conforme NT 19/2024)'),
       { tipo: 'exigivel', exigivel: exigAlarme },
-      ...ATESTOS_ALARME.map(([key, label]) => ck({ x: !!at[key], label })),
+      ...ATESTOS_ALARME.map(([key, label]) => ck({ x: atestoMarcado(at, key), label })),
       campo('Localização da central de alarme (cômodo):', exigAlarme ? localCentral('alarme') : ''),
       obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'alarme')),
       sub('14.2 Sistema de Detecção de Incêndio', '(Informe as características do sistema de alarme, conforme NT 19/2024)'),
@@ -765,7 +772,7 @@ function secaoSinalizacao(state, ctx) {
   return {
     titulo: '15. SINALIZAÇÃO DE EMERGÊNCIA', nota: '(Informe ou Marque X nas características da sinalização, conforme NT CBMPB 06/2013)',
     linhas: [
-      ...ATESTOS_SINALIZACAO.map(([key, label]) => ck({ x: ativo && !!at[key], label })),
+      ...ATESTOS_SINALIZACAO.map(([key, label]) => ck({ x: ativo && atestoMarcado(at, key), label })),
       obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'sinalizacao')),
     ],
   }
@@ -858,7 +865,7 @@ function secaoHidrantes(state, ctx) {
     : 'Vazão exata do hidrante mais desfavorável: ______ l/min. Pressão exata: ______ mca.')
   const um = (lista, valor) => ck(...lista.map(([key, label]) => ({ x: ativo && valor === key, label })))
   const carga = ctx.cargaMaxima > 0 ? FAIXAS_CARGA_RTI.find(([, max]) => ctx.cargaMaxima <= max)?.[0] : null
-  const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && !!at[key], label }))
+  const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && atestoMarcado(at, key), label }))
   const reservatorio = extra.manancial ? 'manancial' : RESERVATORIO_DA_POSICAO[h.reservatorioPosicao] || ''
   const alturaBomba = h.bombaExiste && d?.res?.P_RTI != null ? fmt(d.res.P_RTI) : null
   return {

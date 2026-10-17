@@ -276,14 +276,29 @@ test('13. iluminação: tipo, fluxo e altura da página da PB → distância 4×
     sistemas: { ...SISTEMAS, iluminacao: { obrigatorio: false, ativo: true } },
     memorialPB: { ...base, ...mpb },
   })
+  // Requisitos obrigatórios já vêm marcados (gerais e de luminárias).
+  const PADRAO = [
+    'Tempo de autonomia do sistema de 2 horas',
+    'Iluminamento nos locais planos a partir de 03 lux',
+    'Iluminamento nos locais com desnível a partir de 05 lux',
+    'Iluminamento nos locais planos em áreas de circulação aberta a partir de 01 lux',
+    'Iluminamento nos locais com desnível em áreas de circulação aberta a partir de 03 lux',
+    'Iluminação de balizamento em ambientes fechados com lotação superior a 100 pessoas (F-3, F-5, F-6, F-7, F-10 e F-11)',
+    'Iluminamento no plano de referência em áreas de tarefa de alto risco de no mínimo 10% do previsto em ABNT NBR ISSO/CIE 8995-1 e não inferior a 15 lux',
+    'Luminárias instaladas em áreas com possível acúmulo de fumaça possuem iluminância ≥ 15 lux',
+    'Tensão de até 30Vcc',
+    'Fluxo luminoso ≥ 300 lm e atende ao Anexo A e Tabela 1 da NBR (Fluxo exato: 400 lm)',
+    'Material resiste a 70º C durante 1 hora de funcionamento e é anticorrosão',
+  ]
   const vazio = secao(gerar(comIlu()), '13.')
   assert.equal(valorCampo(vazio, 'Altura de instalação do ponto de luz em relação ao piso (metros):'), '')
-  assert.deepEqual(marcados(vazio), ['Central por UPS'])
+  assert.deepEqual(marcados(vazio).sort(), ['Central por UPS', ...PADRAO].sort())
   assert.ok(vazio.linhas.some(l => (l.itens || []).some(i => i.label.includes('Fluxo exato: 400 lm'))))
 
-  const s = secao(gerar(comIlu({ iluAlturaInstalacao: '2,5', atestos: { ilu_autonomia_2h: true, ilu_ups_exclusiva: true } })), '13.')
+  // O RT pode desmarcar um padrão e marcar outros.
+  const s = secao(gerar(comIlu({ iluAlturaInstalacao: '2,5', atestos: { ilu_autonomia_2h: false, ilu_ups_exclusiva: true } })), '13.')
   assert.equal(valorCampo(s, 'Distância máxima entre pontos de luz conforme Anexo A da NBR (4x altura de instalação):'), '10 m')
-  assert.deepEqual(marcados(s).sort(), ['Central por UPS', 'Tempo de autonomia do sistema de 2 horas', 'UPS exclusiva para a iluminação de emergência'].sort())
+  assert.deepEqual(marcados(s).sort(), ['Central por UPS', 'UPS exclusiva para a iluminação de emergência', ...PADRAO.slice(1)].sort())
 
 })
 
