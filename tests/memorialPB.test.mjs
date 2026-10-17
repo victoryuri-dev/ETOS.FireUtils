@@ -282,18 +282,33 @@ test('13. iluminação: tipo, fluxo e altura da página da PB → distância 4×
 
 })
 
-test('17. hidrantes: tipo, vazão/pressão e RTI informados na página da PB', () => {
+test('17. hidrantes: tipo, vazão/pressão, RTI e bombas vêm da página comum; extras da PB', () => {
   const p = projeto({
     sistemasPorEstrutura: { e1: { hidrantes: true } },
-    memorialPB: { hidrantes: { tipo: 'tipo2', vazao: '160', pressao: '32', reservatorio: 'enterrado', nsth: '1,5', rtiVolume: '12' } },
+    hidrantes: {
+      tipo: '4', tipoVariante: 1, rti: '12', reservatorioPosicao: 'subterraneo', reservatorioMaterial: 'Concreto',
+      redeMaterial: 'Aço galvanizado', bombaExiste: true, bombaReserva: true, bombaJockey: true, bombaJockeyVazao: '20',
+      dimensionamento: { dados_sistema: { q_min: 300 }, res: { P_valv_ref: 31.5, P_RTI: 48.2 } },
+    },
+    memorialPB: { hidrantes: { nsth: '1,5', lancesInternos: '2x15', mangueira: '3' } },
   })
   const s = secao(gerar(p), '17.')
   const m = marcados(s)
-  assert.ok(m.some(l => l.startsWith('Sistema TIPO 2') && l.includes('160 l/min') && l.includes('32 mca')))
+  assert.ok(m.some(l => l.startsWith('Sistema TIPO 4 (esguicho regulável DN65') && l.includes('300 l/min') && l.includes('31,5 mca')))
   assert.ok(m.includes('Reservatório enterrado'))
   assert.ok(m.includes('301 a 800Mj/m²'))   // carga 500 MJ/m²
+  assert.ok(m.includes('Dois lances de 15m'))
+  assert.ok(m.includes('Mangueira 3'))
   assert.equal(valorCampo(s, 'Em casos de reservatórios enterrados informar o valor da NSTH:'), '1,5')
   assert.equal(valorCampo(s, 'RTI em m³:'), '12')
+  assert.equal(valorCampo(s, 'Material de construção da RTI:'), 'Concreto')
+  assert.equal(valorCampo(s, 'Material das tubulações:'), 'Aço galvanizado')
+  assert.equal(valorCampo(s, 'Pressão da bomba principal (mca) de incêndio:'), '48,2')
+  assert.equal(valorCampo(s, 'Pressão da bomba reserva (mca) para risco médio e alto:'), '48,2')
+  assert.equal(valorCampo(s, 'Vazão da bomba jockey (l/min) em sistema com mais de 6 pontos de hidrante:'), '20')
+  // manancial informado na página da PB
+  p.memorialPB.hidrantes.manancial = true
+  assert.ok(marcados(secao(gerar(p), '17.')).includes('Manancial'))
 })
 
 test('14: central e detectores informados na página da PB', () => {

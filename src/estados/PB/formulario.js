@@ -788,47 +788,66 @@ const ATESTOS_HIDRANTES = {
   ],
 }
 
+// Tipo do formulário a partir do tipo/variante da página de hidrantes
+// (Tipo 4: variante 0 = DN40, 1 = DN65).
+const tipoFormularioHidrante = h => {
+  const t = parseInt(h?.tipo, 10)
+  if (!t) return ''
+  if (t === 4) return Number(h.tipoVariante) === 1 ? 'tipo4_65' : 'tipo4_40'
+  return `tipo${t}`
+}
+// Posição do reservatório da página → opção do formulário.
+const RESERVATORIO_DA_POSICAO = { elevado: 'elevado', subterraneo: 'enterrado', semienterrado: 'semienterrado' }
+
 function secaoHidrantes(state, ctx) {
   const m = state.memorialPB || {}
-  const h = m.hidrantes || {}
+  const extra = m.hidrantes || {}              // só o que a página comum não tem
+  const h = state.hidrantes || {}              // página de hidrantes (comum)
+  const d = h.dimensionamento || null          // dimensionamento hidráulico
   const at = m.atestos || {}
   const exigivel = exigibilidade(ctx, 'hidrantes')
   const ativo = !!ctx.sistemas?.hidrantes?.ativo
+  const fmt = (v, casas = 2) => (v == null || v === '' ? null : fmtNum(v, casas, String(v)))
   const v = valor => (ativo && !vazio(valor) ? String(valor) : '')
-  const vp = key => (ativo && h.tipo === key
-    ? `Vazão exata do hidrante mais desfavorável: ${h.vazao || '______'} l/min. Pressão exata: ${h.pressao || '______'} mca.`
+  const tipo = tipoFormularioHidrante(h)
+  const vazao = fmt(d?.dados_sistema?.q_min)
+  const pressao = fmt(d?.res?.P_valv_ref)
+  const vp = key => (ativo && tipo === key
+    ? `Vazão exata do hidrante mais desfavorável: ${vazao || '______'} l/min. Pressão exata: ${pressao || '______'} mca.`
     : 'Vazão exata do hidrante mais desfavorável: ______ l/min. Pressão exata: ______ mca.')
   const um = (lista, valor) => ck(...lista.map(([key, label]) => ({ x: ativo && valor === key, label })))
   const carga = ctx.cargaMaxima > 0 ? FAIXAS_CARGA_RTI.find(([, max]) => ctx.cargaMaxima <= max)?.[0] : null
   const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && !!at[key], label }))
+  const reservatorio = extra.manancial ? 'manancial' : RESERVATORIO_DA_POSICAO[h.reservatorioPosicao] || ''
+  const alturaBomba = h.bombaExiste && d?.res?.P_RTI != null ? fmt(d.res.P_RTI) : null
   return {
     titulo: '17. SISTEMA DE HIDRANTES E MANGOTINHOS (Conforme NT 15/2016)',
     linhas: [
       { tipo: 'exigivel', exigivel },
-      ...TIPOS_HIDRANTE_PB.map(([key, label]) => ck({ x: ativo && h.tipo === key, label: `${label}\n${vp(key)}` })),
+      ...TIPOS_HIDRANTE_PB.map(([key, label]) => ck({ x: ativo && tipo === key, label: `${label}\n${vp(key)}` })),
       sub('17.1 Reserva Técnica de Incêndio - RTI', '(Informe e/ou marque X nas características da RTI, conforme tabela 3 da NT CBMPB 15)'),
       campo('Classificação da edificação conforme item 3.1 deste memorial:', ativo ? [...ctx.divisoes].join(', ') : ''),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Carga incêndio' },
       ck(...FAIXAS_CARGA_RTI.map(([label]) => ({ x: ativo && carga === label, label }))),
-      um(RESERVATORIOS_PB, h.reservatorio),
-      campo('Em casos de reservatórios enterrados informar o valor da NSTH:', h.reservatorio === 'enterrado' ? v(h.nsth) : ''),
-      campo('Material de construção da RTI:', v(h.rtiMaterial)),
+      um(RESERVATORIOS_PB, reservatorio),
+      campo('Em casos de reservatórios enterrados informar o valor da NSTH:', reservatorio === 'enterrado' ? v(extra.nsth) : ''),
+      campo('Material de construção da RTI:', v(h.reservatorioMaterial)),
       campo('Area construída da edificação:', ativo && state.areaConstruidaTotal ? fmtM2(state.areaConstruidaTotal) : ''),
-      campo('RTI em m³:', v(h.rtiVolume)),
+      campo('RTI em m³:', v(h.rti)),
       sub('17.2 Mangueiras e tubulações', '(Informe e/ou marque X nas características da RTI, conforme NT CBMPB 15)'),
-      campo('Diâmetro das tubulações:', v(h.tubDiametro)),
-      campo('Material das tubulações:', v(h.tubMaterial)),
+      campo('Diâmetro das tubulações:', v(extra.tubDiametro)),
+      campo('Material das tubulações:', v(h.redeMaterial)),
       ...atestos(ATESTOS_HIDRANTES.mangueiras),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Quantidade de lances de mangueira (hidrantes internos)' },
-      um(LANCES_INTERNOS_PB, h.lancesInternos),
+      um(LANCES_INTERNOS_PB, extra.lancesInternos),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Quantidade de lances de mangueira (hidrantes externos)' },
-      um(LANCES_EXTERNOS_PB, h.lancesExternos),
+      um(LANCES_EXTERNOS_PB, extra.lancesExternos),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Tipo de mangueira (NBR ABNT 11861)' },
-      um(MANGUEIRAS_PB, h.mangueira),
+      um(MANGUEIRAS_PB, extra.mangueira),
       sub('17.3 Bombas de incêndio e casa de bombas', '(Informe e/ou marque X nas características da RTI, conforme NT CBMPB 15)'),
-      campo('Pressão da bomba principal (mca) de incêndio:', v(h.bombaPrincipalPressao)),
-      campo('Pressão da bomba reserva (mca) para risco médio e alto:', v(h.bombaReservaPressao)),
-      campo('Vazão da bomba jockey (l/min) em sistema com mais de 6 pontos de hidrante:', v(h.jockeyVazao)),
+      campo('Pressão da bomba principal (mca) de incêndio:', ativo && alturaBomba ? alturaBomba : ''),
+      campo('Pressão da bomba reserva (mca) para risco médio e alto:', ativo && h.bombaReserva && alturaBomba ? alturaBomba : ''),
+      campo('Vazão da bomba jockey (l/min) em sistema com mais de 6 pontos de hidrante:', ativo && h.bombaJockey ? v(h.bombaJockeyVazao) : ''),
       ...atestos(ATESTOS_HIDRANTES.bombas),
     ],
   }

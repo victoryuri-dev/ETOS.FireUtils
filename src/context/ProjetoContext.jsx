@@ -617,8 +617,9 @@ const INITIAL_STATE = {
     // Faixa de estacionamento: obrigatória só com via abaixo de 6 m. Recalque = sistema de hidrantes
     // exigido. estados/PB/acessoViatura.js decide a linha do formulário.
     acessoViatura: {},
-    hidrantes: {},           // 17 — tipo, vazão, pressão, RTI, mangueiras, bombas
-    hidAnexo: '',            // Anexo B — texto do RT
+    // 17 — só o que a página de hidrantes comum não tem: manancial, nsth,
+    // tubDiametro, lancesInternos, lancesExternos, mangueira.
+    hidrantes: {},
     extintorNivelIII: '',    // 'nivel_III_3A' | 'nivel_III_4A' (EXTINTORES_NIVEL)
     // Itens de "atesto" do formulário (as escadas atendem ao item 5.7 da NT
     // 12 etc.) — { [chave do item]: true }. Nunca marcados automaticamente:

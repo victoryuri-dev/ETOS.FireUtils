@@ -460,7 +460,9 @@ const ETAPAS_HIDRANTES = [
 ]
 
 // ── Page Principal ────────────────────────────────────────────────────
-export default function HidrantesPage() {
+// `extra`: conteúdo do estado no fim da página (ex.: PB, campos do item 17
+// do formulário do CBMPB — ver estados/PB/paginas.jsx).
+export default function HidrantesPage({ extra = null }) {
   const { state, dispatch } = useProjeto()
   // Persistido em state.hidrantes.dimensionamento (não mais useState local)
   // pra sobreviver navegação/reload e alimentar também o memorial de
@@ -638,6 +640,7 @@ export default function HidrantesPage() {
             )}
           </>
         )}
+        {extra}
         </div>
       </div>
     </div>

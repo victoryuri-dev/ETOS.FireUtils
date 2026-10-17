@@ -18,9 +18,14 @@ const projeto = {
   sistemas: Object.fromEntries(['acesso_viatura','seg_estrutural','compart_horizontal','compart_vertical','controle_acabamento','saida_emergencia','gerenciamento_risco','brigada','iluminacao','sinalizacao','extintores','hidrantes','alarme','deteccao','sprinklers','controle_fumaca','central_gas','spda'].map(k => [k, { obrigatorio: false, ativo: false }])),
   sistemasPorEstrutura: { e1: { hidrantes: true, alarme: true, deteccao: true } },
   riscosEspeciaisPorEstrutura: { e1: { glp: true } }, riscosOutrosDescPorEstrutura: {},
-  memorialPB: { iluTipos: ['bloco_autonomo'], iluAlturaInstalacao: '2,4', hidrantes: { tipo: 'tipo2' }, compartElementos: { h: ['paredes'], v: [] }, atestos: {} },
+  hidrantes: { estruturasSelecionadas: [], tipo: '', tipoVariante: 0, rti: '', bombaExiste: true, recalqueEntradas: 1 },
+  memorialPB: { iluTipos: ['bloco_autonomo'], iluAlturaInstalacao: '2,4', compartElementos: { h: ['paredes'], v: [] }, atestos: {} },
 }
-const server = await servidorComNormas(undefined, projeto)
+// A linha ('PB','hidrantes') só existe no Supabase (sem arquivo de seed):
+// no teste, a estrutura da do MA serve para renderizar a página comum.
+const MA_HID = await import('../src/data/normas/MA/hidrantes.js')
+const hidrantesPB = Object.fromEntries(Object.entries(MA_HID).map(([k, v]) => [k.toLowerCase(), v]))
+const server = await servidorComNormas({ PB: { hidrantes: hidrantesPB } }, projeto)
 after(() => server.close())
 const { PAGINAS_PB } = await server.ssrLoadModule('/src/estados/PB/paginas.jsx')
 const ExtensaoConfig = (await server.ssrLoadModule('/src/estados/ExtensaoConfig.jsx')).default
@@ -31,7 +36,7 @@ const html = el => renderToString(createElement(MemoryRouter, null, createElemen
 for (const [key, pagina] of Object.entries(PAGINAS_PB)) {
   test(`página PB "${key}" renderiza`, () => {
     const h = html(pagina)
-    if (key === 'saida_emergencia') return assert.ok(h.includes('Declarações do responsável técnico'))   // página comum + declarações
+    if (key === 'saida_emergencia' || key === 'hidrantes') return assert.ok(h.includes('Declarações do responsável técnico'), key)   // página comum + campos da PB
     assert.ok(h.includes('Formulário do Memorial Descritivo'), key)
     assert.ok(h.includes('pbf-tabela'), `${key}: sem prévia`)
   })
@@ -39,7 +44,6 @@ for (const [key, pagina] of Object.entries(PAGINAS_PB)) {
 
 test('páginas PB mostram os valores calculados', () => {
   assert.ok(html(PAGINAS_PB.iluminacao).includes('9,6'))                 // 4 × 2,4 m
-  assert.ok(html(PAGINAS_PB.hidrantes).includes('Sistema TIPO 2'))
 })
 
 test('extensões da Configuração da PB renderizam', () => {

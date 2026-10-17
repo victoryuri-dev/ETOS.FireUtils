@@ -1,5 +1,6 @@
 import PaginaPB from './PaginaPB'
 import SaidaEmergenciaPage from '../../pages/medidas/SaidaEmergenciaPage'
+import HidrantesPage from '../../pages/medidas/HidrantesPage'
 import {
   CamposCompartimentacaoPB, CamposSaidasPB, CamposPlanoPB, CamposBrigadaPB, CamposIluminacaoPB,
   CamposAlarmeDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB, ResultadoCmarPB,
@@ -43,7 +44,9 @@ export const PAGINAS_PB = {
   deteccao: alarmeDeteccao,
   sinalizacao: <PaginaPB titulo="Sinalização de Emergência" secoes={['15.']} observacoes="sinalizacao"><CamposSinalizacaoPB/></PaginaPB>,
   extintores: <PaginaPB titulo="Extintores de Incêndio" secoes={['16.']} observacoes="extintores"><CamposExtintoresPB/></PaginaPB>,
-  hidrantes: <PaginaPB titulo="Hidrantes e Mangotinhos" secoes={['17.']}><CamposHidrantesPB/></PaginaPB>,
+  // Hidrantes: a página comum (dimensionamento, bombas, base do Anexo B)
+  // com a norma da PB, mais os campos do item 17 que ela não tem.
+  hidrantes: <HidrantesPage extra={<CamposHidrantesPB/>}/>,
   sprinklers: <PaginaPB titulo="Chuveiros Automáticos" secoes={['18.']}/>,
   spda: <PaginaPB titulo="SPDA" secoes={['19.']}/>,
   controle_fumaca: semSecao('Controle de Fumaça'),

@@ -5,7 +5,7 @@ import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { getMemorialFormulario, getIluminacao } from '../../data/normas/index'
 import {
   ATESTOS_PB, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
-  distanciaMaximaPontosPB, TIPOS_HIDRANTE_PB, RESERVATORIOS_PB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
+  distanciaMaximaPontosPB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
@@ -329,49 +329,41 @@ export function CamposExtintoresPB() {
   )
 }
 
-// 17 — sistema de hidrantes (vazão e pressão informadas pelo RT) e Anexo B.
+// 17 — o que o formulário pede e a página de hidrantes comum não tem: NSTH
+// (reservatório subterrâneo), manancial, diâmetro das tubulações, lances e
+// tipo de mangueira e as declarações. Tipo, vazão/pressão, RTI,
+// reservatório, materiais e bombas vêm da página comum.
 export function CamposHidrantesPB() {
-  const { m, set, campo, atestos, alternarAtesto } = useCamposPB()
+  const { state, m, set, atestos, alternarAtesto } = useCamposPB()
   const h = m.hidrantes || {}
   const setH = changes => set({ hidrantes: { ...h, ...changes } })
   const inp = (key, label, extra = {}) => (
     <div className="fg"><label>{label}</label><input value={h[key] || ''} onChange={e => setH({ [key]: e.target.value })} {...extra}/></div>
   )
+  const subterraneo = state.hidrantes?.reservatorioPosicao === 'subterraneo'
   return (
-    <BoxPB item="17">
-      <Opcoes titulo="Tipo de sistema (NT 15/2016)" lista={TIPOS_HIDRANTE_PB.map(([k, l]) => [k, l.replace(/ \(.*/, '') + (k === 'tipo4_40' ? ' — DN40' : k === 'tipo4_65' ? ' — DN65' : '')])}
-        valor={h.tipo} onChange={v => setH({ tipo: v })}/>
-      <div className="g2">
-        {inp('vazao', 'Vazão do hidrante mais desfavorável (l/min)', { inputMode: 'decimal' })}
-        {inp('pressao', 'Pressão do hidrante mais desfavorável (mca)', { inputMode: 'decimal' })}
-      </div>
-      <Rotulo>17.1 Reserva técnica de incêndio</Rotulo>
-      <Opcoes titulo="Reservatório" lista={RESERVATORIOS_PB} valor={h.reservatorio} onChange={v => setH({ reservatorio: v })}/>
-      <div className="g2">
-        {h.reservatorio === 'enterrado' && inp('nsth', 'NSTH (reservatório enterrado)')}
-        {inp('rtiMaterial', 'Material de construção da RTI')}
-        {inp('rtiVolume', 'RTI (m³)', { inputMode: 'decimal' })}
-      </div>
-      <Rotulo>17.2 Mangueiras e tubulações</Rotulo>
-      <div className="g2">
-        {inp('tubDiametro', 'Diâmetro das tubulações')}
-        {inp('tubMaterial', 'Material das tubulações')}
-      </div>
-      <div className="g2">
-        <Opcoes titulo="Lances de mangueira — hidrantes internos" lista={LANCES_INTERNOS_PB} valor={h.lancesInternos} onChange={v => setH({ lancesInternos: v })}/>
-        <Opcoes titulo="Lances de mangueira — hidrantes externos" lista={LANCES_EXTERNOS_PB} valor={h.lancesExternos} onChange={v => setH({ lancesExternos: v })}/>
-      </div>
-      <Opcoes titulo="Tipo de mangueira (NBR 11861)" lista={MANGUEIRAS_PB} valor={h.mangueira} onChange={v => setH({ mangueira: v })}/>
-      <Atestos titulo="Mangueiras — declarações" lista={ATESTOS_PB.hidrantes.mangueiras} atestos={atestos} alternar={alternarAtesto}/>
-      <Rotulo>17.3 Bombas de incêndio</Rotulo>
-      <div className="g2">
-        {inp('bombaPrincipalPressao', 'Pressão da bomba principal (mca)', { inputMode: 'decimal' })}
-        {inp('bombaReservaPressao', 'Pressão da bomba reserva (mca)', { inputMode: 'decimal' })}
-        {inp('jockeyVazao', 'Vazão da bomba jockey (l/min)', { inputMode: 'decimal' })}
-      </div>
-      <Atestos titulo="Bombas e tubulação — declarações" lista={ATESTOS_PB.hidrantes.bombas} atestos={atestos} alternar={alternarAtesto}/>
-      <Obs label="Anexo B — dimensionamento do sistema de hidrantes (pressurização, bombas, abrigos, recalque etc.)" campo={campo('hidAnexo')}/>
-    </BoxPB>
+    <div className="mt-6">
+      <FormSection title="Formulário do CBMPB — item 17" description="Só o que o formulário pede além do dimensionamento acima.">
+        <div className="flex flex-col gap-3">
+          <SimNao pergunta="A reserva técnica é um manancial?" valor={h.manancial} onChange={v => setH({ manancial: v })}/>
+          <div className="g2">
+            {subterraneo && !h.manancial && inp('nsth', 'NSTH (reservatório enterrado)')}
+            {inp('tubDiametro', 'Diâmetro das tubulações', { placeholder: 'Ex.: 65 mm' })}
+          </div>
+          <div className="g2">
+            <Opcoes titulo="Lances de mangueira — hidrantes internos" lista={LANCES_INTERNOS_PB} valor={h.lancesInternos} onChange={v => setH({ lancesInternos: v })}/>
+            <Opcoes titulo="Lances de mangueira — hidrantes externos" lista={LANCES_EXTERNOS_PB} valor={h.lancesExternos} onChange={v => setH({ lancesExternos: v })}/>
+          </div>
+          <Opcoes titulo="Tipo de mangueira (NBR 11861)" lista={MANGUEIRAS_PB} valor={h.mangueira} onChange={v => setH({ mangueira: v })}/>
+        </div>
+      </FormSection>
+      <FormSection title="Declarações do responsável técnico" description="Item 17 do formulário do Memorial Descritivo do CBMPB.">
+        <div className="flex flex-col gap-3">
+          <Atestos titulo="Mangueiras" lista={ATESTOS_PB.hidrantes.mangueiras} atestos={atestos} alternar={alternarAtesto}/>
+          <Atestos titulo="Bombas e tubulação" lista={ATESTOS_PB.hidrantes.bombas} atestos={atestos} alternar={alternarAtesto}/>
+        </div>
+      </FormSection>
+    </div>
   )
 }
 

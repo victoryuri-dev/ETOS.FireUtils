@@ -49,7 +49,7 @@ Regras do gerador:
 | **14. Alarme e detecção** | ✅ | Local da central (`centralLocal`); raio e altura dos detectores do tipo adotado (limites da norma usados no dimensionamento). Itens 14.1 viraram atestos. |
 | **15. Sinalização** | 🔜 | Atestos e placas M-1/M-2 (dá para tirar do quantitativo). |
 | **16. Extintores** | ✅ | NT 21/2024 da PB. Linha pelo nível de carga; nível III com escolha do RT (`extintorNivelIII`); linhas especiais pelos riscos (G-3, GLP, central de gás, fogos). |
-| **17. Hidrantes** | 🔜 | Tipos 1–5 da NT 15/2016 PB, vazão/pressão do Revit, RTI, NSTH, lances e tipo de mangueira, atestos da bomba. Hoje: só o Exigível. |
+| **17. Hidrantes** | ✅ | Página comum de Hidrantes (dimensionamento, bombas) com a norma da PB: tipo/variante, vazão (Qs) e pressão (P_ref) do hidrante mais desfavorável, RTI, reservatório (elevado / subterrâneo → enterrado / semienterrado), materiais, pressão das bombas (Ht) e jockey. No fim, só o que ela não tem: manancial, NSTH, diâmetro das tubulações, lances, tipo de mangueira e declarações. Anexo B = memorial de hidrantes + memorial de cálculo. |
 | **18. Chuveiros automáticos (SPK)** | 🔜 | Não há tela no app. Hoje: só o Exigível. |
 | **19. SPDA** | 🔜 | Sem regra de exigência no app (análise de risco NBR 5419): "Exigível" só quando o RT adota. |
 | **20. Isolamento de risco (NT 20/2023)** | 🔜 | Novo, por par de edificações. Hoje: em branco. |
@@ -125,7 +125,7 @@ O MA e a PB preenchem de formas diferentes: o MA tem páginas de medida detalhad
 - `src/estados/PB/PaginaPB.jsx`: layout de cada página da PB — Exigível/Não exigível, campos do formulário, observações complementares por estrutura e a prévia da seção como sai no documento.
 - `src/estados/PB/campos.jsx`: os campos (state.memorialPB). `src/estados/PB/formulario.js`: o formulário. `src/estados/PB/saidas.js`: resumo do item 10 a partir do dimensionamento da página de Saída de Emergência (comum aos estados, com a NT 12/2025); o Anexo A é o texto desse dimensionamento.
 - `src/estados/fluxos.js`: estados com fluxo próprio — a auditoria não cobra deles os campos das páginas do MA.
-- O formulário da PB não lê nada das páginas do MA: iluminação (tipo, fluxo, altura), alarme/detecção (centrais, tipos de detector), compartimentação (elementos), saídas e hidrantes (tipo, vazão/pressão, RTI, mangueiras, bombas, Anexo B) vêm de `state.memorialPB`.
+- Saídas de emergência e hidrantes usam a página de dimensionamento comum (em todos os estados), com a norma do estado e um espaço `extra` no fim para os campos próprios do estado. As demais medidas da PB não leem as páginas do MA: iluminação (tipo, fluxo, altura), alarme/detecção (centrais, tipos de detector), compartimentação (elementos), saídas e hidrantes (tipo, vazão/pressão, RTI, mangueiras, bombas, Anexo B) vêm de `state.memorialPB`.
 
 ## Trabalho futuro (combinado, não fazer agora)
 

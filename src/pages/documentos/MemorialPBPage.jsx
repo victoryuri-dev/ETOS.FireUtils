@@ -2,7 +2,9 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildFormularioPB } from '../../estados/PB/formulario'
 import { textoMemorialSaidaEmergencia } from '../../data/memorial/saida_emergencia'
-import { getSE } from '../../data/normas/index'
+import { textoMemorialHidrantes } from '../../data/memorial/hidrantes'
+import { textoMemorialCalculoHidrantes } from '../../data/memorial/hidrantesCalculo'
+import { getSE, getHidrantes, getExtintores } from '../../data/normas/index'
 import { numerarBlocos } from '../../utils/memorialEstilo'
 import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
@@ -70,11 +72,12 @@ export default function MemorialPBPage({ onBack }) {
   const formulario = buildFormularioPB(state, sistemas, porEstrutura)
 
   if (!formulario) return null
-  // A: o dimensionamento da página de Saída de Emergência (comum, com a NT
-  // 12/2025). B: o texto que o RT escreveu na página de Hidrantes da PB.
+  // A e B: os dimensionamentos das páginas comuns de Saída de Emergência e
+  // de Hidrantes, com a norma da PB.
   const anexoA = sistemas.saida_emergencia?.ativo && getSE(state.uf) ? [textoMemorialSaidaEmergencia(state, sistemas, porEstrutura)] : []
-  const textoB = (state.memorialPB?.hidAnexo || '').trim()
-  const anexoB = sistemas.hidrantes?.ativo && textoB ? [{ blocos: textoB.split(/\n+/).map(texto => ({ tipo: 'paragrafo', texto })) }] : []
+  const anexoB = sistemas.hidrantes?.ativo && getHidrantes(state.uf) && getExtintores(state.uf)
+    ? [textoMemorialHidrantes(state, sistemas, porEstrutura), textoMemorialCalculoHidrantes(state)].filter(Boolean)
+    : []
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
