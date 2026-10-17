@@ -134,7 +134,7 @@ function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limia
       {!exigido ? (
         <div className="ibox green">
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a brigada de incêndio, conforme NT 01 CBMMA.</span>
+          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a brigada de incêndio, conforme a tabela de exigências do estado.</span>
         </div>
       ) : (
       <Card>
@@ -265,7 +265,9 @@ function ReferenciaNormativa({ brigNorma }) {
 }
 
 // ── Page Principal ────────────────────────────────────────────────────
-export default function BrigadaIncendioPage() {
+// `extra`: conteúdo do estado no fim da página (ex.: PB, campos do item 12
+// do formulário do CBMPB — ver estados/PB/paginas.jsx).
+export default function BrigadaIncendioPage({ extra = null }) {
   const { state, dispatch } = useProjeto()
   const { extintores: extNorma, brigada: brigNorma, cnaesDiv } = useNorma()
   const { porEstrutura } = useMedidasObrigatorias()
@@ -307,6 +309,7 @@ export default function BrigadaIncendioPage() {
           )
         })}
 
+        {extra}
       </div>
     </div>
   )

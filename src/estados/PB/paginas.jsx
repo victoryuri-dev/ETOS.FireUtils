@@ -1,6 +1,7 @@
 import PaginaPB from './PaginaPB'
 import SaidaEmergenciaPage from '../../pages/medidas/SaidaEmergenciaPage'
 import HidrantesPage from '../../pages/medidas/HidrantesPage'
+import BrigadaIncendioPage from '../../pages/medidas/BrigadaIncendioPage'
 import {
   CamposCompartimentacaoPB, CamposSaidasPB, CamposPlanoPB, CamposBrigadaPB, CamposIluminacaoPB,
   CamposAlarmeDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB, ResultadoCmarPB,
@@ -38,7 +39,9 @@ export const PAGINAS_PB = {
   // NT 12/2025 da PB, mais as declarações do formulário no fim.
   saida_emergencia: <SaidaEmergenciaPage extra={<CamposSaidasPB/>}/>,
   gerenciamento_risco: <PaginaPB titulo="Gerenciamento de Risco de Incêndio" secoes={['11']} observacoes="gerenciamento_risco"><CamposPlanoPB/></PaginaPB>,
-  brigada: <PaginaPB titulo="Brigada de Incêndio" secoes={['12.']} observacoes="brigada"><CamposBrigadaPB/></PaginaPB>,
+  // Brigada: a página comum (Tabela A.1 e item 4.11.2 da PB) com os campos
+  // do item 12 que ela não tem.
+  brigada: <BrigadaIncendioPage extra={<CamposBrigadaPB/>}/>,
   iluminacao: <PaginaPB titulo="Iluminação de Emergência" secoes={['13.']} observacoes="iluminacao"><CamposIluminacaoPB/></PaginaPB>,
   alarme: alarmeDeteccao,
   deteccao: alarmeDeteccao,

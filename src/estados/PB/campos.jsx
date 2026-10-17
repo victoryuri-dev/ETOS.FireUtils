@@ -210,34 +210,22 @@ export function CamposPlanoPB() {
   )
 }
 
-// 12 — população fixa por pavimento (base do cálculo da Tabela A.1),
-// carga horária, simulados, atestos e dimensionamento.
+// 12 — o que o formulário pede além do dimensionamento da página de brigada
+// comum (população fixa, Tabela A.1 e item 4.11.2 da PB): carga horária,
+// intervalo entre simulados, dimensionamento (texto) e declarações.
 export function CamposBrigadaPB() {
-  const { state, dispatch, campo, atestos, alternarAtesto } = useCamposPB()
+  const { campo, atestos, alternarAtesto } = useCamposPB()
   return (
-    <BoxPB item="12">
-      <div className="flex flex-col gap-2">
-        <Rotulo>População fixa por pavimento</Rotulo>
-        {(state.estruturas || []).map(est => (
-          <div key={est.id} className="flex flex-col gap-1.5">
-            <span className="text-[12px] text-ink font-medium">{est.nome}</span>
-            {(state.pavimentos || []).filter(p => p.estruturaId === est.id).map(pav => (
-              <div key={pav.id} className="flex items-center gap-3 text-[12.5px]">
-                <span className="flex-1 text-ink-muted">{pav.label} <span className="text-ink-faint">({pav.divisao || 'sem divisão'})</span></span>
-                <input className="w-24" type="number" min="0" step="1" value={pav.populacaoFixa ?? ''}
-                  onChange={e => dispatch({ type: 'UPDATE_PAV', id: pav.id, changes: { populacaoFixa: e.target.value } })}/>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="g2">
-        <div className="fg"><label>Carga horária mínima do treinamento</label><input {...campo('brigadaCargaHoraria')} placeholder="Ex.: 16 h"/></div>
-        <div className="fg"><label>Tempo entre simulados (máximo 12 meses)</label><input {...campo('brigadaIntervaloSimulados')} placeholder="Ex.: 6 meses"/></div>
-      </div>
-      <Atestos lista={ATESTOS_PB.brigada} atestos={atestos} alternar={alternarAtesto}/>
-      <Obs label="Dimensionamento" campo={campo('brigadaDimensionamento')}/>
-    </BoxPB>
+    <div className="mt-6">
+      <BoxPB titulo="Formulário do CBMPB — item 12" item="12">
+        <div className="g2">
+          <div className="fg"><label>Carga horária mínima do treinamento</label><input {...campo('brigadaCargaHoraria')} placeholder="Ex.: 16 h"/></div>
+          <div className="fg"><label>Tempo entre simulados (máximo 12 meses)</label><input {...campo('brigadaIntervaloSimulados')} placeholder="Ex.: 6 meses"/></div>
+        </div>
+        <Obs label="Dimensionamento" campo={campo('brigadaDimensionamento')}/>
+        <Atestos lista={ATESTOS_PB.brigada} atestos={atestos} alternar={alternarAtesto}/>
+      </BoxPB>
+    </div>
   )
 }
 

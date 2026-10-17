@@ -36,7 +36,8 @@ const html = el => renderToString(createElement(MemoryRouter, null, createElemen
 for (const [key, pagina] of Object.entries(PAGINAS_PB)) {
   test(`página PB "${key}" renderiza`, () => {
     const h = html(pagina)
-    if (key === 'saida_emergencia' || key === 'hidrantes') return assert.ok(h.includes('Declarações do responsável técnico'), key)   // página comum + campos da PB
+    if (key === 'saida_emergencia' || key === 'hidrantes') return assert.ok(h.includes('Declarações do responsável técnico'), key)
+    if (key === 'brigada') return assert.ok(h.includes('Formulário do CBMPB — item 12'), key)   // página comum + campos da PB
     assert.ok(h.includes('Formulário do Memorial Descritivo'), key)
     assert.ok(h.includes('pbf-tabela'), `${key}: sem prévia`)
   })
