@@ -423,6 +423,11 @@ function secaoCmar(state, F, ctx) {
   }
 }
 
+// Atestos que já nascem marcados (o RT desmarca se não valer).
+export const ATESTOS_PADRAO_MARCADOS = new Set(['se_escadas_5_7', 'se_guardas_5_8'])
+/** Atesto marcado: o que o RT escolheu, ou o padrão quando ainda não mexeu. */
+export const atestoMarcado = (atestos, key) => (key in (atestos || {}) ? !!atestos[key] : ATESTOS_PADRAO_MARCADOS.has(key))
+
 const ATESTOS_SAIDAS = [
   ['se_escadas_5_7', 'As escadas atendem aos requisitos do item 5.7 da NT 12, conforme o tipo de escada informado'],
   ['se_guardas_5_8', 'As guardas e corrimãos atendem aos requisitos do item 5.8 da NT 12'],
@@ -458,7 +463,8 @@ function secaoSaidas(state, ctx) {
         { x: !!exigivel && !!r?.temEscada && escadas.has('EP'), label: 'Enclausurada Protegida - EP' },
         { x: !!exigivel && !!r?.temEscada && escadas.has('PF'), label: 'A prova de fumaça - PF' },
       ),
-      ...ATESTOS_SAIDAS.map(([key, label]) => ck({ x: !!at[key], label })),
+      // Declarações das escadas/guardas/elevadores/refúgio: só com mais de um pavimento.
+      ...ATESTOS_SAIDAS.map(([key, label]) => ck({ x: !!r?.temEscada && atestoMarcado(at, key), label })),
       obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'saida_emergencia')),
     ],
   }

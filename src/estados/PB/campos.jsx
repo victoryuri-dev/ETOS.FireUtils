@@ -4,7 +4,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { getMemorialFormulario, getIluminacao } from '../../data/normas/index'
 import {
-  ATESTOS_PB, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
+  ATESTOS_PB, atestoMarcado, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
   distanciaMaximaPontosPB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
@@ -26,7 +26,7 @@ function useCamposPB() {
   const set = changes => dispatch({ type: 'SET_MEMORIAL_PB', changes })
   const campo = key => ({ value: m[key] || '', onChange: e => set({ [key]: e.target.value }) })
   const atestos = m.atestos || {}
-  const alternarAtesto = key => set({ atestos: { ...atestos, [key]: !atestos[key] } })
+  const alternarAtesto = key => set({ atestos: { ...atestos, [key]: !atestoMarcado(atestos, key) } })
   const alternarEm = (key, valor) => {
     const lista = m[key] || []
     set({ [key]: lista.includes(valor) ? lista.filter(v => v !== valor) : [...lista, valor] })
@@ -60,7 +60,7 @@ function Atestos({ lista, atestos, alternar, titulo = 'Declarações do respons�
   return (
     <div className="flex flex-col gap-2">
       {titulo && <Rotulo>{titulo}</Rotulo>}
-      {lista.map(([key, label]) => <Marcador key={key} label={label} checked={!!atestos[key]} onChange={() => alternar(key)}/>)}
+      {lista.map(([key, label]) => <Marcador key={key} label={label} checked={atestoMarcado(atestos, key)} onChange={() => alternar(key)}/>)}
     </div>
   )
 }
@@ -185,7 +185,10 @@ export function CamposCompartimentacaoPB() {
 // 10 — declarações do RT (o dimensionamento vem da página de Saída de
 // Emergência, comum aos estados).
 export function CamposSaidasPB() {
-  const { atestos, alternarAtesto } = useCamposPB()
+  const { state, atestos, alternarAtesto } = useCamposPB()
+  // Só com mais de um pavimento (contando subsolos) em alguma estrutura.
+  const temPavimentos = (state.estruturas || []).some(e => (parseInt(e.nPavimentos) || 1) + (parseInt(e.nSubsolos) || 0) > 1)
+  if (!temPavimentos) return null
   return (
     <div className="mt-6">
       <BoxPB titulo="Declarações do responsável técnico" item="10">

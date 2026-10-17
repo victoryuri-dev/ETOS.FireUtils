@@ -108,12 +108,17 @@ test('saídas de emergência saem do dimensionamento da página comum (ambientes
   assert.ok(valorCampo(s, 'Distanciamento (metros) máximo a ser percorrido no piso de descarga:').includes('C-1'))
 })
 
-test('atestos só aparecem marcados quando o RT marca', () => {
+test('10. declarações: só com mais de um pavimento; 5.7 e 5.8 já nascem marcadas', () => {
   // (o tipo de escada da seção 10 sai da Tabela 3 — não é atesto)
   const atestos = s => marcados(s).filter(l => !/^(Não Enclausurada|Enclausurada Protegida|A prova de fumaça)/.test(l))
-  assert.equal(atestos(secao(gerar(projeto()), '10.')).length, 0)
-  const s = secao(gerar(projeto({ memorialPB:{ atestos:{ se_guardas_5_8:true } } })), '10.')
-  assert.deepEqual(atestos(s), ['As guardas e corrimãos atendem aos requisitos do item 5.8 da NT 12'])
+  const E57 = 'As escadas atendem aos requisitos do item 5.7 da NT 12, conforme o tipo de escada informado'
+  const E58 = 'As guardas e corrimãos atendem aos requisitos do item 5.8 da NT 12'
+  const E59 = 'Os elevadores de emergência (quando exigido) atendem aos requisitos do item 5.9 da NT 12'
+  assert.deepEqual(atestos(secao(gerar(projeto()), '10.')), [E57, E58])                          // padrão
+  assert.deepEqual(atestos(secao(gerar(projeto({ memorialPB: { atestos: { se_escadas_5_7: false, se_elevadores_5_9: true } } })), '10.')), [E58, E59])
+  // edificação térrea: nenhuma declaração
+  const terrea = projeto({ estruturas: [{ id: 'e1', nome: 'Bloco A', areaTotal: '400', altura: '3', nPavimentos: 1, nSubsolos: 0 }] })
+  assert.equal(atestos(secao(gerar(terrea), '10.')).length, 0)
 })
 
 test('extintores marcam o nível da carga; nível III depende da escolha do RT', () => {
