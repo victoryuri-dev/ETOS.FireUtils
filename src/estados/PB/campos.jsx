@@ -481,7 +481,7 @@ function NumeroLimitado({ label, value, onChange, padrao, minimo, sufixo = 'm' }
 function Exigencia({ titulo, motivo, itens = [], rotuloItens }) {
   const [aberto, setAberto] = useState(false)
   return (
-    <div className="ibox blue flex-col items-stretch gap-0 p-0">
+    <div className="ibox blue flex-col items-stretch gap-0 p-0 m-0">
       <button type="button" onClick={() => setAberto(a => !a)} aria-expanded={aberto}
         className="w-full flex items-center gap-2 bg-transparent border-none cursor-pointer text-left py-2.5 px-3">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-blue)" strokeWidth="2" strokeLinecap="round" className="shrink-0" aria-hidden="true">
