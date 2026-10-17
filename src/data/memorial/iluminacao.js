@@ -8,6 +8,7 @@
 
 import { getIluminacao } from '../normas/index'
 import { nomeEspecificacao } from '../iluminacao_calc'
+import { blocoObservacao } from '../../utils/observacoes'
 
 // Assinatura técnica de um item de aclaramento — mesmo tipoBase + mesmos
 // valores nos campos técnicos (CAMPOS_EQUIPAMENTO) conta como "o mesmo
@@ -117,6 +118,7 @@ function blocosDaEstrutura(est, pavs, itensDaEstrutura, sistemaDaEstrutura, norm
 
   const tabAclar = tabelaAclaramento(pavs, itensPorPav, CAMPOS_EQUIPAMENTO, norma)
   blocos.push(tabAclar || { tipo: 'paragrafo', texto: `Nenhuma luminária de aclaramento cadastrada em ${est.nome}.` })
+  blocos.push(...blocoObservacao(est, 'iluminacao'))
 
   return blocos
 }

@@ -19,6 +19,8 @@ import { fmtUn } from '../../utils/numero'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import luminaria30ledsImg from '../../assets/luminaria 30 leds.png'
 import blocoIluminacaoImg from '../../assets/bloco de iluminacao.png'
+import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
+import { CamposPBIluminacao } from '../../components/pb/CamposPB'
 
 // Imagens de referência dos dois equipamentos de aclaramento aceitos — chave
 // igual à de EQUIPAMENTOS_ACLARAMENTO (normas/MA/iluminacao.js).
@@ -659,12 +661,14 @@ export default function IluminacaoPage() {
                         dispatch={dispatch}
                       />
                     ))}
+                    <ObservacoesComplementares estrutura={est} medida="iluminacao"/>
                   </>
                 )}
               </EstruturaSection>
             )
           })
         )}
+        <CamposPBIluminacao/>
       </div>
     </div>
   )

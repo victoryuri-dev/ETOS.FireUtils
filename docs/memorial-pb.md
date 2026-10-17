@@ -45,7 +45,7 @@ Regras do gerador:
 | **10. Saídas de emergência** | ✅ | População e larguras de `se_calc`; distâncias por divisão. Tipo de escada automático pela Tabela 3 (Anexo C) da NT 12/2025, ou o escolhido pelo RT (`memorialPB.tipoEscada`). 4 atestos e observação. |
 | **11.1 Plano de emergência** | ✅ | Novo: `memorialPB.planoModelo` (item 6 / Anexo B da NT 13/2023) + observação. |
 | **12. Brigada** | ✅ | Quantidade, divisão, risco e nível de `brigada_calc` com a Tabela A.1 da NT 17/2024 e o item 4.11.2 (público da edificação). Carga horária e intervalo entre simulados manuais (Anexo B não enviado); 2 atestos. |
-| **13. Iluminação** | 🔜 | Hoje só o tipo de sistema (bloco / central à bateria / gerador). Falta o tipo **UPS**, a altura de instalação e os ~40 atestos (13.1 a 13.4). |
+| **13. Iluminação** | ✅ | Box da PB na página de Iluminação: altura de instalação (`memorialPB.iluAlturaInstalacao`) → distância máxima 4 × H; atestos por grupo (gerais, circuitos, luminárias, 13.1–13.4 só do tipo adotado). Fluxo exato = fluxos cadastrados no projeto. Tipo UPS na norma da PB. Observações complementares por estrutura. |
 | **14. Alarme e detecção** | ✅ | Local da central (`centralLocal`); raio e altura dos detectores do tipo adotado (limites da norma usados no dimensionamento). Itens 14.1 viraram atestos. |
 | **15. Sinalização** | 🔜 | Atestos e placas M-1/M-2 (dá para tirar do quantitativo). |
 | **16. Extintores** | ✅ | NT 21/2024 da PB. Linha pelo nível de carga; nível III com escolha do RT (`extintorNivelIII`); linhas especiais pelos riscos (G-3, GLP, central de gás, fogos). |

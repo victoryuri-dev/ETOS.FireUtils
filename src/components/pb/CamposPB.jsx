@@ -1,6 +1,7 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { getMemorialFormulario, getCompartimentacao } from '../../data/normas/index'
-import { ATESTOS_PB, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES } from '../../data/memorial/PB/formulario'
+import { ATESTOS_PB, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES, tiposIluminacaoPB, distanciaMaximaPontosPB } from '../../data/memorial/PB/formulario'
+import { fmtNum } from '../../utils/numero'
 import FormSection from '../ui/FormSection'
 import Checkbox from '../ui/Checkbox'
 
@@ -46,10 +47,10 @@ function Atesto({ label, checked, onChange }) {
   )
 }
 
-function Atestos({ lista, atestos, alternar }) {
+function Atestos({ lista, atestos, alternar, titulo = 'Declarações do responsável técnico' }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[11px] font-medium text-ink-faint uppercase tracking-[.06em]">Declarações do responsável técnico</span>
+      <span className="text-[11px] font-medium text-ink-faint uppercase tracking-[.06em]">{titulo}</span>
       {lista.map(([key, label]) => <Atesto key={key} label={label} checked={!!atestos[key]} onChange={() => alternar(key)}/>)}
     </div>
   )
@@ -217,6 +218,42 @@ export function CamposPBAlarme() {
   return (
     <BoxPB item="14.1">
       <Atestos lista={ATESTOS_PB.alarme} atestos={atestos} alternar={alternarAtesto}/>
+    </BoxPB>
+  )
+}
+
+// ── Iluminação de emergência: item 13 ──────────────────────────────────
+// Altura de instalação (a distância máxima entre pontos sai dela: 4 × H) e
+// os atestos. Os grupos 13.1–13.4 só aparecem para o tipo de sistema adotado;
+// os circuitos, conforme o tipo (baterias: blocos/central/UPS; luminárias:
+// central/UPS/GMG).
+export function CamposPBIluminacao() {
+  const { state, m, campo, atestos, alternarAtesto, F } = useCamposPB()
+  if (!F) return null
+  const G = ATESTOS_PB.iluminacao
+  const tipos = tiposIluminacaoPB(state)
+  const tem = (...ks) => ks.some(k => tipos.has(k))
+  const dist = distanciaMaximaPontosPB(m.iluAlturaInstalacao)
+  const grupos = [
+    ['Gerais', G.geral, true],
+    ['Circuitos de alimentação das baterias', G.circuitoBaterias, tem('blocos', 'central_bateria', 'ups')],
+    ['Circuitos de alimentação das luminárias', G.circuitoLuminarias, tem('central_bateria', 'ups', 'gerador')],
+    ['Luminárias', G.luminarias, true],
+    ['13.1 Conjunto de blocos autônomos', G.blocos, tem('blocos')],
+    ['13.2 Sistema centralizado por baterias', G.central_bateria, tem('central_bateria')],
+    ['13.3 Sistema centralizado por UPS', G.ups, tem('ups')],
+    ['13.4 Grupo motogerador', G.gerador, tem('gerador')],
+  ]
+  return (
+    <BoxPB item="13">
+      <div className="g2">
+        <div className="fg"><label>Altura de instalação do ponto de luz em relação ao piso (m)</label><input inputMode="decimal" {...campo('iluAlturaInstalacao')} placeholder="Ex.: 2,40"/></div>
+        <div className="fg"><label>Distância máxima entre pontos de luz (4 × altura)</label><input readOnly value={dist ? `${fmtNum(dist, 2)} m` : ''} placeholder="Informe a altura"/></div>
+      </div>
+      {tipos.size === 0 && <p className="text-[12.5px] text-ink-faint m-0">Escolha o tipo de sistema acima para ver as declarações do sistema adotado (13.1 a 13.4).</p>}
+      {grupos.filter(([, , mostrar]) => mostrar).map(([titulo, lista]) => (
+        <Atestos key={titulo} titulo={titulo} lista={lista} atestos={atestos} alternar={alternarAtesto}/>
+      ))}
     </BoxPB>
   )
 }

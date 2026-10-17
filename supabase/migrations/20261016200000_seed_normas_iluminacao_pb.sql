@@ -133,6 +133,11 @@ insert into public.normas_dados (uf, sistema, dados, versao) values
       "descricao": "Fonte e comandos em local não acessível ao público, sem risco de incêndio e ventilado (item 5.2)."
     },
     {
+      "key": "ups",
+      "label": "Sistema centralizado por UPS",
+      "descricao": "UPS (no-break) exclusiva para a iluminação de emergência, com transformador isolador e aterramento (NBR 10898/2023 — item 13.3 do formulário do CBMPB)."
+    },
+    {
       "key": "motogerador",
       "label": "Grupo motogerador (GMG)",
       "descricao": "Com tempo de comutação acima do da NBR 10898, exige também sistema centralizado por bateria ou bloco autônomo (item 5.1.5)."

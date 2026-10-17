@@ -264,3 +264,21 @@ test('3.6 estágio de construção segue a Situação da Etapa 2', () => {
   // "Segurança atual" não leva adaptações, mesmo com texto antigo salvo.
   assert.equal(marcadosDe36({ situacao: 'existente', memorialPB: { estagioConstrucao: 'existente_atual', adaptacoes: 'x' } }).adapt, '')
 })
+
+test('13. iluminação: altura → distância 4×H, fluxo do projeto, tipo e atestos do RT', () => {
+  const comIlu = extra => projeto({
+    sistemas: { ...SISTEMAS, iluminacao: { obrigatorio: false, ativo: true } },
+    iluminacaoMesmoSistema: true, iluminacaoSistema: { tipo: 'ups' },
+    iluminacao: [{ id: 'i1', pavimentoId: 'p1', categoria: 'aclaramento', fluxoLuminosoLm: '400', quantidade: 3 }],
+    ...extra,
+  })
+  const vazio = secao(gerar(comIlu()), '13.')
+  assert.equal(valorCampo(vazio, 'Altura de instalação do ponto de luz em relação ao piso (metros):'), '')
+  assert.deepEqual(marcados(vazio), ['Central por UPS'])
+  assert.ok(vazio.linhas.some(l => (l.itens || []).some(i => i.label.includes('Fluxo exato: 400 lm'))))
+
+  const s = secao(gerar(comIlu({ memorialPB: { iluAlturaInstalacao: '2,5', atestos: { ilu_autonomia_2h: true, ilu_ups_exclusiva: true } } })), '13.')
+  assert.equal(valorCampo(s, 'Distância máxima entre pontos de luz conforme Anexo A da NBR (4x altura de instalação):'), '10 m')
+  assert.deepEqual(marcados(s).sort(), ['Central por UPS', 'Tempo de autonomia do sistema de 2 horas', 'UPS exclusiva para a iluminação de emergência'].sort())
+
+})

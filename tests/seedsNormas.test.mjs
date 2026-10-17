@@ -188,7 +188,7 @@ test('iluminação da PB: SQL = arquivo de seed e parâmetros da NT 18/2024', as
   assert.deepEqual(lido.ILUMINANCIA_MINIMA, { aclaramento_normal: 3, aclaramento_risco: 5 })
   assert.equal(lido.DISTANCIA_MAXIMA_PONTOS_M, 15)
   assert.equal(lido.TENSAO_MAXIMA_V, 30)
-  assert.deepEqual(lido.TIPOS_SISTEMA.map(t => t.key), normas.getIluminacao('MA').TIPOS_SISTEMA.map(t => t.key))
+  assert.deepEqual(lido.TIPOS_SISTEMA.map(t => t.key), ['bloco_autonomo', 'central', 'ups', 'motogerador'])
 })
 
 test('iluminação do MA: SQL acrescenta a NORMA igual ao seed', async () => {

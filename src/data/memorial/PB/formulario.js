@@ -557,58 +557,121 @@ function secaoBrigada(state, ctx) {
   }
 }
 
-// Tipo de sistema de iluminação (13) ← iluminacaoSistema.tipo do projeto. O
-// "central" do app é a central à bateria; UPS ainda não existe no app.
-const TIPO_ILUMINACAO = { bloco_autonomo: 'blocos', central: 'central_bateria', motogerador: 'gerador' }
+// Tipo de sistema de iluminação (13) ← iluminacaoSistema.tipo do projeto
+// (chaves de TIPOS_SISTEMA da norma do estado; a PB inclui a UPS).
+const TIPO_ILUMINACAO = { bloco_autonomo: 'blocos', central: 'central_bateria', ups: 'ups', motogerador: 'gerador' }
 
-function secaoIluminacao(state, ctx) {
-  const tipos = new Set((state.iluminacaoMesmoSistema !== false
+// Atestos do item 13, por grupo — marcados pelo RT no box da PB da página de
+// Iluminação (CamposPBIluminacao). Cada grupo de sistema (13.1–13.4) só
+// aparece no box quando o tipo correspondente é o adotado no projeto.
+const ATESTOS_ILUMINACAO = {
+  geral: [
+    ['ilu_autonomia_2h', 'Tempo de autonomia do sistema de 2 horas'],
+    ['ilu_planos_3lux', 'Iluminamento nos locais planos a partir de 03 lux'],
+    ['ilu_desnivel_5lux', 'Iluminamento nos locais com desnível a partir de 05 lux'],
+    ['ilu_planos_aberta_1lux', 'Iluminamento nos locais planos em áreas de circulação aberta a partir de 01 lux'],
+    ['ilu_desnivel_aberta_3lux', 'Iluminamento nos locais com desnível em áreas de circulação aberta a partir de 03 lux'],
+    ['ilu_balizamento_f', 'Iluminação de balizamento em ambientes fechados com lotação superior a 100 pessoas (F-3, F-5, F-6, F-7, F-10 e F-11)'],
+    ['ilu_tarefa_alto_risco', 'Iluminamento no plano de referência em áreas de tarefa de alto risco de no mínimo 10% do previsto em ABNT NBR ISSO/CIE 8995-1 e não inferior a 15 lux'],
+    ['ilu_abaixo_teto', 'Luminárias estão instaladas 0,5 m abaixo do teto, ou abaixo dos pontos de exaustão da fumaça'],
+    ['ilu_fumaca_15lux', 'Luminárias instaladas em áreas com possível acúmulo de fumaça possuem iluminância ≥ 15 lux'],
+    ['ilu_central_protegida', 'Sistemas centralizados por baterias ou UPS, que possuem baterias ≥ 50 Ah, instalados em locais protegidos e ventilados com paredes com TRRF de 120 min e PCF P-90'],
+    ['ilu_gmg_protegido', 'GMG em locais confinados protegido e ventilado com paredes com TRRF de 120 min e PCF P-90 sem risco de captação de fumaça oriunda de um incêndio'],
+  ],
+  circuitoBaterias: [
+    ['ilu_cb_220v', 'O circuito de alimentação das baterias possui tensão nominal de 220V'],
+    ['ilu_cb_quadro_geral', 'Circuitos de alimentação das baterias ligados diretamente ao quadro geral e protegidos por disjuntores termomagnéticos e DPS'],
+    ['ilu_cb_aparente', 'Instalação aparente (caso exista) em metal fechado ou PVC rígido antichama, conforme ABNT NBR 15465'],
+  ],
+  circuitoLuminarias: [
+    ['ilu_cl_30vcc', 'O circuito de alimentação das luminárias possui tensão nominal de 30Vcc'],
+    ['ilu_cl_secao', 'Condutores com seções não inferiores a 1,5 mm²'],
+    ['ilu_cl_paralelo', 'Todas as ligações são em paralelo (não são permitidas ligações em série)'],
+    ['ilu_cl_antichama', 'Condutores e suas derivações são antichamas, suportando 70º C ou 100º C em áreas com material inflamável, conforme NBR 5410'],
+    ['ilu_cl_aparente', 'Instalação aparente (caso exista) em metal fechado ou PVC rígido antichama, conforme ABNT NBR 15465'],
+    ['ilu_cl_eletrodutos', 'Os eletrodutos dos condutores de 30 Vcc são de uso exclusivo da iluminação de emergência'],
+    ['ilu_cl_corrente', 'Corrente elétrica de cada circuito ≤ 12 A e não alimenta mais que 20 luminárias'],
+    ['ilu_cl_resistencia', 'O circuito primário resiste ao fogo por 3 horas e os secundários por 30 minutos'],
+  ],
+  luminarias: [
+    ['ilu_lum_30vcc', 'Tensão de até 30Vcc'],
+    ['ilu_lum_fluxo', 'Fluxo luminoso ≥ 300 lm e atende ao Anexo A e Tabela 1 da NBR'],
+    ['ilu_lum_interruptor', 'Não contém interruptores manuais (só é permitido botão autorrearmável de teste)'],
+    ['ilu_lum_70c', 'Material resiste a 70º C durante 1 hora de funcionamento e é anticorrosão'],
+  ],
+  blocos: [
+    ['ilu_bl_comutacao', 'Tempo de comutação em bloco autônomo de, no máximo, 2 segundos'],
+    ['ilu_bl_recarga', 'Recarga automática das baterias de chumbo-ácido ou níquel-cádmio em, no máximo, 24 horas'],
+  ],
+  central_bateria: [
+    ['ilu_cen_comando', 'Possui central de comando, sistema de supervisão, carregados e baterias recarregáveis'],
+    ['ilu_cen_comutacao', 'Tempo de comutação de, no máximo, 2 segundos'],
+    ['ilu_cen_recarga', 'Recarga automática das baterias em, no máximo, 24 horas'],
+    ['ilu_cen_local', 'Central instalada em local separado quando da utilização de baterias estacionárias'],
+    ['ilu_cen_vida', 'Vida útil das baterias de, no mínimo, 4 horas'],
+    ['ilu_cen_exaustao', 'Se instalada em ambiente fechado possui exaustão mecânica'],
+    ['ilu_cen_aterramento', 'Estruturas metálicas aterradas, conforme NBR 5410'],
+  ],
+  ups: [
+    ['ilu_ups_exclusiva', 'UPS exclusiva para a iluminação de emergência'],
+    ['ilu_ups_transformador', 'Possui transformador isolador e aterramento conforme NBR 5410'],
+  ],
+  gerador: [
+    ['ilu_gmg_exclusivo', 'GMG de uso exclusivo para iluminação de emergência ou para medidas de segurança contra incêndio'],
+    ['ilu_gmg_arranque', 'Possui arranque automático ou, no máximo, 5 segundos após a queda de energia'],
+    ['ilu_gmg_acesso', 'Possui acesso livre de obstáculos desde a área externa da edificação e sem a passagem por áreas onde exista material combustível'],
+    ['ilu_gmg_paineis', 'Possui painéis de controle com indicador de quantidade de combustível, botão de arranque manual, supervisão de temperatura da água de resfriamento do motor, dispositivos de proteção contra sobrecarga elétrica'],
+    ['ilu_gmg_compartimentados', 'Painéis de controle, baterias de arranque e instalações de armazenamento de combustível compartimentados entre si'],
+    ['ilu_gmg_gases', 'Os gases de combustão são liberados para a área externa da edificação'],
+    ['ilu_gmg_base', 'O Motogerador está apoiado em base com isoladores contra vibrações e conter dreno com filtro para absorver perda de óleo combustível ou líquidos lubrificantes'],
+    ['ilu_gmg_tanques', 'Tanques de armazenamento de combustível com volume ≥ 200 litros estão montados dentro de bacias de contenção com dreno e filtro'],
+    ['ilu_gmg_duto', 'No caso de tomada de ar por meio de duto, este possui TRRF de 120 min'],
+    ['ilu_gmg_circuitos', 'Circuitos elétricos em conformidade com a NT 23 e NBR 5410'],
+  ],
+}
+
+/** Tipos de sistema de iluminação adotados no projeto (chaves do formulário:
+ *  blocos / central_bateria / ups / gerador). */
+export function tiposIluminacaoPB(state) {
+  return new Set((state.iluminacaoMesmoSistema !== false
     ? [state.iluminacaoSistema?.tipo]
     : Object.values(state.iluminacaoSistemaPorEstrutura || {}).map(s => s?.tipo)
   ).map(t => TIPO_ILUMINACAO[t]).filter(Boolean))
+}
+
+// Distância máxima entre pontos de luz: 4 × a altura de instalação (Anexo A
+// da NBR 10898, como o próprio formulário indica).
+export const distanciaMaximaPontosPB = altura => {
+  const h = parseFloat(String(altura ?? '').replace(',', '.'))
+  return h > 0 ? 4 * h : null
+}
+
+function secaoIluminacao(state, ctx) {
+  const m = state.memorialPB || {}
+  const at = m.atestos || {}
+  const tipos = tiposIluminacaoPB(state)
   const ativo = !!ctx.sistemas?.iluminacao?.ativo
+  const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && !!at[key], label }))
+  const h = parseFloat(String(m.iluAlturaInstalacao ?? '').replace(',', '.'))
+  const dist = distanciaMaximaPontosPB(m.iluAlturaInstalacao)
+  // Fluxo exato: os fluxos dos equipamentos cadastrados na página de Iluminação.
+  const fluxos = juntar((state.iluminacao || []).map(it => it.fluxoLuminosoLm).filter(v => !vazio(v)).map(v => `${fmtNum(v, 2, String(v))}`))
+  const G = ATESTOS_ILUMINACAO
+  const [fluxoKey, fluxoLabel] = G.luminarias[1]
   return {
     titulo: '13. ILUMINAÇÃO DE EMERGÊNCIA', nota: '(Informe ou Marque X nas características da iluminação, conforme NT 18/2024 e NBR ABNT 10898/2023)',
     linhas: [
-      campo('Altura de instalação do ponto de luz em relação ao piso (metros):'),
-      campo('Distância máxima entre pontos de luz conforme Anexo A da NBR (4x altura de instalação):'),
-      ...linhasCheck([
-        'Tempo de autonomia do sistema de 2 horas',
-        'Iluminamento nos locais planos a partir de 03 lux',
-        'Iluminamento nos locais com desnível a partir de 05 lux',
-        'Iluminamento nos locais planos em áreas de circulação aberta a partir de 01 lux',
-        'Iluminamento nos locais com desnível em áreas de circulação aberta a partir de 03 lux',
-        'Iluminação de balizamento em ambientes fechados com lotação superior a 100 pessoas (F-3, F-5, F-6, F-7, F-10 e F-11)',
-        'Iluminamento no plano de referência em áreas de tarefa de alto risco de no mínimo 10% do previsto em ABNT NBR ISSO/CIE 8995-1 e não inferior a 15 lux',
-        'Luminárias estão instaladas 0,5 m abaixo do teto, ou abaixo dos pontos de exaustão da fumaça',
-        'Luminárias instaladas em áreas com possível acúmulo de fumaça possuem iluminância ≥ 15 lux',
-        'Sistemas centralizados por baterias ou UPS, que possuem baterias ≥ 50 Ah, instalados em locais protegidos e ventilados com paredes com TRRF de 120 min e PCF P-90',
-        'GMG em locais confinados protegido e ventilado com paredes com TRRF de 120 min e PCF P-90 sem risco de captação de fumaça oriunda de um incêndio',
-      ]),
+      campo('Altura de instalação do ponto de luz em relação ao piso (metros):', ativo && h > 0 ? fmtM(h) : ''),
+      campo('Distância máxima entre pontos de luz conforme Anexo A da NBR (4x altura de instalação):', ativo && dist ? fmtM(dist) : ''),
+      ...atestos(G.geral),
       sub('Características dos circuitos de alimentação das baterias (Blocos autônomos, Central à bateria ou UPS):'),
-      ...linhasCheck([
-        'O circuito de alimentação das baterias possui tensão nominal de 220V',
-        'Circuitos de alimentação das baterias ligados diretamente ao quadro geral e protegidos por disjuntores termomagnéticos e DPS',
-        'Instalação aparente (caso exista) em metal fechado ou PVC rígido antichama, conforme ABNT NBR 15465',
-      ]),
+      ...atestos(G.circuitoBaterias),
       sub('Características dos circuitos de alimentação das luminárias (Central à bateria, UPS ou GMG):'),
-      ...linhasCheck([
-        'O circuito de alimentação das luminárias possui tensão nominal de 30Vcc',
-        'Condutores com seções não inferiores a 1,5 mm²',
-        'Todas as ligações são em paralelo (não são permitidas ligações em série)',
-        'Condutores e suas derivações são antichamas, suportando 70º C ou 100º C em áreas com material inflamável, conforme NBR 5410',
-        'Instalação aparente (caso exista) em metal fechado ou PVC rígido antichama, conforme ABNT NBR 15465',
-        'Os eletrodutos dos condutores de 30 Vcc são de uso exclusivo da iluminação de emergência',
-        'Corrente elétrica de cada circuito ≤ 12 A e não alimenta mais que 20 luminárias',
-        'O circuito primário resiste ao fogo por 3 horas e os secundários por 30 minutos',
-      ]),
+      ...atestos(G.circuitoLuminarias),
       sub('Características das luminárias:'),
-      ...linhasCheck([
-        'Tensão de até 30Vcc',
-        'Fluxo luminoso ≥ 300 lm e atende ao Anexo A e Tabela 1 da NBR (Fluxo exato: ______ lm)',
-        'Não contém interruptores manuais (só é permitido botão autorrearmável de teste)',
-        'Material resiste a 70º C durante 1 hora de funcionamento e é anticorrosão',
-      ]),
+      ...atestos([G.luminarias[0]]),
+      ck({ x: ativo && !!at[fluxoKey], label: `${fluxoLabel} (Fluxo exato: ${ativo && fluxos ? `${fluxos} lm` : '______ lm'})` }),
+      ...atestos(G.luminarias.slice(2)),
       sub('Tipo de sistema:'),
       ck(
         { x: ativo && tipos.has('blocos'), label: 'Blocos autônomos' },
@@ -617,39 +680,14 @@ function secaoIluminacao(state, ctx) {
         { x: ativo && tipos.has('gerador'), label: 'Central por gerador' },
       ),
       sub('13.1 Conjunto de blocos autônomos', '(Informe as características do sistema, conforme NBR 10898/2023)'),
-      ...linhasCheck([
-        'Tempo de comutação em bloco autônomo de, no máximo, 2 segundos',
-        'Recarga automática das baterias de chumbo-ácido ou níquel-cádmio em, no máximo, 24 horas',
-      ]),
+      ...atestos(G.blocos),
       sub('13.2 Sistema centralizado por baterias recarregáveis', '(Informe as características do sistema, conforme NBR 10898/2023)'),
-      ...linhasCheck([
-        'Possui central de comando, sistema de supervisão, carregados e baterias recarregáveis',
-        'Tempo de comutação de, no máximo, 2 segundos',
-        'Recarga automática das baterias em, no máximo, 24 horas',
-        'Central instalada em local separado quando da utilização de baterias estacionárias',
-        'Vida útil das baterias de, no mínimo, 4 horas',
-        'Se instalada em ambiente fechado possui exaustão mecânica',
-        'Estruturas metálicas aterradas, conforme NBR 5410',
-      ]),
+      ...atestos(G.central_bateria),
       sub('13.3 Sistema centralizado por UPS (Uninterruptible Power Supply)', '(Informe as características do sistema, conforme NBR 10898/2023)'),
-      ...linhasCheck([
-        'UPS exclusiva para a iluminação de emergência',
-        'Possui transformador isolador e aterramento conforme NBR 5410',
-      ]),
+      ...atestos(G.ups),
       sub('13.4 Sistema centralizado por Grupo Motogerador', '(Informe as características do sistema, conforme NBR 10898/2023)'),
-      ...linhasCheck([
-        'GMG de uso exclusivo para iluminação de emergência ou para medidas de segurança contra incêndio',
-        'Possui arranque automático ou, no máximo, 5 segundos após a queda de energia',
-        'Possui acesso livre de obstáculos desde a área externa da edificação e sem a passagem por áreas onde exista material combustível',
-        'Possui painéis de controle com indicador de quantidade de combustível, botão de arranque manual, supervisão de temperatura da água de resfriamento do motor, dispositivos de proteção contra sobrecarga elétrica',
-        'Painéis de controle, baterias de arranque e instalações de armazenamento de combustível compartimentados entre si',
-        'Os gases de combustão são liberados para a área externa da edificação',
-        'O Motogerador está apoiado em base com isoladores contra vibrações e conter dreno com filtro para absorver perda de óleo combustível ou líquidos lubrificantes',
-        'Tanques de armazenamento de combustível com volume ≥ 200 litros estão montados dentro de bacias de contenção com dreno e filtro',
-        'No caso de tomada de ar por meio de duto, este possui TRRF de 120 min',
-        'Circuitos elétricos em conformidade com a NT 23 e NBR 5410',
-      ]),
-      obs('OBSERVAÇÕES LIVRES:'),
+      ...atestos(G.gerador),
+      obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'iluminacao')),
     ],
   }
 }
@@ -928,5 +966,6 @@ export const ATESTOS_PB = {
   saidas: ATESTOS_SAIDAS,
   brigada: ATESTOS_BRIGADA,
   alarme: ATESTOS_ALARME,
+  iluminacao: ATESTOS_ILUMINACAO,
 }
 export { COMPART_H as ELEMENTOS_COMPART_H_PB, COMPART_V as ELEMENTOS_COMPART_V_PB }

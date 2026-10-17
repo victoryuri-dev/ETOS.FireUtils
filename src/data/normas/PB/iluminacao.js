@@ -11,12 +11,15 @@
 
 export const NORMA = { sigla: 'NT 18/2024 CBMPB' }
 
-// Itens 5.1 a 5.3: GMG, centralizado com baterias e blocos autônomos.
+// Itens 5.1 a 5.3: GMG, centralizado com baterias e blocos autônomos; UPS
+// pela NBR 10898/2023 (o formulário do memorial do CBMPB a prevê, item 13.3).
 export const TIPOS_SISTEMA = [
   { key: 'bloco_autonomo', label: 'Bloco autônomo',
     descricao: 'Luminária com bateria própria (chumbo-ácido selada ou níquel-cádmio, isenta de manutenção — item 5.3).' },
   { key: 'central', label: 'Sistema centralizado com baterias',
     descricao: 'Fonte e comandos em local não acessível ao público, sem risco de incêndio e ventilado (item 5.2).' },
+  { key: 'ups', label: 'Sistema centralizado por UPS',
+    descricao: 'UPS (no-break) exclusiva para a iluminação de emergência, com transformador isolador e aterramento (NBR 10898/2023 — item 13.3 do formulário do CBMPB).' },
   { key: 'motogerador', label: 'Grupo motogerador (GMG)',
     descricao: 'Com tempo de comutação acima do da NBR 10898, exige também sistema centralizado por bateria ou bloco autônomo (item 5.1.5).' },
 ]

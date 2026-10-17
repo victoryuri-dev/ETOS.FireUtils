@@ -605,6 +605,7 @@ const INITIAL_STATE = {
     brigadaCargaHoraria: '',
     brigadaIntervaloSimulados: '',
     brigadaDimensionamento: '',
+    iluAlturaInstalacao: '', // m — item 13 (distância máx. entre pontos = 4 × altura)
     extintorNivelIII: '',    // 'nivel_III_3A' | 'nivel_III_4A' (EXTINTORES_NIVEL)
     // Itens de "atesto" do formulário (as escadas atendem ao item 5.7 da NT
     // 12 etc.) — { [chave do item]: true }. Nunca marcados automaticamente:
