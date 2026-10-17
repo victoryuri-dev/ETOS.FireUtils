@@ -414,13 +414,19 @@ test('Anexo A: só o dimensionamento por estrutura, sem as generalidades', async
   assert.ok(so.includes('Bloco A'))
 })
 
-test('12. dimensionamento da brigada sai do cálculo da página, por pavimento', () => {
+test('12. dimensionamento da brigada no formato do memorial do MA (Tabela A.1 + resultado por pavimento)', () => {
   const p = projeto({ sistemasPorEstrutura: { e1: { brigada: true } } })
   p.pavimentos[0].populacaoFixa = '8'
   const s = secao(gerar(p), '12.')
-  const dim = s.linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:').valor
-  assert.match(dim, /^Térreo \(C-1, risco médio, população fixa de 8 pessoas\): \d+ brigadistas? — Até 8/)
-  assert.match(dim, /Total: \d+ brigadistas?\.$/)
+  const blocos = s.linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:').blocos
+  assert.ok(blocos.some(b => b.tipo === 'titulo2' && b.texto === 'Bloco A'))
+  const tabelas = blocos.filter(b => b.tipo === 'tabela')
+  assert.equal(tabelas.length, 2)                                   // trecho da Tabela A.1 + resultado
+  assert.deepEqual(tabelas[1].linhas[0].slice(0, 4), ['Térreo', 'C-1', 'Médio', '8'])
+  assert.ok(blocos.some(b => b.tipo === 'campo' && b.label === 'Total de brigadistas exigidos na estrutura'))
+  // sem brigada exigida, o campo fica vazio
+  const sem = secao(gerar(projeto({ sistemasPorEstrutura: { e1: { brigada: false } } })), '12.').linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:')
+  assert.equal(sem.blocos.length, 0)
 })
 
 test('12. carga horária pela Tabela B.2 (maior nível exigido) e simulados com 12 meses por padrão', () => {

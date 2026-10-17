@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 
 // Renderização das seções do formulário do Memorial Descritivo do CBMPB
 // (linhas tipadas de estados/PB/formulario.js, classes .pbf-* do index.css).
@@ -90,6 +91,11 @@ function Linha({ linha }) {
       return (
         <tr><td><div className="pbf-obs">
           <span>{linha.label}</span>{linha.valor ? <>{'\n'}<span className="pbf-valor">{linha.valor}</span></> : null}
+          {linha.blocos?.length > 0 && (
+            <div className="pbf-obs-blocos">
+              {linha.blocos.map((b, i) => <BlocoMedida key={i} bloco={b}/>)}
+            </div>
+          )}
         </div></td></tr>
       )
     default:

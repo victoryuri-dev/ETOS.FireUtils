@@ -41,7 +41,8 @@ import { resumoSaidasPB } from './saidas'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../../data/brigada_calc'
-import { observacoesDoProjeto } from '../../utils/observacoes'
+import { observacoesDoProjeto, ROTULO_OBSERVACOES } from '../../utils/observacoes'
+import { textoMemorialBrigadaIncendio } from '../../data/memorial/brigada_incendio'
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
 
@@ -500,6 +501,17 @@ export function resumoBrigadaPB(state, sistemas, porEstrutura) {
   return resumoBrigada(state, { sistemas, porEstrutura })
 }
 
+// Dimensionamento (campo do formulário): os mesmos blocos do memorial do MA
+// (Tabela A.1 + resultado por pavimento), só das estruturas em que a brigada
+// é exigida e sem as observações (já vão na "Observação livre" do item 12).
+function dimensionamentoBrigada(state, ctx, comBrigada) {
+  if (comBrigada.length === 0) return []
+  const ids = new Set(comBrigada.map(pe => pe.estrutura.id))
+  const estado = { ...state, estruturas: (state.estruturas || []).filter(e => ids.has(e.id)) }
+  return textoMemorialBrigadaIncendio(estado, ctx.sistemas, ctx.porEstrutura).blocos
+    .filter(b => !(b.tipo === 'campo' && b.label === ROTULO_OBSERVACOES))
+}
+
 function resumoBrigada(state, ctx) {
   const brig = getBrigada(state.uf)
   const ext = getExtintores(state.uf)
@@ -510,26 +522,14 @@ function resumoBrigada(state, ctx) {
   let total = 0, temTotal = false
   const divisoes = [], riscos = [], niveis = []
   let nivelMax = null
-  // Dimensionamento (campo do formulário): o mesmo cálculo da página de
-  // brigada, uma linha por pavimento, agrupado por estrutura.
-  const dimensionamento = []
   const comBrigada = (ctx.porEstrutura || []).filter(pe => pe.sistemas?.brigada?.ativo)
   comBrigada.forEach(({ estrutura: est }) => {
-    if (comBrigada.length > 1) dimensionamento.push(`${est.nome}:`)
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     const opcoes = opcoesPublicoBrigada(state.uf, pavs)
     pavs.forEach(pav => {
       const risco = riscoDoPavimentoRobusto(pav, state.cargaState?.[est.id] || {}, cnaesDiv, LIMIARES_RISCO)
       const { linha, resultado, nivelTreinamento } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, est.altura, TABELA_A1, est.areaTotal, opcoes)
       if (!linha || linha.isento) return
-      const n = resultado?.brigadistas
-      const pop = parseInt(pav.populacaoFixa, 10)
-      const partes = [
-        `${pav.label} (${pav.divisao}, risco ${(RISCO_LABEL[risco] || '—').toLowerCase()}${pop > 0 ? `, população fixa de ${pop} pessoa${pop === 1 ? '' : 's'}` : ''})`,
-        n != null ? `${n} brigadista${n === 1 ? '' : 's'}${resultado.faixaUsada ? ` — ${resultado.faixaUsada}` : ''}` : (resultado?.detalhe || 'dimensionamento pendente'),
-        nivelTreinamento ? `nível ${(NIVEL_LABEL[nivelTreinamento.nivel] || nivelTreinamento.label || '').toLowerCase()}` : null,
-      ].filter(Boolean)
-      dimensionamento.push(`${comBrigada.length > 1 ? '  ' : ''}${partes.join(': ').replace(/: (nível [^:]*)$/, '; $1')}.`)
       divisoes.push(pav.divisao)
       riscos.push(RISCO_LABEL[risco])
       if (nivelTreinamento) {
@@ -540,11 +540,10 @@ function resumoBrigada(state, ctx) {
       if (resultado?.brigadistas != null) { total += resultado.brigadistas; temTotal = true }
     })
   })
-  if (temTotal) dimensionamento.push(`Total: ${total} brigadista${total === 1 ? '' : 's'}.`)
   const carga = nivelMax ? brig.CARGA_HORARIA_TREINAMENTO?.[nivelMax] : null
   return {
     total: temTotal ? String(total) : '', divisoes: juntar(divisoes), riscos: juntar(riscos), niveis: juntar(niveis),
-    dimensionamento: dimensionamento.join('\n'), nivelMax, cargaHoraria: carga?.total ?? null, cargaHorariaPartes: carga?.partes || [],
+    dimensionamento: dimensionamentoBrigada(state, ctx, comBrigada), nivelMax, cargaHoraria: carga?.total ?? null, cargaHorariaPartes: carga?.partes || [],
   }
 }
 
@@ -564,7 +563,7 @@ function secaoBrigada(state, ctx) {
       campo('Carga horária mínima do treinamento (conforme nível de treinamento):', r?.cargaHoraria != null ? `${r.cargaHoraria} horas` : ''),
       campo('Tempo entre simulados na edificação (máximo a cada 12 meses):', exigivel ? intervaloSimuladosPB(m) : ''),
       ...ATESTOS_BRIGADA.map(([key, label]) => ck({ x: !!at[key], label })),
-      obs('DIMENSIONAMENTO:', r?.dimensionamento || ''),
+      { tipo: 'obs', label: 'DIMENSIONAMENTO:', blocos: r?.dimensionamento || [] },
       obs('Observação livre:', obsDe(state, 'brigada')),
     ],
   }

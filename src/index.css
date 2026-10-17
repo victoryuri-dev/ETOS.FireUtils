@@ -443,6 +443,7 @@
 .pbf-valor { font-weight: 400; }
 .pbf-label-valor { font-style: normal; }
 .pbf-obs { min-height: 32pt; padding: 2pt 4pt; white-space: pre-line; }
+.pbf-obs-blocos { white-space: normal; padding-top: 4pt; }
 .pbf-texto { padding: 2pt 4pt; white-space: pre-line; }
 .pbf-centro { text-align: center; justify-content: center; }
 .pbf-negrito { font-weight: 700; }
