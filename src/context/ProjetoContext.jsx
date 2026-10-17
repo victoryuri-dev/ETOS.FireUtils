@@ -616,9 +616,10 @@ const INITIAL_STATE = {
     deteccaoCentralLocal: '',// 14.2 ('' = a mesma do alarme)
     detectoresTipos: [],     // 'fumaca_pontual' | 'temperatura_pontual' | 'fumaca_linear' (14.2)
     // 6 — distanciaEdificacao, distanciaRecalque e dados da via (vazios =
-    // padrão: largura 6 m, altura livre 4,5 m, portão 4 × 4,5 m). Recalque =
-    // sistema de hidrantes exigido. estados/PB/acessoViatura.js decide a
-    // linha do formulário.
+    // padrão: largura 6 m, altura livre 4,5 m, portão 4 × 4,5 m); respostas
+    // sim/não (true/false, sem resposta = undefined): cargaConfirmada,
+    // temPortao, faixaEstacionamento. Recalque = sistema de hidrantes
+    // exigido. estados/PB/acessoViatura.js decide a linha do formulário.
     acessoViatura: {},
     hidrantes: {},           // 17 — tipo, vazão, pressão, RTI, mangueiras, bombas
     hidAnexo: '',            // Anexo B — texto do RT

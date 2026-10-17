@@ -336,17 +336,19 @@ test('6. acesso de viatura: as distâncias informadas marcam a linha certa do fo
   assert.equal(linha(sec({})), 0)                                                            // sem distância: nada marcado
 
   // via obrigatória: a)–f), largura reduzida, retorno, portão e faixa
-  const via = { distanciaEdificacao: '25', larguraVia: '6', alturaLivre: '4,5', cargaConfirmada: true, desobstruida: true, temPortao: true, portaoLargura: '4', portaoAltura: '4,5' }
+  const via = { distanciaEdificacao: '25', larguraVia: '6', alturaLivre: '4,5', cargaConfirmada: true, temPortao: true, portaoLargura: '4', portaoAltura: '4,5' }
   const m1 = marcados(sec(via))
   assert.ok(m1.some(l => l.startsWith('Vias de acesso para viaturas')))
   assert.ok(m1.some(l => l.startsWith('O portão de acesso')))
-  const m2 = marcados(sec({ ...via, larguraVia: '5,5', extensaoVia: '40', retorno: 'T', faixaEstacionamento: true }))
+  const m2 = marcados(sec({ ...via, larguraVia: '5,5', extensaoVia: '40', faixaEstacionamento: true }))
   assert.ok(!m2.some(l => l.startsWith('Vias de acesso para viaturas')))
   assert.ok(m2.some(l => l.startsWith('Locais com via de acesso com largura inferior a 6,00 m')))
   assert.ok(m2.some(l => l.startsWith('Áreas para retorno')))
   assert.ok(m2.some(l => l.startsWith('Faixas de estacionamento')))
-  // dados da via em branco = padrão (6 m, 4,5 m): basta confirmar carga e desobstrução
-  assert.ok(marcados(sec({ distanciaEdificacao: '25', cargaConfirmada: true, desobstruida: true })).some(l => l.startsWith('Vias de acesso para viaturas')))
+  // dados da via em branco = padrão (6 m, 4,5 m): basta responder que suporta 25.000 kgf
+  assert.ok(marcados(sec({ distanciaEdificacao: '25', cargaConfirmada: true })).some(l => l.startsWith('Vias de acesso para viaturas')))
+  assert.ok(!marcados(sec({ distanciaEdificacao: '25', cargaConfirmada: false })).some(l => l.startsWith('Vias de acesso para viaturas')))
+  assert.ok(!marcados(sec({ ...via, faixaEstacionamento: false })).some(l => l.startsWith('Faixas de estacionamento')))
   // facultativo: nada da via é marcado
   assert.equal(marcados(sec({ ...via, distanciaEdificacao: '10' })).length, 1)
 })

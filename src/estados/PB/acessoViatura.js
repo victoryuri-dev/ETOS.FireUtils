@@ -58,14 +58,14 @@ export function decidirAcessoViaturaPB(av = {}, temRecalqueProjeto, P) {
   return {
     temRecalque, edificacao, recalque, caso, obrigatorio, foraDoFormulario,
     via: {
-      // a)–f): largura ≥ 6, altura livre ≥ 4,5, 25.000 kgf e desobstrução
-      // confirmados pelo RT, e portão (se houver) nas dimensões mínimas.
-      atende: obrigatorio === true && viaPadrao && alturaLivre >= V.alturaLivreMin && !!av.cargaConfirmada && !!av.desobstruida && (!av.temPortao || portaoOk),
+      // a)–f): largura ≥ 6, altura livre ≥ 4,5, suporta 25.000 kgf (resposta
+      // do RT) e portão (se houver) nas dimensões mínimas. A desobstrução é
+      // condição da norma, não pergunta — não entra na decisão.
+      atende: obrigatorio === true && viaPadrao && alturaLivre >= V.alturaLivreMin && av.cargaConfirmada === true && (!av.temPortao || portaoOk),
       reduzida: obrigatorio === true && viaReduzida,
       exigeRetorno,
-      retornoInformado: !!av.retorno,
     },
     portaoOk,
-    faixa: obrigatorio === true && !!av.faixaEstacionamento,
+    faixa: obrigatorio === true && av.faixaEstacionamento === true,
   }
 }

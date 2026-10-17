@@ -41,7 +41,12 @@ insert into public.normas_dados (uf, sistema, dados, versao) values
     },
     "retorno": {
       "larguraAbaixoDe": 6,
-      "comprimentoAcimaDe": 30
+      "comprimentoAcimaDe": 30,
+      "opcoes": [
+        "circular",
+        "em \"Y\"",
+        "em \"T\""
+      ]
     },
     "faixaEstacionamento": {
       "larguraMin": 6,

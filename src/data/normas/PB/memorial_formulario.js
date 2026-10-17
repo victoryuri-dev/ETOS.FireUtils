@@ -143,7 +143,8 @@ export const ACESSO_VIATURA = {
     distanciaEdificacaoSemHidrante: 20, distanciaRecalqueComHidrante: 10,
   },
   portao: { larguraMin: 4, alturaMin: 4.5 },
-  // Retorno exigido: via com largura abaixo de 6 m e mais de 30 m de comprimento.
-  retorno: { larguraAbaixoDe: 6, comprimentoAcimaDe: 30 },
+  // Retorno exigido: via com largura abaixo de 6 m e mais de 30 m de
+  // comprimento. As opções só orientam o RT (o formulário não pede qual).
+  retorno: { larguraAbaixoDe: 6, comprimentoAcimaDe: 30, opcoes: ['circular', 'em "Y"', 'em "T"'] },
   faixaEstacionamento: { larguraMin: 6, comprimentoMin: 15, desnivelMaxPct: 5, distanciaFaceMax: 8 },
 }

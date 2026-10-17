@@ -438,6 +438,25 @@ const LINHA_AV = {
   4: 'Recalque a até 20 m e edificação a mais de 50 m da via — acesso obrigatório.',
   5: 'Recalque a mais de 20 m e edificação a mais de 50 m da via — acesso obrigatório.',
 }
+// Pergunta de sim/não (botões). Sem resposta = nenhum dos dois marcado.
+function SimNao({ pergunta, valor, onChange }) {
+  const botao = (v, rotulo) => {
+    const sel = valor === v
+    return (
+      <button type="button" onClick={() => onChange(v)} aria-pressed={sel}
+        className={`py-1 px-3 text-xs border border-solid rounded-md cursor-pointer ${sel ? 'border-red-border bg-red-dim text-ink font-medium' : 'border-border bg-transparent text-ink-faint'}`}>
+        {rotulo}
+      </button>
+    )
+  }
+  return (
+    <div className="flex items-center justify-between gap-3 text-[12.5px] text-ink-muted">
+      <span>{pergunta}</span>
+      <div className="flex gap-1.5 shrink-0">{botao(true, 'Sim')}{botao(false, 'Não')}</div>
+    </div>
+  )
+}
+
 // Campo numérico como o do MA (AcessoViaturaPage): vazio mostra o valor
 // padrão (já vale no cálculo) e, ao sair do campo, valor abaixo do mínimo da
 // norma volta para o mínimo.
@@ -471,7 +490,7 @@ export function CamposAcessoViaturaPB() {
   const numero = (key, label, extra = {}) => (
     <NumeroLimitado label={label} value={av[key]} onChange={v => setAv({ [key]: v })} {...extra}/>
   )
-  const marca = (key, label) => <Marcador label={label} checked={!!av[key]} onChange={() => setAv({ [key]: !av[key] })}/>
+  const pergunta = (key, texto) => <SimNao pergunta={texto} valor={av[key]} onChange={v => setAv({ [key]: v })}/>
   return (
     <BoxPB item="6">
       <div className="text-[12.5px] text-ink-muted">
@@ -499,22 +518,25 @@ export function CamposAcessoViaturaPB() {
             {numero('extensaoVia', 'Comprimento da via em relação à via pública', { minimo: 0 })}
           </div>
           {r.via.reduzida && <span className="text-[11.5px] text-ink-faint">Largura entre 5 e 6 m: marca a linha "via com largura inferior a 6,00 m" do formulário.</span>}
-          {marca('cargaConfirmada', 'A via suporta viaturas de 25.000 kgf em toda a extensão')}
-          {marca('desobstruida', 'A via é desobstruída em toda a largura')}
-          {marca('temPortao', 'Há portão de acesso')}
-          {av.temPortao && (
+          {pergunta('cargaConfirmada', 'A via suporta viaturas de 25.000 kgf em toda a sua extensão?')}
+          {pergunta('temPortao', 'Há portão de acesso?')}
+          {av.temPortao === true && (
             <div className="g2">
               {numero('portaoLargura', `Largura do portão (mín. ${fmtNum(P.portao.larguraMin, 2)} m)`, { padrao: P.portao.larguraMin, minimo: P.portao.larguraMin })}
               {numero('portaoAltura', `Altura do portão (mín. ${fmtNum(P.portao.alturaMin, 2)} m)`, { padrao: P.portao.alturaMin, minimo: P.portao.alturaMin })}
             </div>
           )}
           {r.via.exigeRetorno && (
-            <div className="fg">
-              <label>Área de retorno (via com menos de 6 m e mais de 30 m de comprimento)</label>
-              <input value={av.retorno || ''} onChange={e => setAv({ retorno: e.target.value })} placeholder="Ex.: retorno em T no fim da via"/>
+            <div className="ibox amber">
+              <span className="text-xs">
+                <strong>Retorno obrigatório:</strong> a via tem menos de {fmtNum(P.retorno.larguraAbaixoDe, 2)} m de largura e mais de {fmtNum(P.retorno.comprimentoAcimaDe, 0)} m de comprimento — prever área de retorno que garanta a entrada e a saída das viaturas{P.retorno.opcoes?.length ? ` (retorno ${P.retorno.opcoes.join(', ').replace(/, ([^,]*)$/, ' ou $1')})` : ''}.
+              </span>
             </div>
           )}
-          {marca('faixaEstacionamento', 'Faixa de estacionamento atendendo aos itens a) a h) do formulário (6 × 15 m, 25.000 kgf, desnível ≤ 5%, até 8 m da face com aberturas, livre e sinalizada)')}
+          {pergunta('faixaEstacionamento', 'Há faixa de estacionamento?')}
+          {av.faixaEstacionamento === true && (
+            <span className="text-[11.5px] text-ink-faint">A faixa deve atender aos itens a) a h) do formulário: 6 × 15 m, 25.000 kgf, desnível até 5%, paralela a uma face com aberturas e a até 8 m dela, livre de obstáculos e sinalizada.</span>
+          )}
         </>
       )}
     </BoxPB>
