@@ -398,6 +398,13 @@ test('14.2: valores dos detectores informados na página (vazio = máximo; acima
   assert.equal(valorCampo(s14, 'Raio de atuação em detecção pontual de temperatura (máximo 4,2m):'), '')   // tipo não adotado
 })
 
+test('15. sinalização: declarações padrão já marcadas (menos M-1, M-2 e a da NT 16)', () => {
+  const s15 = secao(gerar(projeto({ sistemas: { ...SISTEMAS, sinalizacao: { obrigatorio: false, ativo: true } } })), '15.')
+  const x = marcados(s15)
+  assert.equal(x.length, 8)
+  assert.ok(!x.includes('Placa M-1') && !x.includes('Placa M-2') && !x.some(l => l.includes('NT CBMPB 16')))
+})
+
 test('6. acesso de viatura: as distâncias informadas marcam a linha certa do formulário', () => {
   const sec = (av, hid = false) => secao(gerar(projeto({
     sistemasPorEstrutura: { e1: { acesso_viatura: true, hidrantes: hid } },

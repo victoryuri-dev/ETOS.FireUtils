@@ -434,6 +434,10 @@ export const ATESTOS_PADRAO_MARCADOS = new Set([
   'ilu_lum_30vcc', 'ilu_lum_fluxo', 'ilu_lum_70c',
   // Alarme (14.1) — requisitos da norma, todos marcados.
   'alarme_acionador_30m', 'alarme_autonomia_24h', 'alarme_autonomia_15min', 'alarme_altura_acionadores', 'alarme_altura_avisadores',
+  // Sinalização (15) — menos as placas M-1/M-2 e a sinalização complementar
+  // da NT 16, que dependem do projeto.
+  'sin_fotoluminescentes', 'sin_rotas', 'sin_mudancas_direcao', 'sin_equipamentos', 'sin_pavimentos', 'sin_tamanho_a1',
+  'sin_mensagens', 'sin_locais_risco',
 ])
 /** Atesto marcado: o que o RT escolheu, ou o padrão quando ainda não mexeu. */
 export const atestoMarcado = (atestos, key) => (key in (atestos || {}) ? !!atestos[key] : ATESTOS_PADRAO_MARCADOS.has(key))
