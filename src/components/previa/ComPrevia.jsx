@@ -38,17 +38,21 @@ export default function ComPrevia({ sistKey, children }) {
   // Botão colado à direita dos blocos do formulário — que é centralizado,
   // então a posição acompanha a largura da tela: borda direita do contêiner
   // de largura máxima da página menos o padding dele (onde os blocos
-  // terminam). Em tela estreita, fica dentro da coluna.
+  // terminam). Em tela menor, sem espaço ao lado dos blocos, vai colado à
+  // borda da tela (antes da barra de rolagem) e fica meio transparente.
   const posicionar = useCallback(() => {
     const raiz = raizRef.current, coluna = colunaRef.current
     if (!raiz || !coluna) return
     const r = raiz.getBoundingClientRect()
     const c = coluna.getBoundingClientRect()
+    const rolagem = coluna.firstElementChild
+    const borda = c.left + (rolagem ? rolagem.clientWidth : coluna.clientWidth)
     const form = coluna.querySelector('[class*="max-w-"]')
     const direita = form
       ? form.getBoundingClientRect().right - (parseFloat(getComputedStyle(form).paddingRight) || 0)
-      : c.right - 24
-    setPosBotao(Math.min(direita + GAP_BOTAO, c.right - BOTAO - 8) - r.left)
+      : borda - 24
+    const cabe = direita + GAP_BOTAO + BOTAO <= borda - 8
+    setPosBotao({ left: (cabe ? direita + GAP_BOTAO : borda - BOTAO) - r.left, compacto: !cabe })
   }, [])
 
   useLayoutEffect(() => {
@@ -143,8 +147,8 @@ export default function ComPrevia({ sistKey, children }) {
           onClick={abrir}
           title="Prévia do documento"
           aria-label="Prévia do documento"
-          style={{ top: TOPO_BOTAO, left: posBotao }}
-          className="absolute z-30 w-12 h-12 grid place-items-center border border-solid border-[rgba(255,255,255,.16)] bg-[#24252c] text-white shadow-[0_8px_24px_rgba(0,0,0,.38)] transition-[background-color,border-color] duration-300 ease-out hover:border-red hover:bg-red"
+          style={{ top: TOPO_BOTAO, left: posBotao.left }}
+          className={`absolute z-30 w-12 h-12 grid place-items-center border border-solid border-[rgba(255,255,255,.16)] bg-[#24252c] text-white shadow-[0_8px_24px_rgba(0,0,0,.38)] transition-[background-color,border-color,opacity] duration-300 ease-out hover:border-red hover:bg-red ${posBotao.compacto ? 'opacity-50 hover:opacity-100 focus-visible:opacity-100' : ''}`}
         >
           <Icon name="documentosMedida" size={22}/>
         </button>

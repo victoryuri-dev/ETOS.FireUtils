@@ -92,7 +92,8 @@ export default function FeedbackWidget() {
         </form>
       )}
       {/* Área de hover fixa, colada na borda: o botão dentro dela desliza 24px
-          pra esquerda (e fica vermelho) sem perder o hover no meio do caminho. */}
+          pra esquerda (e fica vermelho) sem perder o hover no meio do caminho.
+          Em tela menor fica meio transparente (por cima do conteúdo). */}
       <div className="group relative z-50 w-12 h-12">
         <button
           type="button"
@@ -100,7 +101,7 @@ export default function FeedbackWidget() {
           title="Enviar feedback"
           aria-label="Enviar feedback"
           aria-expanded={open}
-          className={`absolute inset-0 grid place-items-center border border-solid text-white shadow-[0_8px_24px_rgba(0,0,0,.38)] transition-[translate,background-color,border-color,box-shadow] duration-300 ease-out group-hover:-translate-x-6 group-hover:border-red group-hover:bg-red ${open ? '-translate-x-6 border-red bg-red' : 'border-[rgba(255,255,255,.16)] bg-[#24252c]'}`}
+          className={`absolute inset-0 grid place-items-center border border-solid text-white shadow-[0_8px_24px_rgba(0,0,0,.38)] transition-[translate,background-color,border-color,box-shadow,opacity] duration-300 ease-out group-hover:-translate-x-6 group-hover:border-red group-hover:bg-red ${open ? '-translate-x-6 border-red bg-red' : 'border-[rgba(255,255,255,.16)] bg-[#24252c] max-[1280px]:opacity-50 max-[1280px]:group-hover:opacity-100 max-[1280px]:focus-visible:opacity-100'}`}
         >
           {open ? <Icon name="x" size={24} strokeWidth={3}/> : <BalaoIcon/>}
         </button>
