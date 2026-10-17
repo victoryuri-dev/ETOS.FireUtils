@@ -125,10 +125,13 @@ O MA e a PB preenchem de formas diferentes: o MA tem páginas de medida detalhad
 - `src/estados/PB/PaginaPB.jsx`: layout de cada página da PB — Exigível/Não exigível, campos do formulário, observações complementares por estrutura e a prévia da seção como sai no documento.
 - `src/estados/PB/campos.jsx`: os campos (state.memorialPB). `src/estados/PB/formulario.js`: o formulário. `src/estados/PB/saidas.js`: resumo do item 10 a partir do dimensionamento da página de Saída de Emergência (comum aos estados, com a NT 12/2025); o Anexo A é o texto desse dimensionamento.
 - `src/estados/fluxos.js`: estados com fluxo próprio — a auditoria não cobra deles os campos das páginas do MA.
-- Saídas de emergência e hidrantes usam a página de dimensionamento comum (em todos os estados), com a norma do estado e um espaço `extra` no fim para os campos próprios do estado. As demais medidas da PB não leem as páginas do MA: iluminação (tipo, fluxo, altura), alarme/detecção (centrais, tipos de detector), compartimentação (elementos), saídas e hidrantes (tipo, vazão/pressão, RTI, mangueiras, bombas, Anexo B) vêm de `state.memorialPB`.
+- Saídas de emergência e hidrantes usam a página de dimensionamento comum (em todos os estados), com a norma do estado e um espaço `extra` no fim para os campos próprios do estado. As demais medidas da PB não leem as páginas do MA: iluminação (sistema escolhido com o mesmo formulário do MA; fluxo e altura), alarme/detecção (páginas separadas; central única, tipos de detector e valores do 14.2), compartimentação (elementos), saídas e hidrantes (tipo, vazão/pressão, RTI, mangueiras, bombas, Anexo B) vêm de `state.memorialPB`.
 
 ## Trabalho futuro (combinado, não fazer agora)
 
 - **Carregamento sob demanda** (`React.lazy`): hoje o site sai em 2 arquivos JS (~860 KB, ~200 KB gzip) e todo projeto baixa as páginas de todos os estados. Dividir por estado e por página de medida/documento (o registro `estados/registro.js` passa a apontar para o carregamento da página), além da landing e do Paged.js. Medir antes/depois.
 - **Números de norma ainda no código → Supabase**: nota 5 da brigada (grupos de 20/15/10), "80% da população", faixas de carga da RTI (300/800/1200 MJ/m²), distância entre pontos de luz = 4 × altura.
-- **Textos do formulário da PB → `memorial_formulario`**: rótulos das linhas, atestos e tipos de hidrante — atualizar o modelo do CBMPB sem deploy. As regras de decisão continuam no código (com teste); código das medidas NÃO vai para o banco (segurança e testes).
+
+## Decisão: o que vai para o Supabase
+
+Só as bases normativas usadas em **dimensionamento** (tabelas, faixas, limites que entram em cálculo). As partes do formulário da PB que são apenas preenchimento — rótulos das linhas, declarações (atestos) e seus padrões marcados, tipos de detector e os máximos impressos no próprio formulário (ex.: raio 6,3 m) — ficam no código (`src/estados/PB/formulario.js`), junto com as regras de decisão e os testes.
