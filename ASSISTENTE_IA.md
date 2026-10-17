@@ -141,12 +141,23 @@ Garante que a IA e o motor leem **o mesmo número**.
 
 ### 5.2 Texto normativo — `normas_trechos` (novo)
 
-Para explicar e citar, a IA precisa do texto, não só dos números. Cada NT/NBR é
-quebrada **por item** (não por tamanho fixo): `5.1.2`, `Tabela 3`, `Anexo B`.
+Para explicar e citar, a IA precisa do texto, não só dos números. A base
+textual recebe **todas as NTs do estado, na íntegra** — inclusive as que não
+têm nenhum dado em `normas_dados` por não alimentarem dimensionamento nem
+memorial (ex.: controle de fumaça, GLP, eventos temporários, procedimentos
+administrativos). `normas_dados` continua sendo só o recorte que o motor usa;
+`normas_trechos` é a norma inteira, para consulta.
 
-- Ingestão por script interno (`scripts/ingerir-norma`), a partir dos PDFs já
-  listados em `links_normas.js`/`links_normas_por_estado`: extrai o texto,
-  separa por item, revisa manualmente e grava com `service_role`.
+Cada NT é quebrada **por item** (não por tamanho fixo): `5.1.2`, `Tabela 3`,
+`Anexo B`.
+
+- Ingestão por script interno (`scripts/ingerir-norma`), a partir dos PDFs
+  oficiais do Corpo de Bombeiros (portal em `links_normas.js` /
+  `links_normas_por_estado`): extrai o texto, separa por item, revisa
+  manualmente e grava com `service_role`.
+- Uma tabela-índice `normas_documentos` (uma linha por NT: número, título,
+  URL do PDF, data de vigência) permite à IA saber quais normas existem para a
+  UF, mesmo antes de buscar um item.
 - Busca: começar com **busca textual do Postgres em português**
   (`to_tsvector('portuguese', ...)`) + busca direta por número de item. O
   vocabulário normativo é muito específico (“Divisão F-6”, “item 5.1.2”), e a
@@ -161,10 +172,23 @@ quebrada **por item** (não por tamanho fixo): `5.1.2`, `Tabela 3`, `Anexo B`.
 
 ### 5.3 Interpretações curadas — `normas_interpretacoes` (novo)
 
-Ver [§8](#8-aprendizado-com-os-usuários). São entendimentos aprovados pela
-equipe (ex.: "para o CBMMA, mezanino até 1/3 da área não conta como
-pavimento"), sempre ligados ao item normativo de origem e marcados como
-*interpretação*, nunca como texto da norma.
+A norma nem sempre é clara, e na prática o Corpo de Bombeiros aplica um
+entendimento que não está escrito no texto — vindo de parecer técnico,
+exigência de analista em vistoria ou consulta formal. Uma **interpretação** é
+esse entendimento registrado, ligado ao item da norma a que se refere.
+
+Exemplos do tipo de coisa que entra aqui:
+
+- "O CBMMA não considera mezanino de até 1/3 da área do pavimento como
+  pavimento adicional para efeito de altura" (item X da NT Y — texto ambíguo).
+- "Em análise, o CBMMA tem exigido a planta de rota de fuga mesmo quando a
+  NT 20 não obriga para a divisão" (prática de análise, não texto da norma).
+
+Elas são **globais** porque valem para todos os usuários daquela UF — ao
+contrário das decisões de um projeto, que ficam só nele. Por isso nenhuma
+interpretação entra sem aprovação da equipe ETOS ([§8](#8-aprendizado-com-os-usuários)),
+e a IA sempre as apresenta como *interpretação*, com a origem, nunca como
+texto da norma.
 
 ## 6. Os três modos
 
@@ -194,8 +218,10 @@ Duas camadas, de propósito:
    `hidrantes.recalqueTipo` incompatível com a classificação). Rodam a cada
    alteração, de graça e na hora, e entram na `AuditoriaPage` como uma
    terceira lista: **"Achados normativos"**.
-2. **Revisão com IA (sob demanda).** Botão "Auditar projeto" (e
-   automaticamente antes de gerar o memorial). A IA recebe o instantâneo
+2. **Revisão com IA (só quando o usuário pede).** A análise nunca roda
+   sozinha: o usuário pede pelo chat ("analise o projeto", "revise o
+   memorial de alarme") ou pelo botão "Pedir análise da IA". Pode ser do
+   projeto inteiro ou de uma medida/estrutura. A IA recebe o instantâneo
    completo, os achados determinísticos e o texto do memorial, e procura o que
    regra fixa não pega:
    - memorial dizendo uma coisa e os dados outra (ex.: texto fala em central
@@ -227,9 +253,11 @@ a IA recebe a lista de decisões já tomadas (`assistente_decisoes`).
 ### 6.3 Consultor normativo
 
 Chat livre, com o projeto como contexto. Fluxo: a IA busca trechos
-(`buscar_trechos`), lê dados estruturados (`consultar_norma`) e responde com
-citações. Se a pergunta for sobre outro estado ou norma fora da base, diz
-claramente que não tem a norma cadastrada.
+(`buscar_trechos`) em qualquer NT do estado — não só nas que o site
+dimensiona —, lê dados estruturados (`consultar_norma`) quando a dúvida
+envolve um valor que o motor usa, e responde com citações. Se a pergunta for
+sobre outro estado ou norma fora da base, diz claramente que não tem a norma
+cadastrada.
 
 ## 7. Ferramentas (tool use)
 
@@ -309,6 +337,16 @@ Cuidados:
 Esboço das migrações (nomes seguem o padrão `AAAAMMDDHHMMSS_*.sql`):
 
 ```sql
+-- Índice das normas de cada estado (todas as NTs, não só as do motor)
+create table public.normas_documentos (
+  uf            text not null,
+  norma         text not null,          -- 'NT 21'
+  titulo        text not null,
+  fonte_url     text not null,          -- PDF oficial do Corpo de Bombeiros
+  vigente_desde date,
+  primary key (uf, norma)
+);
+
 -- Texto normativo por item, para busca e citação
 create table public.normas_trechos (
   id            uuid primary key default gen_random_uuid(),
@@ -421,11 +459,9 @@ Nova `supabase/functions/assistente/index.ts`, no mesmo padrão de
 
 **Passos:**
 
-1. Valida o JWT (`Authorization`) e a licença (`donoTemLicenca`, módulo
-   `assistente` ou `pro`).
-2. Confere o limite diário do usuário (contador em tabela, como
-   `atividade_diaria`).
-3. Monta a requisição para o Claude, **na ordem que maximiza o cache**:
+1. Valida o JWT (`Authorization`) e a licença PRO (`donoTemLicenca(..., [])`
+   — lista vazia significa "só o PRO libera").
+2. Monta a requisição para o Claude, **na ordem que maximiza o cache**:
    - `tools` (lista fixa, sempre na mesma ordem);
    - `system` fixo (papéis, princípios, formato de citação) — `cache_control`;
    - bloco da base normativa da UF (dados de `normas_dados` relevantes) —
@@ -433,9 +469,9 @@ Nova `supabase/functions/assistente/index.ts`, no mesmo padrão de
    - histórico da conversa;
    - por último, o instantâneo do projeto e a mensagem (o que muda a cada
      chamada).
-4. Loop de ferramentas com o SDK oficial `@anthropic-ai/sdk` (via `npm:` no
+3. Loop de ferramentas com o SDK oficial `@anthropic-ai/sdk` (via `npm:` no
    Deno), em **streaming**, repassando o texto ao navegador por SSE.
-5. Persiste mensagens (blocos completos), achados, sugestões e feedbacks.
+4. Persiste mensagens (blocos completos), achados, sugestões e feedbacks.
 
 **Configuração do modelo:**
 
@@ -465,8 +501,9 @@ Nova `supabase/functions/assistente/index.ts`, no mesmo padrão de
 - **Achados na `AuditoriaPage`:** terceira coluna "Achados normativos",
   agrupada por `secao` e usando o mesmo `corrigir(campo)` — clicar leva ao
   campo com `?audit=<id>`, que já destaca o campo hoje.
-- **Antes do memorial:** em `MemorialDescritivoPage`, aviso "N achados abertos"
-  com atalho para revisão. Não bloqueia — o RT decide.
+- **No memorial:** em `MemorialDescritivoPage`, botão "Pedir análise da IA"
+  e, se houver, aviso "N achados abertos" da última análise. Não bloqueia — o
+  RT decide.
 - **Citação clicável:** cada citação mostra o trecho e o link do PDF
   (`LinkNorma` / `links_normas`).
 - `src/context/AssistenteContext.jsx` guarda conversa atual, achados e
@@ -480,16 +517,18 @@ Nova `supabase/functions/assistente/index.ts`, no mesmo padrão de
 - **Conteúdo do usuário é dado, não instrução.** Textos livres do projeto
   (descrições, observações) entram marcados como conteúdo do projeto; o prompt
   de sistema deixa claro que instruções dentro deles não mudam as regras.
-- **Licença:** módulo próprio (`assistente`) em `licencas`, ou incluído no
-  `pro`; checado na função como as outras.
+- **Licença:** incluído no PRO; checado na função como as outras.
 - **Custo sob controle:**
   - regras determinísticas cobrem o óbvio sem chamar a IA;
+  - análise com IA só quando o usuário pede (nenhuma chamada automática);
   - cache de prompt no sistema + base normativa (conferir
     `usage.cache_read_input_tokens` nos logs);
   - `ler_projeto(secao)` em vez de mandar o projeto inteiro em toda pergunta
     do copiloto;
-  - limite diário por usuário; auditoria completa com limite próprio;
-  - `assistente_mensagens.tokens` permite medir custo por projeto e por modo.
+  - **sem limite de uso por enquanto**, mas `assistente_mensagens.tokens`
+    registra o consumo por usuário, projeto e modo desde o primeiro dia — se
+    um limite for necessário depois, ele é definido com base no uso real e
+    entra como uma checagem a mais no passo 1 da função.
 
 ## 14. Qualidade: avaliação contínua
 
@@ -510,28 +549,34 @@ Uma IA normativa sem medição vira risco. Montar desde a fase 1:
 
 | Fase | Entrega | Depende de |
 |---|---|---|
-| **0 — Base** | `normas_trechos` populada para o MA (NTs já em `links_normas.js`); `auditoriaNormativa.js` com as primeiras regras determinísticas; conjunto de avaliação inicial | — |
-| **1 — Consultor** | Edge Function `assistente` (modo consulta), painel com chat, citações clicáveis, `assistente_conversas/_mensagens`, limite de uso | Fase 0 |
-| **2 — Auditor** | `montarContextoIA`, auditoria com IA, `assistente_achados`, coluna na `AuditoriaPage`, aviso no memorial, decisões do RT | Fase 1 |
+| **0 — Base** | `normas_documentos` + `normas_trechos` com todas as NTs do MA; `auditoriaNormativa.js` com as primeiras regras determinísticas; conjunto de avaliação inicial | — |
+| **1 — Consultor** | Edge Function `assistente` (modo consulta, licença PRO), painel com chat, citações clicáveis, `assistente_conversas/_mensagens` com registro de consumo | Fase 0 |
+| **2 — Auditor** | `montarContextoIA`, análise com IA a pedido do usuário, `assistente_achados`, coluna na `AuditoriaPage`, botão no memorial, decisões do RT | Fase 1 |
 | **3 — Copiloto** | Ajuda por campo, `propor_valor` + `aplicar.js` com validação, cartões de sugestão | Fase 2 |
 | **4 — Aprendizado e feedback** | `assistente_decisoes` com escopo usuário, `normas_interpretacoes` + curadoria, feedback automático com deduplicação, resumo periódico | Fase 2 |
 
 Cada fase é útil sozinha: a fase 1 já entrega valor (dúvidas com citação) sem
 mexer no estado do projeto.
 
-## 16. Decisões em aberto
+## 16. Decisões
 
-1. **Licenciamento:** o assistente é módulo próprio ou parte do PRO? Qual o
-   limite diário por plano?
-2. **Fonte do texto normativo:** podemos armazenar o texto integral das NTs
-   (publicadas pelo CBMMA) ou só trechos + link? E as NBRs (texto da ABNT, com
-   direitos autorais) — provavelmente só referência e resumo próprio.
-3. **Curadoria:** quem aprova `normas_interpretacoes` — a equipe ETOS, ou
-   também escritórios parceiros, por UF?
-4. **Auditoria automática:** só sob demanda e antes do memorial, ou também a
-   cada etapa concluída (mais útil, mais caro)?
-5. **Plugin Revit:** o mesmo assistente deve responder dentro do Revit? Se
-   sim, a função já nasce aceitando o instantâneo vindo do plugin.
+### Tomadas
+
+| Tema | Decisão |
+|---|---|
+| Licenciamento | Incluído no PRO |
+| Limite de uso | Nenhum por enquanto; consumo registrado desde o início |
+| Base textual | Todas as NTs do estado, na íntegra, consultadas da fonte oficial |
+| Análise com IA | Só sob demanda — o usuário pede |
+| Plugin Revit | Fora do escopo; o assistente existe só no site |
+
+### Em aberto
+
+1. **NBRs:** o texto da ABNT tem direitos autorais — provavelmente só
+   referência (número, item, título) e resumo próprio, sem texto integral.
+2. **Curadoria das interpretações:** quem na equipe ETOS aprova
+   `normas_interpretacoes`, e se a tela de revisão é interna no site ou basta
+   o painel do Supabase no início.
 
 ---
 
