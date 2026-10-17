@@ -11,7 +11,7 @@ import SwitchToggle from '../ui/SwitchToggle'
 import InfoTip from '../ui/InfoTip'
 import { Chip } from '../ui/EstruturaHeaderInfo'
 import { fmtUn } from '../../utils/numero'
-import { EstagioExistentePB } from '../pb/CamposPB'
+import ExtensaoConfig from '../../estados/ExtensaoConfig'
 import TipoProjetoBox from './TipoProjetoBox'
 
 const S = {
@@ -307,8 +307,7 @@ export default function Step2({ step, totalSteps }) {
             </div>
           )}
 
-          {/* PB: estágio "as built" do formulário do memorial (item 3.6). */}
-          <EstagioExistentePB/>
+          <ExtensaoConfig ponto="situacao"/>
 
           {/* Pergunta: informar alvará / AVCB / ano de construção? Projetos que já
               têm algum desses dados preenchidos contam como "sim". */}

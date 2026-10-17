@@ -12,7 +12,6 @@ import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { fmtUn } from '../../utils/numero'
-import { CamposPBCompartimentacao } from '../../components/pb/CamposPB'
 
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
@@ -464,7 +463,6 @@ export default function CompartimentacaoPage() {
           )
         })}
 
-        <CamposPBCompartimentacao/>
       </div>
     </div>
   )

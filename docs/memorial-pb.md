@@ -115,3 +115,14 @@ O estágio sai da **Situação** da Etapa 2: edificação **nova** marca "A edif
 ## Base normativa só no Supabase
 
 O site não lê mais nenhuma norma do código: tudo vem de `normas_dados` (Supabase). O projeto só abre depois que as normas do estado carregam (tela de "carregando"/"tentar de novo"); sistema não cadastrado para o estado = página da medida com aviso "norma não cadastrada", seção do memorial pendente, campos do formulário da PB em branco — nunca a norma de outro estado. Os arquivos `src/data/normas/<UF>/*.js` ficam só como fonte dos seeds e fixtures dos testes (`tests/helpers/normasDeTeste.mjs`).
+
+## Fluxo próprio da PB (estados/PB)
+
+O MA e a PB preenchem de formas diferentes: o MA tem páginas de medida detalhadas (Revit, quantitativos, distribuição por pavimento) e gera o memorial em texto; a PB só preenche o formulário do CBMPB com os dimensionamentos padrão da norma. Por isso cada estado tem o próprio fluxo, sobre um núcleo comum (Configuração, classificação, carga de incêndio, normas e cálculos).
+
+- `src/estados/registro.js`: qual página cada medida abre por estado. Projeto da PB → `estados/PB/paginas.jsx`; sem entrada → páginas de `src/pages/medidas` (MA). Rotas, menu lateral e dashboard continuam os mesmos (`/medida/:sistKey`).
+- `src/estados/ExtensaoConfig.jsx`: campos do estado nas etapas comuns (PB: estágio "as built" no box Situação, observação da natureza da ocupação, classe de GLP).
+- `src/estados/PB/PaginaPB.jsx`: layout de cada página da PB — Exigível/Não exigível, campos do formulário, observações complementares por estrutura e a prévia da seção como sai no documento.
+- `src/estados/PB/campos.jsx`: os campos (state.memorialPB). `src/estados/PB/formulario.js`: o formulário. `src/estados/PB/saidas.js`: saídas pelo dimensionamento padrão (área ÷ taxa da divisão, ou população informada; nº de saídas por pavimento) e o Anexo A.
+- `src/estados/fluxos.js`: estados com fluxo próprio — a auditoria não cobra deles os campos das páginas do MA.
+- O formulário da PB não lê nada das páginas do MA: iluminação (tipo, fluxo, altura), alarme/detecção (centrais, tipos de detector), compartimentação (elementos), saídas e hidrantes (tipo, vazão/pressão, RTI, mangueiras, bombas, Anexo B) vêm de `state.memorialPB`.

@@ -11,7 +11,6 @@ import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { statusEstrutura } from '../../utils/statusEstrutura'
-import { CamposPBBrigada } from '../../components/pb/CamposPB'
 import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
 
@@ -308,7 +307,6 @@ export default function BrigadaIncendioPage() {
           )
         })}
 
-        <CamposPBBrigada/>
       </div>
     </div>
   )

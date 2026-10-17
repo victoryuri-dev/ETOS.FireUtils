@@ -1,4 +1,4 @@
-// memorial/PB/formulario.js — preenche o formulário "Memorial Descritivo do
+// estados/PB/formulario.js — preenche o formulário "Memorial Descritivo do
 // Projeto de Segurança Contra Incêndio" do CBMPB a partir do projeto.
 //
 // Diferente do memorial do MA (memorial/registry.js, texto corrido por
@@ -30,22 +30,18 @@
 //   obs       { label, valor }                        — campo de texto livre (alto)
 
 import {
-  getMemorialFormulario, getMedidas, getOcupacoes, getSE, getTRRF, getCompartimentacao,
+  getMemorialFormulario, getMedidas, getOcupacoes, getTRRF, getCompartimentacao,
   getBrigada, getExtintores, getCNAEsDivisao, getDeteccaoAlarme,
-} from '../../normas/index'
-import { riscosEspeciaisDoEstado } from '../../../utils/anexoB'
-import { fmtNum } from '../../../utils/numero'
-import { alturaEdificacaoBase, edificacaoEhTerrea, calcularTRRF } from '../../trrf_calc'
-import { calcularAreaMaximaCompartimentacao } from '../../compart_calc'
-import {
-  calcPopPav, calcDimsAcesso, dimsDoAcesso, calcNoAmbientePT, contarSaidasPavimento,
-  getDistancia, tipoEscadaEstrutura,
-} from '../../se_calc'
-import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../../brigada_calc'
-import { alarmeDaEstrutura, detectoresAtivos } from '../../deteccao_alarme_calc'
-import { observacoesDoProjeto } from '../../../utils/observacoes'
-import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../tipoProjeto'
-import { opcoesPublicoBrigada } from '../../../utils/brigadaPublico'
+} from '../../data/normas/index'
+import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
+import { fmtNum } from '../../utils/numero'
+import { alturaEdificacaoBase, edificacaoEhTerrea, calcularTRRF } from '../../data/trrf_calc'
+import { calcularAreaMaximaCompartimentacao } from '../../data/compart_calc'
+import { dimensionamentoSaidasPB } from './saidas'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../../data/brigada_calc'
+import { observacoesDoProjeto } from '../../utils/observacoes'
+import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
+import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
 
 const vazio = v => v === '' || v === null || v === undefined
 const fmtM  = v => `${fmtNum(v, 2, String(v))} m`
@@ -365,9 +361,9 @@ function secaoCompartimentacao(state, ctx) {
   const exigH = exigibilidade(ctx, 'compart_horizontal')
   const exigV = exigibilidade(ctx, 'compart_vertical')
   const exigivel = exigH || exigV ? true : (exigH === false && exigV === false ? false : null)
-  const ativaEm = key => (ctx.porEstrutura || []).filter(pe => pe.sistemas?.[key]?.ativo).map(pe => pe.estrutura)
-  const marcadosH = new Set(ativaEm('compart_horizontal').flatMap(e => e.elementosCompartHorizontal || []))
-  const marcadosV = new Set(ativaEm('compart_vertical').flatMap(e => e.elementosCompartVertical || []))
+  // Elementos adotados: marcados na página de Compartimentação da PB.
+  const marcadosH = new Set(exigH ? m.compartElementos?.h || [] : [])
+  const marcadosV = new Set(exigV ? m.compartElementos?.v || [] : [])
 
   // Área máxima a compartimentar: a mais restritiva entre os pavimentos das
   // estruturas em que a horizontal é exigida (mesmo cálculo da tela).
@@ -419,53 +415,14 @@ const ATESTOS_SAIDAS = [
   ['se_refugio_5_10', 'As áreas de refúgio (quando exigido) atendem aos requisitos do item 5.10 da NT 12'],
 ]
 
-/** Resumo do dimensionamento de saídas pro formulário — mesmos cálculos de
- * se_calc.js que a tela de Saída de Emergência usa (ver
- * memorial/saida_emergencia.js). Larguras: a maior largura mínima entre os
- * nós/ambientes do projeto; distâncias: os valores distintos por divisão. */
-function resumoSaidas(state, ctx) {
-  const se = getSE(state.uf)
-  if (!se) return null
-  const { TAXA_POPULACIONAL, LARGURAS_MINIMAS, DISTANCIAS_MAXIMAS } = se
-  const sistemasPorEst = Object.fromEntries((ctx.porEstrutura || []).map(pe => [pe.estrutura.id, pe.sistemas]))
-  let popMax = 0, popTotal = 0, larAD = 0, larER = 0, larPT = 0
-  const distDescarga = [], distDemais = [], escadas = []
-
-  ;(state.estruturas || []).forEach(est => {
-    const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
-    const temChuveiros = !!sistemasPorEst[est.id]?.sprinklers?.ativo
-    const temDeteccao  = !!sistemasPorEst[est.id]?.deteccao?.ativo
-    pavs.forEach(pav => {
-      const ambientes = pav.ambientes || []
-      const acessos = pav.acessos || []
-      const pop = calcPopPav({ ambientes }, TAXA_POPULACIONAL)
-      popTotal += pop
-      popMax = Math.max(popMax, pop)
-      acessos.forEach(ac => {
-        const r = calcDimsAcesso(ac.id, ambientes, acessos, TAXA_POPULACIONAL, LARGURAS_MINIMAS, dimsDoAcesso(ac, !!pav.pisoDescarga))
-        if (r.ad) larAD = Math.max(larAD, r.ad.la)
-        if (r.er) larER = Math.max(larER, r.er.la)
-        if (r.pt) larPT = Math.max(larPT, r.pt.la)
-      })
-      ambientes.forEach(amb => { larPT = Math.max(larPT, calcNoAmbientePT(amb, TAXA_POPULACIONAL, LARGURAS_MINIMAS).pt.la) })
-      if (pav.divisao) {
-        const d = getDistancia(pav.divisao, !!pav.pisoDescarga, Math.max(1, contarSaidasPavimento(acessos)), temChuveiros, temDeteccao, DISTANCIAS_MAXIMAS)
-        if (d != null) (pav.pisoDescarga ? distDescarga : distDemais).push(`${fmtM(d)} (${pav.divisao})`)
-      }
-    })
-    const esc = tipoEscadaEstrutura(est, pavs.map(p => p.divisao), se.TIPOS_ESCADA)
-    if (esc?.status === 'ok') escadas.push(esc.exigido)
-  })
-  return { popMax, popTotal, larAD, larER, larPT, distDescarga, distDemais, escadas }
-}
-
 function secaoSaidas(state, ctx) {
   const m = state.memorialPB || {}
   const at = m.atestos || {}
   const exigivel = exigibilidade(ctx, 'saida_emergencia')
-  const r = exigivel ? resumoSaidas(state, ctx) : null
+  const r = exigivel ? dimensionamentoSaidasPB(state, ctx.porEstrutura) : null
   const val = v => (r && v > 0 ? String(v) : '')
   const lar = v => (r && v > 0 ? fmtM(v) : '')
+  const dist = lista => juntar((lista || []).map(d => `${fmtM(d.valor)} (${d.divisao})`))
   const escadas = new Set(m.tipoEscada ? [m.tipoEscada] : (r?.escadas || []))
   return {
     titulo: '10. SAÍDA DE EMERGÊNCIA', nota: '(Informar as características das saídas de emergência, conforme tabela B da NT CBMPB 12/2015)',
@@ -475,8 +432,8 @@ function secaoSaidas(state, ctx) {
       campo('Largura (metros) dos acessos e descargas:', lar(r?.larAD)),
       campo('Largura (metros) das escadas e rampas:', lar(r?.larER)),
       campo('Largura (metros) das Portas:', lar(r?.larPT)),
-      campo('Distanciamento (metros) máximo a ser percorrido no piso de descarga:', r ? juntar(r.distDescarga) : ''),
-      campo('Distanciamento (metros) máximo a ser percorrido nos demais andares:', r ? juntar(r.distDemais) : ''),
+      campo('Distanciamento (metros) máximo a ser percorrido no piso de descarga:', r ? dist(r.distDescarga) : ''),
+      campo('Distanciamento (metros) máximo a ser percorrido nos demais andares:', r ? dist(r.distDemais) : ''),
       sub('10.1 Características das escadas', '(Marcar X nas características da escada, conforme NT CBMPB 12/2015)'),
       { tipo: 'exigivel', exigivel },
       { tipo: 'texto', centro: true, negrito: true, texto: 'Tipo de escada (marcar X na(s) escada(s) usada(s) na edificação)' },
@@ -562,7 +519,7 @@ function secaoBrigada(state, ctx) {
 const TIPO_ILUMINACAO = { bloco_autonomo: 'blocos', central: 'central_bateria', ups: 'ups', motogerador: 'gerador' }
 
 // Atestos do item 13, por grupo — marcados pelo RT no box da PB da página de
-// Iluminação (CamposPBIluminacao). Cada grupo de sistema (13.1–13.4) só
+// Iluminação da PB. Cada grupo de sistema (13.1–13.4) só
 // aparece no box quando o tipo correspondente é o adotado no projeto.
 const ATESTOS_ILUMINACAO = {
   geral: [
@@ -630,13 +587,10 @@ const ATESTOS_ILUMINACAO = {
   ],
 }
 
-/** Tipos de sistema de iluminação adotados no projeto (chaves do formulário:
- *  blocos / central_bateria / ups / gerador). */
+/** Tipos de sistema de iluminação adotados (chaves do formulário: blocos /
+ *  central_bateria / ups / gerador) — marcados na página da PB. */
 export function tiposIluminacaoPB(state) {
-  return new Set((state.iluminacaoMesmoSistema !== false
-    ? [state.iluminacaoSistema?.tipo]
-    : Object.values(state.iluminacaoSistemaPorEstrutura || {}).map(s => s?.tipo)
-  ).map(t => TIPO_ILUMINACAO[t]).filter(Boolean))
+  return new Set((state.memorialPB?.iluTipos || []).map(t => TIPO_ILUMINACAO[t]).filter(Boolean))
 }
 
 // Distância máxima entre pontos de luz: 4 × a altura de instalação (Anexo A
@@ -654,8 +608,8 @@ function secaoIluminacao(state, ctx) {
   const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && !!at[key], label }))
   const h = parseFloat(String(m.iluAlturaInstalacao ?? '').replace(',', '.'))
   const dist = distanciaMaximaPontosPB(m.iluAlturaInstalacao)
-  // Fluxo exato: os fluxos dos equipamentos cadastrados na página de Iluminação.
-  const fluxos = juntar((state.iluminacao || []).map(it => it.fluxoLuminosoLm).filter(v => !vazio(v)).map(v => `${fmtNum(v, 2, String(v))}`))
+  // Fluxo exato: o informado pelo RT na página de Iluminação da PB.
+  const fluxos = vazio(m.iluFluxo) ? '' : String(m.iluFluxo)
   const G = ATESTOS_ILUMINACAO
   const [fluxoKey, fluxoLabel] = G.luminarias[1]
   return {
@@ -705,13 +659,12 @@ function secaoAlarmeDeteccao(state, ctx) {
   const at = m.atestos || {}
   const exigAlarme = exigibilidade(ctx, 'alarme')
   const exigDet = exigibilidade(ctx, 'deteccao')
-  const comMedida = key => (ctx.porEstrutura || []).filter(pe => pe.sistemas?.[key]?.ativo).map(pe => pe.estrutura)
-  const localCentral = key => juntar(comMedida(key).map(est => alarmeDaEstrutura(est).centralLocal))
+  // Local da central e tipos de detector: informados na página da PB.
+  const localCentral = key => (key === 'alarme' ? m.alarmeCentralLocal : m.deteccaoCentralLocal) || ''
 
-  // Valores de projeto dos detectores = os limites da norma que o
-  // dimensionamento usou, só para os tipos de detector de fato adotados.
-  const tiposDet = new Set(comMedida('deteccao').flatMap(est =>
-    detectoresAtivos(est, (state.pavimentos || []).filter(p => p.estruturaId === est.id)).map(t => t.key)))
+  // Valores de projeto dos detectores = os limites da norma, só para os
+  // tipos de detector adotados.
+  const tiposDet = new Set(m.detectoresTipos || [])
   const det = exigDet ? (getDeteccaoAlarme(state.uf)?.DETECTORES?.tipos || {}) : {}
   const v = (tipo, campoNorma) => (tiposDet.has(tipo) && det[tipo]?.[campoNorma] != null ? fmtM(det[tipo][campoNorma]) : '')
 
@@ -736,24 +689,28 @@ function secaoAlarmeDeteccao(state, ctx) {
   }
 }
 
-function secaoSinalizacao() {
+const ATESTOS_SINALIZACAO = [
+  ['sin_fotoluminescentes', 'Todas as sinalizações são fotoluminescentes'],
+  ['sin_rotas', 'Todas as rotas de saída estão sinalizadas'],
+  ['sin_mudancas_direcao', 'Todas as mudanças de direção nas rotas de fuga estão sinalizadas'],
+  ['sin_equipamentos', 'Todos os equipamentos estão sinalizados'],
+  ['sin_pavimentos', 'Todos os pavimentos estão sinalizados'],
+  ['sin_tamanho_a1', 'O tamanho das placas segue a tabela A-1'],
+  ['sin_placa_m1', 'Placa M-1'],
+  ['sin_placa_m2', 'Placa M-2'],
+  ['sin_mensagens', 'Todas as mensagens escritas foram sinalizadas'],
+  ['sin_locais_risco', 'Todos os locais de risco possuem sinalização de alerta e proibição'],
+  ['sin_complementar_nt16', 'Todo acesso, escada e descarga possuem sinalização complementar em ambos os lados (nos casos de adaptações pela NT CBMPB 16)'],
+]
+
+function secaoSinalizacao(state, ctx) {
+  const at = state.memorialPB?.atestos || {}
+  const ativo = !!ctx.sistemas?.sinalizacao?.ativo
   return {
     titulo: '15. SINALIZAÇÃO DE EMERGÊNCIA', nota: '(Informe ou Marque X nas características da sinalização, conforme NT CBMPB 06/2013)',
     linhas: [
-      ...linhasCheck([
-        'Todas as sinalizações são fotoluminescentes',
-        'Todas as rotas de saída estão sinalizadas',
-        'Todas as mudanças de direção nas rotas de fuga estão sinalizadas',
-        'Todos os equipamentos estão sinalizados',
-        'Todos os pavimentos estão sinalizados',
-        'O tamanho das placas segue a tabela A-1',
-        'Placa M-1',
-        'Placa M-2',
-        'Todas as mensagens escritas foram sinalizadas',
-        'Todos os locais de risco possuem sinalização de alerta e proibição',
-        'Todo acesso, escada e descarga possuem sinalização complementar em ambos os lados (nos casos de adaptações pela NT CBMPB 16)',
-      ]),
-      obs('OBSERVAÇÕES LIVRES:'),
+      ...ATESTOS_SINALIZACAO.map(([key, label]) => ck({ x: ativo && !!at[key], label })),
+      obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'sinalizacao')),
     ],
   }
 }
@@ -782,57 +739,82 @@ function secaoExtintores(state, F, ctx) {
   }
 }
 
-const vazaoPressao = 'Vazão exata do hidrante mais desfavorável: ______ l/min. Pressão exata: ______ mca.'
+// 17 — tipos de sistema da NT 15/2016 PB (a key é o que o RT escolhe).
+export const TIPOS_HIDRANTE_PB = [
+  ['tipo1',    'Sistema TIPO 1 (esguicho regulável DN25, mangueira DN 25 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 100l/min e 80mca);'],
+  ['tipo2',    'Sistema TIPO 2 (esguicho regulável DN40, mangueira DN 40 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 150l/min e 30mca);'],
+  ['tipo3',    'Sistema TIPO 3 (esguicho regulável DN40, mangueira DN 40 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 200l/min e 40mca);'],
+  ['tipo4_40', 'Sistema TIPO 4 (esguicho regulável DN40, mangueira DN 40 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 300l/min e 65mca);'],
+  ['tipo4_65', 'Sistema TIPO 4 (esguicho regulável DN65, mangueira DN 65 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 300l/min e 30mca);'],
+  ['tipo5',    'Sistema TIPO 5 (esguicho regulável DN65, mangueira DN 65 com 30m, expedição dupla, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 600l/min e 60mca);'],
+]
+export const RESERVATORIOS_PB = [['elevado', 'Reservatório elevado'], ['enterrado', 'Reservatório enterrado'], ['manancial', 'Manancial'], ['semienterrado', 'Reservatório semi-enterrado']]
+export const LANCES_INTERNOS_PB = [['1x30', 'Um lance de 30m'], ['2x15', 'Dois lances de 15m']]
+export const LANCES_EXTERNOS_PB = [['2x30', 'Dois lances de 30m'], ['4x15', 'Quatro lances de 15m']]
+export const MANGUEIRAS_PB = [['1', 'Mangueira 1'], ['2', 'Mangueira 2'], ['3', 'Mangueira 3'], ['4', 'Mangueira 4'], ['5', 'Mangueira 5']]
+const FAIXAS_CARGA_RTI = [['Até 300Mj/m²', 300], ['301 a 800Mj/m²', 800], ['801 a 1200Mj/m²', 1200], ['Acima de 1200Mj/m²', Infinity]]
+const ATESTOS_HIDRANTES = {
+  mangueiras: [
+    ['hid_esguichos', 'Esguichos reguláveis adotado em todos os pontos de hidrantes'],
+    ['hid_chave', 'Chave de mangueiras presente em todos os pontos de hidrantes'],
+  ],
+  bombas: [
+    ['hid_desligamento_manual', 'Sistema possui desligamento apenas de forma manual, conforme item C.1.6'],
+    ['hid_acionador_manual', 'Sistema possui acionador manual em local de fácil acesso e seguro, conforme item C.1.7'],
+    ['hid_acionamento_auto', 'Sistema possui acionamento automático ao acionar qualquer ponto, conforme item C.1.8'],
+    ['hid_independencia', 'Sistema possui independência elétrica, conforme item C.2.7'],
+    ['hid_recalque_fachada', 'Sistema possui dispositivo de recalque do tipo coluna instalado na fachada ou dentro de um abrigo embutido no muro, conforme Item 4.2.2'],
+    ['hid_recalque_passeio', 'Sistema possui dispositivo de recalque instalado no passeio público, com impossibilidade técnica comprovada por meio de laudo, conforme Item 4.2.2'],
+    ['hid_dreno_c2', 'Sistema possui sistema de dreno, conforme Figura C.2 do anexo C, de acordo com exigência do item 5.11.6'],
+    ['hid_drenos_ensaios', 'Sistema possui drenos, recursos para simulação e ensaios, escorvas e outros dispositivos dimensionados conforme a aplicação, de acordo com exigência do item 5.11.6'],
+    ['hid_tubulacao_vermelha', 'Sistema possui tubulação aparente em cor vermelha, conforme item 5.11.6'],
+    ['hid_aneis_vermelhos', 'Sistema pintado em outras cores e identificado com anéis vermelhos com 0,20 m de largura e dispostos, no máximo, a 3 m um do outro, exceto para edificações dos grupos G, I, J, L e M, conforme item 5.11.6'],
+    ['hid_manometro', 'Sistema possui manômetro hidráulico (0 a 200 mca) a não mais de um metro da saída da válvula do hidrante considerado mais desfavorável hidraulicamente, conforme item 5.11.7'],
+  ],
+}
 
-function secaoHidrantes(ctx) {
+function secaoHidrantes(state, ctx) {
+  const m = state.memorialPB || {}
+  const h = m.hidrantes || {}
+  const at = m.atestos || {}
+  const exigivel = exigibilidade(ctx, 'hidrantes')
+  const ativo = !!ctx.sistemas?.hidrantes?.ativo
+  const v = valor => (ativo && !vazio(valor) ? String(valor) : '')
+  const vp = key => (ativo && h.tipo === key
+    ? `Vazão exata do hidrante mais desfavorável: ${h.vazao || '______'} l/min. Pressão exata: ${h.pressao || '______'} mca.`
+    : 'Vazão exata do hidrante mais desfavorável: ______ l/min. Pressão exata: ______ mca.')
+  const um = (lista, valor) => ck(...lista.map(([key, label]) => ({ x: ativo && valor === key, label })))
+  const carga = ctx.cargaMaxima > 0 ? FAIXAS_CARGA_RTI.find(([, max]) => ctx.cargaMaxima <= max)?.[0] : null
+  const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && !!at[key], label }))
   return {
     titulo: '17. SISTEMA DE HIDRANTES E MANGOTINHOS (Conforme NT 15/2016)',
     linhas: [
-      { tipo: 'exigivel', exigivel: exigibilidade(ctx, 'hidrantes') },
-      ...linhasCheck([
-        `Sistema TIPO 1 (esguicho regulável DN25, mangueira DN 25 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 100l/min e 80mca);\n${vazaoPressao}`,
-        `Sistema TIPO 2 (esguicho regulável DN40, mangueira DN 40 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 150l/min e 30mca);\n${vazaoPressao}`,
-        `Sistema TIPO 3 (esguicho regulável DN40, mangueira DN 40 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 200l/min e 40mca);\n${vazaoPressao}`,
-        `Sistema TIPO 4 (esguicho regulável DN40, mangueira DN 40 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 300l/min e 65mca);\n${vazaoPressao}`,
-        `Sistema TIPO 4 (esguicho regulável DN65, mangueira DN 65 com 30m, expedição simples, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 300l/min e 30mca);\n${vazaoPressao}`,
-        `Sistema TIPO 5 (esguicho regulável DN65, mangueira DN 65 com 30m, expedição dupla, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 600l/min e 60mca);\n${vazaoPressao}`,
-      ]),
+      { tipo: 'exigivel', exigivel },
+      ...TIPOS_HIDRANTE_PB.map(([key, label]) => ck({ x: ativo && h.tipo === key, label: `${label}\n${vp(key)}` })),
       sub('17.1 Reserva Técnica de Incêndio - RTI', '(Informe e/ou marque X nas características da RTI, conforme tabela 3 da NT CBMPB 15)'),
-      campo('Classificação da edificação conforme item 3.1 deste memorial:'),
+      campo('Classificação da edificação conforme item 3.1 deste memorial:', ativo ? [...ctx.divisoes].join(', ') : ''),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Carga incêndio' },
-      ck(c('Até 300Mj/m²'), c('301 a 800Mj/m²'), c('801 a 1200Mj/m²'), c('Acima de 1200Mj/m²')),
-      ck(c('Reservatório elevado'), c('Reservatório enterrado'), c('Manancial'), c('Reservatório semi-enterrado')),
-      campo('Em casos de reservatórios enterrados informar o valor da NSTH:'),
-      campo('Material de construção da RTI:'),
-      campo('Area construída da edificação:'),
-      campo('RTI em m³:'),
+      ck(...FAIXAS_CARGA_RTI.map(([label]) => ({ x: ativo && carga === label, label }))),
+      um(RESERVATORIOS_PB, h.reservatorio),
+      campo('Em casos de reservatórios enterrados informar o valor da NSTH:', h.reservatorio === 'enterrado' ? v(h.nsth) : ''),
+      campo('Material de construção da RTI:', v(h.rtiMaterial)),
+      campo('Area construída da edificação:', ativo && state.areaConstruidaTotal ? fmtM2(state.areaConstruidaTotal) : ''),
+      campo('RTI em m³:', v(h.rtiVolume)),
       sub('17.2 Mangueiras e tubulações', '(Informe e/ou marque X nas características da RTI, conforme NT CBMPB 15)'),
-      campo('Diâmetro das tubulações:'),
-      campo('Material das tubulações:'),
-      ...linhasCheck(['Esguichos reguláveis adotado em todos os pontos de hidrantes', 'Chave de mangueiras presente em todos os pontos de hidrantes']),
+      campo('Diâmetro das tubulações:', v(h.tubDiametro)),
+      campo('Material das tubulações:', v(h.tubMaterial)),
+      ...atestos(ATESTOS_HIDRANTES.mangueiras),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Quantidade de lances de mangueira (hidrantes internos)' },
-      ck(c('Um lance de 30m'), c('Dois lances de 15m')),
+      um(LANCES_INTERNOS_PB, h.lancesInternos),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Quantidade de lances de mangueira (hidrantes externos)' },
-      ck(c('Dois lances de 30m'), c('Quatro lances de 15m')),
+      um(LANCES_EXTERNOS_PB, h.lancesExternos),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Tipo de mangueira (NBR ABNT 11861)' },
-      ck(c('Mangueira 1'), c('Mangueira 2'), c('Mangueira 3'), c('Mangueira 4'), c('Mangueira 5')),
+      um(MANGUEIRAS_PB, h.mangueira),
       sub('17.3 Bombas de incêndio e casa de bombas', '(Informe e/ou marque X nas características da RTI, conforme NT CBMPB 15)'),
-      campo('Pressão da bomba principal (mca) de incêndio:'),
-      campo('Pressão da bomba reserva (mca) para risco médio e alto:'),
-      campo('Vazão da bomba jockey (l/min) em sistema com mais de 6 pontos de hidrante:'),
-      ...linhasCheck([
-        'Sistema possui desligamento apenas de forma manual, conforme item C.1.6',
-        'Sistema possui acionador manual em local de fácil acesso e seguro, conforme item C.1.7',
-        'Sistema possui acionamento automático ao acionar qualquer ponto, conforme item C.1.8',
-        'Sistema possui independência elétrica, conforme item C.2.7',
-        'Sistema possui dispositivo de recalque do tipo coluna instalado na fachada ou dentro de um abrigo embutido no muro, conforme Item 4.2.2',
-        'Sistema possui dispositivo de recalque instalado no passeio público, com impossibilidade técnica comprovada por meio de laudo, conforme Item 4.2.2',
-        'Sistema possui sistema de dreno, conforme Figura C.2 do anexo C, de acordo com exigência do item 5.11.6',
-        'Sistema possui drenos, recursos para simulação e ensaios, escorvas e outros dispositivos dimensionados conforme a aplicação, de acordo com exigência do item 5.11.6',
-        'Sistema possui tubulação aparente em cor vermelha, conforme item 5.11.6',
-        'Sistema pintado em outras cores e identificado com anéis vermelhos com 0,20 m de largura e dispostos, no máximo, a 3 m um do outro, exceto para edificações dos grupos G, I, J, L e M, conforme item 5.11.6',
-        'Sistema possui manômetro hidráulico (0 a 200 mca) a não mais de um metro da saída da válvula do hidrante considerado mais desfavorável hidraulicamente, conforme item 5.11.7',
-      ]),
+      campo('Pressão da bomba principal (mca) de incêndio:', v(h.bombaPrincipalPressao)),
+      campo('Pressão da bomba reserva (mca) para risco médio e alto:', v(h.bombaReservaPressao)),
+      campo('Vazão da bomba jockey (l/min) em sistema com mais de 6 pontos de hidrante:', v(h.jockeyVazao)),
+      ...atestos(ATESTOS_HIDRANTES.bombas),
     ],
   }
 }
@@ -949,9 +931,9 @@ export function buildFormularioPB(state, sistemas, porEstrutura) {
       secaoBrigada(state, ctx),
       secaoIluminacao(state, ctx),
       secaoAlarmeDeteccao(state, ctx),
-      secaoSinalizacao(),
+      secaoSinalizacao(state, ctx),
       secaoExtintores(state, F, ctx),
-      secaoHidrantes(ctx),
+      secaoHidrantes(state, ctx),
       secaoChuveiros(ctx),
       secaoSpda(ctx),
       secaoIsolamento(),
@@ -967,5 +949,7 @@ export const ATESTOS_PB = {
   brigada: ATESTOS_BRIGADA,
   alarme: ATESTOS_ALARME,
   iluminacao: ATESTOS_ILUMINACAO,
+  sinalizacao: ATESTOS_SINALIZACAO,
+  hidrantes: ATESTOS_HIDRANTES,
 }
 export { COMPART_H as ELEMENTOS_COMPART_H_PB, COMPART_V as ELEMENTOS_COMPART_V_PB }

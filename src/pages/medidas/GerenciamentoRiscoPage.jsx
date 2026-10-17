@@ -9,7 +9,6 @@ import SwitchToggle from '../../components/ui/SwitchToggle'
 import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { statusPorProgresso } from '../../utils/statusEstrutura'
-import { CamposPBPlano } from '../../components/pb/CamposPB'
 import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // Complementa o Plano de Emergência (NT 16/2021 CBMMA, Anexo B) com os poucos
@@ -206,7 +205,6 @@ export default function GerenciamentoRiscoPage() {
         ))}
       </FormSection>
 
-      <CamposPBPlano/>
 
       <button className="btn-primary" onClick={() => navigate(`/projeto/${id}/documentos`, { state: { abrir: 'memorial-descritivo' } })}>
         <Icon name="file" size={13}/> Ver no Memorial Descritivo

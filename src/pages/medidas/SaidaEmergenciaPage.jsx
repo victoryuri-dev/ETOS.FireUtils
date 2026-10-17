@@ -16,7 +16,6 @@ import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { fmtUn } from '../../utils/numero'
 import AcessosDescargasView from './AcessosDescargasView'
 import { calcPopPav, contarSaidasPavimento, getDistanciaPavimento, tipoEscadaEstrutura } from '../../data/se_calc'
-import { CamposPBSaidas } from '../../components/pb/CamposPB'
 import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -499,7 +498,6 @@ export default function SaidaEmergenciaPage() {
           </div>
         )}
 
-        <CamposPBSaidas/>
       </div>
 
       {viewPav && <AcessosDescargasView pav={viewPav} seNorma={seNorma} ocupacoes={ocupacoes} dispatch={dispatch} onClose={() => setViewPavId(null)}/>}

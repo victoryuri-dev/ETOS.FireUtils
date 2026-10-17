@@ -19,7 +19,6 @@ import { useToast } from '../../hooks/useToast'
 import { statusEstrutura, statusPorProgresso } from '../../utils/statusEstrutura'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { fmtUn } from '../../utils/numero'
-import { CamposPBExtintores } from '../../components/pb/CamposPB'
 import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // ── Importação do firedata.json (plugin Revit) ───────────────────────
@@ -425,7 +424,6 @@ function AmbienteCard({ estruturaId, pavimentoId, ambiente, itens, tiposPortatil
 // ── Card de um pavimento ──────────────────────────────────────────────
 function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, extNorma, dispatch }) {
   const { LIMIARES_RISCO, AREA_LIMITE_UNIDADE_UNICA, TIPOS_PORTATIL, TIPOS_SOBRE_RODAS, DISTANCIA_MAXIMA, NOTAS } = extNorma
-  const { state } = useProjeto()
 
   const risco = riscoDoPavimento(pavimento, cargaState, LIMIARES_RISCO)
   const grupos = agruparPorAmbiente(extintoresDoPav)
@@ -556,7 +554,7 @@ function PavimentoCard({ pavimento, estruturaId, extintoresDoPav, cargaState, ex
           {risco && (
             <div className="shrink-0 text-center border-l border-solid border-border pl-6">
               <div className="text-sm font-bold text-ink leading-none whitespace-nowrap">
-                {distanciaPortatil(extNorma, risco, state.memorialPB?.extintorNivelIII)} m <span className="font-normal text-ink-faint">/</span> {DISTANCIA_MAXIMA.sobreRodas[risco]} m
+                {distanciaPortatil(extNorma, risco)} m <span className="font-normal text-ink-faint">/</span> {DISTANCIA_MAXIMA.sobreRodas[risco]} m
               </div>
               <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mt-1 whitespace-nowrap">dist. máx. portátil / sobre rodas</div>
             </div>
@@ -1031,7 +1029,6 @@ export default function ExtintoresPage() {
           )
         })}
 
-        <CamposPBExtintores/>
       </div>
     </div>
   )

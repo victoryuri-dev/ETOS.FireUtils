@@ -4,6 +4,7 @@ import { montarLinhas } from './cmar_calc'
 import { calcGatilho } from './av_calc'
 import { alturaEdificacaoBase } from './trrf_calc'
 import { linhaTabelaA1 } from './brigada_calc'
+import { ESTADOS_COM_FLUXO_PROPRIO } from '../estados/fluxos'
 
 export const campoId = (...partes) => partes.join('.')
 export const preenchido = v => Array.isArray(v) ? v.length > 0 : v != null && String(v).trim() !== ''
@@ -21,7 +22,15 @@ export function camposObrigatorios(state, porEstrutura = []) {
   const dim = state.tipoProjeto === 'dimensionamento'
   const config = (etapa, contexto = '') => ({ secao: ({ 1:'Identificação', 2:'Edificação', 3:'Responsável técnico', 4:'Classificação', 5:'Carga de incêndio', 6:'Medidas de segurança' })[etapa], etapa, rota:'config', contexto })
   const medida = (key, secao, contexto = '') => ({ rota:`medida/${key}`, secao, contexto })
-  const add = (id, rotulo, valor, destino, validar = preenchido) => campos.push({ id, rotulo, estruturaId, ...destino, pendente:!validar(valor) })
+  // Estado com fluxo próprio (PB): as páginas de medida são as do formulário
+  // do estado — não cobra os campos das páginas detalhadas do MA (Revit,
+  // quantitativos); só os marcados `fluxoProprio` (ex.: população fixa da
+  // brigada, que a página da PB também pede).
+  const fluxoProprio = ESTADOS_COM_FLUXO_PROPRIO.has(state.uf)
+  const add = (id, rotulo, valor, destino, validar = preenchido) => {
+    if (fluxoProprio && destino.rota?.startsWith('medida/') && !destino.fluxoProprio) return
+    campos.push({ id, rotulo, estruturaId, ...destino, pendente:!validar(valor) })
+  }
   const root = (keys, destino) => keys.forEach(([key, label, validar]) => add(key, label, state[key], destino, validar))
   root([['nome','Nome do projeto'], ['uf','Estado']], config(dim ? 2 : 1))
   if (!dim) {
@@ -73,7 +82,7 @@ export function camposObrigatorios(state, porEstrutura = []) {
     }
     if (ativo('brigada')) for (const pav of pavs) {
       const linha = linhaTabelaA1(pav.divisao,null,getBrigada(state.uf)?.TABELA_A1 || [])
-      if (!linha?.isento) add(campoId(pav.id,'populacaoFixa'),'População fixa',pav.populacaoFixa,medida('brigada','Brigada de incêndio',`${est.nome} · ${pav.label}`),naoNegativo)
+      if (!linha?.isento) add(campoId(pav.id,'populacaoFixa'),'População fixa',pav.populacaoFixa,{ ...medida('brigada','Brigada de incêndio',`${est.nome} · ${pav.label}`), fluxoProprio:true },naoNegativo)
     }
     if (ativo('alarme')) {
       const cfg = alarmeDaEstrutura(est)
@@ -203,7 +212,7 @@ export function camposOpcionais(state, porEstrutura = []) {
     const sistemas = porEstrutura.find(pe => pe.estrutura.id === est.id)?.sistemas || {}
     if (sistemas.seg_estrutural?.ativo) add(campoId(est.id,'obsSegEstrutural'),'Observações complementares',est.obsSegEstrutural,{rota:'medida/seg_estrutural',secao:'Segurança estrutural',contexto:est.nome,estruturaId:est.id})
     if (sistemas.compart_horizontal?.ativo || sistemas.compart_vertical?.ativo) add(campoId(est.id,'obsCompartimentacao'),'Observações complementares',est.obsCompartimentacao,{rota:`medida/${sistemas.compart_horizontal?.ativo ? 'compart_horizontal' : 'compart_vertical'}`,secao:'Compartimentação',contexto:est.nome,estruturaId:est.id})
-    if (sistemas.iluminacao?.ativo) for (const item of (state.iluminacao || []).filter(i => i.estruturaId === est.id)) add(campoId(item.id,'identificacao'),'Identificação do equipamento',item.identificacao,{rota:'medida/iluminacao',secao:'Iluminação',contexto:est.nome,estruturaId:est.id})
+    if (sistemas.iluminacao?.ativo && !ESTADOS_COM_FLUXO_PROPRIO.has(state.uf)) for (const item of (state.iluminacao || []).filter(i => i.estruturaId === est.id)) add(campoId(item.id,'identificacao'),'Identificação do equipamento',item.identificacao,{rota:'medida/iluminacao',secao:'Iluminação',contexto:est.nome,estruturaId:est.id})
   }
   return campos
 }

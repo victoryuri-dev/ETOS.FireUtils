@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 // Supabase (o app não lê mais arquivo local — ver helpers/normasDeTeste.mjs).
 const server = await servidorComNormas()
 after(() => server.close())
-const { buildFormularioPB } = await server.ssrLoadModule('/src/data/memorial/PB/formulario.js')
+const { buildFormularioPB } = await server.ssrLoadModule('/src/estados/PB/formulario.js')
 const { medidasObrigatorias } = await server.ssrLoadModule('/src/hooks/useMedidasObrigatorias.js')
 const { riscosEspeciaisDoEstado, RISCOS_ESPECIAIS } = await server.ssrLoadModule('/src/utils/anexoB.js')
 
@@ -101,11 +101,23 @@ test('sem a tabela de exigências cadastrada para o estado, exigibilidade fica e
   assert.equal(exig('19.'), null)     // SPDA — sem regra no app
 })
 
-test('saídas de emergência saem do dimensionamento do projeto', () => {
+test('saídas: dimensionamento padrão pela área e divisão do pavimento (sem ambientes)', () => {
   const s = secao(gerar(projeto()), '10.')
-  assert.equal(valorCampo(s, 'Capacidade de público (pessoas) total da edificação:'), '60') // 300 m² / 5 m²/pessoa
-  assert.ok(valorCampo(s, 'Largura (metros) dos acessos e descargas:'))
-  assert.ok(valorCampo(s, 'Distanciamento (metros) máximo a ser percorrido no piso de descarga:').includes('C-1'))
+  assert.equal(valorCampo(s, 'Capacidade de público (pessoas) total da edificação:'), '80') // 400 m² / 5 m²/pessoa
+  assert.equal(valorCampo(s, 'Largura (metros) dos acessos e descargas:'), '1,2 m')       // 80/100 → 1 UP, mín. 1,20
+  assert.equal(valorCampo(s, 'Distanciamento (metros) máximo a ser percorrido no piso de descarga:'), '40 m (C-1)')
+  // população informada e duas saídas
+  const s2 = secao(gerar(projeto({ memorialPB: { saidas: { p1: { populacao: '250', nSaidas: '2' } } } })), '10.')
+  assert.equal(valorCampo(s2, 'Capacidade de público (pessoas) total da edificação:'), '250')
+  assert.equal(valorCampo(s2, 'Largura (metros) dos acessos e descargas:'), '1,65 m')     // 250/100 → 3 UP × 0,55
+  assert.equal(valorCampo(s2, 'Distanciamento (metros) máximo a ser percorrido no piso de descarga:'), '50 m (C-1)')
+})
+
+test('Anexo A: tabela do dimensionamento por estrutura', async () => {
+  const { anexoSaidasPB } = await server.ssrLoadModule('/src/estados/PB/saidas.js')
+  const [a] = anexoSaidasPB(projeto(), medidasObrigatorias(projeto()).porEstrutura)
+  const tabela = a.blocos.find(b => b.tipo === 'tabela')
+  assert.deepEqual(tabela.linhas[0].slice(0, 5), ['Térreo', 'C-1', '400', '1 p/ 5 m²', '80'])
 })
 
 test('atestos só aparecem marcados quando o RT marca', () => {
@@ -192,7 +204,7 @@ test('linha padronizada da PB: Tabela 5 inclusiva, subtabelas por divisão e gru
     const e = (area, altura) => ({ id: 'x', nome: 'E', areaTotal: String(area), nPavimentos: 4, alturaEdificacao: altura, nSubsolos: 0 })
     assert.equal(enquadrarTipoProjeto('PB', [e(930, 12)]).tipo, 'simplificado')
     assert.equal(enquadrarTipoProjeto('PB', [e(931, 12)]).tipo, 'tecnico')
-    const { buildFormularioPB: build } = await srv.ssrLoadModule('/src/data/memorial/PB/formulario.js')
+    const { buildFormularioPB: build } = await srv.ssrLoadModule('/src/estados/PB/formulario.js')
     const st = { ...projeto(), estruturas: [{ ...projeto().estruturas[0], areaTotal: '900', nPavimentos: 3, alturaEdificacao: 9 }] }
     const s2 = build(st, {}, []).secoes[1]
     assert.deepEqual(marcados(s2), ['Projeto de Segurança contra Incêndio - PCI — Projeto Técnico de Segurança Contra Incêndio Simplificado (PCIS)'])
@@ -265,20 +277,44 @@ test('3.6 estágio de construção segue a Situação da Etapa 2', () => {
   assert.equal(marcadosDe36({ situacao: 'existente', memorialPB: { estagioConstrucao: 'existente_atual', adaptacoes: 'x' } }).adapt, '')
 })
 
-test('13. iluminação: altura → distância 4×H, fluxo do projeto, tipo e atestos do RT', () => {
-  const comIlu = extra => projeto({
+test('13. iluminação: tipo, fluxo e altura da página da PB → distância 4×H; atestos do RT', () => {
+  const base = { iluTipos: ['ups'], iluFluxo: '400' }
+  const comIlu = (mpb = {}) => projeto({
     sistemas: { ...SISTEMAS, iluminacao: { obrigatorio: false, ativo: true } },
-    iluminacaoMesmoSistema: true, iluminacaoSistema: { tipo: 'ups' },
-    iluminacao: [{ id: 'i1', pavimentoId: 'p1', categoria: 'aclaramento', fluxoLuminosoLm: '400', quantidade: 3 }],
-    ...extra,
+    memorialPB: { ...base, ...mpb },
   })
   const vazio = secao(gerar(comIlu()), '13.')
   assert.equal(valorCampo(vazio, 'Altura de instalação do ponto de luz em relação ao piso (metros):'), '')
   assert.deepEqual(marcados(vazio), ['Central por UPS'])
   assert.ok(vazio.linhas.some(l => (l.itens || []).some(i => i.label.includes('Fluxo exato: 400 lm'))))
 
-  const s = secao(gerar(comIlu({ memorialPB: { iluAlturaInstalacao: '2,5', atestos: { ilu_autonomia_2h: true, ilu_ups_exclusiva: true } } })), '13.')
+  const s = secao(gerar(comIlu({ iluAlturaInstalacao: '2,5', atestos: { ilu_autonomia_2h: true, ilu_ups_exclusiva: true } })), '13.')
   assert.equal(valorCampo(s, 'Distância máxima entre pontos de luz conforme Anexo A da NBR (4x altura de instalação):'), '10 m')
   assert.deepEqual(marcados(s).sort(), ['Central por UPS', 'Tempo de autonomia do sistema de 2 horas', 'UPS exclusiva para a iluminação de emergência'].sort())
 
+})
+
+test('17. hidrantes: tipo, vazão/pressão e RTI informados na página da PB', () => {
+  const p = projeto({
+    sistemasPorEstrutura: { e1: { hidrantes: true } },
+    memorialPB: { hidrantes: { tipo: 'tipo2', vazao: '160', pressao: '32', reservatorio: 'enterrado', nsth: '1,5', rtiVolume: '12' } },
+  })
+  const s = secao(gerar(p), '17.')
+  const m = marcados(s)
+  assert.ok(m.some(l => l.startsWith('Sistema TIPO 2') && l.includes('160 l/min') && l.includes('32 mca')))
+  assert.ok(m.includes('Reservatório enterrado'))
+  assert.ok(m.includes('301 a 800Mj/m²'))   // carga 500 MJ/m²
+  assert.equal(valorCampo(s, 'Em casos de reservatórios enterrados informar o valor da NSTH:'), '1,5')
+  assert.equal(valorCampo(s, 'RTI em m³:'), '12')
+})
+
+test('14: central e detectores informados na página da PB', () => {
+  const p = projeto({
+    sistemasPorEstrutura: { e1: { alarme: true, deteccao: true } },
+    memorialPB: { alarmeCentralLocal: 'Portaria', detectoresTipos: ['fumaca_pontual'] },
+  })
+  const s14 = secao(gerar(p), '14.')
+  assert.equal(valorCampo(s14, 'Localização da central de alarme (cômodo):'), 'Portaria')
+  assert.equal(valorCampo(s14, 'Localização da central do alarme:'), 'Portaria')
+  assert.equal(valorCampo(s14, 'Raio de atuação em detecção pontual de temperatura (máximo 4,2m):'), '')
 })

@@ -585,27 +585,38 @@ const INITIAL_STATE = {
     telefoneCBM: '193', hospitalNome: '', hospitalDistancia: '', hospitalEndereco: '',
     ...PROCEDIMENTOS_PADRAO,
   },
-  // Campos que só o formulário do Memorial Descritivo do CBMPB pede (ver
-  // data/memorial/PB/formulario.js) — o resto do formulário sai do que o
-  // projeto já tem (classificação, dimensionamentos, medidas). Editados nos
-  // boxes "Campos específicos da Paraíba" das páginas de medida e da
-  // Configuração (components/pb/CamposPB.jsx). Tudo
-  // nasce em branco: nenhuma opção é marcada no documento sem o RT escolher.
+  // Campos do formulário do Memorial Descritivo do CBMPB (ver
+  // estados/PB/formulario.js) — o resto do formulário sai do que o projeto
+  // já tem (configuração, classificação, dimensionamentos padrão). Editados
+  // nas páginas de medida da PB e nas extensões da Configuração
+  // (estados/PB/campos.jsx). Tudo nasce em branco: nenhuma opção é marcada
+  // no documento sem o RT escolher.
   memorialPB: {
     obsNatureza: '',
     estagioConstrucao: '',   // ESTAGIOS_CONSTRUCAO; '' = deriva de state.situacao
     adaptacoes: '',          // adaptações da NT 16 / Resoluções Técnicas (3.6)
     glpClasse: '',           // CLASSES_GLP (3.4.1) — só com o risco especial GLP
-    // Característica de cada elemento de compartimentação marcado (8) —
-    // chave `h:<elemento>` ou `v:<elemento>` (chaves de
-    // ELEMENTOS_COMPART_HORIZONTAL/VERTICAL em normas/<UF>/compartimentacao.js).
+    // Elementos de compartimentação adotados (8) — { h: [chave], v: [chave] }
+    // (ELEMENTOS_COMPART_H_PB/V_PB) e a característica de cada um, chave
+    // `h:<elemento>` ou `v:<elemento>`.
+    compartElementos: { h: [], v: [] },
     especificacaoCompart: {},
+    // Saídas (10), por pavimento: { [pavId]: { nSaidas, populacao } } —
+    // população em branco = área ÷ taxa da divisão (estados/PB/saidas.js).
+    saidas: {},
     tipoEscada: '',          // 'NE' | 'EP' | 'PF'; '' = deriva da norma (10.1)
     planoModelo: '',         // 'item6' | 'anexoB' (MODELOS_PLANO, 11.1)
     brigadaCargaHoraria: '',
     brigadaIntervaloSimulados: '',
     brigadaDimensionamento: '',
+    iluTipos: [],            // chaves de TIPOS_SISTEMA da iluminação (13)
+    iluFluxo: '',            // lm — fluxo luminoso exato das luminárias (13)
     iluAlturaInstalacao: '', // m — item 13 (distância máx. entre pontos = 4 × altura)
+    alarmeCentralLocal: '',  // 14.1
+    deteccaoCentralLocal: '',// 14.2 ('' = a mesma do alarme)
+    detectoresTipos: [],     // 'fumaca_pontual' | 'temperatura_pontual' | 'fumaca_linear' (14.2)
+    hidrantes: {},           // 17 — tipo, vazão, pressão, RTI, mangueiras, bombas
+    hidAnexo: '',            // Anexo B — texto do RT
     extintorNivelIII: '',    // 'nivel_III_3A' | 'nivel_III_4A' (EXTINTORES_NIVEL)
     // Itens de "atesto" do formulário (as escadas atendem ao item 5.7 da NT
     // 12 etc.) — { [chave do item]: true }. Nunca marcados automaticamente:

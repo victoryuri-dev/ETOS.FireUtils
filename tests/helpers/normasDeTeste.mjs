@@ -68,13 +68,24 @@ export const carregarNormasRemotas = async () => {}
 export const carregarCatalogoNormas = async () => {}
 `
 
-export async function servidorComNormas(sobrescrever) {
+// `projeto` (opcional): estado servido por um stub de context/ProjetoContext
+// (useProjeto) — para renderizar páginas em teste sem o Provider real.
+const STUB_PROJETO = projeto => `
+let estado = ${JSON.stringify(projeto || {})}
+export function useProjeto() {
+  return { state: estado, normasVersion: 0, dispatch: () => {}, recarregarNormas: () => {} }
+}
+export function ProjetoProvider({ children }) { return children }
+`
+
+export async function servidorComNormas(sobrescrever, projeto) {
   return createServer({
     server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'silent',
     plugins: [{
       name: 'normas-de-teste', enforce: 'pre',
-      resolveId: id => (/lib\/normasRemote(\.js)?$/.test(id) ? '\0normas-de-teste' : null),
-      load: id => (id === '\0normas-de-teste' ? STUB(sobrescrever) : null),
+      resolveId: id => (/lib\/normasRemote(\.js)?$/.test(id) ? '\0normas-de-teste'
+        : projeto && /context\/ProjetoContext(\.jsx)?$/.test(id) ? '\0projeto-de-teste' : null),
+      load: id => (id === '\0normas-de-teste' ? STUB(sobrescrever) : id === '\0projeto-de-teste' ? STUB_PROJETO(projeto) : null),
     }],
   })
 }

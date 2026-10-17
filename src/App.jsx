@@ -15,6 +15,7 @@ import PricingPage    from './pages/PricingPage'
 import LicencaProvider from './context/LicencaContext'
 import { useAcesso }   from './hooks/useLicencas'
 import ProjectAside   from './components/layout/ProjectAside'
+import { paginaDaMedida } from './estados/registro'
 import DashboardPage  from './pages/DashboardPage'
 import ConfiguracaoPage from './pages/ConfiguracaoPage'
 import ProjetosPage   from './pages/ProjetosPage'
@@ -250,6 +251,10 @@ function NormaNaoCadastrada({ uf, sistemas }) {
 function MedidaRoute() {
   const { sistKey } = useParams()
   const { state } = useProjeto()
+  // Estado com fluxo próprio (PB: formulário do CBMPB) — página do estado,
+  // que mostra a seção mesmo sem a norma da medida cadastrada.
+  const propria = paginaDaMedida(state.uf, sistKey)
+  if (propria) return propria
   const faltando = (NORMAS_DA_MEDIDA[sistKey] || []).filter(([get]) => !get(state.uf)).map(([, nome]) => nome)
   if (faltando.length) return <NormaNaoCadastrada uf={state.uf} sistemas={[...new Set(faltando)]}/>
   if (sistKey === 'saida_emergencia')  return <SaidaEmergenciaPage/>
