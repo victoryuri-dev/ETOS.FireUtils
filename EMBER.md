@@ -498,6 +498,42 @@ Nova `supabase/functions/ember/index.ts`, no padrão de `site-sync` /
     necessário, é definido pelo uso real e entra como mais uma checagem no
     passo 1 da função.
 
+### 13.1 Estimativa de custo
+
+Estimativa antes de medir: os números reais saem de `ember_mensagens.tokens`
+na fase 1. Preços da API (US$ por milhão de tokens) para `claude-opus-5-5`:
+entrada 4,00 · saída 20,00 · leitura de cache 0,20. O raciocínio do modelo
+conta como saída. Câmbio assumido: R$ 5,50.
+
+| Uso | Tokens típicos | Custo por uso |
+|---|---|---|
+| Pergunta ao consultor | ~30k de entrada (maior parte em cache) + ~2k de saída, 2–3 chamadas | US$ 0,05–0,10 (R$ 0,30–0,55) |
+| Ajuda em campo (copiloto, esforço `low`) | trecho do projeto + ~500 de saída | US$ 0,02–0,05 (R$ 0,10–0,30) |
+| Texto com "Escrever com Ember" | contexto da medida + ~1k de saída | US$ 0,04–0,08 (R$ 0,20–0,45) |
+| Análise do projeto (esforço `high`) | projeto completo + memorial (30–80k) + 8–20k de saída | US$ 0,40–1,50 (R$ 2–8) |
+
+Cenário por projeto (30 perguntas, 20 ajudas em campo, 10 textos, 3
+análises): **~US$ 4–7 (R$ 22–40)**. Por usuário PRO por mês: ~US$ 3–6 com 1
+projeto; ~US$ 20–30 com 4 projetos.
+
+Custos fixos: ingestão das NTs do MA (~US$ 30, uma vez, se o Claude ajudar a
+estruturar os PDFs); cada rodada do conjunto de avaliação (~US$ 10); Edge
+Functions e armazenamento cabem no plano atual do Supabase.
+
+O que mais pesa e como reduzir, em ordem:
+
+1. **Cache de prompt** (já previsto): sem ele, o custo da consulta e do
+   copiloto sobe 3–5×.
+2. **Análise do projeto** é o item caro; já é só sob demanda. Analisar só a
+   medida alterada, e não o projeto inteiro, corta a maior parte.
+3. **Esforço por modo** (já previsto): `low` no copiloto.
+4. **Modelo por modo:** Claude Sonnet 5.5 (US$ 2/10) custa metade e o Claude
+   Haiku 5.5 (US$ 0,10/0,50) ~40× menos. Dá para usar no copiloto e na escrita,
+   mantendo o Opus na consulta e na análise, desde que o conjunto de avaliação
+   mostre a mesma qualidade. É decisão de produto, a medir na fase 2.
+5. **Alerta de consumo** por usuário (ex.: acima de US$ 30 no mês), sem
+   bloquear, para identificar abuso enquanto não há limite.
+
 ## 14. Qualidade: avaliação contínua
 
 - **Perguntas normativas** com resposta e item esperados (começar com ~50,
