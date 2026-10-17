@@ -212,7 +212,8 @@ export function CamposPlanoPB() {
 
 // 12 — o que o formulário pede além do dimensionamento da página de brigada
 // comum (população fixa, Tabela A.1 e item 4.11.2 da PB): carga horária,
-// intervalo entre simulados, dimensionamento (texto) e declarações.
+// intervalo entre simulados e declarações. O campo "Dimensionamento" do
+// formulário sai do próprio cálculo da página.
 export function CamposBrigadaPB() {
   const { campo, atestos, alternarAtesto } = useCamposPB()
   return (
@@ -222,7 +223,6 @@ export function CamposBrigadaPB() {
           <div className="fg"><label>Carga horária mínima do treinamento</label><input {...campo('brigadaCargaHoraria')} placeholder="Ex.: 16 h"/></div>
           <div className="fg"><label>Tempo entre simulados (máximo 12 meses)</label><input {...campo('brigadaIntervaloSimulados')} placeholder="Ex.: 6 meses"/></div>
         </div>
-        <Obs label="Dimensionamento" campo={campo('brigadaDimensionamento')}/>
         <Atestos lista={ATESTOS_PB.brigada} atestos={atestos} alternar={alternarAtesto}/>
       </BoxPB>
     </div>

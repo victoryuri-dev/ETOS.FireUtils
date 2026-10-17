@@ -413,3 +413,12 @@ test('Anexo A: só o dimensionamento por estrutura, sem as generalidades', async
   assert.ok(!so.includes('Generalidades') && !so.includes('Dimensionamento das Saídas de Emergência'))
   assert.ok(so.includes('Bloco A'))
 })
+
+test('12. dimensionamento da brigada sai do cálculo da página, por pavimento', () => {
+  const p = projeto({ sistemasPorEstrutura: { e1: { brigada: true } } })
+  p.pavimentos[0].populacaoFixa = '8'
+  const s = secao(gerar(p), '12.')
+  const dim = s.linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:').valor
+  assert.match(dim, /^Térreo \(C-1, risco médio, população fixa de 8 pessoas\): \d+ brigadistas? — Até 8/)
+  assert.match(dim, /Total: \d+ brigadistas?\.$/)
+})

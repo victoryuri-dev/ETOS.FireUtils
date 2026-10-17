@@ -498,20 +498,34 @@ function resumoBrigada(state, ctx) {
   const cnaesDiv = divisao => getCNAEsDivisao(state.uf, divisao)
   let total = 0, temTotal = false
   const divisoes = [], riscos = [], niveis = []
-  ;(ctx.porEstrutura || []).filter(pe => pe.sistemas?.brigada?.ativo).forEach(({ estrutura: est }) => {
+  // Dimensionamento (campo do formulário): o mesmo cálculo da página de
+  // brigada, uma linha por pavimento, agrupado por estrutura.
+  const dimensionamento = []
+  const comBrigada = (ctx.porEstrutura || []).filter(pe => pe.sistemas?.brigada?.ativo)
+  comBrigada.forEach(({ estrutura: est }) => {
+    if (comBrigada.length > 1) dimensionamento.push(`${est.nome}:`)
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     const opcoes = opcoesPublicoBrigada(state.uf, pavs)
     pavs.forEach(pav => {
       const risco = riscoDoPavimentoRobusto(pav, state.cargaState?.[est.id] || {}, cnaesDiv, LIMIARES_RISCO)
       const { linha, resultado, nivelTreinamento } = calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, est.altura, TABELA_A1, est.areaTotal, opcoes)
       if (!linha || linha.isento) return
+      const n = resultado?.brigadistas
+      const pop = parseInt(pav.populacaoFixa, 10)
+      const partes = [
+        `${pav.label} (${pav.divisao}, risco ${(RISCO_LABEL[risco] || '—').toLowerCase()}${pop > 0 ? `, população fixa de ${pop} pessoa${pop === 1 ? '' : 's'}` : ''})`,
+        n != null ? `${n} brigadista${n === 1 ? '' : 's'}${resultado.faixaUsada ? ` — ${resultado.faixaUsada}` : ''}` : (resultado?.detalhe || 'dimensionamento pendente'),
+        nivelTreinamento ? `nível ${(NIVEL_LABEL[nivelTreinamento.nivel] || nivelTreinamento.label || '').toLowerCase()}` : null,
+      ].filter(Boolean)
+      dimensionamento.push(`${comBrigada.length > 1 ? '  ' : ''}${partes.join(': ').replace(/: (nível [^:]*)$/, '; $1')}.`)
       divisoes.push(pav.divisao)
       riscos.push(RISCO_LABEL[risco])
       if (nivelTreinamento) niveis.push(NIVEL_LABEL[nivelTreinamento.nivel] || nivelTreinamento.label)
       if (resultado?.brigadistas != null) { total += resultado.brigadistas; temTotal = true }
     })
   })
-  return { total: temTotal ? String(total) : '', divisoes: juntar(divisoes), riscos: juntar(riscos), niveis: juntar(niveis) }
+  if (temTotal) dimensionamento.push(`Total: ${total} brigadista${total === 1 ? '' : 's'}.`)
+  return { total: temTotal ? String(total) : '', divisoes: juntar(divisoes), riscos: juntar(riscos), niveis: juntar(niveis), dimensionamento: dimensionamento.join('\n') }
 }
 
 function secaoBrigada(state, ctx) {
@@ -530,7 +544,7 @@ function secaoBrigada(state, ctx) {
       campo('Carga horária mínima do treinamento (conforme nível de treinamento):', exigivel ? m.brigadaCargaHoraria || '' : ''),
       campo('Tempo entre simulados na edificação (máximo a cada 12 meses):', exigivel ? m.brigadaIntervaloSimulados || '' : ''),
       ...ATESTOS_BRIGADA.map(([key, label]) => ck({ x: !!at[key], label })),
-      obs('DIMENSIONAMENTO:', m.brigadaDimensionamento || ''),
+      obs('DIMENSIONAMENTO:', r?.dimensionamento || ''),
       obs('Observação livre:', obsDe(state, 'brigada')),
     ],
   }

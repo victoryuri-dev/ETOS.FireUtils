@@ -604,7 +604,6 @@ const INITIAL_STATE = {
     planoModelo: '',         // 'item6' | 'anexoB' (MODELOS_PLANO, 11.1)
     brigadaCargaHoraria: '',
     brigadaIntervaloSimulados: '',
-    brigadaDimensionamento: '',
     iluTipos: [],            // chaves de TIPOS_SISTEMA da iluminação (13)
     iluFluxo: '',            // lm — fluxo luminoso exato das luminárias (13)
     iluAlturaInstalacao: '', // m — item 13 (distância máx. entre pontos = 4 × altura)
