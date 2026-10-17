@@ -130,6 +130,12 @@ insert into public.normas_dados (uf, sistema, dados, versao) values
       "ocupacoes": [
         "A"
       ],
+      "classes": {
+        "piso": "I, II-A, III-A ou IV-A",
+        "parede": "I, II-A ou III-A",
+        "teto": "I, II-A ou III-A",
+        "fachada": "I a II-B"
+      },
       "texto": "Natureza da ocupação A e Cond. Residencial (Classe I, II-A, III-A ou IV-A no Piso; ClasseI, II-A ou III-A na Parede, Classe I, II-A ou III-A no Teto e Fachada Classe I a II-B)"
     },
     {
@@ -144,6 +150,12 @@ insert into public.normas_dados (uf, sistema, dados, versao) values
         "J-1",
         "J-2"
       ],
+      "classes": {
+        "piso": "I, II-A, III-A ou IV-A",
+        "parede": "I ou II-A",
+        "teto": "I ou II-A",
+        "fachada": "I a II-B"
+      },
       "texto": "Natureza da ocupação B, D, E, G, H, I1, J1 e J2 (Classe I, II-A, III-A ou IV-A no Piso;Classe I ou II-A na Parede, Classe I ou II-A no Teto e Fachada Classe I a II-B)"
     },
     {
@@ -159,6 +171,12 @@ insert into public.normas_dados (uf, sistema, dados, versao) values
         "M-2",
         "M-3"
       ],
+      "classes": {
+        "piso": "I, II-A, III-A ou IV-A",
+        "parede": "I ou II-A",
+        "teto": "I ou II-A",
+        "fachada": "I a II-B"
+      },
       "texto": "Natureza da ocupação C, F, I2, I3, J3, J4, L1, M2 e M3 (Classe I, II-A, III-A ou IV-A no Piso;Classe I ou II-A na Parede, Classe I ou II-A no Teto e Fachada Classe I a II-B)"
     }
   ],

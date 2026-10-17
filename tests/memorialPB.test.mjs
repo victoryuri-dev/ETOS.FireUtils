@@ -352,3 +352,24 @@ test('6. acesso de viatura: as distâncias informadas marcam a linha certa do fo
   // facultativo: nada da via é marcado
   assert.equal(marcados(sec({ ...via, distanciaEdificacao: '10' })).length, 1)
 })
+
+test('9. CMAR: linha e classes por estrutura (a mais restritiva entre as divisões)', () => {
+  const p = projeto({
+    estruturas: [
+      { id: 'e1', nome: 'Bloco A', areaTotal: '1200', altura: '9', nPavimentos: 1 },
+      { id: 'e2', nome: 'Bloco B', areaTotal: '800', altura: '6', nPavimentos: 1 },
+    ],
+    pavimentos: [
+      { id: 'p1', estruturaId: 'e1', label: 'Térreo', divisao: 'A-2', area: '400', pisoDescarga: true },
+      { id: 'p2', estruturaId: 'e2', label: 'Térreo', divisao: 'C-1', area: '300', pisoDescarga: true },
+    ],
+    sistemasPorEstrutura: { e1: { controle_acabamento: true }, e2: { controle_acabamento: true } },
+  })
+  const s = secao(gerar(p), '9.')
+  const m = marcados(s)
+  assert.ok(m.some(l => l.startsWith('Natureza da ocupação A ')))
+  assert.ok(m.some(l => l.startsWith('Natureza da ocupação C,')))
+  const textos = s.linhas.filter(l => l.tipo === 'texto').map(l => l.texto)
+  assert.ok(textos.includes('Bloco A: Piso Classe I, II-A, III-A ou IV-A; Parede Classe I, II-A ou III-A; Teto Classe I, II-A ou III-A; Fachada Classe I a II-B'))
+  assert.ok(textos.some(t => t.startsWith('Bloco B: ') && t.includes('Parede Classe I ou II-A')))
+})

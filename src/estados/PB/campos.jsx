@@ -9,6 +9,7 @@ import {
 } from './formulario'
 import { dimensionamentoSaidasPB } from './saidas'
 import { decidirAcessoViaturaPB } from './acessoViatura'
+import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
 import { fmtNum } from '../../utils/numero'
 import FormSection from '../../components/ui/FormSection'
 import Checkbox from '../../components/ui/Checkbox'
@@ -588,4 +589,30 @@ export function CamposAcessoViaturaPB() {
       )}
     </>
   )
+}
+
+// 9 — resultado do CMAR por estrutura (nada a preencher): divisões, linha da
+// Tabela B.1 e as classes aceitas em piso, parede, teto e fachada.
+export function ResultadoCmarPB() {
+  const { state, F } = useCamposPB()
+  const { porEstrutura } = useMedidasObrigatorias()
+  if (!F?.CMAR_LINHAS) return null
+  const resultado = cmarPorEstrutura(state, porEstrutura, F.CMAR_LINHAS)
+  if (resultado.length === 0) return null
+  return resultado.map(({ estrutura, divisoes, linha }) => (
+    <FormSection key={estrutura.id} title={estrutura.nome} description={divisoes.length ? `Divisões: ${divisoes.join(', ')}` : 'Classifique os pavimentos na Configuração.'}>
+      {linha ? (
+        <div className="grid grid-cols-4 gap-3 max-[720px]:grid-cols-2">
+          {ELEMENTOS_CMAR.map(([k, rotulo]) => (
+            <div key={k} className="rounded-md border border-solid border-border py-2.5 px-3">
+              <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">{rotulo}</div>
+              <div className="text-[13px] font-semibold text-ink">Classe {linha.classes?.[k] || '—'}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[12.5px] text-ink-faint m-0">Nenhuma divisão desta estrutura está na Tabela B.1 do formulário.</p>
+      )}
+    </FormSection>
+  ))
 }

@@ -1,7 +1,7 @@
 import PaginaPB from './PaginaPB'
 import {
   CamposCompartimentacaoPB, CamposSaidasPB, CamposPlanoPB, CamposBrigadaPB, CamposIluminacaoPB,
-  CamposAlarmeDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB,
+  CamposAlarmeDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB, ResultadoCmarPB,
 } from './campos'
 
 // Página da PB de cada medida (chave = sistema, a mesma das rotas
@@ -31,7 +31,7 @@ export const PAGINAS_PB = {
   // mostra o resultado do TRRF, com a norma do estado; vale para os dois.
   compart_horizontal: compart,
   compart_vertical: compart,
-  controle_acabamento: <PaginaPB titulo="Controle de Materiais de Acabamento (CMAR)" secoes={['9.']} observacoes="controle_acabamento"/>,
+  controle_acabamento: <PaginaPB titulo="Controle de Materiais de Acabamento (CMAR)" secoes={['9.']} observacoes="controle_acabamento"><ResultadoCmarPB/></PaginaPB>,
   saida_emergencia: <PaginaPB titulo="Saídas de Emergência" secoes={['10.']} observacoes="saida_emergencia"><CamposSaidasPB/></PaginaPB>,
   gerenciamento_risco: <PaginaPB titulo="Gerenciamento de Risco de Incêndio" secoes={['11']} observacoes="gerenciamento_risco"><CamposPlanoPB/></PaginaPB>,
   brigada: <PaginaPB titulo="Brigada de Incêndio" secoes={['12.']} observacoes="brigada"><CamposBrigadaPB/></PaginaPB>,

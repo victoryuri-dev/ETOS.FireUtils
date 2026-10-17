@@ -39,6 +39,7 @@ import { alturaEdificacaoBase, edificacaoEhTerrea, calcularTRRF } from '../../da
 import { calcularAreaMaximaCompartimentacao } from '../../data/compart_calc'
 import { dimensionamentoSaidasPB } from './saidas'
 import { decidirAcessoViaturaPB } from './acessoViatura'
+import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../../data/brigada_calc'
 import { observacoesDoProjeto } from '../../utils/observacoes'
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
@@ -404,12 +405,19 @@ function secaoCompartimentacao(state, ctx) {
 
 function secaoCmar(state, F, ctx) {
   const exigivel = exigibilidade(ctx, 'controle_acabamento')
-  const casa = ocupacoes => [...ctx.divisoes].some(d => ocupacoes.includes(d) || ocupacoes.includes(d.charAt(0)))
+  const resultado = exigivel ? cmarPorEstrutura(state, ctx.porEstrutura, F.CMAR_LINHAS) : []
+  const marcadas = new Set(resultado.map(r => r.linha?.key).filter(Boolean))
+  // Classes aceitas por estrutura (só com mais de uma — com uma, a linha
+  // marcada já diz tudo).
+  const porEstrutura = resultado.length > 1
+    ? resultado.filter(r => r.linha).map(r => ({ tipo: 'texto', texto: `${r.estrutura.nome}: ${ELEMENTOS_CMAR.map(([k, rot]) => `${rot} Classe ${r.linha.classes?.[k] || '—'}`).join('; ')}` }))
+    : []
   return {
     titulo: '9. CMAR', nota: '(Conforme tabela B.1 da NT CBMPB nº 09/2024)',
     linhas: [
       { tipo: 'exigivel', exigivel },
-      ...F.CMAR_LINHAS.map(l => ck({ x: !!exigivel && casa(l.ocupacoes), label: l.texto })),
+      ...F.CMAR_LINHAS.map(l => ck({ x: marcadas.has(l.key), label: l.texto })),
+      ...porEstrutura,
       obs('Observação:', obsDe(state, 'controle_acabamento')),
     ],
   }
