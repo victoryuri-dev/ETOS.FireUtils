@@ -474,6 +474,29 @@ function NumeroLimitado({ label, value, onChange, padrao, minimo, sufixo = 'm' }
   )
 }
 
+// Exigência que passa a valer no projeto (azul): título, motivo e a lista
+// de itens como no formulário (a, b, c…).
+function Exigencia({ titulo, motivo, itens = [], rotuloItens }) {
+  return (
+    <div className="ibox blue flex-col items-start gap-2">
+      <div className="text-[12.5px] font-semibold text-ink">{titulo}</div>
+      {motivo && <div className="text-xs text-ink-muted">{motivo}</div>}
+      {itens.length > 0 && (
+        <div className="flex flex-col gap-1.5 mt-0.5 w-full">
+          {rotuloItens && <div className="text-[10px] uppercase tracking-[.06em] text-ink-faint">{rotuloItens}</div>}
+          <ol className="m-0 pl-0 list-none flex flex-col gap-1.5">
+            {itens.map((t, k) => (
+              <li key={k} className="grid grid-cols-[20px_1fr] gap-1 text-xs text-ink-muted leading-[1.5]">
+                <span className="font-semibold text-ink">{String.fromCharCode(97 + k)})</span><span>{t}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function CamposAcessoViaturaPB() {
   const { m, set, F } = useCamposPB()
   const { sistemas } = useMedidasObrigatorias()
@@ -513,18 +536,21 @@ export function CamposAcessoViaturaPB() {
               {numero('extensaoVia', 'Comprimento da via em relação à via pública', { minimo: 0 })}
             </div>
             {r.via.reduzida && (
-              <div className="ibox amber">
-                <span className="text-xs">
-                  <strong>Largura abaixo de 6,00 m:</strong> como compensação, a faixa de estacionamento é obrigatória e deve atender aos itens a) a h) do formulário — 6 × 15 m, 25.000 kgf, desnível até 5%, paralela a uma face com aberturas e a até 8 m dela, livre de obstáculos e sinalizada com "PROIBIDO PARAR E ESTACIONAR".
-                </span>
-              </div>
+              <Exigencia titulo="Faixa de estacionamento obrigatória" motivo="Compensação da via com largura abaixo de 6,00 m." itens={[
+                'largura mínima de 6,00 m;',
+                'comprimento mínimo de 15,00 m;',
+                'suportar viaturas com peso de 25.000 kgf (245.166,25 N) em toda sua extensão;',
+                'desnível máximo de 5%, tanto longitudinal quanto transversal;',
+                'ser paralela a uma das faces da edificação que possua aberturas (portas e/ou janelas);',
+                'distância máxima de 8 m até a face da edificação, medida a partir de sua borda mais próxima do edifício;',
+                'livre de postes, painéis, árvores ou qualquer outro elemento que possa obstruir a operação das viaturas;',
+                'adequadamente sinalizada, com placas de "PROIBIDO PARAR E ESTACIONAR".',
+              ]}/>
             )}
             {r.via.exigeRetorno && (
-              <div className="ibox amber">
-                <span className="text-xs">
-                  <strong>Retorno obrigatório:</strong> a via tem menos de {fmtNum(P.retorno.larguraAbaixoDe, 2)} m de largura e mais de {fmtNum(P.retorno.comprimentoAcimaDe, 0)} m de comprimento — prever área de retorno que garanta a entrada e a saída das viaturas{P.retorno.opcoes?.length ? ` (retorno ${P.retorno.opcoes.join(', ').replace(/, ([^,]*)$/, ' ou $1')})` : ''}.
-                </span>
-              </div>
+              <Exigencia titulo="Área de retorno obrigatória"
+                motivo={`Via com menos de ${fmtNum(P.retorno.larguraAbaixoDe, 2)} m de largura e mais de ${fmtNum(P.retorno.comprimentoAcimaDe, 0)} m de comprimento: a área de retorno deve garantir a entrada e a saída das viaturas.`}
+                itens={(P.retorno.opcoes || []).map(o => `retorno ${o};`)} rotuloItens="Opções"/>
             )}
             {pergunta('cargaConfirmada', 'A via suporta viaturas de 25.000 kgf em toda a sua extensão?')}
           </div>
