@@ -50,7 +50,7 @@ estruturado para a equipe.
    [feedback para a plataforma](#9-feedback-automático-para-a-plataforma), não
    uma correção silenciosa no projeto.
 2. **Sem citação, sem afirmação normativa.** Toda resposta normativa aponta
-   NT/NBR + item. Sem trecho na base, a IA diz que não encontrou — não
+   NT + item. Sem trecho na base, a IA diz que não encontrou — não
    completa de memória. Isso segue a regra do `PRODUCT.md`: *não inventar
    cobertura normativa*.
 3. **A IA propõe, o usuário decide.** Nada é gravado no estado do projeto sem
@@ -59,7 +59,8 @@ estruturado para a equipe.
 4. **O responsável técnico é o engenheiro.** A IA é apoio; decisões de
    interpretação ficam com o RT e ficam documentadas como decisões dele.
 5. **Aprender sem contaminar.** O que um usuário ensina vale primeiro para o
-   projeto dele; só vira conhecimento global depois de curadoria humana.
+   projeto dele; só vira conhecimento global depois de passar pela comunidade
+   (discussão, votação com quórum e moderação — §8.1).
 6. **Por estado (UF).** Tudo — base, interpretações, regras — é indexado por
    `uf`, igual a `normas_dados` hoje.
 
@@ -87,7 +88,7 @@ estruturado para a equipe.
                                            │ service_role (só no servidor)
 ┌──────────────────────────────── Postgres ─────────────────────────────────┐
 │ normas_dados (já existe)      normas_trechos (texto das NTs, novo)        │
-│ normas_interpretacoes (novo)  assistente_conversas / _mensagens (novo)    │
+│ comunidade_* (novo)           assistente_conversas / _mensagens (novo)    │
 │ assistente_achados (novo)     assistente_decisoes (novo)                  │
 │ feedbacks (já existe, ganha colunas)                                      │
 └───────────────────────────────────────────────────────────────────────────┘
@@ -170,7 +171,7 @@ Cada NT é quebrada **por item** (não por tamanho fixo): `5.1.2`, `Tabela 3`,
   atualizada, os itens antigos ficam marcados, não apagados (projetos antigos
   continuam auditáveis contra a versão da época).
 
-### 5.3 Interpretações curadas — `normas_interpretacoes` (novo)
+### 5.3 Interpretações da comunidade — `comunidade_topicos` (novo)
 
 A norma nem sempre é clara, e na prática o Corpo de Bombeiros aplica um
 entendimento que não está escrito no texto — vindo de parecer técnico,
@@ -185,10 +186,11 @@ Exemplos do tipo de coisa que entra aqui:
   NT 20 não obriga para a divisão" (prática de análise, não texto da norma).
 
 Elas são **globais** porque valem para todos os usuários daquela UF — ao
-contrário das decisões de um projeto, que ficam só nele. Por isso nenhuma
-interpretação entra sem aprovação da equipe ETOS ([§8](#8-aprendizado-com-os-usuários)),
-e a IA sempre as apresenta como *interpretação*, com a origem, nunca como
-texto da norma.
+contrário das decisões de um projeto, que ficam só nele. Por isso nascem de
+uma discussão na **comunidade do FireUtils**, com votação, prazo e quórum
+mínimo, e só valem quando a votação tem resolução ([§8.1](#81-comunidade-de-interpretações)).
+A IA sempre as apresenta como *entendimento da comunidade*, com o placar e o
+link do tópico, nunca como texto da norma.
 
 ## 6. Os três modos
 
@@ -268,12 +270,12 @@ Todas definidas com `strict: true` e `input_schema` com
 |---|---|---|
 | `consultar_norma(uf, sistema, caminho?)` | leitura | Lê `normas_dados` (o mesmo JSON do motor) |
 | `buscar_trechos(uf, consulta, norma?, item?)` | leitura | Busca em `normas_trechos`; devolve documentos com citações |
-| `buscar_interpretacoes(uf, tema)` | leitura | Lê `normas_interpretacoes` aprovadas |
+| `buscar_interpretacoes(uf, tema)` | leitura | Lê tópicos da comunidade resolvidos, sem consenso e abertos (§8.1) |
 | `ler_projeto(secao)` | leitura | Devolve uma parte do instantâneo (evita mandar tudo sempre) |
 | `propor_valor(campo_id, valor, justificativa, citacao)` | proposta | Grava sugestão pendente; a UI pede confirmação |
 | `registrar_achado(...)` | proposta | Grava achado de auditoria |
 | `registrar_feedback_plataforma(...)` | escrita interna | Ver [§9](#9-feedback-automático-para-a-plataforma) |
-| `sugerir_interpretacao(...)` | escrita interna | Candidata a conhecimento global, vai para curadoria |
+| `sugerir_topico(...)` | proposta | Monta rascunho de tópico da comunidade; o usuário revisa e envia |
 
 Nenhuma ferramenta escreve em `projetos.dados` nem em `normas_dados`.
 
@@ -286,18 +288,76 @@ todos consultados pela IA nas próximas conversas:
 |---|---|---|---|
 | Projeto | `assistente_decisoes` | Usuário (ao aceitar/descartar achado ou sugestão, com justificativa) | Só aquele projeto |
 | Usuário/escritório | `assistente_decisoes` com `escopo = 'usuario'` | Usuário marca "usar nos meus próximos projetos" | Projetos daquele usuário |
-| Global (por UF) | `normas_interpretacoes` | IA **sugere**, equipe **aprova** | Todos os usuários |
+| Global (por UF) | `comunidade_topicos` resolvidos | Comunidade **discute e vota**, administração **modera** | Todos os usuários |
 
-Fluxo do nível global:
+### 8.1 Comunidade de interpretações
 
-1. Em uma conversa, surge um entendimento novo (ex.: posição do CBMMA em
-   parecer técnico, citado pelo usuário).
-2. A IA chama `sugerir_interpretacao` com o item normativo, o entendimento e a
-   evidência (trecho da conversa, documento citado).
-3. Fica com `situacao = 'pendente'`. Um admin revisa (tela interna ou painel do
-   Supabase) e aprova, ajusta ou rejeita.
-4. Aprovada, passa a ser retornada por `buscar_interpretacoes` — sempre
-   apresentada como interpretação, com a origem.
+O nível global nasce de uma **comunidade dentro do FireUtils**: cada
+interpretação é um tópico de discussão, os usuários comentam e votam, e o
+resultado da votação — com prazo e quórum mínimo — decide se o tópico teve
+resolução. Só tópicos resolvidos viram conhecimento da IA.
+
+#### Ciclo de vida de um tópico
+
+```
+ rascunho ──► em_moderacao ──► aberto ──(prazo vence)──► resolvido
+   (autor)     (admin aprova      │                     ├─► sem_consenso
+                ou rejeita)       │                     │
+                   │              └─(admin)─► arquivado ◄┘ (NT revisada,
+                   ▼                                       tópico obsoleto)
+               rejeitado
+```
+
+1. **Rascunho.** Qualquer usuário PRO cria um tópico. A IA também pode
+   sugerir um a partir de uma conversa (`sugerir_topico`): ela monta o
+   rascunho — pergunta, item da NT envolvido, posições possíveis, evidência
+   citada pelo usuário — e o usuário revisa e envia. A IA nunca publica em
+   nome de ninguém.
+2. **Em moderação.** Uma pessoa da administração do FireUtils lê, ajusta a
+   redação se preciso e define as regras da votação daquele tópico:
+   - **prazo** (data de encerramento, ex.: 30 dias);
+   - **quórum mínimo** (nº mínimo de votos para a votação valer, ex.: 15);
+   - **maioria mínima** (percentual que a posição vencedora precisa ter, ex.:
+     60%). Sem isso, um tópico com quórum atingido e votos divididos 51/49
+     contaria como resolvido.
+   Aprova (vai ao ar) ou rejeita com motivo (duplicado, fora de escopo,
+   pergunta já respondida pelo texto da NT).
+3. **Aberto.** Usuários comentam (com anexo opcional: parecer, notificação de
+   exigência, foto) e votam em **uma** posição — pode trocar o voto até o
+   prazo. Ao abrir o tópico, a IA publica um comentário inicial, marcado como
+   da IA, com os itens normativos relacionados e as citações literais. Ela não
+   vota.
+4. **Encerramento automático no prazo** (job agendado no Postgres, `pg_cron`,
+   chamando `encerrar_topicos_vencidos()`):
+   - votos ≥ quórum **e** posição líder ≥ maioria mínima → **resolvido**, com
+     a posição vencedora como entendimento;
+   - caso contrário → **sem consenso**.
+5. **Arquivado.** A administração arquiva quando a NT do item é revisada ou o
+   tópico fica obsoleto. Se o trecho ligado ao tópico for marcado como
+   revogado em `normas_trechos`, o tópico entra automaticamente numa fila de
+   revisão.
+
+#### O que a IA faz com o resultado
+
+| Situação do tópico | Como a IA usa |
+|---|---|
+| **Resolvido** | Apresenta como *entendimento da comunidade FireUtils*, com placar ("72% de 25 votos, encerrado em 10/12/2026") e link para o tópico. Nunca como texto da norma. |
+| **Sem consenso** | Avisa que o tema é controverso entre os projetistas e recomenda confirmar com o Corpo de Bombeiros (consulta técnica). Também é informação útil. |
+| **Aberto** | Pode mencionar que há discussão em andamento e convidar o usuário a participar. Não usa como base. |
+| Rascunho / moderação / rejeitado / arquivado | Ignora. |
+
+#### Regras contra distorção
+
+- **Um voto por conta por tópico** (chave única `topico_id, user_id`).
+- **Só licença PRO ativa vota e comenta** — o mesmo critério de acesso ao
+  assistente; quem só lê não precisa de PRO.
+- **Placar parcial oculto até o encerramento**, para o voto não seguir a
+  manada; durante a discussão aparecem só o número de votos e os comentários.
+- Comentários podem ser denunciados; a administração modera.
+
+No começo a administração aprova todo tópico antes de ir ao ar. O campo
+`exige_moderacao` fica nas configurações da comunidade, para no futuro
+permitir publicação direta (ex.: para usuários com histórico).
 
 Sinais adicionais que alimentam a melhoria:
 
@@ -351,7 +411,7 @@ create table public.normas_documentos (
 create table public.normas_trechos (
   id            uuid primary key default gen_random_uuid(),
   uf            text not null,
-  norma         text not null,          -- 'NT 21', 'NBR 12693'
+  norma         text not null,          -- 'NT 21'
   item          text not null,          -- '5.1.2', 'Tabela 3'
   titulo        text,
   texto         text not null,
@@ -365,20 +425,67 @@ create index on public.normas_trechos using gin (busca);
 create index on public.normas_trechos (uf, norma, item);
 -- leitura pública (como normas_dados); escrita só service_role
 
--- Interpretações curadas
-create table public.normas_interpretacoes (
+-- Comunidade de interpretações (§8.1)
+create table public.comunidade_topicos (
+  id            uuid primary key default gen_random_uuid(),
+  uf            text not null,
+  trecho_ids    uuid[] not null default '{}',   -- itens de normas_trechos envolvidos
+  titulo        text not null,
+  pergunta      text not null,
+  autor_id      uuid references auth.users(id) on delete set null,
+  sugerido_por_ia boolean not null default false,
+  situacao      text not null default 'rascunho' check (situacao in
+                  ('rascunho','em_moderacao','aberto','resolvido','sem_consenso','rejeitado','arquivado')),
+  prazo         timestamptz,                    -- definido na moderação
+  quorum_minimo integer,                        -- nº mínimo de votos
+  maioria_minima numeric(5,2),                  -- % mínimo da posição líder (ex.: 60.00)
+  posicao_vencedora uuid,                       -- preenchida ao encerrar
+  resultado     jsonb,                          -- placar final congelado
+  moderado_por  uuid references auth.users(id) on delete set null,
+  motivo_moderacao text,
+  criado_em     timestamptz not null default now(),
+  encerrado_em  timestamptz
+);
+
+create table public.comunidade_posicoes (
   id          uuid primary key default gen_random_uuid(),
-  uf          text not null,
-  trecho_id   uuid references public.normas_trechos(id),
-  tema        text not null,
-  entendimento text not null,
-  evidencia   jsonb not null default '{}',
-  situacao    text not null default 'pendente' check (situacao in ('pendente','aprovada','rejeitada')),
-  sugerida_por uuid references auth.users(id) on delete set null,
-  revisada_por uuid references auth.users(id) on delete set null,
+  topico_id   uuid not null references public.comunidade_topicos(id) on delete cascade,
+  texto       text not null,                    -- o entendimento proposto
+  ordem       smallint not null
+);
+
+create table public.comunidade_votos (
+  topico_id   uuid not null references public.comunidade_topicos(id) on delete cascade,
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  posicao_id  uuid not null references public.comunidade_posicoes(id) on delete cascade,
+  votado_em   timestamptz not null default now(),
+  primary key (topico_id, user_id)              -- um voto por conta; trocar = update
+);
+
+create table public.comunidade_comentarios (
+  id          uuid primary key default gen_random_uuid(),
+  topico_id   uuid not null references public.comunidade_topicos(id) on delete cascade,
+  autor_id    uuid references auth.users(id) on delete set null,
+  da_ia       boolean not null default false,
+  texto       text not null,
+  anexos      jsonb not null default '[]',      -- caminhos no Storage (parecer, foto)
+  oculto      boolean not null default false,   -- moderação
   criado_em   timestamptz not null default now()
 );
--- usuários leem só 'aprovada'; escrita via Edge Function
+
+-- Encerramento: roda a cada hora via pg_cron
+-- encerrar_topicos_vencidos(): para cada tópico 'aberto' com prazo vencido,
+-- conta votos, congela o placar em `resultado` e muda para 'resolvido'
+-- (votos >= quorum_minimo e líder >= maioria_minima) ou 'sem_consenso'.
+
+-- RLS:
+--  * tópicos 'aberto'/'resolvido'/'sem_consenso': leitura para autenticados;
+--    rascunho/moderação: só autor e admins.
+--  * votos e comentários: insert/update só com licença PRO ativa
+--    (tem_licenca()) e tópico 'aberto' com prazo não vencido.
+--  * contagem por posição exposta só depois do encerramento (view
+--    comunidade_placar filtrando situacao in ('resolvido','sem_consenso')).
+--  * moderação (situacao, prazo, quorum, maioria) só para admins.
 
 -- Conversas e mensagens
 create table public.assistente_conversas (
@@ -509,6 +616,20 @@ Nova `supabase/functions/assistente/index.ts`, no mesmo padrão de
 - `src/context/AssistenteContext.jsx` guarda conversa atual, achados e
   sugestões, no mesmo padrão dos outros contexts.
 
+**Comunidade** (rotas fora do projeto, ao lado de Projetos/Perfil):
+
+- `/comunidade` — lista de tópicos por UF e norma, com filtros *Abertos*,
+  *Resolvidos*, *Sem consenso*; em cada tópico aberto, prazo restante e nº de
+  votos.
+- `/comunidade/:id` — pergunta, itens da NT citados (com o texto literal),
+  posições para votar, comentários com anexos; após o encerramento, placar
+  final e selo "Resolvido" ou "Sem consenso".
+- `/comunidade/novo` — formulário de tópico (também aberto pela IA já
+  preenchido, a partir de uma conversa).
+- `/admin/comunidade` — fila de moderação: aprovar/rejeitar, definir prazo,
+  quórum e maioria mínima, ocultar comentários, arquivar.
+- Na resposta da IA, quando ela usa um tópico, o link leva direto a ele.
+
 ## 13. Segurança, privacidade e custo
 
 - **Chave da API só no servidor.** O front fala apenas com a Edge Function.
@@ -553,7 +674,8 @@ Uma IA normativa sem medição vira risco. Montar desde a fase 1:
 | **1 — Consultor** | Edge Function `assistente` (modo consulta, licença PRO), painel com chat, citações clicáveis, `assistente_conversas/_mensagens` com registro de consumo | Fase 0 |
 | **2 — Auditor** | `montarContextoIA`, análise com IA a pedido do usuário, `assistente_achados`, coluna na `AuditoriaPage`, botão no memorial, decisões do RT | Fase 1 |
 | **3 — Copiloto** | Ajuda por campo, `propor_valor` + `aplicar.js` com validação, cartões de sugestão | Fase 2 |
-| **4 — Aprendizado e feedback** | `assistente_decisoes` com escopo usuário, `normas_interpretacoes` + curadoria, feedback automático com deduplicação, resumo periódico | Fase 2 |
+| **4 — Aprendizado e feedback** | `assistente_decisoes` com escopo usuário, feedback automático com deduplicação, resumo periódico | Fase 2 |
+| **5 — Comunidade** | Tabelas `comunidade_*`, páginas da comunidade, fila de moderação, encerramento automático (`pg_cron`), `sugerir_topico` e `buscar_interpretacoes` na IA | Fase 1 (pode correr em paralelo às fases 2–4) |
 
 Cada fase é útil sozinha: a fase 1 já entrega valor (dúvidas com citação) sem
 mexer no estado do projeto.
@@ -569,14 +691,17 @@ mexer no estado do projeto.
 | Base textual | Todas as NTs do estado, na íntegra, consultadas da fonte oficial |
 | Análise com IA | Só sob demanda — o usuário pede |
 | Plugin Revit | Fora do escopo; o assistente existe só no site |
+| NBRs | Fora do escopo por enquanto; a base textual cobre só as NTs |
+| Interpretações | Comunidade com tópicos, comentários e votação; administração aprova cada tópico antes de ir ao ar; prazo e quórum mínimo definem se houve resolução |
 
 ### Em aberto
 
-1. **NBRs:** o texto da ABNT tem direitos autorais — provavelmente só
-   referência (número, item, título) e resumo próprio, sem texto integral.
-2. **Curadoria das interpretações:** quem na equipe ETOS aprova
-   `normas_interpretacoes`, e se a tela de revisão é interna no site ou basta
-   o painel do Supabase no início.
+1. **Maioria mínima:** além do quórum, exigir um percentual mínimo para a
+   posição vencedora (proposta: 60%)? Fixo para todos ou definido por tópico?
+2. **Placar durante a votação:** oculto até o encerramento (proposta) ou
+   visível o tempo todo?
+3. **Quem vota:** qualquer PRO ativo (proposta), ou só quem tem CREA/CAU
+   preenchido no perfil?
 
 ---
 
