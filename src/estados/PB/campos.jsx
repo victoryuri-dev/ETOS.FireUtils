@@ -578,14 +578,12 @@ export function CamposAcessoViaturaPB() {
             <SwitchToggle checked={av.temPortao === true} onChange={v => setAv({ temPortao: v })}/>
           </div>
         }>
-          <div className="flex flex-col gap-3">
-            {av.temPortao === true && (
+          {av.temPortao === true && (
               <div className="g2">
                 {numero('portaoLargura', `Largura do portão (mín. ${fmtNum(P.portao.larguraMin, 2)} m)`, { padrao: P.portao.larguraMin, minimo: P.portao.larguraMin })}
                 {numero('portaoAltura', `Altura do portão (mín. ${fmtNum(P.portao.alturaMin, 2)} m)`, { padrao: P.portao.alturaMin, minimo: P.portao.alturaMin })}
               </div>
-            )}
-          </div>
+          )}
         </FormSection>
       )}
     </>
