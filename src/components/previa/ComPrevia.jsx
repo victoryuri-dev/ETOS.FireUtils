@@ -14,7 +14,7 @@ const larguraAlvo = (total, expandido) => Math.round(expandido
 
 const TOPO_BOTAO = 150   // alinhado ao primeiro bloco do formulário
 const BOTAO = 48
-const LEFT_BOTAO = 1020
+const GAP_BOTAO = 12  // entre o formulário e o botão
 
 /**
  * Página de medida com a prévia do documento ao lado. Um botão quadrado
@@ -35,12 +35,20 @@ export default function ComPrevia({ sistKey, children }) {
   const [expandido, setExpandido] = useState(false)
   const [posBotao, setPosBotao] = useState(null)
 
-  // Botão a 1020 px da borda esquerda da área da página (ao lado do
-  // formulário); em tela estreita, fica dentro da coluna.
+  // Botão colado à direita dos blocos do formulário — que é centralizado,
+  // então a posição acompanha a largura da tela: borda direita do contêiner
+  // de largura máxima da página menos o padding dele (onde os blocos
+  // terminam). Em tela estreita, fica dentro da coluna.
   const posicionar = useCallback(() => {
-    const coluna = colunaRef.current
-    if (!coluna) return
-    setPosBotao(Math.min(LEFT_BOTAO, coluna.clientWidth - BOTAO - 8))
+    const raiz = raizRef.current, coluna = colunaRef.current
+    if (!raiz || !coluna) return
+    const r = raiz.getBoundingClientRect()
+    const c = coluna.getBoundingClientRect()
+    const form = coluna.querySelector('[class*="max-w-"]')
+    const direita = form
+      ? form.getBoundingClientRect().right - (parseFloat(getComputedStyle(form).paddingRight) || 0)
+      : c.right - 24
+    setPosBotao(Math.min(direita + GAP_BOTAO, c.right - BOTAO - 8) - r.left)
   }, [])
 
   useLayoutEffect(() => {
