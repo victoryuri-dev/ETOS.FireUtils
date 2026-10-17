@@ -489,55 +489,61 @@ export function CamposAcessoViaturaPB() {
   )
   const pergunta = (key, texto) => <SimNao pergunta={texto} valor={av[key]} onChange={v => setAv({ [key]: v })}/>
   return (
-    <BoxPB item="6">
-      <div className="text-[12.5px] text-ink-muted">
-        Hidrante de recalque no local: <strong className="text-ink">{recalque ? 'sim' : 'não'}</strong>
-        <span className="text-ink-faint"> — {recalque ? 'o sistema de hidrantes é exigido no projeto' : 'o projeto não exige sistema de hidrantes'}.</span>
-      </div>
-      <div className="g2">
-        {numero('distanciaEdificacao', 'Entrada da circulação comum até a via pública (do meio-fio)', { minimo: 0 })}
-        {recalque && numero('distanciaRecalque', 'Registro do hidrante de recalque até a via pública', { minimo: 0 })}
-      </div>
-      {r?.caso && (
-        <div className={`ibox ${r.obrigatorio ? 'amber' : 'green'}`}>
-          <span className="text-xs"><strong>Linha {r.caso} do formulário:</strong> {LINHA_AV[r.caso]}</span>
-        </div>
-      )}
-      {r?.foraDoFormulario && (
-        <div className="ibox amber"><span className="text-xs">Recalque a mais de 20 m da via com edificação a até 50 m: o acesso é obrigatório, mas o formulário não tem linha para este caso — nenhuma das cinco é marcada. Explique na observação.</span></div>
-      )}
-      {r?.obrigatorio && (
-        <>
-          <Rotulo>Via de acesso</Rotulo>
+    <>
+      <FormSection title="Distâncias até a via pública">
+        <div className="flex flex-col gap-3">
           <div className="g2">
-            {numero('larguraVia', `Largura da via (mín. ${fmtNum(P.via.larguraReduzidaMin, 2)} m)`, { padrao: P.via.larguraMin, minimo: P.via.larguraReduzidaMin })}
-            {numero('alturaLivre', `Altura livre (mín. ${fmtNum(P.via.alturaLivreMin, 2)} m)`, { padrao: P.via.alturaLivreMin, minimo: P.via.alturaLivreMin })}
-            {numero('extensaoVia', 'Comprimento da via em relação à via pública', { minimo: 0 })}
+            {numero('distanciaEdificacao', 'Entrada da circulação comum até a via pública (do meio-fio)', { minimo: 0 })}
+            {recalque && numero('distanciaRecalque', 'Registro do hidrante de recalque até a via pública', { minimo: 0 })}
           </div>
-          {r.via.reduzida && (
-            <div className="ibox amber">
-              <span className="text-xs">
-                <strong>Largura abaixo de 6,00 m:</strong> como compensação, a faixa de estacionamento é obrigatória e deve atender aos itens a) a h) do formulário — 6 × 15 m, 25.000 kgf, desnível até 5%, paralela a uma face com aberturas e a até 8 m dela, livre de obstáculos e sinalizada com "PROIBIDO PARAR E ESTACIONAR".
-              </span>
+          {r?.caso && (
+            <div className={`ibox ${r.obrigatorio ? 'amber' : 'green'}`}>
+              <span className="text-xs"><strong>Linha {r.caso} do formulário:</strong> {LINHA_AV[r.caso]}</span>
             </div>
           )}
-          {pergunta('cargaConfirmada', 'A via suporta viaturas de 25.000 kgf em toda a sua extensão?')}
-          {pergunta('temPortao', 'Há portão de acesso?')}
-          {av.temPortao === true && (
+        </div>
+      </FormSection>
+
+      {r?.obrigatorio && (
+        <FormSection title="Via de acesso">
+          <div className="flex flex-col gap-3">
             <div className="g2">
-              {numero('portaoLargura', `Largura do portão (mín. ${fmtNum(P.portao.larguraMin, 2)} m)`, { padrao: P.portao.larguraMin, minimo: P.portao.larguraMin })}
-              {numero('portaoAltura', `Altura do portão (mín. ${fmtNum(P.portao.alturaMin, 2)} m)`, { padrao: P.portao.alturaMin, minimo: P.portao.alturaMin })}
+              {numero('larguraVia', `Largura da via (mín. ${fmtNum(P.via.larguraReduzidaMin, 2)} m)`, { padrao: P.via.larguraMin, minimo: P.via.larguraReduzidaMin })}
+              {numero('alturaLivre', `Altura livre (mín. ${fmtNum(P.via.alturaLivreMin, 2)} m)`, { padrao: P.via.alturaLivreMin, minimo: P.via.alturaLivreMin })}
+              {numero('extensaoVia', 'Comprimento da via em relação à via pública', { minimo: 0 })}
             </div>
-          )}
-          {r.via.exigeRetorno && (
-            <div className="ibox amber">
-              <span className="text-xs">
-                <strong>Retorno obrigatório:</strong> a via tem menos de {fmtNum(P.retorno.larguraAbaixoDe, 2)} m de largura e mais de {fmtNum(P.retorno.comprimentoAcimaDe, 0)} m de comprimento — prever área de retorno que garanta a entrada e a saída das viaturas{P.retorno.opcoes?.length ? ` (retorno ${P.retorno.opcoes.join(', ').replace(/, ([^,]*)$/, ' ou $1')})` : ''}.
-              </span>
-            </div>
-          )}
-        </>
+            {r.via.reduzida && (
+              <div className="ibox amber">
+                <span className="text-xs">
+                  <strong>Largura abaixo de 6,00 m:</strong> como compensação, a faixa de estacionamento é obrigatória e deve atender aos itens a) a h) do formulário — 6 × 15 m, 25.000 kgf, desnível até 5%, paralela a uma face com aberturas e a até 8 m dela, livre de obstáculos e sinalizada com "PROIBIDO PARAR E ESTACIONAR".
+                </span>
+              </div>
+            )}
+            {r.via.exigeRetorno && (
+              <div className="ibox amber">
+                <span className="text-xs">
+                  <strong>Retorno obrigatório:</strong> a via tem menos de {fmtNum(P.retorno.larguraAbaixoDe, 2)} m de largura e mais de {fmtNum(P.retorno.comprimentoAcimaDe, 0)} m de comprimento — prever área de retorno que garanta a entrada e a saída das viaturas{P.retorno.opcoes?.length ? ` (retorno ${P.retorno.opcoes.join(', ').replace(/, ([^,]*)$/, ' ou $1')})` : ''}.
+                </span>
+              </div>
+            )}
+            {pergunta('cargaConfirmada', 'A via suporta viaturas de 25.000 kgf em toda a sua extensão?')}
+          </div>
+        </FormSection>
       )}
-    </BoxPB>
+
+      {r?.obrigatorio && (
+        <FormSection title="Portão de acesso">
+          <div className="flex flex-col gap-3">
+            {pergunta('temPortao', 'Há portão de acesso?')}
+            {av.temPortao === true && (
+              <div className="g2">
+                {numero('portaoLargura', `Largura do portão (mín. ${fmtNum(P.portao.larguraMin, 2)} m)`, { padrao: P.portao.larguraMin, minimo: P.portao.larguraMin })}
+                {numero('portaoAltura', `Altura do portão (mín. ${fmtNum(P.portao.alturaMin, 2)} m)`, { padrao: P.portao.alturaMin, minimo: P.portao.alturaMin })}
+              </div>
+            )}
+          </div>
+        </FormSection>
+      )}
+    </>
   )
 }
