@@ -7,13 +7,14 @@
 // por divisão realmente usada, só com as colunas da Tabela A.1 que se
 // aplicam, com as notas do rodapé logo abaixo), o resultado calculado por
 // pavimento (com as parcelas até 10 / acima de 10 / total quando houver
-// acréscimo da Nota 5), seguido do total e do maior nível de treinamento
-// da estrutura em texto.
+// acréscimo da Nota 5), seguido do total (dividido por turno) e do maior
+// nível de treinamento da estrutura em texto.
 
 import { getBrigada, getExtintores, getCNAEsDivisao } from '../normas/index'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL, COLUNAS_FAIXA, maiorNivel } from '../brigada_calc'
 import { blocoObservacao } from '../../utils/observacoes'
+import { linhasTurnos } from '../../utils/brigadaTurnos'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 
@@ -141,12 +142,16 @@ function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiares
   // ── Resultado calculado — uma linha por pavimento, com o total.
   blocos.push(tabelaResultado(linhasCalculadas))
 
-  // Total e nível de treinamento da estrutura em texto, logo abaixo do
-  // resultado — o nível é o maior entre os pavimentos (isentos fora).
+  // Total (com a divisão por turno) e nível de treinamento da estrutura em
+  // texto, logo abaixo do resultado — o nível é o maior entre os pavimentos
+  // (isentos fora).
   const totalBrigadistas = linhasCalculadas.reduce((s, l) => s + (l.resultado?.brigadistas || 0), 0)
   const totalNumerico = linhasCalculadas.some(l => l.resultado?.brigadistas != null)
   if (totalNumerico) {
-    blocos.push({ tipo: 'campo', label: 'Brigadistas exigidos na edificação', valor: String(totalBrigadistas) })
+    blocos.push({ tipo: 'campo', label: 'Total de brigadistas exigidos na estrutura', valor: String(totalBrigadistas) })
+    // Divisão por turno (página da brigada) — só com algum brigadista.
+    const turnos = totalBrigadistas > 0 ? linhasTurnos(est, totalBrigadistas) : []
+    if (turnos.length > 0) blocos.push({ tipo: 'lista', recuo: true, itens: turnos })
   }
   const comNivel = linhasCalculadas.filter(l => l.linha && !l.linha.isento)
   if (comNivel.length > 0) {

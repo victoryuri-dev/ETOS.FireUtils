@@ -427,8 +427,11 @@ test('12. dimensionamento da brigada no formato do memorial do MA, sem a introdu
   assert.deepEqual(res.colunas, ['Pavimento', 'Divisão', 'Risco', 'Pop. fixa', 'Brigadistas'])
   assert.deepEqual(res.linhas[0].slice(0, 4), ['Térreo', 'C-1', 'Médio', '8'])
   const campos = blocos.filter(b => b.tipo === 'campo').map(b => b.label)
-  assert.deepEqual(campos, ['Brigadistas exigidos na edificação', 'Nível de treinamento'])
+  assert.deepEqual(campos, ['Total de brigadistas exigidos na estrutura', 'Nível de treinamento'])
   assert.equal(blocos.find(b => b.label === 'Nível de treinamento').valor, 'Básico')
+  // divisão por turno logo abaixo do total (padrão: matutino e vespertino)
+  const iTotal = blocos.findIndex(b => b.label === 'Total de brigadistas exigidos na estrutura')
+  assert.deepEqual(blocos[iTotal + 1].itens.map(i => i.label), ['Matutino', 'Vespertino'])
   // sem brigada exigida, o campo fica vazio
   const sem = secao(gerar(projeto({ sistemasPorEstrutura: { e1: { brigada: false } } })), '12.').linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:')
   assert.equal(sem.blocos.length, 0)

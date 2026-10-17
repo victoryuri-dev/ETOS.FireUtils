@@ -13,6 +13,8 @@ import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { statusEstrutura } from '../../utils/statusEstrutura'
 import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
+import SwitchToggle from '../../components/ui/SwitchToggle'
+import { TURNOS, configTurnos, valoresTurnos, turnosAtivos, limitarValorTurno } from '../../utils/brigadaTurnos'
 
 // ── Shared UI (mesmo estilo das demais páginas de medida) ────────────────
 function Card({ children, className = '' }) {
@@ -77,6 +79,92 @@ function LinhaPavimento({ pavimento, risco, linha, resultado, nivelTreinamento, 
         </>
       )}
     </tr>
+  )
+}
+
+// ── Divisão dos brigadistas por turno (estrutura.brigadaTurnos) ──────────
+// Turnos marcados (matutino e vespertino por padrão) e o switch de divisão
+// igual: ligado, o programa divide (sobra no matutino) e trava os campos;
+// desligado, o usuário informa cada turno — a soma nunca passa do total
+// calculado (o valor digitado é reduzido do excesso, com aviso).
+function DivisaoTurnos({ estrutura, total, dispatch }) {
+  const [aviso, setAviso] = useState(null)
+  const cfg = configTurnos(estrutura)
+  const valores = valoresTurnos(cfg, total)
+  const soma = Object.values(valores).reduce((s, v) => s + v, 0)
+  const gravar = changes => dispatch({ type: 'SET_ESTRUTURA_FIELD', id: estrutura.id, field: 'brigadaTurnos', value: { ...cfg, ...changes } })
+
+  const alternarTurno = key => {
+    setAviso(null)
+    gravar({ ativos: { ...cfg.ativos, [key]: !cfg.ativos[key] } })
+  }
+  // Ao destravar, os campos começam com a divisão igual atual.
+  const alternarDivisao = ligar => {
+    setAviso(null)
+    gravar(ligar ? { dividirIgual: true } : { dividirIgual: false, valores: { ...cfg.valores, ...valores } })
+  }
+  const alterarValor = (key, digitado) => {
+    const { valor, excesso } = limitarValorTurno(cfg, total, key, digitado)
+    const label = TURNOS.find(t => t.key === key).label
+    setAviso(excesso > 0
+      ? `Foram adicionados ${excesso} brigadista${excesso === 1 ? '' : 's'} a mais do que o calculado — o turno ${label} foi reduzido para ${valor}.`
+      : null)
+    gravar({ valores: { ...cfg.valores, [key]: digitado === '' ? '' : valor } })
+  }
+
+  return (
+    <div className="mt-4 pt-3.5 border-t border-solid border-border">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <span className="text-[10px] text-ink-faint uppercase tracking-[.06em] font-medium">Divisão por turno</span>
+        <label className="flex items-center gap-2 text-xs text-ink-muted cursor-pointer">
+          Dividir igualmente entre os turnos
+          <SwitchToggle checked={cfg.dividirIgual} onChange={alternarDivisao}/>
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        {TURNOS.map(t => {
+          const ativo = !!cfg.ativos[t.key]
+          return (
+            <div key={t.key} className={`flex items-center gap-2.5 py-2 px-3 rounded-md border border-solid ${ativo ? 'border-border-2' : 'border-border opacity-60'}`}>
+              <label className="flex items-center gap-1.5 text-xs text-ink cursor-pointer">
+                <input type="checkbox" checked={ativo} onChange={() => alternarTurno(t.key)} className="accent-red"/>
+                {t.label}
+              </label>
+              <input
+                type="number" min="0" step="1"
+                value={ativo ? (cfg.dividirIgual ? valores[t.key] : (cfg.valores[t.key] ?? '')) : ''}
+                placeholder={ativo ? '0' : '—'}
+                disabled={!ativo || cfg.dividirIgual}
+                onChange={e => alterarValor(t.key, e.target.value)}
+                className="w-14 text-right disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+            </div>
+          )
+        })}
+      </div>
+      {aviso && (
+        <div className="ibox amber mt-3">
+          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+          <span className="text-xs">{aviso}</span>
+        </div>
+      )}
+      {!aviso && turnosAtivos(cfg).length > 0 && soma !== total && (
+        <div className="ibox amber mt-3">
+          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+          <span className="text-xs">
+            {soma < total
+              ? `Faltam ${total - soma} brigadista${total - soma === 1 ? '' : 's'} para completar o total calculado (${total}).`
+              : `A soma dos turnos (${soma}) passa do total calculado (${total}) — ajuste os valores.`}
+          </span>
+        </div>
+      )}
+      {turnosAtivos(cfg).length === 0 && (
+        <div className="ibox amber mt-3">
+          <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
+          <span className="text-xs">Marque ao menos um turno.</span>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -201,6 +289,10 @@ function EstruturaBrigada({ uf, estrutura, pavimentos, cargaEst, cnaesDiv, limia
                 )}
               </table>
             </div>
+          )}
+
+          {totalNumerico && totalBrigadistas > 0 && (
+            <DivisaoTurnos estrutura={estrutura} total={totalBrigadistas} dispatch={dispatch}/>
           )}
 
           {observacoes.length > 0 && (
