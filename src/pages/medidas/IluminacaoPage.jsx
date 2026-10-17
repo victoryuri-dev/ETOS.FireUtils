@@ -155,13 +155,19 @@ function EmptyState({ texto }) {
 // (uma instância de SistemaSelecionado por EstruturaSection). Começa em
 // `true` (ver INITIAL_STATE.iluminacaoMesmoSistema) pra não quebrar o fluxo
 // de projetos existentes, que sempre tiveram um único sistema.
-function MesmoSistemaPergunta({ mesmoSistema, dispatch }) {
+// Lista "a, b ou c" dos tipos da norma do estado, em minúsculo.
+const listaTipos = tipos => {
+  const nomes = tipos.map(t => t.label.toLowerCase())
+  return nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} ou ${nomes.at(-1)}` : nomes[0] || ''
+}
+
+function MesmoSistemaPergunta({ mesmoSistema, tiposSistema, dispatch }) {
   const setMesmoSistema = valor => dispatch({ type: 'SET_ILUMINACAO_MESMO_SISTEMA', valor })
   return (
     <Card className="mb-8">
       <div className="py-3.5 px-[18px] flex items-center gap-3">
         <span className="text-[12px] text-ink-muted flex-1">
-          Todas as edificações do projeto utilizam o mesmo sistema de iluminação de emergência (bloco autônomo, sistema centralizado ou grupo motogerador)?
+          Todas as edificações do projeto utilizam o mesmo sistema de iluminação de emergência ({listaTipos(tiposSistema)})?
         </span>
         <SwitchToggle checked={mesmoSistema} onChange={setMesmoSistema}/>
       </div>
@@ -169,17 +175,20 @@ function MesmoSistemaPergunta({ mesmoSistema, dispatch }) {
   )
 }
 
+// Fonte com local próprio a informar: central de baterias, UPS e GMG.
+const ROTULO_FONTE = { central: 'central de baterias', ups: 'UPS', motogerador: 'grupo motogerador' }
+
 // ── Sistema utilizado (no projeto todo, ou numa estrutura) ───────────────
 function SistemaSelecionado({ auditPrefix, titulo, sistema, tiposSistema, onChange }) {
   const setTipo         = tipo   => onChange({ tipo })
   const setLocalizacao  = valor  => onChange({ localizacaoFonte: valor })
-  const precisaLocalizacao = sistema.tipo === 'central' || sistema.tipo === 'motogerador'
+  const precisaLocalizacao = sistema.tipo in ROTULO_FONTE
 
   return (
     <Card className="mb-8">
       <CardHeader><span className="text-[13px] font-semibold text-ink">{titulo} <Obrigatorio id={`${auditPrefix}.sistema.tipo`}/></span></CardHeader>
       <div className="py-3.5 px-[18px]">
-        <div className="grid grid-cols-3 gap-3 mb-3">
+        <div className={`grid ${tiposSistema.length === 4 ? 'grid-cols-2' : 'grid-cols-3'} gap-3 mb-3`}>
           {tiposSistema.map(t => {
             const ativo = sistema.tipo === t.key
             return (
@@ -194,13 +203,42 @@ function SistemaSelecionado({ auditPrefix, titulo, sistema, tiposSistema, onChan
         </div>
         {precisaLocalizacao && (
           <div className="max-w-[420px]">
-            <Label>Localização da fonte ({sistema.tipo === 'motogerador' ? 'grupo motogerador' : 'central de baterias'}) <Obrigatorio id={`${auditPrefix}.sistema.localizacaoFonte`}/></Label>
+            <Label>Localização da fonte ({ROTULO_FONTE[sistema.tipo]}) <Obrigatorio id={`${auditPrefix}.sistema.localizacaoFonte`}/></Label>
             <input className={inputClass} placeholder="ex.: Casa de máquinas, Térreo, Depósito..."
               value={sistema.localizacaoFonte} onChange={e => setLocalizacao(e.target.value)}/>
           </div>
         )}
       </div>
     </Card>
+  )
+}
+
+/** Escolha do sistema de iluminação (pergunta "mesmo sistema?" + um card
+ *  para o projeto ou um por estrutura exigida) — o mesmo formulário da
+ *  página do MA, usado na página da PB (estados/PB/campos.jsx), que não tem
+ *  o cadastro de equipamentos por pavimento. */
+export function EscolhaSistemaIluminacao() {
+  const { state, dispatch } = useProjeto()
+  const { iluminacao: iluNorma } = useNorma()
+  const { porEstrutura } = useMedidasObrigatorias()
+  const tipos = iluNorma?.TIPOS_SISTEMA || []
+  const mesmoSistema = state.iluminacaoMesmoSistema !== false
+  return (
+    <>
+      <MesmoSistemaPergunta mesmoSistema={mesmoSistema} tiposSistema={tipos} dispatch={dispatch}/>
+      {mesmoSistema ? (
+        <SistemaSelecionado auditPrefix="iluminacao" titulo="Sistema utilizado no projeto" sistema={state.iluminacaoSistema} tiposSistema={tipos}
+          onChange={changes => dispatch({ type: 'SET_ILUMINACAO_SISTEMA', changes })}/>
+      ) : (
+        state.estruturas
+          .filter(est => porEstrutura.find(p => p.estrutura.id === est.id)?.sistemas?.iluminacao?.ativo)
+          .map(est => (
+            <SistemaSelecionado key={est.id} auditPrefix={est.id} titulo={`Sistema utilizado — ${est.nome}`}
+              sistema={state.iluminacaoSistemaPorEstrutura[est.id] || { tipo: '', localizacaoFonte: '' }} tiposSistema={tipos}
+              onChange={changes => dispatch({ type: 'SET_ILUMINACAO_SISTEMA_ESTRUTURA', estruturaId: est.id, changes })}/>
+          ))
+      )}
+    </>
   )
 }
 
@@ -587,7 +625,7 @@ export default function IluminacaoPage() {
 
         <ReferenciaNormativa iluNorma={iluNorma}/>
 
-        <MesmoSistemaPergunta mesmoSistema={mesmoSistema} dispatch={dispatch}/>
+        <MesmoSistemaPergunta mesmoSistema={mesmoSistema} tiposSistema={TIPOS_SISTEMA} dispatch={dispatch}/>
 
         {mesmoSistema && (
           <SistemaSelecionado auditPrefix="iluminacao" titulo="Sistema utilizado no projeto" sistema={state.iluminacaoSistema} tiposSistema={TIPOS_SISTEMA}

@@ -129,7 +129,7 @@ export function camposObrigatorios(state, porEstrutura = []) {
       const destSistema = prefix === 'iluminacao' ? { ...dest, estruturaId:undefined, contexto:'Todas as estruturas' } : dest
       if (!campos.some(c => c.id === campoId(prefix,'sistema','tipo'))) {
         add(campoId(prefix,'sistema','tipo'),'Sistema de iluminação',sistema?.tipo,destSistema)
-        if (['central','motogerador'].includes(sistema?.tipo)) add(campoId(prefix,'sistema','localizacaoFonte'),'Localização da fonte',sistema.localizacaoFonte,destSistema)
+        if (['central','ups','motogerador'].includes(sistema?.tipo)) add(campoId(prefix,'sistema','localizacaoFonte'),'Localização da fonte',sistema.localizacaoFonte,destSistema)
       }
       for (const pav of pavs) {
         const itens = (state.iluminacao || []).filter(i => i.estruturaId === est.id && i.pavimentoId === pav.id)

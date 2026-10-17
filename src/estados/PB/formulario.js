@@ -651,9 +651,13 @@ const ATESTOS_ILUMINACAO = {
 }
 
 /** Tipos de sistema de iluminação adotados (chaves do formulário: blocos /
- *  central_bateria / ups / gerador) — marcados na página da PB. */
+ *  central_bateria / ups / gerador) — a escolha da página (a mesma do MA):
+ *  o sistema do projeto, ou o de cada estrutura quando não é o mesmo. */
 export function tiposIluminacaoPB(state) {
-  return new Set((state.memorialPB?.iluTipos || []).map(t => TIPO_ILUMINACAO[t]).filter(Boolean))
+  const tipos = state.iluminacaoMesmoSistema !== false
+    ? [state.iluminacaoSistema?.tipo]
+    : (state.estruturas || []).map(e => state.iluminacaoSistemaPorEstrutura?.[e.id]?.tipo)
+  return new Set(tipos.map(t => TIPO_ILUMINACAO[t]).filter(Boolean))
 }
 
 // Distância máxima entre pontos de luz: 4 × a altura de instalação (Anexo A

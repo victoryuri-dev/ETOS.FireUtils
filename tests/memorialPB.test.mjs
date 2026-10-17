@@ -271,9 +271,10 @@ test('3.6 estágio de construção segue a Situação da Etapa 2', () => {
 })
 
 test('13. iluminação: tipo, fluxo e altura da página da PB → distância 4×H; atestos do RT', () => {
-  const base = { iluTipos: ['ups'], iluFluxo: '400' }
+  const base = { iluFluxo: '400' }
   const comIlu = (mpb = {}) => projeto({
     sistemas: { ...SISTEMAS, iluminacao: { obrigatorio: false, ativo: true } },
+    iluminacaoSistema: { tipo: 'ups', localizacaoFonte: 'Casa de máquinas' },
     memorialPB: { ...base, ...mpb },
   })
   // Requisitos obrigatórios já vêm marcados (gerais e de luminárias).
@@ -300,6 +301,20 @@ test('13. iluminação: tipo, fluxo e altura da página da PB → distância 4×
   assert.equal(valorCampo(s, 'Distância máxima entre pontos de luz conforme Anexo A da NBR (4x altura de instalação):'), '10 m')
   assert.deepEqual(marcados(s).sort(), ['Central por UPS', 'UPS exclusiva para a iluminação de emergência', ...PADRAO.slice(1)].sort())
 
+})
+
+test('13. tipo de sistema: o do projeto ou o de cada estrutura (escolha da página, a mesma do MA)', () => {
+  const marcadosTipo = st => {
+    const s = secao(gerar(projeto({ sistemas: { ...SISTEMAS, iluminacao: { obrigatorio: false, ativo: true } }, ...st })), '13.')
+    const i = s.linhas.findIndex(l => l.tipo === 'sub' && l.titulo === 'Tipo de sistema:')
+    return s.linhas[i + 1].itens.filter(it => it.x).map(it => it.label)
+  }
+  assert.deepEqual(marcadosTipo({ iluminacaoSistema: { tipo: 'central' } }), ['Central à bateria'])
+  assert.deepEqual(marcadosTipo({ iluminacaoSistema: { tipo: '' } }), [])
+  assert.deepEqual(marcadosTipo({
+    iluminacaoMesmoSistema: false, iluminacaoSistema: { tipo: 'central' },
+    iluminacaoSistemaPorEstrutura: { e1: { tipo: 'motogerador' } },
+  }), ['Central por gerador'])
 })
 
 test('17. hidrantes: tipo, vazão/pressão, RTI e bombas vêm da página comum; extras da PB', () => {

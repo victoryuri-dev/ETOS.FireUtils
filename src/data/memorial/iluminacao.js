@@ -70,12 +70,12 @@ function paragrafoSistema(sistema, TIPOS_SISTEMA, sujeito) {
   if (!tipoSistemaInfo) {
     return { tipo: 'paragrafo', texto: `O sistema de iluminação de emergência utilizado ${sujeito} ainda não foi definido pelo responsável técnico.` }
   }
-  const precisaLocalizacao = sistema.tipo === 'central' || sistema.tipo === 'motogerador'
+  const fonte = { central: 'central de baterias', ups: 'UPS', motogerador: 'grupo motogerador' }[sistema.tipo]
   return {
     tipo: 'paragrafo',
     texto: `O sistema adotado ${sujeito} é do tipo ${tipoSistemaInfo.label.toLowerCase()}.` +
-      (precisaLocalizacao
-        ? ` A fonte do sistema (${sistema.tipo === 'motogerador' ? 'grupo motogerador' : 'central de baterias'}) está localizada em ${sistema.localizacaoFonte || 'local a definir pelo responsável técnico'}.`
+      (fonte
+        ? ` A fonte do sistema (${fonte}) está localizada em ${sistema.localizacaoFonte || 'local a definir pelo responsável técnico'}.`
         : ''),
   }
 }

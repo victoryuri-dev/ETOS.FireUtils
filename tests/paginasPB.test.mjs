@@ -19,7 +19,8 @@ const projeto = {
   sistemasPorEstrutura: { e1: { hidrantes: true, alarme: true, deteccao: true } },
   riscosEspeciaisPorEstrutura: { e1: { glp: true } }, riscosOutrosDescPorEstrutura: {},
   hidrantes: { estruturasSelecionadas: [], tipo: '', tipoVariante: 0, rti: '', bombaExiste: true, recalqueEntradas: 1 },
-  memorialPB: { iluTipos: ['bloco_autonomo'], iluAlturaInstalacao: '2,4', compartElementos: { h: ['paredes'], v: [] }, atestos: {} },
+  iluminacaoMesmoSistema: true, iluminacaoSistema: { tipo: 'bloco_autonomo', localizacaoFonte: '' }, iluminacaoSistemaPorEstrutura: {},
+  memorialPB: { iluAlturaInstalacao: '2,4', compartElementos: { h: ['paredes'], v: [] }, atestos: {} },
 }
 // A linha ('PB','hidrantes') só existe no Supabase (sem arquivo de seed):
 // no teste, a estrutura da do MA serve para renderizar a página comum.

@@ -2,10 +2,10 @@ import { useState } from 'react'
 import Icon from '../../components/ui/Icon'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
-import { getMemorialFormulario, getIluminacao } from '../../data/normas/index'
+import { getMemorialFormulario } from '../../data/normas/index'
 import {
   ATESTOS_PB, atestoMarcado, resumoBrigadaPB, INTERVALO_SIMULADOS_PADRAO, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
-  distanciaMaximaPontosPB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
+  distanciaMaximaPontosPB, tiposIluminacaoPB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
@@ -14,6 +14,7 @@ import { NIVEL_LABEL } from '../../data/brigada_calc'
 import FormSection from '../../components/ui/FormSection'
 import Checkbox from '../../components/ui/Checkbox'
 import SwitchToggle from '../../components/ui/SwitchToggle'
+import { EscolhaSistemaIluminacao } from '../../pages/medidas/IluminacaoPage'
 
 // Campos do formulário do Memorial Descritivo do CBMPB — só o que o
 // formulário pede e nenhuma outra tela coleta, guardado em state.memorialPB
@@ -247,14 +248,13 @@ export function CamposBrigadaPB() {
   )
 }
 
-// 13 — tipo(s) de sistema, fluxo luminoso, altura de instalação (distância
-// máxima = 4 × altura) e atestos; os de 13.1–13.4 só do tipo adotado.
-const GRUPO_DO_TIPO = { bloco_autonomo: 'blocos', central: 'central_bateria', ups: 'ups', motogerador: 'gerador' }
+// 13 — escolha do sistema (o mesmo formulário do MA, com a UPS da norma da
+// PB), fluxo luminoso, altura de instalação (distância máxima = 4 × altura)
+// e atestos; os de 13.1–13.4 só do tipo adotado.
 export function CamposIluminacaoPB() {
-  const { state, m, campo, atestos, alternarAtesto, alternarEm } = useCamposPB()
-  const tiposNorma = getIluminacao(state.uf)?.TIPOS_SISTEMA || []
+  const { state, m, campo, atestos, alternarAtesto } = useCamposPB()
   const G = ATESTOS_PB.iluminacao
-  const grupos = new Set((m.iluTipos || []).map(t => GRUPO_DO_TIPO[t]))
+  const grupos = tiposIluminacaoPB(state)
   const tem = (...ks) => ks.some(k => grupos.has(k))
   const dist = distanciaMaximaPontosPB(m.iluAlturaInstalacao)
   const secoes = [
@@ -268,11 +268,9 @@ export function CamposIluminacaoPB() {
     ['13.4 Grupo motogerador', G.gerador, tem('gerador')],
   ]
   return (
+    <>
+    <EscolhaSistemaIluminacao/>
     <BoxPB item="13">
-      <div className="flex flex-col gap-2">
-        <Rotulo>Tipo de sistema</Rotulo>
-        {tiposNorma.map(t => <Marcador key={t.key} label={t.label} checked={(m.iluTipos || []).includes(t.key)} onChange={() => alternarEm('iluTipos', t.key)}/>)}
-      </div>
       <div className="g2">
         <div className="fg"><label>Altura de instalação do ponto de luz (m)</label><input inputMode="decimal" {...campo('iluAlturaInstalacao')} placeholder="Ex.: 2,40"/></div>
         <div className="fg"><label>Distância máxima entre pontos (4 × altura)</label><input readOnly value={dist ? `${fmtNum(dist, 2)} m` : ''} placeholder="Informe a altura"/></div>
@@ -282,6 +280,7 @@ export function CamposIluminacaoPB() {
         <Atestos key={titulo} titulo={titulo} lista={lista} atestos={atestos} alternar={alternarAtesto}/>
       ))}
     </BoxPB>
+    </>
   )
 }
 
