@@ -27,7 +27,8 @@ export const PAGINAS_PB = {
   acesso_viatura: (
     <PaginaPB titulo="Acesso de Viatura" secoes={['6.']}><CamposAcessoViaturaPB/></PaginaPB>
   ),
-  seg_estrutural: <PaginaPB titulo="Segurança Estrutural contra Incêndio" secoes={['7.']} observacoes="seg_estrutural"/>,
+  // seg_estrutural: sem página própria — a do MA (SegurancaEstruturalPage) só
+  // mostra o resultado do TRRF, com a norma do estado; vale para os dois.
   compart_horizontal: compart,
   compart_vertical: compart,
   controle_acabamento: <PaginaPB titulo="Controle de Materiais de Acabamento (CMAR)" secoes={['9.']} observacoes="controle_acabamento"/>,
