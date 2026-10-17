@@ -49,7 +49,9 @@ function Cabecalho({ norma }) {
 // Anexo do formulário: blocos do memorial (tabela/parágrafos) quando a
 // medida está ativa e há conteúdo; senão fica só o título e a orientação do
 // formulário, para o RT anexar à mão.
-function Anexo({ letra, titulo, descricao, secoes }) {
+const blocosDe = s => s.blocos || (s.paragrafos || []).map(texto => ({ tipo: 'paragrafo', texto }))
+
+function Anexo({ letra, titulo, descricao, secoes, numerar = true }) {
   return (
     <div>
       <div className="pbf-anexo">
@@ -59,7 +61,7 @@ function Anexo({ letra, titulo, descricao, secoes }) {
       </div>
       {(secoes || []).map((s, i) => (
         <div key={i} className="mt-3">
-          {numerarBlocos(s.blocos || (s.paragrafos || []).map(texto => ({ tipo: 'paragrafo', texto })), letra).map((b, j) => <BlocoMedida key={j} bloco={b}/>)}
+          {(numerar ? numerarBlocos(blocosDe(s), letra) : blocosDe(s)).map((b, j) => <BlocoMedida key={j} bloco={b}/>)}
         </div>
       ))}
     </div>
@@ -74,7 +76,7 @@ export default function MemorialPBPage({ onBack }) {
   if (!formulario) return null
   // A e B: os dimensionamentos das páginas comuns de Saída de Emergência e
   // de Hidrantes, com a norma da PB.
-  const anexoA = sistemas.saida_emergencia?.ativo && getSE(state.uf) ? [textoMemorialSaidaEmergencia(state, sistemas, porEstrutura)] : []
+  const anexoA = sistemas.saida_emergencia?.ativo && getSE(state.uf) ? [textoMemorialSaidaEmergencia(state, sistemas, porEstrutura, { soDimensionamento: true })] : []
   const anexoB = sistemas.hidrantes?.ativo && getHidrantes(state.uf) && getExtintores(state.uf)
     ? [textoMemorialHidrantes(state, sistemas, porEstrutura), textoMemorialCalculoHidrantes(state)].filter(Boolean)
     : []
@@ -101,7 +103,7 @@ export default function MemorialPBPage({ onBack }) {
               <Cabecalho norma={formulario.norma}/>
               {formulario.secoes.map((s, i) => <Secao key={i} secao={s}/>)}
               <div className="pbf-anexos">
-                <Anexo letra="A" titulo="APRESENTAÇÃO DOS CÁLCULOS DE DIMENSIONAMENTO DAS SAÍDAS DE EMERGÊNCIA E POPULAÇÃO PARA TODAS AS EDIFICAÇÕES" secoes={anexoA}/>
+                <Anexo letra="A" titulo="APRESENTAÇÃO DOS CÁLCULOS DE DIMENSIONAMENTO DAS SAÍDAS DE EMERGÊNCIA E POPULAÇÃO PARA TODAS AS EDIFICAÇÕES" secoes={anexoA} numerar={false}/>
                 <Anexo letra="B" titulo="DIMENSIONAMENTO DO SISTEMA DE HIDRANTES"
                   descricao="Especificar detalhes consideráveis relacionados ao dimensionamento e características do sistema de hidrantes, incluindo pressurização e acionamento de bombas de incêndio, caso sejam necessárias, condições dos abrigos, localização do recalque, entre outros."
                   secoes={anexoB}/>

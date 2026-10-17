@@ -402,3 +402,14 @@ test('10. sem cálculo de escadas/rampas: N/A; térrea: demais andares N/A e 10.
   assert.equal(s2.linhas.find(l => l.tipo === 'exigivel').exigivel, true)
   assert.ok(marcados(s2).includes('Não Enclausurada - NE'))
 })
+
+test('Anexo A: só o dimensionamento por estrutura, sem as generalidades', async () => {
+  const { textoMemorialSaidaEmergencia } = await server.ssrLoadModule('/src/data/memorial/saida_emergencia.js')
+  const p = projeto()
+  const { sistemas, porEstrutura } = medidasObrigatorias(p)
+  const titulos = r => r.blocos.filter(b => b.tipo === 'titulo2').map(b => b.texto)
+  assert.ok(titulos(textoMemorialSaidaEmergencia(p, sistemas, porEstrutura)).includes('Generalidades'))
+  const so = titulos(textoMemorialSaidaEmergencia(p, sistemas, porEstrutura, { soDimensionamento: true }))
+  assert.ok(!so.includes('Generalidades') && !so.includes('Dimensionamento das Saídas de Emergência'))
+  assert.ok(so.includes('Bloco A'))
+})

@@ -321,7 +321,9 @@ function fmtDistOuConsultar(valor) {
   return valor != null ? fmtM(valor) : 'Consultar NT'
 }
 
-export function textoMemorialSaidaEmergencia(state, sistemas, porEstrutura) {
+// `opcoes.soDimensionamento`: só os blocos de cada estrutura, sem as
+// generalidades (acessos, larguras mínimas, distâncias) — Anexo A da PB.
+export function textoMemorialSaidaEmergencia(state, sistemas, porEstrutura, opcoes = {}) {
   const seNorma = getSE(state.uf)
   const sistemasPorEst = Object.fromEntries((porEstrutura || []).map(pe => [pe.estrutura.id, pe.sistemas]))
 
@@ -334,7 +336,7 @@ export function textoMemorialSaidaEmergencia(state, sistemas, porEstrutura) {
   })
 
   const blocos = [
-    ...blocosGeneralidades(seNorma.LARGURAS_MINIMAS),
+    ...(opcoes.soDimensionamento ? [] : blocosGeneralidades(seNorma.LARGURAS_MINIMAS)),
     ...(blocosEstruturas.length > 0
       ? blocosEstruturas
       : [{ tipo: 'paragrafo', texto: 'Nenhum pavimento cadastrado — dimensionamento de saída de emergência pendente.' }]),
