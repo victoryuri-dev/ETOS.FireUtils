@@ -377,16 +377,23 @@ test('9. CMAR: linha e classes por estrutura (a mais restritiva entre as divisõ
   assert.ok(textos.some(t => t.startsWith('Bloco B: ') && t.includes('Parede Classe I ou II-A')))
 })
 
-test('10. edificação térrea: escadas e demais andares N/A, 10.1 não exigível; com pavimentos, tipo de escada automático', () => {
+test('10. sem cálculo de escadas/rampas: N/A; térrea: demais andares N/A e 10.1 não exigível; com pavimentos, tipo automático', () => {
   const terrea = projeto({ estruturas: [{ id: 'e1', nome: 'Bloco A', areaTotal: '400', altura: '3', alturaPisoPiso: 3, nPavimentos: 1, nSubsolos: 0 }] })
   const s = secao(gerar(terrea), '10.')
   assert.equal(valorCampo(s, 'Largura (metros) das escadas e rampas:'), 'N/A')
   assert.equal(valorCampo(s, 'Distanciamento (metros) máximo a ser percorrido nos demais andares:'), 'N/A')
   assert.equal(s.linhas.find(l => l.tipo === 'exigivel').exigivel, false)   // 10.1: escadas não exigíveis
+
   // 3 pavimentos, 9 m, C-1 → Tabela 3: NE (6 < H ≤ 12)
   const p = projeto()
   p.pavimentos.push({ id: 'p2', estruturaId: 'e1', label: '1º pav', tipo: 'pavimento', divisao: 'C-1', area: '400', pisoDescarga: false, ambientes: [], acessos: [] })
   const s2 = secao(gerar(p), '10.')
+  // pavimento sem escada/rampa calculada ainda: N/A
+  assert.equal(valorCampo(s2, 'Largura (metros) das escadas e rampas:'), 'N/A')
+  // com a escada calculada (raiz da árvore fora do piso de descarga = ER): a largura sai
+  p.pavimentos[1].ambientes = [{ id: 'a2', nome: 'Loja', divisao: 'C-1', area: '200', acessoId: 'r2' }]
+  p.pavimentos[1].acessos = [{ id: 'r2', nome: 'Escada', alimentaEm: null }]
+  assert.match(valorCampo(secao(gerar(p), '10.'), 'Largura (metros) das escadas e rampas:'), /m$/)
   assert.equal(s2.linhas.find(l => l.tipo === 'exigivel').exigivel, true)
   assert.ok(marcados(s2).includes('Não Enclausurada - NE'))
 })

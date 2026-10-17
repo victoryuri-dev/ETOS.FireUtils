@@ -445,7 +445,7 @@ function secaoSaidas(state, ctx) {
       campo('Capacidade de público (pessoas) do pavimento mais habitado:', val(r?.popMax)),
       campo('Capacidade de público (pessoas) total da edificação:', val(r?.popTotal)),
       campo('Largura (metros) dos acessos e descargas:', lar(r?.larAD)),
-      campo('Largura (metros) das escadas e rampas:', r && !r.temEscada ? 'N/A' : lar(r?.larER)),
+      campo('Largura (metros) das escadas e rampas:', r ? (r.larER > 0 ? fmtM(r.larER) : 'N/A') : ''),
       campo('Largura (metros) das Portas:', lar(r?.larPT)),
       campo('Distanciamento (metros) máximo a ser percorrido no piso de descarga:', r ? dist(r.distDescarga) : ''),
       campo('Distanciamento (metros) máximo a ser percorrido nos demais andares:', r ? (r.temDemaisAndares ? dist(r.distDemais) : 'N/A') : ''),
