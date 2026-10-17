@@ -12,17 +12,22 @@
 // Recalque > 20 m com edificação ≤ 50 m não tem linha no formulário: o
 // acesso é obrigatório (o recalque fica fora do alcance) e nenhuma das cinco
 // é marcada — a página avisa.
+//
+// Hidrante de recalque: há sempre que o sistema de hidrantes é exigido no
+// projeto (não é pergunta ao RT). Dados da via em branco valem o padrão da
+// página (largura 6 m, altura livre 4,5 m, portão 4 × 4,5 m) — mesmo
+// esquema do MA (av_calc.js, numOr).
 
 const num = v => {
   const n = parseFloat(String(v ?? '').replace(',', '.'))
   return Number.isFinite(n) ? n : null
 }
+const numOr = (v, padrao) => num(v) ?? padrao
 
-/** `temRecalque`: hidrante de recalque no local (o sistema de hidrantes do
- *  projeto, salvo indicação contrária do RT em `av.temRecalque`). */
+/** `temRecalque`: sistema de hidrantes exigido no projeto. */
 export function decidirAcessoViaturaPB(av = {}, temRecalqueProjeto, P) {
   if (!P) return null
-  const temRecalque = av.temRecalque === 'sim' ? true : av.temRecalque === 'nao' ? false : !!temRecalqueProjeto
+  const temRecalque = !!temRecalqueProjeto
   const edificacao = num(av.distanciaEdificacao)
   const recalque = num(av.distanciaRecalque)
   let caso = null, obrigatorio = null, foraDoFormulario = false
@@ -40,25 +45,23 @@ export function decidirAcessoViaturaPB(av = {}, temRecalqueProjeto, P) {
     else { obrigatorio = true; foraDoFormulario = true }
   }
 
-  // Via de acesso (vale quando obrigatória). Campo vazio = ainda não
-  // informado (não marca nada).
-  const largura = num(av.larguraVia)
-  const alturaLivre = num(av.alturaLivre)
-  const extensao = num(av.extensaoVia)
+  // Via de acesso (vale quando obrigatória).
   const V = P.via
-  const viaPadrao = largura != null && largura >= V.larguraMin
-  const viaReduzida = largura != null && largura >= V.larguraReduzidaMin && largura < V.larguraMin
-  const exigeRetorno = largura != null && extensao != null && largura < P.retorno.larguraAbaixoDe && extensao > P.retorno.comprimentoAcimaDe
-  const portaoOk = !!av.temPortao && (num(av.portaoLargura) ?? 0) >= P.portao.larguraMin && (num(av.portaoAltura) ?? 0) >= P.portao.alturaMin
+  const largura = numOr(av.larguraVia, V.larguraMin)
+  const alturaLivre = numOr(av.alturaLivre, V.alturaLivreMin)
+  const extensao = num(av.extensaoVia)
+  const viaPadrao = largura >= V.larguraMin
+  const viaReduzida = largura >= V.larguraReduzidaMin && largura < V.larguraMin
+  const exigeRetorno = extensao != null && largura < P.retorno.larguraAbaixoDe && extensao > P.retorno.comprimentoAcimaDe
+  const portaoOk = !!av.temPortao && numOr(av.portaoLargura, P.portao.larguraMin) >= P.portao.larguraMin && numOr(av.portaoAltura, P.portao.alturaMin) >= P.portao.alturaMin
 
   return {
     temRecalque, edificacao, recalque, caso, obrigatorio, foraDoFormulario,
     via: {
       // a)–f): largura ≥ 6, altura livre ≥ 4,5, 25.000 kgf e desobstrução
       // confirmados pelo RT, e portão (se houver) nas dimensões mínimas.
-      atende: obrigatorio === true && viaPadrao && (alturaLivre ?? 0) >= V.alturaLivreMin && !!av.cargaConfirmada && !!av.desobstruida && (!av.temPortao || portaoOk),
+      atende: obrigatorio === true && viaPadrao && alturaLivre >= V.alturaLivreMin && !!av.cargaConfirmada && !!av.desobstruida && (!av.temPortao || portaoOk),
       reduzida: obrigatorio === true && viaReduzida,
-      larguraAbaixoDoMinimo: largura != null && largura < V.larguraReduzidaMin,
       exigeRetorno,
       retornoInformado: !!av.retorno,
     },

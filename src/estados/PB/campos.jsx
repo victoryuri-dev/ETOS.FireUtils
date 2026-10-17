@@ -438,31 +438,49 @@ const LINHA_AV = {
   4: 'Recalque a até 20 m e edificação a mais de 50 m da via — acesso obrigatório.',
   5: 'Recalque a mais de 20 m e edificação a mais de 50 m da via — acesso obrigatório.',
 }
+// Campo numérico como o do MA (AcessoViaturaPage): vazio mostra o valor
+// padrão (já vale no cálculo) e, ao sair do campo, valor abaixo do mínimo da
+// norma volta para o mínimo.
+function NumeroLimitado({ label, value, onChange, padrao, minimo, sufixo = 'm' }) {
+  const exibido = value === '' || value == null ? (padrao ?? '') : value
+  const aoSair = () => {
+    const n = parseFloat(String(value ?? '').replace(',', '.'))
+    if (Number.isFinite(n) && minimo != null && n < minimo) onChange(String(minimo))
+  }
+  return (
+    <div className="fg">
+      <label>{label}</label>
+      <div className="relative">
+        <input type="number" step="0.01" min={minimo ?? 0} value={exibido} onChange={e => onChange(e.target.value)} onBlur={aoSair} className={sufixo ? 'pr-8' : ''}/>
+        {sufixo && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-faint">{sufixo}</span>}
+      </div>
+    </div>
+  )
+}
+
 export function CamposAcessoViaturaPB() {
   const { m, set, F } = useCamposPB()
   const { sistemas } = useMedidasObrigatorias()
   if (!F?.ACESSO_VIATURA) return null
+  const P = F.ACESSO_VIATURA
   const av = m.acessoViatura || {}
   const setAv = changes => set({ acessoViatura: { ...av, ...changes } })
-  const recalqueProjeto = !!sistemas?.hidrantes?.ativo
-  const r = decidirAcessoViaturaPB(av, recalqueProjeto, F.ACESSO_VIATURA)
-  const inp = (key, label, extra = {}) => (
-    <div className="fg"><label>{label}</label><input inputMode="decimal" value={av[key] || ''} onChange={e => setAv({ [key]: e.target.value })} {...extra}/></div>
+  // Hidrante de recalque: há sempre que o sistema de hidrantes é exigido.
+  const recalque = !!(sistemas?.hidrantes?.ativo || sistemas?.hidrantes?.obrigatorio)
+  const r = decidirAcessoViaturaPB(av, recalque, P)
+  const numero = (key, label, extra = {}) => (
+    <NumeroLimitado label={label} value={av[key]} onChange={v => setAv({ [key]: v })} {...extra}/>
   )
   const marca = (key, label) => <Marcador label={label} checked={!!av[key]} onChange={() => setAv({ [key]: !av[key] })}/>
   return (
     <BoxPB item="6">
-      <div className="fg">
-        <label>Hidrante de recalque no local</label>
-        <select value={av.temRecalque || ''} onChange={e => setAv({ temRecalque: e.target.value })}>
-          <option value="">Automático — {recalqueProjeto ? 'sim (sistema de hidrantes adotado)' : 'não (sem sistema de hidrantes)'}</option>
-          <option value="sim">Sim</option>
-          <option value="nao">Não</option>
-        </select>
+      <div className="text-[12.5px] text-ink-muted">
+        Hidrante de recalque no local: <strong className="text-ink">{recalque ? 'sim' : 'não'}</strong>
+        <span className="text-ink-faint"> — {recalque ? 'o sistema de hidrantes é exigido no projeto' : 'o projeto não exige sistema de hidrantes'}.</span>
       </div>
       <div className="g2">
-        {inp('distanciaEdificacao', 'Entrada da circulação comum até a via pública (m, do meio-fio)', { placeholder: 'Ex.: 18' })}
-        {r?.temRecalque && inp('distanciaRecalque', 'Registro do hidrante de recalque até a via pública (m)', { placeholder: 'Ex.: 12' })}
+        {numero('distanciaEdificacao', 'Entrada da circulação comum até a via pública (do meio-fio)', { minimo: 0 })}
+        {recalque && numero('distanciaRecalque', 'Registro do hidrante de recalque até a via pública', { minimo: 0 })}
       </div>
       {r?.caso && (
         <div className={`ibox ${r.obrigatorio ? 'amber' : 'green'}`}>
@@ -476,18 +494,18 @@ export function CamposAcessoViaturaPB() {
         <>
           <Rotulo>Via de acesso</Rotulo>
           <div className="g2">
-            {inp('larguraVia', 'Largura da via (m)', { placeholder: 'mín. 6,00 (5,00 com restrição)' })}
-            {inp('alturaLivre', 'Altura livre (m)', { placeholder: 'mín. 4,50' })}
-            {inp('extensaoVia', 'Comprimento da via em relação à via pública (m)')}
+            {numero('larguraVia', `Largura da via (mín. ${fmtNum(P.via.larguraReduzidaMin, 2)} m)`, { padrao: P.via.larguraMin, minimo: P.via.larguraReduzidaMin })}
+            {numero('alturaLivre', `Altura livre (mín. ${fmtNum(P.via.alturaLivreMin, 2)} m)`, { padrao: P.via.alturaLivreMin, minimo: P.via.alturaLivreMin })}
+            {numero('extensaoVia', 'Comprimento da via em relação à via pública', { minimo: 0 })}
           </div>
-          {r.via.larguraAbaixoDoMinimo && <div className="ibox red"><span className="text-xs">Largura abaixo de 5,00 m: não atende à NT 14/2023.</span></div>}
+          {r.via.reduzida && <span className="text-[11.5px] text-ink-faint">Largura entre 5 e 6 m: marca a linha "via com largura inferior a 6,00 m" do formulário.</span>}
           {marca('cargaConfirmada', 'A via suporta viaturas de 25.000 kgf em toda a extensão')}
           {marca('desobstruida', 'A via é desobstruída em toda a largura')}
           {marca('temPortao', 'Há portão de acesso')}
           {av.temPortao && (
             <div className="g2">
-              {inp('portaoLargura', 'Largura do portão (m)', { placeholder: 'mín. 4,00' })}
-              {inp('portaoAltura', 'Altura do portão (m)', { placeholder: 'mín. 4,50' })}
+              {numero('portaoLargura', `Largura do portão (mín. ${fmtNum(P.portao.larguraMin, 2)} m)`, { padrao: P.portao.larguraMin, minimo: P.portao.larguraMin })}
+              {numero('portaoAltura', `Altura do portão (mín. ${fmtNum(P.portao.alturaMin, 2)} m)`, { padrao: P.portao.alturaMin, minimo: P.portao.alturaMin })}
             </div>
           )}
           {r.via.exigeRetorno && (

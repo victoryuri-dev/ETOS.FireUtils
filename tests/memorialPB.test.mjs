@@ -332,7 +332,7 @@ test('6. acesso de viatura: as distâncias informadas marcam a linha certa do fo
   assert.equal(linha(sec({ distanciaEdificacao: '60', distanciaRecalque: '12' }, true)), 4)
   assert.equal(linha(sec({ distanciaEdificacao: '60', distanciaRecalque: '25' }, true)), 5)
   assert.equal(linha(sec({ distanciaEdificacao: '40', distanciaRecalque: '25' }, true)), 0)   // sem linha no formulário
-  assert.equal(linha(sec({ distanciaEdificacao: '15', temRecalque: 'nao' }, true)), 1)        // RT indica que não há recalque
+  assert.equal(linha(sec({ distanciaEdificacao: '40' }, true)), 0)                             // com recalque, falta a distância do recalque
   assert.equal(linha(sec({})), 0)                                                            // sem distância: nada marcado
 
   // via obrigatória: a)–f), largura reduzida, retorno, portão e faixa
@@ -345,6 +345,8 @@ test('6. acesso de viatura: as distâncias informadas marcam a linha certa do fo
   assert.ok(m2.some(l => l.startsWith('Locais com via de acesso com largura inferior a 6,00 m')))
   assert.ok(m2.some(l => l.startsWith('Áreas para retorno')))
   assert.ok(m2.some(l => l.startsWith('Faixas de estacionamento')))
+  // dados da via em branco = padrão (6 m, 4,5 m): basta confirmar carga e desobstrução
+  assert.ok(marcados(sec({ distanciaEdificacao: '25', cargaConfirmada: true, desobstruida: true })).some(l => l.startsWith('Vias de acesso para viaturas')))
   // facultativo: nada da via é marcado
   assert.equal(marcados(sec({ ...via, distanciaEdificacao: '10' })).length, 1)
 })

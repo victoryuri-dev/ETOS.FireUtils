@@ -284,7 +284,8 @@ function secaoRiscos(state, ctx) {
 
 function secaoAcessoViatura(state, F, ctx) {
   const ativo = !!ctx.sistemas?.acesso_viatura?.ativo
-  const temRecalqueProjeto = !!ctx.sistemas?.hidrantes?.ativo
+  // Hidrante de recalque: sistema de hidrantes exigido no projeto.
+  const temRecalqueProjeto = !!(ctx.sistemas?.hidrantes?.ativo || ctx.sistemas?.hidrantes?.obrigatorio)
   const r = ativo ? decidirAcessoViaturaPB(state.memorialPB?.acessoViatura, temRecalqueProjeto, F.ACESSO_VIATURA) : null
   // Distâncias nas lacunas "______" das linhas, só na linha marcada.
   const d = v => (v == null ? '______' : fmtNum(v, 2, String(v)))
