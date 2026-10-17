@@ -4,7 +4,7 @@ import HidrantesPage from '../../pages/medidas/HidrantesPage'
 import BrigadaIncendioPage from '../../pages/medidas/BrigadaIncendioPage'
 import {
   CamposCompartimentacaoPB, CamposSaidasPB, CamposPlanoPB, CamposBrigadaPB, CamposIluminacaoPB,
-  CamposAlarmeDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB, ResultadoCmarPB,
+  CamposAlarmePB, CamposDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB, ResultadoCmarPB,
 } from './campos'
 
 // Página da PB de cada medida (chave = sistema, a mesma das rotas
@@ -13,12 +13,6 @@ const compart = (
   <PaginaPB titulo="Compartimentação" secoes={['8.']}
     aviso="A NT 36 (compartimentação) da PB ainda não está cadastrada: a área máxima a compartimentar sai em branco.">
     <CamposCompartimentacaoPB/>
-  </PaginaPB>
-)
-const alarmeDeteccao = (
-  <PaginaPB titulo="Alarme e Detecção de Incêndio" secoes={['14.']}
-    observacoes={[['alarme', 'Observações complementares — 14.1 Alarme'], ['deteccao', 'Observações complementares — 14.2 Detecção']]}>
-    <CamposAlarmeDeteccaoPB alarme deteccao/>
   </PaginaPB>
 )
 const semSecao = titulo => (
@@ -43,8 +37,8 @@ export const PAGINAS_PB = {
   // do item 12 que ela não tem.
   brigada: <BrigadaIncendioPage extra={<CamposBrigadaPB/>}/>,
   iluminacao: <PaginaPB titulo="Iluminação de Emergência" secoes={['13.']} observacoes="iluminacao"><CamposIluminacaoPB/></PaginaPB>,
-  alarme: alarmeDeteccao,
-  deteccao: alarmeDeteccao,
+  alarme: <PaginaPB titulo="Alarme de Incêndio" secoes={['14.']} observacoes="alarme"><CamposAlarmePB/></PaginaPB>,
+  deteccao: <PaginaPB titulo="Detecção de Incêndio" secoes={['14.']} observacoes="deteccao"><CamposDeteccaoPB/></PaginaPB>,
   sinalizacao: <PaginaPB titulo="Sinalização de Emergência" secoes={['15.']} observacoes="sinalizacao"><CamposSinalizacaoPB/></PaginaPB>,
   extintores: <PaginaPB titulo="Extintores de Incêndio" secoes={['16.']} observacoes="extintores"><CamposExtintoresPB/></PaginaPB>,
   // Hidrantes: a página comum (dimensionamento, bombas, base do Anexo B)

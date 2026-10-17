@@ -606,8 +606,7 @@ const INITIAL_STATE = {
     brigadaIntervaloSimulados: '12 meses', // padrão; o RT pode alterar
     iluFluxo: '',            // lm — fluxo luminoso exato das luminárias (13)
     iluAlturaInstalacao: '', // m — item 13 (distância máx. entre pontos = 4 × altura)
-    alarmeCentralLocal: '',  // 14.1
-    deteccaoCentralLocal: '',// 14.2 ('' = a mesma do alarme)
+    alarmeCentralLocal: '',  // 14.1 e 14.2 (a mesma central)
     detectoresTipos: [],     // 'fumaca_pontual' | 'temperatura_pontual' | 'fumaca_linear' (14.2)
     // 6 — distanciaEdificacao, distanciaRecalque e dados da via (vazios =
     // padrão: largura 6 m, altura livre 4,5 m, portão 4 × 4,5 m); switches

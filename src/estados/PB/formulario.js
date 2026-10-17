@@ -432,6 +432,8 @@ export const ATESTOS_PADRAO_MARCADOS = new Set([
   'ilu_autonomia_2h', 'ilu_planos_3lux', 'ilu_desnivel_5lux', 'ilu_planos_aberta_1lux', 'ilu_desnivel_aberta_3lux',
   'ilu_balizamento_f', 'ilu_tarefa_alto_risco', 'ilu_fumaca_15lux',
   'ilu_lum_30vcc', 'ilu_lum_fluxo', 'ilu_lum_70c',
+  // Alarme (14.1) — requisitos da norma, todos marcados.
+  'alarme_acionador_30m', 'alarme_autonomia_24h', 'alarme_autonomia_15min', 'alarme_altura_acionadores', 'alarme_altura_avisadores',
 ])
 /** Atesto marcado: o que o RT escolheu, ou o padrão quando ainda não mexeu. */
 export const atestoMarcado = (atestos, key) => (key in (atestos || {}) ? !!atestos[key] : ATESTOS_PADRAO_MARCADOS.has(key))
@@ -763,8 +765,9 @@ function secaoAlarmeDeteccao(state, ctx) {
   const at = m.atestos || {}
   const exigAlarme = exigibilidade(ctx, 'alarme')
   const exigDet = exigibilidade(ctx, 'deteccao')
-  // Local da central e tipos de detector: informados na página da PB.
-  const localCentral = key => (key === 'alarme' ? m.alarmeCentralLocal : m.deteccaoCentralLocal) || ''
+  // Local da central (o mesmo para alarme e detecção) e tipos de detector:
+  // informados nas páginas da PB.
+  const localCentral = () => m.alarmeCentralLocal || ''
 
   // Valores de projeto dos detectores = os limites da norma, só para os
   // tipos de detector adotados.
@@ -778,11 +781,11 @@ function secaoAlarmeDeteccao(state, ctx) {
       sub('14.1 Sistema de Alarme de Incêndio', '(Informe as características do sistema de alarme, conforme NT 19/2024)'),
       { tipo: 'exigivel', exigivel: exigAlarme },
       ...ATESTOS_ALARME.map(([key, label]) => ck({ x: atestoMarcado(at, key), label })),
-      campo('Localização da central de alarme (cômodo):', exigAlarme ? localCentral('alarme') : ''),
+      campo('Localização da central de alarme (cômodo):', exigAlarme ? localCentral() : ''),
       obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'alarme')),
       sub('14.2 Sistema de Detecção de Incêndio', '(Informe as características do sistema de alarme, conforme NT 19/2024)'),
       { tipo: 'exigivel', exigivel: exigDet },
-      campo('Localização da central do alarme:', exigDet ? localCentral('deteccao') || localCentral('alarme') : ''),
+      campo('Localização da central do alarme:', exigDet ? localCentral() : ''),
       campo('Raio de atuação em detecção pontual de fumaça (máximo 6,3m):', v('fumaca_pontual', 'raio_m')),
       campo('Altura de instalação da detecção pontual de fumaça (máximo 8m):', v('fumaca_pontual', 'altura_max_m')),
       campo('Raio de atuação em detecção pontual de temperatura (máximo 4,2m):', v('temperatura_pontual', 'raio_m')),

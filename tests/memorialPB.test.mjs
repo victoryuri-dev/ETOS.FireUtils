@@ -379,6 +379,8 @@ test('14: central e detectores informados na página da PB', () => {
   assert.equal(valorCampo(s14, 'Localização da central de alarme (cômodo):'), 'Portaria')
   assert.equal(valorCampo(s14, 'Localização da central do alarme:'), 'Portaria')
   assert.equal(valorCampo(s14, 'Raio de atuação em detecção pontual de temperatura (máximo 4,2m):'), '')
+  // Declarações do alarme já vêm marcadas.
+  assert.equal(marcados(s14).filter(l => /acionador manual até 30m|Autonomia sem alarme|Autonomia com todo|acionadores entre|avisadores áudio/.test(l)).length, 5)
 })
 
 test('6. acesso de viatura: as distâncias informadas marcam a linha certa do formulário', () => {

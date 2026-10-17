@@ -275,31 +275,40 @@ export function CamposIluminacaoPB() {
   )
 }
 
-// 14 — local das centrais, tipos de detector e atestos do alarme.
+// 14 — local da central, atestos do alarme (14.1) e tipos de detector (14.2),
+// cada medida na sua página.
 const DETECTORES_FORMULARIO = [
   ['fumaca_pontual', 'Detecção pontual de fumaça'],
   ['temperatura_pontual', 'Detecção pontual de temperatura'],
   ['fumaca_linear', 'Detecção linear de fumaça'],
 ]
-export function CamposAlarmeDeteccaoPB({ alarme, deteccao }) {
-  const { m, campo, atestos, alternarAtesto, alternarEm } = useCamposPB()
+// Local da central: um só campo para alarme e detecção (a central é a
+// mesma) — fica na página do alarme; a da detecção só o mostra quando o
+// alarme não é exigido (sem página de alarme para preenchê-lo).
+const CampoCentralPB = ({ campo }) => (
+  <div className="fg"><label>Localização da central de alarme e detecção (cômodo)</label><input {...campo('alarmeCentralLocal')} placeholder="Ex.: Portaria"/></div>
+)
+
+export function CamposAlarmePB() {
+  const { campo, atestos, alternarAtesto } = useCamposPB()
   return (
-    <BoxPB item="14">
-      {alarme && (
-        <>
-          <div className="fg"><label>Localização da central de alarme (cômodo)</label><input {...campo('alarmeCentralLocal')} placeholder="Ex.: Portaria"/></div>
-          <Atestos titulo="14.1 Alarme — declarações" lista={ATESTOS_PB.alarme} atestos={atestos} alternar={alternarAtesto}/>
-        </>
-      )}
-      {deteccao && (
-        <>
-          <div className="fg"><label>Localização da central de detecção</label><input {...campo('deteccaoCentralLocal')} placeholder="Em branco = a mesma do alarme"/></div>
-          <div className="flex flex-col gap-2">
-            <Rotulo>14.2 Tipos de detector adotados</Rotulo>
-            {DETECTORES_FORMULARIO.map(([key, label]) => <Marcador key={key} label={label} checked={(m.detectoresTipos || []).includes(key)} onChange={() => alternarEm('detectoresTipos', key)}/>)}
-          </div>
-        </>
-      )}
+    <BoxPB item="14.1">
+      <CampoCentralPB campo={campo}/>
+      <Atestos lista={ATESTOS_PB.alarme} atestos={atestos} alternar={alternarAtesto}/>
+    </BoxPB>
+  )
+}
+
+export function CamposDeteccaoPB() {
+  const { m, campo, alternarEm } = useCamposPB()
+  const { sistemas } = useMedidasObrigatorias()
+  return (
+    <BoxPB item="14.2">
+      {!sistemas?.alarme?.ativo && <CampoCentralPB campo={campo}/>}
+      <div className="flex flex-col gap-2">
+        <Rotulo>Tipos de detector adotados</Rotulo>
+        {DETECTORES_FORMULARIO.map(([key, label]) => <Marcador key={key} label={label} checked={(m.detectoresTipos || []).includes(key)} onChange={() => alternarEm('detectoresTipos', key)}/>)}
+      </div>
     </BoxPB>
   )
 }
