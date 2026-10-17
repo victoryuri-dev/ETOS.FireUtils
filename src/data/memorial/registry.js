@@ -166,6 +166,10 @@ function secaoSemNorma(key, uf) {
  * Revit (ver memorial/hidrantesCalculo.js), então só faz sentido depois de
  * toda a parte descritiva, fora da ordem acima.
  */
+/** Número da primeira seção de medida no memorial (as anteriores são
+ *  Objetivo, Legislação, Sobre a Edificação, Caracterização e Medidas). */
+export const PRIMEIRA_SECAO_MEDIDA = 6
+
 export function buildMemorial(state, sistemas, porEstrutura) {
   const src = sistemas || state.sistemas || {}
   // Só `ativo` — já cai para `obrigatorio` quando não há override manual
@@ -188,13 +192,17 @@ export function buildMemorial(state, sistemas, porEstrutura) {
 
   const secoes = [...ORDEM_SECOES, ...restantes]
     .filter(key => ativa(key) || isenta(key))
-    .map(key => (!ativa(key) ? secaoIsencaoGenerica(key, state, porEstrutura)
-      : !normaCadastrada(key, state.uf) ? (MEMORIAL_BUILDERS[key] ? secaoSemNorma(key, state.uf) : null)
-      : MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura)))
+    .map(key => {
+      const secao = !ativa(key) ? secaoIsencaoGenerica(key, state, porEstrutura)
+        : !normaCadastrada(key, state.uf) ? (MEMORIAL_BUILDERS[key] ? secaoSemNorma(key, state.uf) : null)
+        : MEMORIAL_BUILDERS[key]?.(state, src, porEstrutura)
+      // `medida`: de qual medida é a seção (prévia da página da medida).
+      return secao && { ...secao, medida: key }
+    })
     .filter(Boolean)
 
   if (src.hidrantes?.ativo && normaCadastrada('hidrantes', state.uf)) {
-    secoes.push(textoMemorialCalculoHidrantes(state))
+    secoes.push({ ...textoMemorialCalculoHidrantes(state), medida: 'hidrantes' })
   }
 
   return secoes

@@ -42,6 +42,7 @@ import { AuditoriaProvider } from './context/AuditoriaContext'
 import AuditoriaPage from './pages/AuditoriaPage'
 import ToastProvider   from './components/ui/ToastProvider'
 import FeedbackWidget  from './components/feedback/FeedbackWidget'
+import ComPrevia       from './components/previa/ComPrevia'
 import landingLogo from './assets/logo-fireutils-light.svg'
 import landingLogoDark from './assets/logo-fireutils-dark.svg'
 import { ThemeProvider } from './context/ThemeContext'
@@ -250,6 +251,11 @@ function NormaNaoCadastrada({ uf, sistemas }) {
 
 function MedidaRoute() {
   const { sistKey } = useParams()
+  return <ComPrevia sistKey={sistKey}><PaginaDaMedida sistKey={sistKey}/></ComPrevia>
+}
+
+// Página de uma medida (sem a prévia — ver MedidaRoute/ComPrevia).
+function PaginaDaMedida({ sistKey }) {
   const { state } = useProjeto()
   // Estado com fluxo próprio (PB: formulário do CBMPB) — página do estado,
   // que mostra a seção mesmo sem a norma da medida cadastrada.

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
-import { buildMemorial } from '../../data/memorial/registry'
+import { buildMemorial, PRIMEIRA_SECAO_MEDIDA } from '../../data/memorial/registry'
 import { MEDIDAS_ANEXO_B_COL1, MEDIDAS_ANEXO_B_COL2, RISCOS_ESPECIAIS, estadoMedidaSistema } from '../../utils/anexoB'
 import { getCNAEsDivisao, getNts, getCompartimentacao } from '../../data/normas/index'
 import { classificarTipoEdificacao } from '../../data/compart_calc'
@@ -30,7 +30,6 @@ const SECAO_LEGISLACAO = 2
 const SECAO_SOBRE_EDIFICACAO = 3
 const SECAO_CARACTERIZACAO = 4
 const SECAO_MEDIDAS_APLICADAS = 5
-const PRIMEIRA_SECAO_MEDIDA = 6
 
 // Ate que nivel de titulo o Sumario lista (1 = so secoes primarias, 2 = ate as
 // secundarias, 3 = ate as terciarias).

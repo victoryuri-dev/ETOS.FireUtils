@@ -29,6 +29,7 @@ const hidrantesPB = Object.fromEntries(Object.entries(MA_HID).map(([k, v]) => [k
 const server = await servidorComNormas({ PB: { hidrantes: hidrantesPB } }, projeto)
 after(() => server.close())
 const { PAGINAS_PB } = await server.ssrLoadModule('/src/estados/PB/paginas.jsx')
+const PreviaPB = (await server.ssrLoadModule('/src/estados/PB/PreviaPB.jsx')).default
 const ExtensaoConfig = (await server.ssrLoadModule('/src/estados/ExtensaoConfig.jsx')).default
 const { ToastContext } = await server.ssrLoadModule('/src/context/toastContext.js')
 const toast = { success() {}, error() {}, warning() {}, info() {}, dismiss() {} }
@@ -40,7 +41,10 @@ for (const [key, pagina] of Object.entries(PAGINAS_PB)) {
     if (key === 'saida_emergencia' || key === 'hidrantes') return assert.ok(h.includes('Declarações do responsável técnico'), key)
     if (key === 'brigada') return assert.ok(h.includes('Formulário do CBMPB — item 12'), key)   // página comum + campos da PB
     assert.ok(h.includes('Formulário do Memorial Descritivo'), key)
-    assert.ok(h.includes('pbf-tabela'), `${key}: sem prévia`)
+  })
+  // Prévia (botão flutuante): a seção do formulário da medida.
+  test(`prévia PB "${key}" mostra a seção do formulário`, () => {
+    assert.ok(html(createElement(PreviaPB, { sistKey: key })).includes('pbf-tabela'), `${key}: sem prévia`)
   })
 }
 
@@ -55,7 +59,9 @@ test('extensões da Configuração da PB renderizam', () => {
 })
 
 test('registro por estado: documentos e textos da Configuração', async () => {
-  const { documentosDoEstado, textosDoEstado, paginaDaMedida } = await server.ssrLoadModule('/src/estados/registro.js')
+  const { documentosDoEstado, textosDoEstado, paginaDaMedida, previaDoEstado } = await server.ssrLoadModule('/src/estados/registro.js')
+  assert.ok(previaDoEstado('PB', 'extintores'))
+  assert.equal(previaDoEstado('MA', 'extintores'), null)                        // MA: prévia do memorial em texto
   assert.deepEqual(documentosDoEstado('PB', 'completo').map(d => d.tipo), ['formulario-pb'])
   assert.deepEqual(documentosDoEstado('MA', 'completo').map(d => d.tipo), ['anexo-b', 'memorial-texto'])
   assert.deepEqual(documentosDoEstado('MA', 'dimensionamento').map(d => d.tipo), ['memorial-texto'])

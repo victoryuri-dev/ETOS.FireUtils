@@ -9,10 +9,15 @@
 //     dimensionamentos padrão da norma.
 // Estado sem entrada aqui usa as páginas de src/pages/medidas. Os campos
 // próprios nas etapas da Configuração ficam em estados/ExtensaoConfig.jsx.
+import { createElement } from 'react'
 import { PAGINAS_PB } from './PB/paginas'
+import PreviaPB from './PB/PreviaPB'
 import { ESTADOS_COM_FLUXO_PROPRIO } from './fluxos'
 
 const PAGINAS = { PB: PAGINAS_PB }
+// Prévia da página de medida (botão flutuante): o documento do estado. Sem
+// entrada aqui, a seção do memorial descritivo em texto.
+const PREVIAS = { PB: PreviaPB }
 
 // Documentos de cada estado (página Documentos). `tipo` escolhe o componente
 // em DocumentosPage: 'memorial-texto' (memorial descritivo do MA),
@@ -53,6 +58,12 @@ const TEXTOS = {
 /** Página (elemento) própria do estado para a medida, ou null (usa a comum). */
 export function paginaDaMedida(uf, sistKey) {
   return PAGINAS[uf]?.[sistKey] || null
+}
+
+/** Prévia (elemento) do documento do estado para a medida, ou null (usa a
+ *  do memorial descritivo em texto). */
+export function previaDoEstado(uf, sistKey) {
+  return PREVIAS[uf] ? createElement(PREVIAS[uf], { sistKey }) : null
 }
 
 /** O estado tem fluxo próprio de medidas (não usa as páginas do MA)? */

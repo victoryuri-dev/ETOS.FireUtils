@@ -1,15 +1,15 @@
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildFormularioPB } from './formulario'
-import { Secao } from './SecaoFormulario'
 import FormSection from '../../components/ui/FormSection'
 import ObservacoesComplementares from '../../components/ui/ObservacoesComplementares'
 
 // Página de medida da PB: o que o formulário do CBMPB pede para a medida —
-// Exigível/Não exigível (automático), os campos a preencher (children) e a
-// prévia da seção exatamente como sai no documento. Sem Revit, quantitativo
-// ou distribuição por pavimento: os valores calculados vêm da Configuração e
-// dos dimensionamentos padrão da norma (estados/PB/formulario.js).
+// Exigível/Não exigível (automático) e os campos a preencher (children); a
+// prévia da seção fica no botão flutuante da página (components/previa).
+// Sem Revit, quantitativo ou distribuição por pavimento: os valores
+// calculados vêm da Configuração e dos dimensionamentos padrão da norma
+// (estados/PB/formulario.js).
 //
 // `secoes`: prefixos dos títulos das seções do formulário desta página
 // (ex.: ['14.']); `observacoes`: medida(s) das Observações complementares
@@ -42,7 +42,7 @@ export default function PaginaPB({ titulo, secoes: prefixos, observacoes, aviso,
             <StatusExigivel secoes={secoes}/>
           </h2>
           <p className="text-[13px] text-ink-faint leading-[1.6] m-0">
-            Preencha só o que o formulário pede. Exigência, valores calculados e marcações automáticas saem da Configuração e da norma; a prévia abaixo mostra a seção como ela vai no documento.
+            Preencha só o que o formulário pede. Exigência, valores calculados e marcações automáticas saem da Configuração e da norma; o botão de prévia mostra a seção como ela vai no documento.
           </p>
         </div>
 
@@ -58,13 +58,6 @@ export default function PaginaPB({ titulo, secoes: prefixos, observacoes, aviso,
           </FormSection>
         ))}
 
-        <FormSection title="Prévia no formulário" description="Como a seção sai no Memorial Descritivo (Documentos).">
-          <div className="bg-white rounded-md p-4 overflow-x-auto">
-            <div className="pbf">
-              {secoes.map((s, i) => <Secao key={i} secao={s}/>)}
-            </div>
-          </div>
-        </FormSection>
       </div>
     </div>
   )
