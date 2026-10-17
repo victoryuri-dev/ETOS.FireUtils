@@ -660,6 +660,40 @@ export function tiposIluminacaoPB(state) {
   return new Set(tipos.map(t => TIPO_ILUMINACAO[t]).filter(Boolean))
 }
 
+// Para que tipo(s) de sistema cada parte do item 13 vale — sem isso, vale
+// para todos. Os atestos gerais de local protegido da fonte também dependem
+// do sistema (central/UPS ou GMG).
+const ILUMINACAO_POR_TIPO = {
+  ilu_central_protegida: ['central_bateria', 'ups'],
+  ilu_gmg_protegido: ['gerador'],
+  circuitoBaterias: ['blocos', 'central_bateria', 'ups'],
+  circuitoLuminarias: ['central_bateria', 'ups', 'gerador'],
+  blocos: ['blocos'],
+  central_bateria: ['central_bateria'],
+  ups: ['ups'],
+  gerador: ['gerador'],
+}
+const valeParaTipos = (chave, tipos) => !ILUMINACAO_POR_TIPO[chave] || ILUMINACAO_POR_TIPO[chave].some(t => tipos.has(t))
+
+/** Partes do item 13 que se aplicam aos tipos de sistema adotados (ver
+ *  tiposIluminacaoPB), cada uma com só os atestos que valem para eles — a
+ *  página da PB mostra uma caixa por parte. */
+export function secoesIluminacaoPB(tipos) {
+  const G = ATESTOS_ILUMINACAO
+  return [
+    ['geral', 'Gerais'],
+    ['circuitoBaterias', 'Circuitos de alimentação das baterias'],
+    ['circuitoLuminarias', 'Circuitos de alimentação das luminárias'],
+    ['luminarias', 'Luminárias'],
+    ['blocos', '13.1 Conjunto de blocos autônomos'],
+    ['central_bateria', '13.2 Sistema centralizado por baterias recarregáveis'],
+    ['ups', '13.3 Sistema centralizado por UPS'],
+    ['gerador', '13.4 Sistema centralizado por grupo motogerador'],
+  ]
+    .filter(([chave]) => valeParaTipos(chave, tipos))
+    .map(([chave, titulo]) => ({ chave, titulo, lista: G[chave].filter(([key]) => valeParaTipos(key, tipos)) }))
+}
+
 // Distância máxima entre pontos de luz: 4 × a altura de instalação (Anexo A
 // da NBR 10898, como o próprio formulário indica).
 export const distanciaMaximaPontosPB = altura => {
@@ -672,7 +706,10 @@ function secaoIluminacao(state, ctx) {
   const at = m.atestos || {}
   const tipos = tiposIluminacaoPB(state)
   const ativo = !!ctx.sistemas?.iluminacao?.ativo
-  const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && atestoMarcado(at, key), label }))
+  // Só marca o que vale para o sistema adotado (o resto do modelo do CBMPB
+  // continua impresso, em branco).
+  const atestos = (lista, parte) => lista.map(([key, label]) =>
+    ck({ x: ativo && valeParaTipos(parte, tipos) && valeParaTipos(key, tipos) && atestoMarcado(at, key), label }))
   const h = parseFloat(String(m.iluAlturaInstalacao ?? '').replace(',', '.'))
   const dist = distanciaMaximaPontosPB(m.iluAlturaInstalacao)
   // Fluxo exato: o informado pelo RT na página de Iluminação da PB.
@@ -686,9 +723,9 @@ function secaoIluminacao(state, ctx) {
       campo('Distância máxima entre pontos de luz conforme Anexo A da NBR (4x altura de instalação):', ativo && dist ? fmtM(dist) : ''),
       ...atestos(G.geral),
       sub('Características dos circuitos de alimentação das baterias (Blocos autônomos, Central à bateria ou UPS):'),
-      ...atestos(G.circuitoBaterias),
+      ...atestos(G.circuitoBaterias, 'circuitoBaterias'),
       sub('Características dos circuitos de alimentação das luminárias (Central à bateria, UPS ou GMG):'),
-      ...atestos(G.circuitoLuminarias),
+      ...atestos(G.circuitoLuminarias, 'circuitoLuminarias'),
       sub('Características das luminárias:'),
       ...atestos([G.luminarias[0]]),
       ck({ x: ativo && atestoMarcado(at, fluxoKey), label: `${fluxoLabel} (Fluxo exato: ${ativo && fluxos ? `${fluxos} lm` : '______ lm'})` }),
@@ -701,13 +738,13 @@ function secaoIluminacao(state, ctx) {
         { x: ativo && tipos.has('gerador'), label: 'Central por gerador' },
       ),
       sub('13.1 Conjunto de blocos autônomos', '(Informe as características do sistema, conforme NBR 10898/2023)'),
-      ...atestos(G.blocos),
+      ...atestos(G.blocos, 'blocos'),
       sub('13.2 Sistema centralizado por baterias recarregáveis', '(Informe as características do sistema, conforme NBR 10898/2023)'),
-      ...atestos(G.central_bateria),
+      ...atestos(G.central_bateria, 'central_bateria'),
       sub('13.3 Sistema centralizado por UPS (Uninterruptible Power Supply)', '(Informe as características do sistema, conforme NBR 10898/2023)'),
-      ...atestos(G.ups),
+      ...atestos(G.ups, 'ups'),
       sub('13.4 Sistema centralizado por Grupo Motogerador', '(Informe as características do sistema, conforme NBR 10898/2023)'),
-      ...atestos(G.gerador),
+      ...atestos(G.gerador, 'gerador'),
       obs('OBSERVAÇÕES LIVRES:', obsDe(state, 'iluminacao')),
     ],
   }

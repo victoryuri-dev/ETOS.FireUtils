@@ -317,6 +317,30 @@ test('13. tipo de sistema: o do projeto ou o de cada estrutura (escolha da pági
   }), ['Central por gerador'])
 })
 
+test('13. partes e atestos filtrados pelo tipo de sistema', async () => {
+  const { secoesIluminacaoPB } = await server.ssrLoadModule('/src/estados/PB/formulario.js')
+  const partes = tipos => secoesIluminacaoPB(new Set(tipos)).map(p => p.chave)
+  const gerais = tipos => secoesIluminacaoPB(new Set(tipos))[0].lista.map(([k]) => k)
+  assert.deepEqual(partes(['blocos']), ['geral', 'circuitoBaterias', 'luminarias', 'blocos'])
+  assert.deepEqual(partes(['gerador']), ['geral', 'circuitoLuminarias', 'luminarias', 'gerador'])
+  assert.deepEqual(partes(['ups']), ['geral', 'circuitoBaterias', 'circuitoLuminarias', 'luminarias', 'ups'])
+  assert.deepEqual(partes([]), ['geral', 'luminarias'])
+  assert.ok(!gerais(['blocos']).includes('ilu_central_protegida') && !gerais(['blocos']).includes('ilu_gmg_protegido'))
+  assert.ok(gerais(['ups']).includes('ilu_central_protegida'))
+  assert.ok(gerais(['gerador']).includes('ilu_gmg_protegido'))
+
+  // No formulário, um atesto marcado de outro sistema não sai com X.
+  const s = secao(gerar(projeto({
+    sistemas: { ...SISTEMAS, iluminacao: { obrigatorio: false, ativo: true } },
+    iluminacaoSistema: { tipo: 'bloco_autonomo' },
+    memorialPB: { atestos: { ilu_bl_comutacao: true, ilu_ups_exclusiva: true, ilu_gmg_protegido: true } },
+  })), '13.')
+  const x = marcados(s)
+  assert.ok(x.includes('Tempo de comutação em bloco autônomo de, no máximo, 2 segundos'))
+  assert.ok(!x.includes('UPS exclusiva para a iluminação de emergência'))
+  assert.ok(!x.some(l => l.startsWith('GMG em locais confinados')))
+})
+
 test('17. hidrantes: tipo, vazão/pressão, RTI e bombas vêm da página comum; extras da PB', () => {
   const p = projeto({
     sistemasPorEstrutura: { e1: { hidrantes: true } },

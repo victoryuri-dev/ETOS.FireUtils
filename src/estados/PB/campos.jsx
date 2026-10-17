@@ -5,7 +5,7 @@ import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { getMemorialFormulario } from '../../data/normas/index'
 import {
   ATESTOS_PB, atestoMarcado, resumoBrigadaPB, INTERVALO_SIMULADOS_PADRAO, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
-  distanciaMaximaPontosPB, tiposIluminacaoPB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
+  distanciaMaximaPontosPB, tiposIluminacaoPB, secoesIluminacaoPB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
@@ -252,34 +252,25 @@ export function CamposBrigadaPB() {
 // PB), fluxo luminoso, altura de instalação (distância máxima = 4 × altura)
 // e atestos; os de 13.1–13.4 só do tipo adotado.
 export function CamposIluminacaoPB() {
-  const { state, m, campo, atestos, alternarAtesto } = useCamposPB()
-  const G = ATESTOS_PB.iluminacao
-  const grupos = tiposIluminacaoPB(state)
-  const tem = (...ks) => ks.some(k => grupos.has(k))
-  const dist = distanciaMaximaPontosPB(m.iluAlturaInstalacao)
-  const secoes = [
-    ['Gerais', G.geral, true],
-    ['Circuitos de alimentação das baterias', G.circuitoBaterias, tem('blocos', 'central_bateria', 'ups')],
-    ['Circuitos de alimentação das luminárias', G.circuitoLuminarias, tem('central_bateria', 'ups', 'gerador')],
-    ['Luminárias', G.luminarias, true],
-    ['13.1 Conjunto de blocos autônomos', G.blocos, tem('blocos')],
-    ['13.2 Sistema centralizado por baterias', G.central_bateria, tem('central_bateria')],
-    ['13.3 Sistema centralizado por UPS', G.ups, tem('ups')],
-    ['13.4 Grupo motogerador', G.gerador, tem('gerador')],
-  ]
+  const { state, campo, atestos, alternarAtesto } = useCamposPB()
+  const dist = distanciaMaximaPontosPB(campo('iluAlturaInstalacao').value)
   return (
     <>
-    <EscolhaSistemaIluminacao/>
-    <BoxPB item="13">
-      <div className="g2">
-        <div className="fg"><label>Altura de instalação do ponto de luz (m)</label><input inputMode="decimal" {...campo('iluAlturaInstalacao')} placeholder="Ex.: 2,40"/></div>
-        <div className="fg"><label>Distância máxima entre pontos (4 × altura)</label><input readOnly value={dist ? `${fmtNum(dist, 2)} m` : ''} placeholder="Informe a altura"/></div>
-      </div>
-      <div className="fg"><label>Fluxo luminoso exato das luminárias (lm)</label><input inputMode="decimal" {...campo('iluFluxo')} placeholder="Ex.: 300"/></div>
-      {secoes.filter(([, , mostrar]) => mostrar).map(([titulo, lista]) => (
-        <Atestos key={titulo} titulo={titulo} lista={lista} atestos={atestos} alternar={alternarAtesto}/>
+      <EscolhaSistemaIluminacao/>
+      <BoxPB item="13">
+        <div className="g2">
+          <div className="fg"><label>Altura de instalação do ponto de luz (m)</label><input inputMode="decimal" {...campo('iluAlturaInstalacao')} placeholder="Ex.: 2,40"/></div>
+          <div className="fg"><label>Distância máxima entre pontos (4 × altura)</label><input readOnly value={dist ? `${fmtNum(dist, 2)} m` : ''} placeholder="Informe a altura"/></div>
+        </div>
+        <div className="fg"><label>Fluxo luminoso exato das luminárias (lm)</label><input inputMode="decimal" {...campo('iluFluxo')} placeholder="Ex.: 300"/></div>
+      </BoxPB>
+      {/* Uma caixa por parte do item 13, só com o que vale para o sistema
+          escolhido acima. */}
+      {secoesIluminacaoPB(tiposIluminacaoPB(state)).map(({ chave, titulo, lista }) => (
+        <FormSection key={chave} title={titulo}>
+          <Atestos titulo={null} lista={lista} atestos={atestos} alternar={alternarAtesto}/>
+        </FormSection>
       ))}
-    </BoxPB>
     </>
   )
 }
