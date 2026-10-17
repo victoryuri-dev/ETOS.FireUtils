@@ -14,6 +14,7 @@ const larguraAlvo = (total, expandido) => Math.round(expandido
 
 const TOPO_BOTAO = 150   // alinhado ao primeiro bloco do formulário
 const BOTAO = 48
+const LEFT_BOTAO = 1020
 
 /**
  * Página de medida com a prévia do documento ao lado. Um botão quadrado
@@ -34,16 +35,12 @@ export default function ComPrevia({ sistKey, children }) {
   const [expandido, setExpandido] = useState(false)
   const [posBotao, setPosBotao] = useState(null)
 
-  // Botão logo à direita do formulário (o primeiro bloco com largura
-  // máxima da página), sem passar da coluna.
+  // Botão a 1020 px da borda esquerda da área da página (ao lado do
+  // formulário); em tela estreita, fica dentro da coluna.
   const posicionar = useCallback(() => {
-    const raiz = raizRef.current, coluna = colunaRef.current
-    if (!raiz || !coluna) return
-    const r = raiz.getBoundingClientRect()
-    const c = coluna.getBoundingClientRect()
-    const form = coluna.querySelector('[class*="max-w-"]')
-    const direita = form ? form.getBoundingClientRect().right : c.right - 24
-    setPosBotao(Math.min(direita + 8, c.right - BOTAO - 8) - r.left)
+    const coluna = colunaRef.current
+    if (!coluna) return
+    setPosBotao(Math.min(LEFT_BOTAO, coluna.clientWidth - BOTAO - 8))
   }, [])
 
   useLayoutEffect(() => {
