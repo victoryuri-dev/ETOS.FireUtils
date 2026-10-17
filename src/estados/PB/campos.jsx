@@ -514,7 +514,13 @@ export function CamposAcessoViaturaPB() {
             {numero('alturaLivre', `Altura livre (mín. ${fmtNum(P.via.alturaLivreMin, 2)} m)`, { padrao: P.via.alturaLivreMin, minimo: P.via.alturaLivreMin })}
             {numero('extensaoVia', 'Comprimento da via em relação à via pública', { minimo: 0 })}
           </div>
-          {r.via.reduzida && <span className="text-[11.5px] text-ink-faint">Largura entre 5 e 6 m: marca a linha "via com largura inferior a 6,00 m" do formulário.</span>}
+          {r.via.reduzida && (
+            <div className="ibox amber">
+              <span className="text-xs">
+                <strong>Largura abaixo de 6,00 m:</strong> como compensação, a faixa de estacionamento é obrigatória e deve atender aos itens a) a h) do formulário — 6 × 15 m, 25.000 kgf, desnível até 5%, paralela a uma face com aberturas e a até 8 m dela, livre de obstáculos e sinalizada com "PROIBIDO PARAR E ESTACIONAR".
+              </span>
+            </div>
+          )}
           {pergunta('cargaConfirmada', 'A via suporta viaturas de 25.000 kgf em toda a sua extensão?')}
           {pergunta('temPortao', 'Há portão de acesso?')}
           {av.temPortao === true && (
@@ -529,10 +535,6 @@ export function CamposAcessoViaturaPB() {
                 <strong>Retorno obrigatório:</strong> a via tem menos de {fmtNum(P.retorno.larguraAbaixoDe, 2)} m de largura e mais de {fmtNum(P.retorno.comprimentoAcimaDe, 0)} m de comprimento — prever área de retorno que garanta a entrada e a saída das viaturas{P.retorno.opcoes?.length ? ` (retorno ${P.retorno.opcoes.join(', ').replace(/, ([^,]*)$/, ' ou $1')})` : ''}.
               </span>
             </div>
-          )}
-          {pergunta('faixaEstacionamento', 'Há faixa de estacionamento?')}
-          {av.faixaEstacionamento === true && (
-            <span className="text-[11.5px] text-ink-faint">A faixa deve atender aos itens a) a h) do formulário: 6 × 15 m, 25.000 kgf, desnível até 5%, paralela a uma face com aberturas e a até 8 m dela, livre de obstáculos e sinalizada.</span>
           )}
         </>
       )}

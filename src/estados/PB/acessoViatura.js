@@ -66,6 +66,8 @@ export function decidirAcessoViaturaPB(av = {}, temRecalqueProjeto, P) {
       exigeRetorno,
     },
     portaoOk,
-    faixa: obrigatorio === true && av.faixaEstacionamento === true,
+    // Faixa de estacionamento: compensação obrigatória quando o RT adota via
+    // com menos de 6 m (até o mínimo de 5 m); com 6 m ou mais, não se aplica.
+    faixa: obrigatorio === true && viaReduzida,
   }
 }

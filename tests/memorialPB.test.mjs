@@ -340,7 +340,7 @@ test('6. acesso de viatura: as distâncias informadas marcam a linha certa do fo
   const m1 = marcados(sec(via))
   assert.ok(m1.some(l => l.startsWith('Vias de acesso para viaturas')))
   assert.ok(m1.some(l => l.startsWith('O portão de acesso')))
-  const m2 = marcados(sec({ ...via, larguraVia: '5,5', extensaoVia: '40', faixaEstacionamento: true }))
+  const m2 = marcados(sec({ ...via, larguraVia: '5,5', extensaoVia: '40' }))
   assert.ok(!m2.some(l => l.startsWith('Vias de acesso para viaturas')))
   assert.ok(m2.some(l => l.startsWith('Locais com via de acesso com largura inferior a 6,00 m')))
   assert.ok(m2.some(l => l.startsWith('Áreas para retorno')))
@@ -348,7 +348,7 @@ test('6. acesso de viatura: as distâncias informadas marcam a linha certa do fo
   // dados da via em branco = padrão (6 m, 4,5 m): basta responder que suporta 25.000 kgf
   assert.ok(marcados(sec({ distanciaEdificacao: '25', cargaConfirmada: true })).some(l => l.startsWith('Vias de acesso para viaturas')))
   assert.ok(!marcados(sec({ distanciaEdificacao: '25', cargaConfirmada: false })).some(l => l.startsWith('Vias de acesso para viaturas')))
-  assert.ok(!marcados(sec({ ...via, faixaEstacionamento: false })).some(l => l.startsWith('Faixas de estacionamento')))
+  assert.ok(!marcados(sec(via)).some(l => l.startsWith('Faixas de estacionamento')))   // via de 6 m: faixa não se aplica
   // facultativo: nada da via é marcado
   assert.equal(marcados(sec({ ...via, distanciaEdificacao: '10' })).length, 1)
 })
