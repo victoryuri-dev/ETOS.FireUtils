@@ -421,13 +421,14 @@ test('12. dimensionamento da brigada no formato do memorial do MA, sem a introdu
   const blocos = s.linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:').blocos
   assert.equal(blocos[0].tipo, 'titulo2')                          // sem o parágrafo introdutório
   assert.equal(blocos[0].texto, 'Bloco A')
-  const [ref, res, niveis] = blocos.filter(b => b.tipo === 'tabela')
+  const [ref, res, ...outras] = blocos.filter(b => b.tipo === 'tabela')
+  assert.equal(outras.length, 0)                                   // níveis saem em texto, sem tabela
   assert.deepEqual(ref.colunas, ['Divisão', 'Grau de risco', 'Até 8'])   // só a faixa usada
   assert.deepEqual(res.colunas, ['Pavimento', 'Divisão', 'Risco', 'Pop. fixa', 'Brigadistas'])
   assert.deepEqual(res.linhas[0].slice(0, 4), ['Térreo', 'C-1', 'Médio', '8'])
-  assert.deepEqual(niveis.colunas, ['Maior grau de risco', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'])
-  assert.equal(niveis.linhas.length, 1)                            // uma linha para a estrutura
-  assert.ok(blocos.some(b => b.tipo === 'campo' && b.label === 'Total de brigadistas exigidos na estrutura'))
+  const campos = blocos.filter(b => b.tipo === 'campo').map(b => b.label)
+  assert.deepEqual(campos, ['Brigadistas exigidos na edificação', 'Nível de treinamento'])
+  assert.equal(blocos.find(b => b.label === 'Nível de treinamento').valor, 'Básico')
   // sem brigada exigida, o campo fica vazio
   const sem = secao(gerar(projeto({ sistemasPorEstrutura: { e1: { brigada: false } } })), '12.').linhas.find(l => l.tipo === 'obs' && l.label === 'DIMENSIONAMENTO:')
   assert.equal(sem.blocos.length, 0)

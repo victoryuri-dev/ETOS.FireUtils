@@ -3,16 +3,16 @@
 // (brigada_calc.js) que alimenta a tela de dimensionamento — o texto nunca
 // duplica a lógica de faixa/nota, só narra o resultado.
 //
-// Cada estrutura entra com três tabelas: o trecho normativo bruto (uma linha
+// Cada estrutura entra com duas tabelas: o trecho normativo bruto (uma linha
 // por divisão realmente usada, só com as colunas da Tabela A.1 que se
 // aplicam, com as notas do rodapé logo abaixo), o resultado calculado por
 // pavimento (com as parcelas até 10 / acima de 10 / total quando houver
-// acréscimo da Nota 5) com o total, e o maior grau de risco e os maiores
-// níveis de treinamento/instalação da estrutura.
+// acréscimo da Nota 5), seguido do total e do maior nível de treinamento
+// da estrutura em texto.
 
 import { getBrigada, getExtintores, getCNAEsDivisao } from '../normas/index'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
-import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL, COLUNAS_FAIXA, maiorRisco, maiorNivel } from '../brigada_calc'
+import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, linhaTabelaA1Bruta, NIVEL_LABEL, COLUNAS_FAIXA, maiorNivel } from '../brigada_calc'
 import { blocoObservacao } from '../../utils/observacoes'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
@@ -117,8 +117,8 @@ function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiares
     return { pav, risco, ...calcularBrigadaPavimento(pav.divisao, risco, pav.populacaoFixa, altura, tabela, area, opcoes) }
   })
 
-  const temAsterisco = linhasCalculadas.some(({ linha, resultado, nivelTreinamento, nivelInstalacao }) =>
-    linha && !linha.isento && (resultado?.brigadistas == null || nivelTreinamento?.dinamico || nivelInstalacao?.dinamico))
+  const temAsterisco = linhasCalculadas.some(({ linha, resultado, nivelTreinamento }) =>
+    linha && !linha.isento && (resultado?.brigadistas == null || nivelTreinamento?.dinamico))
 
   // ── Trecho normativo (Anexo A) — uma linha por divisão usada, tal como
   // impressa na Tabela A.1 (só as colunas que se aplicam), com as notas do
@@ -141,36 +141,24 @@ function blocosDaEstrutura(est, pavs, altura, area, cargaEst, cnaesDiv, limiares
   // ── Resultado calculado — uma linha por pavimento, com o total.
   blocos.push(tabelaResultado(linhasCalculadas))
 
+  // Total e nível de treinamento da estrutura em texto, logo abaixo do
+  // resultado — o nível é o maior entre os pavimentos (isentos fora).
   const totalBrigadistas = linhasCalculadas.reduce((s, l) => s + (l.resultado?.brigadistas || 0), 0)
   const totalNumerico = linhasCalculadas.some(l => l.resultado?.brigadistas != null)
   if (totalNumerico) {
-    blocos.push({ tipo: 'campo', label: 'Total de brigadistas exigidos na estrutura', valor: String(totalBrigadistas) })
+    blocos.push({ tipo: 'campo', label: 'Brigadistas exigidos na edificação', valor: String(totalBrigadistas) })
   }
-
-  // ── Níveis de treinamento (Anexo B) e de instalação (Tabela A.2) — tabela
-  // própria, uma linha para a estrutura: maior grau de risco e maior nível
-  // entre os pavimentos (os isentos ficam de fora).
   const comNivel = linhasCalculadas.filter(l => l.linha && !l.linha.isento)
   if (comNivel.length > 0) {
-    const risco = maiorRisco(comNivel.map(l => l.risco))
-    blocos.push({
-      tipo: 'tabela',
-      colunas: ['Maior grau de risco', 'Nível do treinamento (Anexo B)', 'Nível da instalação (Tabela A.2)'],
-      linhas: [[
-        risco ? RISCO_LABEL[risco] : 'Não classificado',
-        labelNivel(maiorNivel(comNivel.map(l => l.nivelTreinamento))),
-        labelNivel(maiorNivel(comNivel.map(l => l.nivelInstalacao))),
-      ]],
-    })
+    blocos.push({ tipo: 'campo', label: 'Nível de treinamento', valor: labelNivel(maiorNivel(comNivel.map(l => l.nivelTreinamento))) })
   }
 
   // Observações sem número de nota (não cabem no rodapé da tabela de
   // referência acima) — ex.: "informe a população fixa para calcular".
   const observacoesLivres = new Set()
-  linhasCalculadas.forEach(({ resultado, nivelTreinamento, nivelInstalacao }) => {
+  linhasCalculadas.forEach(({ resultado, nivelTreinamento }) => {
     if (resultado?.detalhe) observacoesLivres.add(resultado.detalhe)
     if (nivelTreinamento?.detalhe) observacoesLivres.add(nivelTreinamento.detalhe)
-    if (nivelInstalacao?.detalhe) observacoesLivres.add(nivelInstalacao.detalhe)
   })
   if (observacoesLivres.size > 0) blocos.push({ tipo: 'lista', itens: [...observacoesLivres] })
 
@@ -217,7 +205,7 @@ export function textoMemorialBrigadaIncendio(state, sistemas, porEstrutura, opco
   if (blocos.length === 0) {
     blocos.push({ tipo: 'paragrafo', texto: 'Não há estruturas ou pavimentos cadastrados ainda — pendente de definição pelo responsável técnico.' })
   } else if (temAsterisco) {
-    blocos.push({ tipo: 'paragrafo', texto: '* Nível de treinamento/instalação ou número de brigadistas dependente de confirmação adicional — ver observações acima e as Notas da Tabela A.1.' })
+    blocos.push({ tipo: 'paragrafo', texto: '* Nível de treinamento ou número de brigadistas dependente de confirmação adicional — ver observações acima e as Notas da Tabela A.1.' })
   }
 
   return { titulo: 'Brigada de Incêndio', blocos: [...introducao, ...blocos] }
