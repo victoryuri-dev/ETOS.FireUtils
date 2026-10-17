@@ -17,6 +17,9 @@ export function resumoSaidasPB(state, porEstrutura = []) {
   const sistemasPorEst = Object.fromEntries(porEstrutura.map(pe => [pe.estrutura.id, pe.sistemas]))
   let popMax = 0, popTotal = 0, larAD = 0, larER = 0, larPT = 0
   const distDescarga = [], distDemais = [], escadas = []
+  // Escadas/rampas só existem com mais de um pavimento (contando subsolos)
+  // em alguma estrutura; "demais andares", com pavimento fora do de descarga.
+  let temEscada = false, temDemaisAndares = false
 
   ;(state.estruturas || []).forEach(est => {
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
@@ -40,8 +43,10 @@ export function resumoSaidasPB(state, porEstrutura = []) {
         if (d != null) (pav.pisoDescarga ? distDescarga : distDemais).push({ valor: d, divisao: pav.divisao })
       }
     })
+    if ((parseInt(est.nPavimentos) || 1) + (parseInt(est.nSubsolos) || 0) > 1) temEscada = true
+    if (pavs.some(p => !p.pisoDescarga)) temDemaisAndares = true
     const esc = tipoEscadaEstrutura(est, pavs.map(p => p.divisao), se.TIPOS_ESCADA)
     if (esc?.status === 'ok') escadas.push(esc.exigido)
   })
-  return { popMax, popTotal, larAD, larER, larPT, distDescarga, distDemais, escadas }
+  return { popMax, popTotal, larAD, larER, larPT, distDescarga, distDemais, escadas, temEscada, temDemaisAndares }
 }

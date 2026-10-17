@@ -376,3 +376,17 @@ test('9. CMAR: linha e classes por estrutura (a mais restritiva entre as divisõ
   assert.ok(textos.includes('Bloco A: Piso Classe I, II-A, III-A ou IV-A; Parede Classe I, II-A ou III-A; Teto Classe I, II-A ou III-A; Fachada Classe I a II-B'))
   assert.ok(textos.some(t => t.startsWith('Bloco B: ') && t.includes('Parede Classe I ou II-A')))
 })
+
+test('10. edificação térrea: escadas e demais andares N/A, 10.1 não exigível; com pavimentos, tipo de escada automático', () => {
+  const terrea = projeto({ estruturas: [{ id: 'e1', nome: 'Bloco A', areaTotal: '400', altura: '3', alturaPisoPiso: 3, nPavimentos: 1, nSubsolos: 0 }] })
+  const s = secao(gerar(terrea), '10.')
+  assert.equal(valorCampo(s, 'Largura (metros) das escadas e rampas:'), 'N/A')
+  assert.equal(valorCampo(s, 'Distanciamento (metros) máximo a ser percorrido nos demais andares:'), 'N/A')
+  assert.equal(s.linhas.find(l => l.tipo === 'exigivel').exigivel, false)   // 10.1: escadas não exigíveis
+  // 3 pavimentos, 9 m, C-1 → Tabela 3: NE (6 < H ≤ 12)
+  const p = projeto()
+  p.pavimentos.push({ id: 'p2', estruturaId: 'e1', label: '1º pav', tipo: 'pavimento', divisao: 'C-1', area: '400', pisoDescarga: false, ambientes: [], acessos: [] })
+  const s2 = secao(gerar(p), '10.')
+  assert.equal(s2.linhas.find(l => l.tipo === 'exigivel').exigivel, true)
+  assert.ok(marcados(s2).includes('Não Enclausurada - NE'))
+})
