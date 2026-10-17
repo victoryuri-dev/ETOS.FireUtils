@@ -3,35 +3,11 @@ import { useProjeto } from '../context/ProjetoContext'
 import AnexoBPage from './documentos/AnexoBPage'
 import MemorialDescritivoPage from './documentos/MemorialDescritivoPage'
 import MemorialPBPage from './documentos/MemorialPBPage'
-import { usaMemorialFormulario } from '../data/normas/index'
+import { documentosDoEstado } from '../estados/registro'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
 import SemLicenca from '../components/perfil/SemLicenca'
 import { useAcesso } from '../hooks/useLicencas'
-
-const DOCUMENTOS = [
-  {
-    id: 'anexo-b',
-    titulo: 'Anexo B — NT 01',
-    descricao: 'Formulario de Seguranca Contra Incendio para Processo Tecnico. Preenchido com os dados cadastrados nas etapas de configuracao do projeto.',
-  },
-  {
-    id: 'memorial-descritivo',
-    titulo: 'Memorial Descritivo',
-    descricao: 'Uma pagina por medida de seguranca dimensionada, com o texto tecnico gerado a partir dos dados de cada dimensionamento — inclui o Plano de Emergencia (NT 16) quando aplicavel ao projeto.',
-  },
-]
-
-// Estados cujo memorial é o formulário oficial do CBM (hoje só a PB — ver
-// normas/PB/memorial_formulario.js): no lugar do Anexo B (NT 01 CBMMA) e do
-// memorial em texto corrido, um único documento — o próprio formulário.
-const DOCUMENTOS_FORMULARIO = [
-  {
-    id: 'memorial-descritivo',
-    titulo: 'Memorial Descritivo — CBMPB',
-    descricao: 'Formulario oficial do Memorial Descritivo do Projeto de Seguranca Contra Incendio do CBMPB, preenchido com os dados do projeto, com os Anexos A a D ao final.',
-  },
-]
 
 function DocumentoCard({ doc, onAbrir }) {
   return (
@@ -54,15 +30,10 @@ function DocumentoCard({ doc, onAbrir }) {
 export default function DocumentosPage() {
   const location = useLocation()
   const { state } = useProjeto()
-  // Anexo B pede dados (endereço, responsáveis, área do terreno...) que um
-  // projeto "apenas dimensionamento" nunca coleta — não faz sentido gerar
-  // um formulário cheio de campo em branco pra um modo pensado pra não
-  // pedir esse dado.
-  const formulario = usaMemorialFormulario(state.uf)
-  const documentos = formulario ? DOCUMENTOS_FORMULARIO
-    : state.tipoProjeto === 'dimensionamento'
-    ? DOCUMENTOS.filter(d => d.id !== 'anexo-b')
-    : DOCUMENTOS
+  // Documentos do estado do projeto (estados/registro.js). Anexo B pede
+  // dados (endereço, responsáveis, área do terreno...) que um projeto
+  // "apenas dimensionamento" nunca coleta — fica de fora nesse modo.
+  const documentos = documentosDoEstado(state.uf, state.tipoProjeto)
   // O documento aberto vive na URL (/projeto/:id/documentos/:docId), então
   // recarregar a página ou copiar o link mantém o documento aberto.
   const { id, docId } = useParams()
@@ -94,12 +65,10 @@ export default function DocumentosPage() {
     )
   }
 
-  if (aberto === 'anexo-b') {
-    return <AnexoBPage onBack={voltar}/>
-  }
-  if (aberto === 'memorial-descritivo') {
-    return formulario ? <MemorialPBPage onBack={voltar}/> : <MemorialDescritivoPage onBack={voltar}/>
-  }
+  const tipo = documentos.find(d => d.id === aberto)?.tipo
+  if (tipo === 'anexo-b') return <AnexoBPage onBack={voltar}/>
+  if (tipo === 'memorial-texto') return <MemorialDescritivoPage onBack={voltar}/>
+  if (tipo === 'formulario-pb') return <MemorialPBPage onBack={voltar}/>
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-bg">
@@ -113,7 +82,7 @@ export default function DocumentosPage() {
             </p>
           </div>
 
-          {!formulario && (
+          {documentos.some(d => d.tipo === 'anexo-b') && (
             <div className="ibox amber mb-5">
               <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
               <span>Os campos "Para uso do CBMMA" (protocolo, observacoes, No do CAP) sao de preenchimento exclusivo do Corpo de Bombeiros e ficam em branco no documento.</span>

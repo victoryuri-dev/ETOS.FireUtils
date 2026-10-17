@@ -12,6 +12,7 @@ import InfoTip from '../ui/InfoTip'
 import { Chip } from '../ui/EstruturaHeaderInfo'
 import { fmtUn } from '../../utils/numero'
 import ExtensaoConfig from '../../estados/ExtensaoConfig'
+import { textosDoEstado } from '../../estados/registro'
 import TipoProjetoBox from './TipoProjetoBox'
 
 const S = {
@@ -303,7 +304,7 @@ export default function Step2({ step, totalSteps }) {
           {state.situacao === 'existente' && (
             <div className="ibox amber mt-2 mb-3.5">
               <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0"/>
-              <span>Para edificacoes existentes o {state.uf === 'PB' ? 'CBMPB' : 'CBMMA'} pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
+              <span>Para edificacoes existentes o {textosDoEstado(state.uf).orgao} pode aceitar medidas compensatorias. Documente as condicoes atuais com precisao.</span>
             </div>
           )}
 

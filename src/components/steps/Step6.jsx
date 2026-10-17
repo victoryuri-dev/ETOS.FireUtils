@@ -7,6 +7,7 @@ import EstruturaHeaderInfo from '../ui/EstruturaHeaderInfo'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
 import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
 import ExtensaoConfig from '../../estados/ExtensaoConfig'
+import { textosDoEstado } from '../../estados/registro'
 
 const SIST_CONFIG = [
   { key:'acesso_viatura',      icon:'viaturaMedida', label:'Acesso de Viatura em Edificacoes'   },
@@ -274,7 +275,7 @@ export default function Step6({ step, totalSteps }) {
             {!dimensionamento && (
               <div>
                 <div className={blockTitle}>Riscos especiais</div>
-                <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes nesta estrutura ou area de risco, {state.uf === 'PB' ? 'conforme item 5 do Memorial Descritivo do CBMPB.' : 'conforme Anexo B da NT 01.'}</p>
+                <p className="text-[13px] text-ink-faint leading-[1.6] mb-3">Marque os riscos especiais presentes nesta estrutura ou area de risco, {textosDoEstado(state.uf).referenciaRiscosEspeciais}</p>
                 <RiscosGrid uf={state.uf} estruturaId={est.id} riscos={riscos} outrosDesc={outrosDesc} dispatch={dispatch}/>
               </div>
             )}

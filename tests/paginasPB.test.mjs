@@ -45,3 +45,14 @@ test('extensões da Configuração da PB renderizam', () => {
   assert.ok(html(createElement(ExtensaoConfig, { ponto: 'classificacao' })).includes('natureza da ocupação'))
   assert.ok(html(createElement(ExtensaoConfig, { ponto: 'riscos' })).includes('GLP'))
 })
+
+test('registro por estado: documentos e textos da Configuração', async () => {
+  const { documentosDoEstado, textosDoEstado, paginaDaMedida } = await server.ssrLoadModule('/src/estados/registro.js')
+  assert.deepEqual(documentosDoEstado('PB', 'completo').map(d => d.tipo), ['formulario-pb'])
+  assert.deepEqual(documentosDoEstado('MA', 'completo').map(d => d.tipo), ['anexo-b', 'memorial-texto'])
+  assert.deepEqual(documentosDoEstado('MA', 'dimensionamento').map(d => d.tipo), ['memorial-texto'])
+  assert.equal(textosDoEstado('PB').orgao, 'CBMPB')
+  assert.equal(textosDoEstado('MA').orgao, 'CBMMA')
+  assert.ok(paginaDaMedida('PB', 'extintores'))
+  assert.equal(paginaDaMedida('MA', 'extintores'), null)
+})
