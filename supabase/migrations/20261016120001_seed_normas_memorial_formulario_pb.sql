@@ -5,9 +5,10 @@
 --
 -- Aqui ficam só os parâmetros que decidem o que é marcado (faixas de altura
 -- e de carga de incêndio, classes de GLP da NBR 15514, linhas do CMAR,
--- capacidade extintora por nível, riscos especiais, estágios de construção),
+-- capacidade extintora por nível, riscos especiais, estágios de construção,
+-- limites do acesso de viatura),
 -- todos transcritos do próprio formulário. Mesmo conteúdo de
--- src/data/normas/PB/memorial_formulario.js (fallback offline/dev) — gerado
+-- src/data/normas/PB/memorial_formulario.js (fonte deste seed) — gerado
 -- a partir dele, não editar só um dos dois. Chaves em minúsculo, como nos
 -- demais sistemas (ver renomearDaBaseCentral em src/data/normas/index.js).
 --
@@ -18,6 +19,37 @@
 
 insert into public.normas_dados (uf, sistema, dados, versao) values
   ('PB', 'memorial_formulario', $j${
+  "acesso_viatura": {
+    "semRecalque": {
+      "edificacaoMax": 20
+    },
+    "comRecalque": {
+      "recalqueMax": 20,
+      "edificacaoMax": 50
+    },
+    "via": {
+      "larguraMin": 6,
+      "larguraReduzidaMin": 5,
+      "alturaLivreMin": 4.5,
+      "cargaKgf": 25000,
+      "distanciaEdificacaoSemHidrante": 20,
+      "distanciaRecalqueComHidrante": 10
+    },
+    "portao": {
+      "larguraMin": 4,
+      "alturaMin": 4.5
+    },
+    "retorno": {
+      "larguraAbaixoDe": 6,
+      "comprimentoAcimaDe": 30
+    },
+    "faixaEstacionamento": {
+      "larguraMin": 6,
+      "comprimentoMin": 15,
+      "desnivelMaxPct": 5,
+      "distanciaFaceMax": 8
+    }
+  },
   "classes_altura": [
     {
       "classe": "I",

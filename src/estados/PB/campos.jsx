@@ -6,6 +6,7 @@ import {
   distanciaMaximaPontosPB, TIPOS_HIDRANTE_PB, RESERVATORIOS_PB, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
 import { dimensionamentoSaidasPB } from './saidas'
+import { decidirAcessoViaturaPB } from './acessoViatura'
 import { fmtNum } from '../../utils/numero'
 import FormSection from '../../components/ui/FormSection'
 import Checkbox from '../../components/ui/Checkbox'
@@ -424,6 +425,80 @@ export function CamposHidrantesPB() {
       </div>
       <Atestos titulo="Bombas e tubulação — declarações" lista={ATESTOS_PB.hidrantes.bombas} atestos={atestos} alternar={alternarAtesto}/>
       <Obs label="Anexo B — dimensionamento do sistema de hidrantes (pressurização, bombas, abrigos, recalque etc.)" campo={campo('hidAnexo')}/>
+    </BoxPB>
+  )
+}
+
+// 6 — o RT informa distâncias e dados da via; a linha do formulário é
+// decidida por decidirAcessoViaturaPB (estados/PB/acessoViatura.js).
+const LINHA_AV = {
+  1: 'Sem hidrante de recalque e edificação a até 20 m da via — acesso facultativo.',
+  2: 'Recalque a até 20 m e edificação a até 50 m da via — acesso facultativo.',
+  3: 'Sem hidrante de recalque e edificação a mais de 20 m da via — acesso obrigatório.',
+  4: 'Recalque a até 20 m e edificação a mais de 50 m da via — acesso obrigatório.',
+  5: 'Recalque a mais de 20 m e edificação a mais de 50 m da via — acesso obrigatório.',
+}
+export function CamposAcessoViaturaPB() {
+  const { m, set, F } = useCamposPB()
+  const { sistemas } = useMedidasObrigatorias()
+  if (!F?.ACESSO_VIATURA) return null
+  const av = m.acessoViatura || {}
+  const setAv = changes => set({ acessoViatura: { ...av, ...changes } })
+  const recalqueProjeto = !!sistemas?.hidrantes?.ativo
+  const r = decidirAcessoViaturaPB(av, recalqueProjeto, F.ACESSO_VIATURA)
+  const inp = (key, label, extra = {}) => (
+    <div className="fg"><label>{label}</label><input inputMode="decimal" value={av[key] || ''} onChange={e => setAv({ [key]: e.target.value })} {...extra}/></div>
+  )
+  const marca = (key, label) => <Marcador label={label} checked={!!av[key]} onChange={() => setAv({ [key]: !av[key] })}/>
+  return (
+    <BoxPB item="6">
+      <div className="fg">
+        <label>Hidrante de recalque no local</label>
+        <select value={av.temRecalque || ''} onChange={e => setAv({ temRecalque: e.target.value })}>
+          <option value="">Automático — {recalqueProjeto ? 'sim (sistema de hidrantes adotado)' : 'não (sem sistema de hidrantes)'}</option>
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+      </div>
+      <div className="g2">
+        {inp('distanciaEdificacao', 'Entrada da circulação comum até a via pública (m, do meio-fio)', { placeholder: 'Ex.: 18' })}
+        {r?.temRecalque && inp('distanciaRecalque', 'Registro do hidrante de recalque até a via pública (m)', { placeholder: 'Ex.: 12' })}
+      </div>
+      {r?.caso && (
+        <div className={`ibox ${r.obrigatorio ? 'amber' : 'green'}`}>
+          <span className="text-xs"><strong>Linha {r.caso} do formulário:</strong> {LINHA_AV[r.caso]}</span>
+        </div>
+      )}
+      {r?.foraDoFormulario && (
+        <div className="ibox amber"><span className="text-xs">Recalque a mais de 20 m da via com edificação a até 50 m: o acesso é obrigatório, mas o formulário não tem linha para este caso — nenhuma das cinco é marcada. Explique na observação.</span></div>
+      )}
+      {r?.obrigatorio && (
+        <>
+          <Rotulo>Via de acesso</Rotulo>
+          <div className="g2">
+            {inp('larguraVia', 'Largura da via (m)', { placeholder: 'mín. 6,00 (5,00 com restrição)' })}
+            {inp('alturaLivre', 'Altura livre (m)', { placeholder: 'mín. 4,50' })}
+            {inp('extensaoVia', 'Comprimento da via em relação à via pública (m)')}
+          </div>
+          {r.via.larguraAbaixoDoMinimo && <div className="ibox red"><span className="text-xs">Largura abaixo de 5,00 m: não atende à NT 14/2023.</span></div>}
+          {marca('cargaConfirmada', 'A via suporta viaturas de 25.000 kgf em toda a extensão')}
+          {marca('desobstruida', 'A via é desobstruída em toda a largura')}
+          {marca('temPortao', 'Há portão de acesso')}
+          {av.temPortao && (
+            <div className="g2">
+              {inp('portaoLargura', 'Largura do portão (m)', { placeholder: 'mín. 4,00' })}
+              {inp('portaoAltura', 'Altura do portão (m)', { placeholder: 'mín. 4,50' })}
+            </div>
+          )}
+          {r.via.exigeRetorno && (
+            <div className="fg">
+              <label>Área de retorno (via com menos de 6 m e mais de 30 m de comprimento)</label>
+              <input value={av.retorno || ''} onChange={e => setAv({ retorno: e.target.value })} placeholder="Ex.: retorno em T no fim da via"/>
+            </div>
+          )}
+          {marca('faixaEstacionamento', 'Faixa de estacionamento atendendo aos itens a) a h) do formulário (6 × 15 m, 25.000 kgf, desnível ≤ 5%, até 8 m da face com aberturas, livre e sinalizada)')}
+        </>
+      )}
     </BoxPB>
   )
 }

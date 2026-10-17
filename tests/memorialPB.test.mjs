@@ -318,3 +318,33 @@ test('14: central e detectores informados na página da PB', () => {
   assert.equal(valorCampo(s14, 'Localização da central do alarme:'), 'Portaria')
   assert.equal(valorCampo(s14, 'Raio de atuação em detecção pontual de temperatura (máximo 4,2m):'), '')
 })
+
+test('6. acesso de viatura: as distâncias informadas marcam a linha certa do formulário', () => {
+  const sec = (av, hid = false) => secao(gerar(projeto({
+    sistemasPorEstrutura: { e1: { acesso_viatura: true, hidrantes: hid } },
+    memorialPB: { acessoViatura: av },
+  })), '6.')
+  const linha = s => s.linhas.filter(l => l.tipo === 'checks').findIndex(l => l.itens[0].x) + 1
+  assert.equal(linha(sec({ distanciaEdificacao: '15' })), 1)
+  assert.ok(marcados(sec({ distanciaEdificacao: '15' }))[0].endsWith('Distância: 15'))
+  assert.equal(linha(sec({ distanciaEdificacao: '25' })), 3)
+  assert.equal(linha(sec({ distanciaEdificacao: '40', distanciaRecalque: '12' }, true)), 2)
+  assert.equal(linha(sec({ distanciaEdificacao: '60', distanciaRecalque: '12' }, true)), 4)
+  assert.equal(linha(sec({ distanciaEdificacao: '60', distanciaRecalque: '25' }, true)), 5)
+  assert.equal(linha(sec({ distanciaEdificacao: '40', distanciaRecalque: '25' }, true)), 0)   // sem linha no formulário
+  assert.equal(linha(sec({ distanciaEdificacao: '15', temRecalque: 'nao' }, true)), 1)        // RT indica que não há recalque
+  assert.equal(linha(sec({})), 0)                                                            // sem distância: nada marcado
+
+  // via obrigatória: a)–f), largura reduzida, retorno, portão e faixa
+  const via = { distanciaEdificacao: '25', larguraVia: '6', alturaLivre: '4,5', cargaConfirmada: true, desobstruida: true, temPortao: true, portaoLargura: '4', portaoAltura: '4,5' }
+  const m1 = marcados(sec(via))
+  assert.ok(m1.some(l => l.startsWith('Vias de acesso para viaturas')))
+  assert.ok(m1.some(l => l.startsWith('O portão de acesso')))
+  const m2 = marcados(sec({ ...via, larguraVia: '5,5', extensaoVia: '40', retorno: 'T', faixaEstacionamento: true }))
+  assert.ok(!m2.some(l => l.startsWith('Vias de acesso para viaturas')))
+  assert.ok(m2.some(l => l.startsWith('Locais com via de acesso com largura inferior a 6,00 m')))
+  assert.ok(m2.some(l => l.startsWith('Áreas para retorno')))
+  assert.ok(m2.some(l => l.startsWith('Faixas de estacionamento')))
+  // facultativo: nada da via é marcado
+  assert.equal(marcados(sec({ ...via, distanciaEdificacao: '10' })).length, 1)
+})

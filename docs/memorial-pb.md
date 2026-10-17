@@ -38,7 +38,7 @@ Regras do gerador:
 | **3.6 Estágio da construção** | ✅ | Box Situação (Etapa 2): nova = "ainda será construída"; existente = 3 opções "as built" + `adaptacoes` (NT 16 / Resoluções Técnicas). |
 | **4. Medidas de proteção** | ✅ | `sistemas[].ativo`. Espuma e resfriamento ainda não existem no app (sempre em branco). |
 | **5. Riscos especiais** | ✅ | Lista por estado (`riscosEspeciaisDoEstado`); a PB acrescenta tendas/coberturas inflamáveis, estrutura montada, geradores e sistemas elétricos montados (Etapa 6). |
-| **6. Acesso de viatura** | 🔜 | A regra que decide a exigência é outra (20 m até a via / 50 m de caminhamento, NT 14/2023 CBMPB). Faixa de estacionamento (a–h) é nova. Hoje: só o Exigível. |
+| **6. Acesso de viatura** | ✅ | O RT informa as distâncias (entrada da circulação comum e registro do recalque até a via) e os dados da via; `estados/PB/acessoViatura.js` marca a linha (casos 1–5) e as exigências da via (a–f, largura 5–6 m, retorno, portão, faixa de estacionamento). Limites no `memorial_formulario` (`acesso_viatura`). Recalque > 20 m com edificação ≤ 50 m não tem linha no formulário: obrigatório, nenhuma marcada, aviso na página. |
 | **7. Segurança estrutural** | ✅ | Grupo, divisão, classe e TRRF de `trrf_calc`, pela tabela da NT 08/2024 da PB. |
 | **8. Compartimentação** | ✅ | Área máxima (a mais restritiva) e elementos marcados na tela de Compartimentação; característica de cada elemento nova (`especificacaoCompart`). ⏸ NT 36 da PB não cadastrada (adiada): página com "norma não cadastrada" e seção em branco. |
 | **9. CMAR** | ✅ | Linha marcada pelo grupo/divisão; observação nova. |

@@ -615,6 +615,10 @@ const INITIAL_STATE = {
     alarmeCentralLocal: '',  // 14.1
     deteccaoCentralLocal: '',// 14.2 ('' = a mesma do alarme)
     detectoresTipos: [],     // 'fumaca_pontual' | 'temperatura_pontual' | 'fumaca_linear' (14.2)
+    // 6 — temRecalque ('' = pelo sistema de hidrantes | 'sim' | 'nao'),
+    // distanciaEdificacao, distanciaRecalque e dados da via
+    // (estados/PB/acessoViatura.js decide a linha do formulário).
+    acessoViatura: {},
     hidrantes: {},           // 17 — tipo, vazão, pressão, RTI, mangueiras, bombas
     hidAnexo: '',            // Anexo B — texto do RT
     extintorNivelIII: '',    // 'nivel_III_3A' | 'nivel_III_4A' (EXTINTORES_NIVEL)

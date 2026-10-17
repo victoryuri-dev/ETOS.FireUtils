@@ -1,7 +1,7 @@
 import PaginaPB from './PaginaPB'
 import {
   CamposCompartimentacaoPB, CamposSaidasPB, CamposPlanoPB, CamposBrigadaPB, CamposIluminacaoPB,
-  CamposAlarmeDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB,
+  CamposAlarmeDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB,
 } from './campos'
 
 // Página da PB de cada medida (chave = sistema, a mesma das rotas
@@ -25,8 +25,7 @@ const semSecao = titulo => (
 
 export const PAGINAS_PB = {
   acesso_viatura: (
-    <PaginaPB titulo="Acesso de Viatura" secoes={['6.']}
-      aviso="A NT 14/2023 (acesso de viatura) da PB ainda não está cadastrada: a seção sai só com o Exigível."/>
+    <PaginaPB titulo="Acesso de Viatura" secoes={['6.']}><CamposAcessoViaturaPB/></PaginaPB>
   ),
   seg_estrutural: <PaginaPB titulo="Segurança Estrutural contra Incêndio" secoes={['7.']} observacoes="seg_estrutural"/>,
   compart_horizontal: compart,

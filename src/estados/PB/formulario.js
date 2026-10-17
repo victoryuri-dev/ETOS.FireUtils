@@ -38,6 +38,7 @@ import { fmtNum } from '../../utils/numero'
 import { alturaEdificacaoBase, edificacaoEhTerrea, calcularTRRF } from '../../data/trrf_calc'
 import { calcularAreaMaximaCompartimentacao } from '../../data/compart_calc'
 import { dimensionamentoSaidasPB } from './saidas'
+import { decidirAcessoViaturaPB } from './acessoViatura'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL } from '../../data/brigada_calc'
 import { observacoesDoProjeto } from '../../utils/observacoes'
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
@@ -281,24 +282,29 @@ function secaoRiscos(state, ctx) {
   }
 }
 
-function secaoAcessoViatura(ctx) {
+function secaoAcessoViatura(state, F, ctx) {
+  const ativo = !!ctx.sistemas?.acesso_viatura?.ativo
+  const temRecalqueProjeto = !!ctx.sistemas?.hidrantes?.ativo
+  const r = ativo ? decidirAcessoViaturaPB(state.memorialPB?.acessoViatura, temRecalqueProjeto, F.ACESSO_VIATURA) : null
+  // Distâncias nas lacunas "______" das linhas, só na linha marcada.
+  const d = v => (v == null ? '______' : fmtNum(v, 2, String(v)))
+  const preencher = (texto, ...valores) => valores.reduce((t, v) => t.replace('______', d(v)), texto)
+  const linha = (n, texto, ...valores) => ck({ x: r?.caso === n, label: r?.caso === n ? preencher(texto, ...valores) : texto })
   return {
     faixa: 'ESPECIFICAÇÃO DOS PREVENTIVOS DA EDIFICAÇÃO',
     titulo: '6. ACESSO DE VIATURA', nota: '(Conforme NT CBMPB nº14/2023)',
     linhas: [
       { tipo: 'exigivel', exigivel: exigibilidade(ctx, 'acesso_viatura') },
-      ...linhasCheck([
-        'Locais sem hidrante de recalque e que possuam todas edificações com distância INFERIOR a 20 m em relação a entrada da circulação comum e a via pública, a contar do meio fio (Não se faz necessário ter o acesso de viatura, tornando-se um item facultativo). Distância: ______',
-        'O hidrante de recalque tem caminhamento INFERIOR ou igual a 20 m entre o registro de qualquer hidrante de recalque e a via pública, a contar do meio fio. Distância exata: ______\nA edificação tem caminhamento INFERIOR ou igual a 50 m medidos entre a entrada da circulação comum e a via pública, a contar do meio fio. Distância exata: ______\n(Não se faz necessário ter o acesso de viatura, tornando-se um item facultativo).',
-        'Locais sem hidrante de recalque e que possuam qualquer edificação com distância SUPERIOR a 20 m em relação a entrada da circulação comum e a via pública, a contar do meio fio. (O acesso de viatura é obrigatório).',
-        'O hidrante de recalque não tem distância SUPERIOR a 20 m entre o registro de qualquer hidrante de recalque e a via pública, a contar do meio fio. Distância exata: ______\nA edificação tem caminhamento SUPERIOR a 50 m medidos entre a entrada da circulação comum e a via pública, a contar do meio fio. Distância exata: ______\n(O acesso de viatura é obrigatório)',
-        'O hidrante de recalque tem distância SUPERIOR a 20 m entre o registro de qualquer hidrante de recalque e a via pública, a contar do meio fio. Distância exata: ______\nA edificação tem caminhamento SUPERIOR a 50 m medidos entre a entrada da circulação comum e a via pública, a contar do meio fio. Distância exata: ______\n(O acesso de viatura é obrigatório)',
-        'Vias de acesso para viaturas\na) largura mínima de 6,0m;\nb) suportar viaturas com peso de 25.000kgf em toda sua extensão;\nc) desobstrução em toda a largura;\nd) altura livre mínima de 4,5m;\ne) a via de acesso (interna ao imóvel) deve distar, no máximo, 20 metros da edificação quando não houver previsão de sistema de hidrantes, ou 10 m do hidrante de recalque quando houver previsão de sistema hidráulico preventivo;\nf) o portão de acesso (quando houver) deve ter as dimensões mínimas de 4m de largura e 4,5m de altura;',
-        'Locais com via de acesso com largura inferior a 6,00 m, até o limite mínimo de 5,00 m',
-        'Faixas de estacionamento\na) largura mínima de 6,00 m;\nb) comprimento mínimo de 15,00 m;\nc) suportar viaturas com peso de 25.000kgf (245.166,25N) em toda sua extensão;\nd) o desnível máximo da faixa de estacionamento não poderá ultrapassar o valor de 5%, tanto longitudinal quanto transversal;\ne) ser paralela a uma das faces da edificação que possua aberturas (portas e ou janelas);\nf) distância máxima da faixa de estacionamento até a face da edificação deve ser de 8 m, medidas a partir de sua borda mais próxima do edifício;\ng) a faixa de estacionamento deve estar livre de postes, painéis, árvores ou qualquer outro elemento que possa obstruir a operação das viaturas;\nh) a faixa de estacionamento deve ser adequadamente sinalizada, com placas de "PROIBIDO PARAR E ESTACIONAR"',
-        'Áreas para retorno que garantam a entrada e saída de viaturas para as vias com largura inferior a 6,00 m e que tenham mais de 30 m de comprimento em relação à via pública',
-        'O portão de acesso (quando houver) deve ter as dimensões mínimas de 4m de largura e 4,5m de altura',
-      ]),
+      linha(1, 'Locais sem hidrante de recalque e que possuam todas edificações com distância INFERIOR a 20 m em relação a entrada da circulação comum e a via pública, a contar do meio fio (Não se faz necessário ter o acesso de viatura, tornando-se um item facultativo). Distância: ______', r?.edificacao),
+      linha(2, 'O hidrante de recalque tem caminhamento INFERIOR ou igual a 20 m entre o registro de qualquer hidrante de recalque e a via pública, a contar do meio fio. Distância exata: ______\nA edificação tem caminhamento INFERIOR ou igual a 50 m medidos entre a entrada da circulação comum e a via pública, a contar do meio fio. Distância exata: ______\n(Não se faz necessário ter o acesso de viatura, tornando-se um item facultativo).', r?.recalque, r?.edificacao),
+      linha(3, 'Locais sem hidrante de recalque e que possuam qualquer edificação com distância SUPERIOR a 20 m em relação a entrada da circulação comum e a via pública, a contar do meio fio. (O acesso de viatura é obrigatório).'),
+      linha(4, 'O hidrante de recalque não tem distância SUPERIOR a 20 m entre o registro de qualquer hidrante de recalque e a via pública, a contar do meio fio. Distância exata: ______\nA edificação tem caminhamento SUPERIOR a 50 m medidos entre a entrada da circulação comum e a via pública, a contar do meio fio. Distância exata: ______\n(O acesso de viatura é obrigatório)', r?.recalque, r?.edificacao),
+      linha(5, 'O hidrante de recalque tem distância SUPERIOR a 20 m entre o registro de qualquer hidrante de recalque e a via pública, a contar do meio fio. Distância exata: ______\nA edificação tem caminhamento SUPERIOR a 50 m medidos entre a entrada da circulação comum e a via pública, a contar do meio fio. Distância exata: ______\n(O acesso de viatura é obrigatório)', r?.recalque, r?.edificacao),
+      ck({ x: !!r?.via.atende, label: 'Vias de acesso para viaturas\na) largura mínima de 6,0m;\nb) suportar viaturas com peso de 25.000kgf em toda sua extensão;\nc) desobstrução em toda a largura;\nd) altura livre mínima de 4,5m;\ne) a via de acesso (interna ao imóvel) deve distar, no máximo, 20 metros da edificação quando não houver previsão de sistema de hidrantes, ou 10 m do hidrante de recalque quando houver previsão de sistema hidráulico preventivo;\nf) o portão de acesso (quando houver) deve ter as dimensões mínimas de 4m de largura e 4,5m de altura;' }),
+      ck({ x: !!r?.via.reduzida, label: 'Locais com via de acesso com largura inferior a 6,00 m, até o limite mínimo de 5,00 m' }),
+      ck({ x: !!r?.faixa, label: 'Faixas de estacionamento\na) largura mínima de 6,00 m;\nb) comprimento mínimo de 15,00 m;\nc) suportar viaturas com peso de 25.000kgf (245.166,25N) em toda sua extensão;\nd) o desnível máximo da faixa de estacionamento não poderá ultrapassar o valor de 5%, tanto longitudinal quanto transversal;\ne) ser paralela a uma das faces da edificação que possua aberturas (portas e ou janelas);\nf) distância máxima da faixa de estacionamento até a face da edificação deve ser de 8 m, medidas a partir de sua borda mais próxima do edifício;\ng) a faixa de estacionamento deve estar livre de postes, painéis, árvores ou qualquer outro elemento que possa obstruir a operação das viaturas;\nh) a faixa de estacionamento deve ser adequadamente sinalizada, com placas de "PROIBIDO PARAR E ESTACIONAR"' }),
+      ck({ x: r?.obrigatorio === true && !!r?.via.exigeRetorno && r.via.retornoInformado, label: 'Áreas para retorno que garantam a entrada e saída de viaturas para as vias com largura inferior a 6,00 m e que tenham mais de 30 m de comprimento em relação à via pública' }),
+      ck({ x: r?.obrigatorio === true && !!r?.portaoOk, label: 'O portão de acesso (quando houver) deve ter as dimensões mínimas de 4m de largura e 4,5m de altura' }),
     ],
   }
 }
@@ -922,7 +928,7 @@ export function buildFormularioPB(state, sistemas, porEstrutura) {
       secaoParametros(state, F, ctx),
       secaoMedidas(ctx),
       secaoRiscos(state, ctx),
-      secaoAcessoViatura(ctx),
+      secaoAcessoViatura(state, F, ctx),
       secaoSegEstrutural(state, ctx),
       secaoCompartimentacao(state, ctx),
       secaoCmar(state, F, ctx),

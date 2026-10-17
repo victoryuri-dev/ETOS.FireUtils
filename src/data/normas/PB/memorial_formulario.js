@@ -127,3 +127,23 @@ export const EXTINTORES_NIVEL = [
   { key: 'nivel_III_3A', nivel: 'III', texto: 'Edificação de nível III com capacidade extintora mínima de 3A e 40BC', detalhe: '(diminuindo distância máxima a ser percorrido, observar a NT 21)' },
   { key: 'nivel_III_4A', nivel: 'III', texto: 'Edificação de nível III com capacidade extintora mínima de 4A e 80BC' },
 ]
+
+// 6. Acesso de viatura (NT CBMPB 14/2023) — limites que decidem qual linha do
+// formulário é marcada (estados/PB/acessoViatura.js), transcritos do próprio
+// formulário. Distâncias em m, a contar do meio-fio da via pública.
+export const ACESSO_VIATURA = {
+  // Sem hidrante de recalque: entrada da circulação comum de todas as
+  // edificações até a via pública — até 20 m, acesso facultativo.
+  semRecalque: { edificacaoMax: 20 },
+  // Com hidrante de recalque: registro do recalque até a via ≤ 20 m E
+  // entrada da circulação comum até a via ≤ 50 m — facultativo.
+  comRecalque: { recalqueMax: 20, edificacaoMax: 50 },
+  via: {
+    larguraMin: 6, larguraReduzidaMin: 5, alturaLivreMin: 4.5, cargaKgf: 25000,
+    distanciaEdificacaoSemHidrante: 20, distanciaRecalqueComHidrante: 10,
+  },
+  portao: { larguraMin: 4, alturaMin: 4.5 },
+  // Retorno exigido: via com largura abaixo de 6 m e mais de 30 m de comprimento.
+  retorno: { larguraAbaixoDe: 6, comprimentoAcimaDe: 30 },
+  faixaEstacionamento: { larguraMin: 6, comprimentoMin: 15, desnivelMaxPct: 5, distanciaFaceMax: 8 },
+}
