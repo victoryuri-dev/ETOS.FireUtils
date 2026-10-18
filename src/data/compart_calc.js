@@ -84,3 +84,37 @@ export function calcularAreaMaximaCompartimentacao(pavimentosOrdenados, estrutur
     conclusivo, dentroDoLimite, dependeComissao,
   }
 }
+
+// ── TRRF dos elementos de compartimentação ──────────────────────────────────
+// Parede/entrepiso/selos etc. = TRRF da estrutura (segurança estrutural),
+// nunca abaixo do mínimo da norma (60 min); portas, vedadores, registros e
+// dispositivos de enrolar podem ter até 30 min a menos, também nunca abaixo
+// do mínimo. Afastamento entre aberturas não é elemento com TRRF.
+const ELEMENTOS_ABERTURA = new Set(['porta_corta_fogo', 'vedador_corta_fogo', 'registro_corta_fogo', 'dispositivo_enrolar'])
+const ELEMENTOS_SEM_TRRF = new Set(['afastamento_horizontal'])
+
+/** Maior TRRF (min) calculado para a estrutura, ou null. `resultadoTRRF` =
+ *  calcularTRRF(...) da segurança estrutural. */
+export function trrfMaximoDaEstrutura(resultadoTRRF) {
+  const valores = (resultadoTRRF?.linhas || []).map(l => l.valor).filter(v => typeof v === 'number')
+  return valores.length ? Math.max(...valores) : null
+}
+
+/** TRRF (min) de um elemento de compartimentação, ou null (sem TRRF). */
+export function trrfElementoCompart(key, trrfEstrutura, normaCompart) {
+  if (ELEMENTOS_SEM_TRRF.has(key)) return null
+  const minimo = normaCompart?.TRRF_MINIMO_PAREDE_COMPARTIMENTACAO ?? 60
+  const reducao = normaCompart?.TRRF_REDUCAO_MAXIMA_ABERTURAS ?? 30
+  const base = Math.max(minimo, Number(trrfEstrutura) || 0)
+  return ELEMENTOS_ABERTURA.has(key) ? Math.max(minimo, base - reducao) : base
+}
+
+/** Característica de um elemento marcado: a informada pelo RT
+ *  (estrutura.caracteristicasCompart[`h:key`/`v:key`]) ou, sem ela, o TRRF
+ *  automático do elemento ("TRRF de 120 min (EI-120)"). */
+export function caracteristicaElementoCompart(est, prefixo, key, trrfEstrutura, normaCompart) {
+  const informada = est?.caracteristicasCompart?.[`${prefixo}:${key}`]
+  if (informada != null && String(informada).trim() !== '') return String(informada).trim()
+  const t = trrfElementoCompart(key, trrfEstrutura, normaCompart)
+  return t == null ? '' : `TRRF de ${t} min (EI-${t})`
+}

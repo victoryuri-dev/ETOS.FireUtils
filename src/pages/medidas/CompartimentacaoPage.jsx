@@ -3,7 +3,8 @@ import Obrigatorio from '../../components/ui/Obrigatorio'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
-import { calcularAreaMaximaCompartimentacao } from '../../data/compart_calc'
+import { calcularAreaMaximaCompartimentacao, caracteristicaElementoCompart } from '../../data/compart_calc'
+import { trrfDaEstrutura } from '../../utils/trrfCompart'
 import Icon from '../../components/ui/Icon'
 import LinhaMarcavel from '../../components/ui/LinhaMarcavel'
 import InfoTip from '../../components/ui/InfoTip'
@@ -15,13 +16,6 @@ import { fmtUn } from '../../utils/numero'
 
 function Card({ children, className = '' }) {
   return <div className={`bg-surface border border-solid border-border rounded-lg overflow-hidden ${className}`}>{children}</div>
-}
-
-// Separador leve entre o bloco de verificação (resultado) e o de
-// documentação (elementos adotados, condições, TRRF) — a hierarquia visual
-// que faltava: primeiro a resposta, depois o suporte pro memorial.
-function Divisor() {
-  return <div className="border-t border-solid border-border -mx-[18px]"/>
 }
 
 function SectionLabel({ children, tip }) {
@@ -211,28 +205,38 @@ function TabelaAreaMaxima({ resultado, onChangeArea, isenta, sigla }) {
   )
 }
 
-function TrrfNota({ children }) {
+
+// Box próprio dos elementos de proteção adotados, com a característica de
+// cada um (o TRRF automático já vem preenchido).
+function CardElementos({ trrfEstrutura, trrfMinimo, trrfReducao, ...checklist }) {
   return (
-    <div className="flex items-start gap-2 text-[11px] text-ink-faint leading-[1.6]">
-      <Icon name="info" size={13} className="shrink-0 mt-0.5"/>
-      <span>{children}</span>
-    </div>
+    <Card className="mb-3">
+      <div className="py-3.5 px-[18px] flex flex-col gap-3">
+        <Checklist {...checklist}/>
+        <span className="text-[11px] text-ink-faint leading-[1.6]">
+          {trrfEstrutura != null
+            ? `TRRF da estrutura (segurança estrutural): ${trrfEstrutura} min. Portas, vedadores, registros e dispositivos de enrolar: até ${trrfReducao} min a menos; mínimo de ${trrfMinimo} min para todos.`
+            : `TRRF da estrutura ainda não calculado na segurança estrutural — usado o mínimo de ${trrfMinimo} min.`}
+        </span>
+      </div>
+    </Card>
   )
 }
 
-function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimentacaoHorizontal, compart, obrigH, obrigV, dispatch }) {
+function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimentacaoHorizontal, compart, trrfEstrutura, obrigH, obrigV, dispatch }) {
   const {
     TABELA_AREA_MAXIMA: tabelaArea, CLASSES_TIPO_EDIFICACAO: classesTipo,
     ELEMENTOS_COMPART_HORIZONTAL, ELEMENTOS_COMPART_VERTICAL,
     SUBSTITUICOES_COMPARTIMENTACAO,
-    TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS,
-    TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR,
+    TRRF_MINIMO_PAREDE_COMPARTIMENTACAO: trrfMinimo, TRRF_REDUCAO_MAXIMA_ABERTURAS: trrfReducao,
   } = compart
   const sigla = compart.NORMA?.sigla || 'norma de compartimentação do estado'
   const horizontal = sentido === 'horizontal'
   // Característica de cada elemento adotado — `h:<key>` / `v:<key>`.
   const caracteristicas = est.caracteristicasCompart || {}
-  const caracDe = prefixo => Object.fromEntries(Object.entries(caracteristicas).filter(([k]) => k.startsWith(`${prefixo}:`)).map(([k, v]) => [k.slice(2), v]))
+  // Valor mostrado no campo: o informado, ou o TRRF automático do elemento
+  // (TRRF da segurança estrutural, mínimo 60 min; aberturas 30 min a menos).
+  const caracDe = (prefixo, opcoes) => Object.fromEntries(opcoes.map(o => [o.key, caracteristicaElementoCompart(est, prefixo, o.key, trrfEstrutura, compart)]))
   const setCaracteristica = prefixo => (key, valor) =>
     dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field: 'caracteristicasCompart', value: { ...caracteristicas, [`${prefixo}:${key}`]: valor } })
   const resultadoArea = calcularAreaMaximaCompartimentacao(pavimentos, est, tabelaArea, classesTipo, areaCompartimentacaoHorizontal)
@@ -318,8 +322,6 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
               />
             )}
 
-            {horizontalExigida && <Divisor/>}
-
             {!precisaElementosH && !isencaoH && (
               <div className="ibox green">
                 <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
@@ -327,25 +329,6 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
               </div>
             )}
 
-            {horizontalExigida && (
-              <div>
-                <Checklist
-                  titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartHorizontal`}/></>}
-                  tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
-                  opcoes={ELEMENTOS_COMPART_HORIZONTAL}
-                  valores={elementosH}
-                  onToggle={(k) => toggleArr('elementosCompartHorizontal', elementosH, k)}
-                  caracteristicas={caracDe('h')}
-                  onCaracteristica={setCaracteristica('h')}
-                />
-              </div>
-            )}
-
-            {horizontalExigida && (
-              <TrrfNota>
-                TRRF mínimo da parede: {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (EI-{TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}). Portas/vedadores/registros podem ter até {TRRF_REDUCAO_MAXIMA_ABERTURAS} min a menos, nunca abaixo de {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min.
-              </TrrfNota>
-            )}
           </div>
         ) : (
           <div className="py-3.5 px-[18px]">
@@ -356,6 +339,19 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
           </div>
         )}
       </Card>}
+
+      {horizontal && horizontalExigida && (
+        <CardElementos
+          titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartHorizontal`}/></>}
+          tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
+          opcoes={ELEMENTOS_COMPART_HORIZONTAL}
+          valores={elementosH}
+          onToggle={(k) => toggleArr('elementosCompartHorizontal', elementosH, k)}
+          caracteristicas={caracDe('h', ELEMENTOS_COMPART_HORIZONTAL)}
+          onCaracteristica={setCaracteristica('h')}
+          trrfEstrutura={trrfEstrutura} trrfMinimo={trrfMinimo} trrfReducao={trrfReducao}
+        />
+      )}
 
       {/* Compartimentação Vertical */}
       {!horizontal && <Card className="mb-3">
@@ -385,25 +381,6 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
               onLimpar={() => limparSubstituicao('isencaoCompartVertical')}
             />
 
-            <Divisor/>
-
-            {precisaElementosV && (
-              <div>
-                <Checklist
-                  titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartVertical`}/></>}
-                  tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
-                  opcoes={ELEMENTOS_COMPART_VERTICAL}
-                  valores={elementosV}
-                  onToggle={(k) => toggleArr('elementosCompartVertical', elementosV, k)}
-                  caracteristicas={caracDe('v')}
-                  onCaracteristica={setCaracteristica('v')}
-                />
-              </div>
-            )}
-
-            <TrrfNota>
-              TRRF mínimo dos entrepisos: {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (EI-{TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}). Enclausuramento de escadas/elevadores de segurança: mínimo {TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR} min (EI-{TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR}).
-            </TrrfNota>
           </div>
         ) : (
           <div className="py-3.5 px-[18px]">
@@ -414,6 +391,19 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
           </div>
         )}
       </Card>}
+
+      {!horizontal && obrigV && precisaElementosV && (
+        <CardElementos
+          titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartVertical`}/></>}
+          tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
+          opcoes={ELEMENTOS_COMPART_VERTICAL}
+          valores={elementosV}
+          onToggle={(k) => toggleArr('elementosCompartVertical', elementosV, k)}
+          caracteristicas={caracDe('v', ELEMENTOS_COMPART_VERTICAL)}
+          onCaracteristica={setCaracteristica('v')}
+          trrfEstrutura={trrfEstrutura} trrfMinimo={trrfMinimo} trrfReducao={trrfReducao}
+        />
+      )}
 
       <Card>
         <div className="py-3.5 px-[18px]">
@@ -469,6 +459,7 @@ export default function CompartimentacaoPage({ sentido = 'horizontal', extra = n
               pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
               areaCompartimentacaoHorizontal={state.areaCompartimentacaoHorizontal}
               compart={compart}
+              trrfEstrutura={trrfDaEstrutura(state, est)}
               obrigH={!!pe?.sistemas?.compart_horizontal?.obrigatorio}
               obrigV={!!pe?.sistemas?.compart_vertical?.obrigatorio}
               dispatch={dispatch}

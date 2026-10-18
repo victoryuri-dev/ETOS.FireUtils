@@ -15,17 +15,17 @@
 // processo simplificado — Tabela 5, que nunca exige) a estrutura nem é
 // citada nesta seção do memorial.
 
-import { calcularAreaMaximaCompartimentacao } from '../compart_calc'
+import { calcularAreaMaximaCompartimentacao, caracteristicaElementoCompart } from '../compart_calc'
+import { trrfDaEstrutura } from '../../utils/trrfCompart'
 import { getCompartimentacao } from '../normas/index'
 import { fmtUn } from '../../utils/numero'
 
-// `caracteristicas` (opcional): estrutura.caracteristicasCompart e o
-// prefixo do sentido ('h'/'v') — a característica informada entra depois do
-// nome do elemento.
-function labelsMarcados(catalogo, chaves, caracteristicas, prefixo) {
+// Elementos marcados com a característica de cada um (a informada ou o
+// TRRF automático — caracteristicaElementoCompart), depois do nome.
+function labelsMarcados(catalogo, chaves, ctx) {
   return catalogo.filter(o => (chaves || []).includes(o.key)).map(o => {
     const nome = o.label || o.texto
-    const c = (caracteristicas?.[`${prefixo}:${o.key}`] || '').trim()
+    const c = ctx ? caracteristicaElementoCompart(ctx.est, ctx.prefixo, o.key, ctx.trrf, ctx.norma) : ''
     return c ? `${nome} — ${c}` : nome
   })
 }
@@ -148,7 +148,7 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
 
     blocos.push({ tipo: 'campo', recuo:true, label: 'TRRF mínimo da parede de compartimentação', valor: `EI-${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}` })
 
-    const elementos = labelsMarcados(ELEMENTOS_COMPART_HORIZONTAL, est.elementosCompartHorizontal, est.caracteristicasCompart, 'h')
+    const elementos = labelsMarcados(ELEMENTOS_COMPART_HORIZONTAL, est.elementosCompartHorizontal, { est, prefixo: 'h', trrf: trrfDaEstrutura(state, est), norma: getCompartimentacao(state.uf) })
     if (elementos.length > 0) {
       blocos.push({ tipo: 'paragrafo', texto: 'A compartimentação horizontal é composta pelos seguintes elementos de proteção:' })
       blocos.push({ tipo: 'lista', recuo:true, itens: elementos })
@@ -212,7 +212,7 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
 
     // A partir daqui a compartimentação vertical é exigida de fato (não
     // isenta por substituição) — mostra elementos, condições e TRRF.
-    const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical, est.caracteristicasCompart, 'v')
+    const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical, { est, prefixo: 'v', trrf: trrfDaEstrutura(state, est), norma: getCompartimentacao(state.uf) })
     if (elementos.length > 0) {
       blocos.push({ tipo: 'paragrafo', texto: 'A compartimentação vertical é composta pelos seguintes elementos de proteção:' })
       blocos.push({ tipo: 'lista', recuo:true, itens: elementos })

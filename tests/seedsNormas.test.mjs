@@ -220,3 +220,17 @@ test('compartimentação da PB: Anexo B da NT 36/2024 e CTD (Comissão Técnica)
   const ok = calcularAreaMaximaCompartimentacao([{ id: 'p', divisao: 'C-1', area: '500' }], est, T, C)
   assert.equal(ok.dentroDoLimite, true)
 })
+
+test('compartimentação: TRRF automático dos elementos (TRRF da estrutura; aberturas −30 min; mínimo 60)', async () => {
+  const { trrfElementoCompart, caracteristicaElementoCompart } = await server.ssrLoadModule('/src/data/compart_calc.js')
+  const norma = normas.getCompartimentacao('MA')
+  assert.equal(trrfElementoCompart('parede_corta_fogo', 120, norma), 120)
+  assert.equal(trrfElementoCompart('porta_corta_fogo', 120, norma), 90)
+  assert.equal(trrfElementoCompart('porta_corta_fogo', 60, norma), 60)       // nunca abaixo de 60
+  assert.equal(trrfElementoCompart('parede_corta_fogo', 30, norma), 60)
+  assert.equal(trrfElementoCompart('entrepiso_corta_fogo', null, norma), 60) // sem TRRF calculado
+  assert.equal(trrfElementoCompart('afastamento_horizontal', 120, norma), null)
+  assert.equal(caracteristicaElementoCompart({}, 'h', 'registro_corta_fogo', 120, norma), 'TRRF de 90 min (EI-90)')
+  const est = { caracteristicasCompart: { 'h:registro_corta_fogo': 'Damper EI-120' } }
+  assert.equal(caracteristicaElementoCompart(est, 'h', 'registro_corta_fogo', 120, norma), 'Damper EI-120')   // o informado vence
+})

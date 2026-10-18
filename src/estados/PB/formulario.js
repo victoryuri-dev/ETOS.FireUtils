@@ -36,7 +36,8 @@ import {
 import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
 import { fmtNum } from '../../utils/numero'
 import { alturaEdificacaoBase, edificacaoEhTerrea, calcularTRRF } from '../../data/trrf_calc'
-import { calcularAreaMaximaCompartimentacao } from '../../data/compart_calc'
+import { calcularAreaMaximaCompartimentacao, caracteristicaElementoCompart } from '../../data/compart_calc'
+import { trrfDaEstrutura } from '../../utils/trrfCompart'
 import { resumoSaidasPB } from './saidas'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
@@ -375,13 +376,13 @@ function secaoCompartimentacao(state, ctx) {
   const estruturas = state.estruturas || []
   const marcadosH = new Set(exigH ? estruturas.flatMap(e => e.elementosCompartHorizontal || []) : [])
   const marcadosV = new Set(exigV ? estruturas.flatMap(e => e.elementosCompartVertical || []) : [])
-  // Característica do elemento: a de cada estrutura que a informou (com o
-  // nome da estrutura quando há mais de uma).
+  // Característica do elemento em cada estrutura (a informada ou o TRRF
+  // automático), com o nome da estrutura quando há mais de uma.
   const caracteristica = (prefixo, key) => {
     const campo = prefixo === 'h' ? 'elementosCompartHorizontal' : 'elementosCompartVertical'
     const com = estruturas
       .filter(e => (e[campo] || []).includes(key))
-      .map(e => [e.nome, (e.caracteristicasCompart?.[`${prefixo}:${key}`] || '').trim()])
+      .map(e => [e.nome, caracteristicaElementoCompart(e, prefixo, key, trrfDaEstrutura(state, e), getCompartimentacao(state.uf))])
       .filter(([, t]) => t)
     return com.length === 1 || estruturas.length === 1 ? com.map(([, t]) => t).join('; ') : com.map(([n, t]) => `${n}: ${t}`).join('; ')
   }
