@@ -207,17 +207,16 @@ function TabelaAreaMaxima({ resultado, onChangeArea, isenta, sigla }) {
 
 
 // Box próprio dos elementos de proteção adotados, com a característica de
-// cada um (o TRRF automático já vem preenchido).
+// cada um (o TRRF automático já vem preenchido); a regra do TRRF fica no
+// tooltip do título.
 function CardElementos({ trrfEstrutura, trrfMinimo, trrfReducao, ...checklist }) {
+  const tip = trrfEstrutura != null
+    ? `TRRF da estrutura (segurança estrutural): ${trrfEstrutura} min. Portas, vedadores, registros e dispositivos de enrolar: até ${trrfReducao} min a menos; mínimo de ${trrfMinimo} min para todos.`
+    : `TRRF da estrutura ainda não calculado na segurança estrutural — usado o mínimo de ${trrfMinimo} min.`
   return (
     <Card className="mb-3">
-      <div className="py-3.5 px-[18px] flex flex-col gap-3">
-        <Checklist {...checklist}/>
-        <span className="text-[11px] text-ink-faint leading-[1.6]">
-          {trrfEstrutura != null
-            ? `TRRF da estrutura (segurança estrutural): ${trrfEstrutura} min. Portas, vedadores, registros e dispositivos de enrolar: até ${trrfReducao} min a menos; mínimo de ${trrfMinimo} min para todos.`
-            : `TRRF da estrutura ainda não calculado na segurança estrutural — usado o mínimo de ${trrfMinimo} min.`}
-        </span>
+      <div className="py-3.5 px-[18px]">
+        <Checklist {...checklist} tip={tip}/>
       </div>
     </Card>
   )
@@ -343,7 +342,6 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
       {horizontal && horizontalExigida && (
         <CardElementos
           titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartHorizontal`}/></>}
-          tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
           opcoes={ELEMENTOS_COMPART_HORIZONTAL}
           valores={elementosH}
           onToggle={(k) => toggleArr('elementosCompartHorizontal', elementosH, k)}
@@ -395,7 +393,6 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
       {!horizontal && obrigV && precisaElementosV && (
         <CardElementos
           titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartVertical`}/></>}
-          tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
           opcoes={ELEMENTOS_COMPART_VERTICAL}
           valores={elementosV}
           onToggle={(k) => toggleArr('elementosCompartVertical', elementosV, k)}
