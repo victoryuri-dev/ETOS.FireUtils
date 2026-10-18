@@ -6,7 +6,7 @@ import { getMemorialFormulario } from '../../data/normas/index'
 import {
   ATESTOS_PB, atestoMarcado, resumoBrigadaPB, INTERVALO_SIMULADOS_PADRAO, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
   distanciaMaximaPontosPB, tiposIluminacaoPB, secoesIluminacaoPB, DETECTORES_PB,
-  contextoFormularioPB, resultadoExtintoresPB, especiaisExtintoresPB, especialMarcado, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
+  contextoFormularioPB, resultadoExtintoresPB, especiaisExtintoresPB, especialMarcado, ATESTOS_BOMBAS_MARCAVEIS, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
@@ -431,7 +431,7 @@ export function CamposHidrantesPB() {
       <FormSection title="Declarações do responsável técnico" description="Item 17 do formulário do Memorial Descritivo do CBMPB.">
         <div className="flex flex-col gap-3">
           <Atestos titulo="Mangueiras" lista={ATESTOS_PB.hidrantes.mangueiras} atestos={atestos} alternar={alternarAtesto}/>
-          <Atestos titulo="Bombas e tubulação" lista={ATESTOS_PB.hidrantes.bombas} atestos={atestos} alternar={alternarAtesto}/>
+          <Atestos titulo="Bombas e tubulação" lista={ATESTOS_BOMBAS_MARCAVEIS} atestos={atestos} alternar={alternarAtesto}/>
         </div>
       </FormSection>
     </div>

@@ -439,6 +439,10 @@ export const ATESTOS_PADRAO_MARCADOS = new Set([
   // da NT 16, que dependem do projeto.
   'sin_fotoluminescentes', 'sin_rotas', 'sin_mudancas_direcao', 'sin_equipamentos', 'sin_pavimentos', 'sin_tamanho_a1',
   'sin_mensagens', 'sin_locais_risco',
+  // Hidrantes (17) — menos os anéis vermelhos (alternativa à tubulação
+  // vermelha); o recalque é automático (RECALQUE_DO_TIPO).
+  'hid_esguichos', 'hid_chave', 'hid_desligamento_manual', 'hid_acionador_manual', 'hid_acionamento_auto', 'hid_independencia',
+  'hid_dreno_c2', 'hid_drenos_ensaios', 'hid_tubulacao_vermelha', 'hid_manometro',
 ])
 /** Atesto marcado: o que o RT escolheu, ou o padrão quando ainda não mexeu. */
 export const atestoMarcado = (atestos, key) => (key in (atestos || {}) ? !!atestos[key] : ATESTOS_PADRAO_MARCADOS.has(key))
@@ -935,6 +939,16 @@ const ATESTOS_HIDRANTES = {
   ],
 }
 
+// Linhas do recalque (17.3): marcadas pelo tipo de dispositivo de recalque
+// escolhido na página de hidrantes (state.hidrantes.recalqueTipo) — não
+// aparecem no box da PB.
+const RECALQUE_DO_TIPO = {
+  hid_recalque_fachada: ['coluna_fachada', 'embutido_muro'],
+  hid_recalque_passeio: ['passeio'],
+}
+/** Atestos de bombas e tubulação que o RT marca (sem os do recalque). */
+export const ATESTOS_BOMBAS_MARCAVEIS = ATESTOS_HIDRANTES.bombas.filter(([key]) => !(key in RECALQUE_DO_TIPO))
+
 // Tipo do formulário a partir do tipo/variante da página de hidrantes
 // (Tipo 4: variante 0 = DN40, 1 = DN65).
 const tipoFormularioHidrante = h => {
@@ -964,7 +978,8 @@ function secaoHidrantes(state, ctx) {
     : 'Vazão exata do hidrante mais desfavorável: ______ l/min. Pressão exata: ______ mca.')
   const um = (lista, valor) => ck(...lista.map(([key, label]) => ({ x: ativo && valor === key, label })))
   const carga = ctx.cargaMaxima > 0 ? FAIXAS_CARGA_RTI.find(([, max]) => ctx.cargaMaxima <= max)?.[0] : null
-  const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && atestoMarcado(at, key), label }))
+  const marcado = key => (key in RECALQUE_DO_TIPO ? RECALQUE_DO_TIPO[key].includes(h.recalqueTipo) : atestoMarcado(at, key))
+  const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && marcado(key), label }))
   const reservatorio = extra.manancial ? 'manancial' : RESERVATORIO_DA_POSICAO[h.reservatorioPosicao] || ''
   const alturaBomba = h.bombaExiste && d?.res?.P_RTI != null ? fmt(d.res.P_RTI) : null
   return {

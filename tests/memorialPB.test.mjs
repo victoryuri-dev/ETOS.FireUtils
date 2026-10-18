@@ -426,6 +426,22 @@ test('15. sinalização: declarações padrão já marcadas (menos M-1, M-2 e a 
   assert.ok(!x.includes('Placa M-1') && !x.includes('Placa M-2') && !x.some(l => l.includes('NT CBMPB 16')))
 })
 
+test('17. declarações padrão já marcadas; recalque marcado pelo tipo da página de hidrantes', () => {
+  const FACHADA = 'Sistema possui dispositivo de recalque do tipo coluna instalado na fachada ou dentro de um abrigo embutido no muro, conforme Item 4.2.2'
+  const PASSEIO = 'Sistema possui dispositivo de recalque instalado no passeio público, com impossibilidade técnica comprovada por meio de laudo, conforme Item 4.2.2'
+  const ANEIS = /anéis vermelhos/
+  const x = recalqueTipo => marcados(secao(gerar(projeto({ sistemasPorEstrutura: { e1: { hidrantes: true } }, hidrantes: { tipo: '2', recalqueTipo } })), '17.'))
+  const semRecalque = x('')
+  assert.ok(semRecalque.includes('Esguichos reguláveis adotado em todos os pontos de hidrantes'))
+  assert.ok(semRecalque.some(l => l.startsWith('Sistema possui manômetro hidráulico')))
+  assert.ok(!semRecalque.some(l => ANEIS.test(l)))
+  assert.ok(!semRecalque.includes(FACHADA) && !semRecalque.includes(PASSEIO))
+  assert.ok(x('embutido_muro').includes(FACHADA))
+  assert.ok(x('coluna_fachada').includes(FACHADA))
+  const passeio = x('passeio')
+  assert.ok(passeio.includes(PASSEIO) && !passeio.includes(FACHADA))
+})
+
 test('6. acesso de viatura: as distâncias informadas marcam a linha certa do formulário', () => {
   const sec = (av, hid = false) => secao(gerar(projeto({
     sistemasPorEstrutura: { e1: { acesso_viatura: true, hidrantes: hid } },
