@@ -31,7 +31,7 @@
 
 import {
   getMemorialFormulario, getMedidas, getOcupacoes, getTRRF, getCompartimentacao,
-  getBrigada, getExtintores, getCNAEsDivisao,
+  getBrigada, getExtintores, getCNAEsDivisao, getHidrantes,
 } from '../../data/normas/index'
 import { riscosEspeciaisDoEstado } from '../../utils/anexoB'
 import { fmtNum } from '../../utils/numero'
@@ -47,6 +47,7 @@ import { textoMemorialBrigadaIncendio } from '../../data/memorial/brigada_incend
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
 import { opcaoCapacidade } from '../../data/extintores_calc'
+import { LANCES_INTERNOS, LANCES_EXTERNOS, TIPOS_MANGUEIRA } from '../../data/hidrantesMangueiras'
 
 const vazio = v => v === '' || v === null || v === undefined
 const fmtM  = v => `${fmtNum(v, 2, String(v))} m`
@@ -457,7 +458,7 @@ export const ATESTOS_PADRAO_MARCADOS = new Set([
   'sin_mensagens', 'sin_locais_risco',
   // Hidrantes (17) — menos os anéis vermelhos (alternativa à tubulação
   // vermelha); o recalque é automático (RECALQUE_DO_TIPO).
-  'hid_esguichos', 'hid_chave', 'hid_desligamento_manual', 'hid_acionador_manual', 'hid_acionamento_auto', 'hid_independencia',
+  'hid_desligamento_manual', 'hid_acionador_manual', 'hid_acionamento_auto', 'hid_independencia',
   'hid_dreno_c2', 'hid_drenos_ensaios', 'hid_tubulacao_vermelha', 'hid_manometro',
 ])
 /** Atesto marcado: o que o RT escolheu, ou o padrão quando ainda não mexeu. */
@@ -931,9 +932,9 @@ export const TIPOS_HIDRANTE_PB = [
   ['tipo5',    'Sistema TIPO 5 (esguicho regulável DN65, mangueira DN 65 com 30m, expedição dupla, PRESSÃO e VAZÃO mínimas no ponto mais desfavorável de 600l/min e 60mca);'],
 ]
 export const RESERVATORIOS_PB = [['elevado', 'Reservatório elevado'], ['enterrado', 'Reservatório enterrado'], ['manancial', 'Manancial'], ['semienterrado', 'Reservatório semi-enterrado']]
-export const LANCES_INTERNOS_PB = [['1x30', 'Um lance de 30m'], ['2x15', 'Dois lances de 15m']]
-export const LANCES_EXTERNOS_PB = [['2x30', 'Dois lances de 30m'], ['4x15', 'Quatro lances de 15m']]
-export const MANGUEIRAS_PB = [['1', 'Mangueira 1'], ['2', 'Mangueira 2'], ['3', 'Mangueira 3'], ['4', 'Mangueira 4'], ['5', 'Mangueira 5']]
+const LANCES_INTERNOS_PB = LANCES_INTERNOS
+const LANCES_EXTERNOS_PB = LANCES_EXTERNOS
+const MANGUEIRAS_PB = TIPOS_MANGUEIRA
 const FAIXAS_CARGA_RTI = [['Até 300Mj/m²', 300], ['301 a 800Mj/m²', 800], ['801 a 1200Mj/m²', 1200], ['Acima de 1200Mj/m²', Infinity]]
 const ATESTOS_HIDRANTES = {
   mangueiras: [
@@ -1016,7 +1017,13 @@ function secaoHidrantes(state, ctx) {
     : 'Vazão exata do hidrante mais desfavorável: ______ l/min. Pressão exata: ______ mca.')
   const um = (lista, valor) => ck(...lista.map(([key, label]) => ({ x: ativo && valor === key, label })))
   const carga = ctx.cargaMaxima > 0 ? FAIXAS_CARGA_RTI.find(([, max]) => ctx.cargaMaxima <= max)?.[0] : null
-  const marcado = key => (key in RECALQUE_DO_TIPO ? RECALQUE_DO_TIPO[key].includes(h.recalqueTipo) : atestoMarcado(at, key))
+  // Mangueiras: esguicho regulável e chave de mangueiras saem dos componentes
+  // do tipo de sistema (Tabela 4 — "Abrigos e Mangueiras" da página).
+  const comp = getHidrantes(state.uf)?.COMPONENTES_POR_TIPO?.[h.tipo] || null
+  const DOS_COMPONENTES = { hid_esguichos: !!comp, hid_chave: !!comp?.chaveEngate }
+  const marcado = key => (key in RECALQUE_DO_TIPO ? RECALQUE_DO_TIPO[key].includes(h.recalqueTipo)
+    : key in DOS_COMPONENTES ? DOS_COMPONENTES[key]
+    : atestoMarcado(at, key))
   const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && marcado(key), label }))
   const reservatorio = extra.manancial ? 'manancial' : RESERVATORIO_DA_POSICAO[h.reservatorioPosicao] || ''
   const alturaBomba = h.bombaExiste && d?.res?.P_RTI != null ? fmt(d.res.P_RTI) : null
@@ -1039,11 +1046,11 @@ function secaoHidrantes(state, ctx) {
       campo('Material das tubulações:', v(h.redeMaterial)),
       ...atestos(ATESTOS_HIDRANTES.mangueiras),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Quantidade de lances de mangueira (hidrantes internos)' },
-      um(LANCES_INTERNOS_PB, extra.lancesInternos),
+      um(LANCES_INTERNOS_PB, h.lancesInternos || extra.lancesInternos),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Quantidade de lances de mangueira (hidrantes externos)' },
-      um(LANCES_EXTERNOS_PB, extra.lancesExternos),
+      um(LANCES_EXTERNOS_PB, h.lancesExternos || extra.lancesExternos),   // 'nao_aplica' não marca nada
       { tipo: 'texto', centro: true, negrito: true, texto: 'Tipo de mangueira (NBR ABNT 11861)' },
-      um(MANGUEIRAS_PB, extra.mangueira),
+      um(MANGUEIRAS_PB, h.mangueiraTipo || extra.mangueira),
       sub('17.3 Bombas de incêndio e casa de bombas', '(Informe e/ou marque X nas características da RTI, conforme NT CBMPB 15)'),
       campo('Pressão da bomba principal (mca) de incêndio:', ativo && alturaBomba ? alturaBomba : ''),
       campo('Pressão da bomba reserva (mca) para risco médio e alto:', ativo && h.bombaReserva && alturaBomba ? alturaBomba : ''),

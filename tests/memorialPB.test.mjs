@@ -5,7 +5,10 @@ import { readFileSync } from 'node:fs'
 
 // Normas servidas a partir dos arquivos de seed, como se fossem as linhas do
 // Supabase (o app não lê mais arquivo local — ver helpers/normasDeTeste.mjs).
-const server = await servidorComNormas()
+// A linha ('PB','hidrantes') só existe no Supabase: a do MA serve de estrutura.
+const MA_HID = await import('../src/data/normas/MA/hidrantes.js')
+const hidrantesPB = Object.fromEntries(Object.entries(MA_HID).map(([k, v]) => [k.toLowerCase(), v]))
+const server = await servidorComNormas({ PB: { hidrantes: hidrantesPB } })
 after(() => server.close())
 const { buildFormularioPB } = await server.ssrLoadModule('/src/estados/PB/formulario.js')
 const { medidasObrigatorias } = await server.ssrLoadModule('/src/hooks/useMedidasObrigatorias.js')
@@ -369,8 +372,9 @@ test('17. hidrantes: tipo, vazão/pressão, RTI e bombas vêm da página comum; 
       tipo: '4', tipoVariante: 1, rti: '12', reservatorioPosicao: 'subterraneo', reservatorioMaterial: 'Concreto',
       redeMaterial: 'Aço galvanizado', bombaExiste: true, bombaReserva: true, bombaJockey: true, bombaJockeyVazao: '20',
       dimensionamento: { dados_sistema: { q_min: 300 }, res: { P_valv_ref: 31.5, P_RTI: 48.2 } },
+      lancesInternos: '2x15', lancesExternos: 'nao_aplica', mangueiraTipo: '3',
     },
-    memorialPB: { hidrantes: { nsth: '1,5', lancesInternos: '2x15', mangueira: '3' } },
+    memorialPB: { hidrantes: { nsth: '1,5' } },
   })
   const s = secao(gerar(p), '17.')
   const m = marcados(s)
@@ -379,6 +383,10 @@ test('17. hidrantes: tipo, vazão/pressão, RTI e bombas vêm da página comum; 
   assert.ok(m.includes('301 a 800Mj/m²'))   // carga 500 MJ/m²
   assert.ok(m.includes('Dois lances de 15m'))
   assert.ok(m.includes('Mangueira 3'))
+  assert.ok(!m.some(l => /lances de (30|15)m/.test(l) && /Dois lances de 30m|Quatro lances/.test(l)))   // externos: não se aplica
+  // Declarações de mangueiras pelos componentes do tipo (Tabela 4): Tipo 4 tem esguicho e chave
+  assert.ok(m.includes('Esguichos reguláveis adotado em todos os pontos de hidrantes'))
+  assert.ok(m.includes('Chave de mangueiras presente em todos os pontos de hidrantes'))
   assert.equal(valorCampo(s, 'Em casos de reservatórios enterrados informar o valor da NSTH:'), '1,5')
   assert.equal(valorCampo(s, 'RTI em m³:'), '12')
   assert.equal(valorCampo(s, 'Material de construção da RTI:'), 'Concreto')

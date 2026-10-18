@@ -6,7 +6,7 @@ import { getMemorialFormulario } from '../../data/normas/index'
 import {
   ATESTOS_PB, atestoMarcado, resumoBrigadaPB, INTERVALO_SIMULADOS_PADRAO, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
   distanciaMaximaPontosPB, tiposIluminacaoPB, secoesIluminacaoPB, DETECTORES_PB,
-  contextoFormularioPB, resultadoExtintoresPB, especiaisExtintoresPB, especialMarcado, ATESTOS_BOMBAS_MARCAVEIS, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
+  contextoFormularioPB, resultadoExtintoresPB, especiaisExtintoresPB, especialMarcado, ATESTOS_BOMBAS_MARCAVEIS,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
 import { fmtNum } from '../../utils/numero'
@@ -370,9 +370,10 @@ export function CamposExtintoresPB() {
 }
 
 // 17 — o que o formulário pede e a página de hidrantes comum não tem: NSTH
-// (reservatório subterrâneo), manancial, lances e tipo de mangueira e as
-// declarações. Tipo, vazão/pressão, RTI, reservatório, materiais, bombas e
-// os diâmetros das tubulações (Revit) vêm da página comum.
+// (reservatório subterrâneo), manancial e as declarações de bombas e
+// tubulação. Tipo, vazão/pressão, RTI, reservatório, materiais, bombas,
+// lances e tipo de mangueira e os diâmetros das tubulações (Revit) vêm da
+// página comum; as declarações de mangueiras, dos componentes do tipo.
 export function CamposHidrantesPB() {
   const { state, m, set, atestos, alternarAtesto } = useCamposPB()
   const h = m.hidrantes || {}
@@ -387,16 +388,10 @@ export function CamposHidrantesPB() {
         <div className="flex flex-col gap-3">
           <SimNao pergunta="A reserva técnica é um manancial?" valor={h.manancial} onChange={v => setH({ manancial: v })}/>
           {subterraneo && !h.manancial && <div className="g2">{inp('nsth', 'NSTH (reservatório enterrado)')}</div>}
-          <div className="g2">
-            <Opcoes titulo="Lances de mangueira — hidrantes internos" lista={LANCES_INTERNOS_PB} valor={h.lancesInternos} onChange={v => setH({ lancesInternos: v })}/>
-            <Opcoes titulo="Lances de mangueira — hidrantes externos" lista={LANCES_EXTERNOS_PB} valor={h.lancesExternos} onChange={v => setH({ lancesExternos: v })}/>
-          </div>
-          <Opcoes titulo="Tipo de mangueira (NBR 11861)" lista={MANGUEIRAS_PB} valor={h.mangueira} onChange={v => setH({ mangueira: v })}/>
         </div>
       </FormSection>
       <FormSection title="Declarações do responsável técnico" description="Item 17 do formulário do Memorial Descritivo do CBMPB.">
         <div className="flex flex-col gap-3">
-          <Atestos titulo="Mangueiras" lista={ATESTOS_PB.hidrantes.mangueiras} atestos={atestos} alternar={alternarAtesto}/>
           <Atestos titulo="Bombas e tubulação" lista={ATESTOS_BOMBAS_MARCAVEIS} atestos={atestos} alternar={alternarAtesto}/>
         </div>
       </FormSection>

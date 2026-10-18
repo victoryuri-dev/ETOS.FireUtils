@@ -16,6 +16,7 @@ import FormSection from '../ui/FormSection'
 import { inputClass, Field, Resultado, Pill, Nota, ToggleRow } from './formUi'
 import { POSICOES_RESERVATORIO } from '../../data/hidrantes_calc'
 import { fmtNum } from '../../utils/numero'
+import { LANCES_INTERNOS, LANCES_EXTERNOS, TIPOS_MANGUEIRA, NAO_SE_APLICA } from '../../data/hidrantesMangueiras'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 const RISCO_COLOR = { baixo: 'text-ink-faint', medio: 'text-amber', alto: 'text-red' }
@@ -215,6 +216,29 @@ export default function FormularioSistema() {
             <span className="text-ink-faint">Chave para hidrante / engate</span><span className="text-ink font-medium">{dadosTipo.componentes.chaveEngate ? 'Sim' : 'Não'}</span>
             <span className="text-ink-faint">Esguicho avulso</span><span className="text-ink font-medium">{dadosTipo.componentes.esguichoAvulso ? 'Sim' : 'Não'}</span>
             <span className="text-ink-faint">Mangueira semirrígida com esguicho</span><span className="text-ink font-medium">{dadosTipo.componentes.mangueiraSemirrigida ? 'Sim' : 'Não'}</span>
+          </div>
+          {/* Lances e tipo de mangueira — informados pelo RT (memorial do MA e
+              item 17.2 do formulário da PB). */}
+          <div className="grid grid-cols-3 gap-4 mt-4 max-[720px]:grid-cols-1">
+            <Field label="Lances de mangueira — hidrantes internos">
+              <select className={inputClass} value={h.lancesInternos || ''} onChange={e => set({ lancesInternos: e.target.value })}>
+                <option value="">Selecione...</option>
+                {LANCES_INTERNOS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+            </Field>
+            <Field label="Lances de mangueira — hidrantes externos">
+              <select className={inputClass} value={h.lancesExternos || ''} onChange={e => set({ lancesExternos: e.target.value })}>
+                <option value="">Selecione...</option>
+                <option value={NAO_SE_APLICA}>Não se aplica</option>
+                {LANCES_EXTERNOS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+            </Field>
+            <Field label="Tipo de mangueira (NBR 11861)">
+              <select className={inputClass} value={h.mangueiraTipo || ''} onChange={e => set({ mangueiraTipo: e.target.value })}>
+                <option value="">Selecione...</option>
+                {TIPOS_MANGUEIRA.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+            </Field>
           </div>
         </FormSection>
       )}

@@ -551,6 +551,9 @@ const INITIAL_STATE = {
     redeMaterial: '',
     recalqueTipo: '', recalqueJustificativaPasseio: '', recalqueEntradas: 1,
     valvulaHidranteDn: 65, valvulaBloqueioTipo: 'gaveta',
+    // Lances (LANCES_INTERNOS/EXTERNOS — externos aceita 'nao_aplica') e
+    // tipo de mangueira (NBR 11861), ver data/hidrantesMangueiras.js.
+    lancesInternos: '', lancesExternos: '', mangueiraTipo: '',
     observacoes: '',
     // Resultado bruto do último "Dimensionar Hidrantes" no Revit — mesmo
     // payload sincronizado pelo plugin (chave 'hidrantes' de firedata.json,
@@ -612,9 +615,9 @@ const INITIAL_STATE = {
     // Faixa de estacionamento: obrigatória só com via abaixo de 6 m. Recalque = sistema de hidrantes
     // exigido. estados/PB/acessoViatura.js decide a linha do formulário.
     acessoViatura: {},
-    // 17 — só o que a página de hidrantes comum não tem: manancial, nsth,
-    // lancesInternos, lancesExternos, mangueira (o diâmetro das tubulações
-    // vem do dimensionamento do Revit).
+    // 17 — só o que a página de hidrantes comum não tem: manancial e nsth
+    // (lances e tipo de mangueira ficam em state.hidrantes; o diâmetro das
+    // tubulações vem do dimensionamento do Revit).
     hidrantes: {},
     extintorNivelIII: '',    // 'nivel_III_4A' = RT adotou 4A/80BC; vazio = 3A/40BC (automático)
     // Itens de "atesto" do formulário (as escadas atendem ao item 5.7 da NT
