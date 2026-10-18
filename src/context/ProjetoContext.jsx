@@ -599,6 +599,7 @@ const INITIAL_STATE = {
     estagioConstrucao: '',   // ESTAGIOS_CONSTRUCAO; '' = deriva de state.situacao
     adaptacoes: '',          // adaptações da NT 16 / Resoluções Técnicas (3.6)
     glpClasse: '',           // CLASSES_GLP (3.4.1) — só com o risco especial GLP
+    f3EstadioFutebol: false, // F-3 estádio de futebol: risco alto no Anexo B (3.4)
     // Compartimentação (8): elementos e características vêm das páginas
     // comuns (estrutura.elementosCompart* e estrutura.caracteristicasCompart).
     planoModelo: '',         // 'item6' | 'anexoB' (MODELOS_PLANO, 11.1)

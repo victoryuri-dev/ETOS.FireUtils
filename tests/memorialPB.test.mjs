@@ -60,8 +60,8 @@ test('identificação, natureza, altura, risco e nível saem do projeto', () => 
   const x = marcados(p)
   assert.ok(x.includes('C-1 - Comércio com carga de incêndio Nível I'))
   assert.ok(x.includes('Tipo III'))                      // 9 m: 6 < H ≤ 12
-  assert.ok(x.includes('Médio'))                         // 500 MJ/m²
-  assert.ok(x.includes('Nível II'))
+  assert.ok(x.includes('Baixo'))                         // C-1 no Anexo B da NT 02/2023
+  assert.ok(x.includes('Nível II'))                      // 500 MJ/m²
   assert.ok(x.includes('A edificação ainda será construída'))
 })
 
@@ -672,4 +672,18 @@ test('sistema não exigível não tem marcações nos campos internos (até o pr
   ] }])
   assert.deepEqual(marcados(s), ['b'])
   assert.equal(s.linhas[3].valor, '')
+})
+
+test('3.4: risco e validade pelo Anexo B da NT 02/2023 — maior risco entre as divisões; F-3 estádio de futebol = alto', () => {
+  const risco34 = state => {
+    const s = secao(gerar(state), '3.')
+    const i = s.linhas.findIndex(l => l.tipo === 'sub' && l.titulo.startsWith('3.4 '))
+    return s.linhas.slice(i + 1, i + 4).filter(l => l.itens[0].x).map(l => l.itens[0].label)
+  }
+  assert.deepEqual(risco34(projeto()), ['Baixo'])     // C-1
+  const p = projeto()
+  p.pavimentos[0].divisao = 'F-3'; p.pavimentos[0].ambientes[0].divisao = 'F-3'
+  assert.deepEqual(risco34(p), ['Médio'])
+  p.memorialPB = { f3EstadioFutebol: true }
+  assert.deepEqual(risco34(p), ['Alto'])
 })

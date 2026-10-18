@@ -40,6 +40,7 @@ import { calcularAreaMaximaCompartimentacao, caracteristicaElementoCompart } fro
 import { trrfDaEstrutura } from '../../utils/trrfCompart'
 import { resumoSaidasPB } from './saidas'
 import { decidirAcessoViaturaPB } from './acessoViatura'
+import { riscoValidadePB } from './validade'
 import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
 import { riscoDoPavimentoRobusto, calcularBrigadaPavimento, NIVEL_LABEL, maiorRisco, maiorNivel } from '../../data/brigada_calc'
 import { observacoesDoProjeto, ROTULO_OBSERVACOES } from '../../utils/observacoes'
@@ -199,9 +200,10 @@ function secaoParametros(state, F, ctx) {
     linhas.push(campos({ label: 'Descrição:', valor: e?.nome || '', peso: 3 }, { label: 'Área:', valor: e?.areaTotal ? fmtM2(e.areaTotal) : '', peso: 2 }))
   }
 
-  // 3.4 Risco e validade / 3.5 Nível — da maior carga de incêndio do projeto.
+  // 3.4 Risco e validade — Anexo B da NT 02/2023 (maior risco entre as
+  // divisões); 3.5 Nível — da maior carga de incêndio do projeto.
   const q = ctx.cargaMaxima
-  const risco = q > 0 ? faixaDe(F.RISCOS_VALIDADE, q) : null
+  const risco = riscoValidadePB(state.uf, [...ctx.divisoes].sort(), !!m.f3EstadioFutebol)
   const nivel = q > 0 ? faixaDe(F.NIVEIS_CARGA, q) : null
   linhas.push(sub('3.4 Risco da edificação e Validade de inspeção', '(Marcar com X no risco correspondente, conforme Anexo B da NT CBMPB 02/2023)'))
   F.RISCOS_VALIDADE.forEach(r => linhas.push(ck({ x: risco?.risco === r.risco, label: r.label, peso: 1 }, { label: r.validade, peso: 4, semCaixa: true })))

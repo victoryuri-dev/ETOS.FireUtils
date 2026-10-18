@@ -16,6 +16,7 @@ const server = await servidorComNormas({
     iluminacao: dadosDoSql('20261016200000_seed_normas_iluminacao_pb.sql'),
     compartimentacao: dadosDoSql('20261018120000_seed_normas_compartimentacao_pb.sql'),
     controle_acabamento: dadosDoSql('20261018130000_seed_normas_controle_acabamento_pb.sql'),
+    validade_inspecao: dadosDoSql('20261018140000_seed_normas_validade_inspecao_pb.sql'),
   },
   MA: {
     compartimentacao: { ...dadosDoSql('20261016140000_seed_normas_compartimentacao_ma.sql'), ...dadosDoSql('20261018120001_add_norma_compartimentacao_ma.sql') },
@@ -249,4 +250,12 @@ test('CMAR da PB: SQL = arquivo de seed; classes exigidas por estrutura = a mais
   const ma = classesExigidasEstrutura(normas.getControleAcabamento('MA').TABELA_B1, ['A-3', 'C-2'])
   assert.equal(formatarClasses(ma.parede), 'I ou II-A')
   assert.equal(classesExigidasEstrutura(lido.TABELA_B1, []).piso, null)
+})
+
+test('validade de inspeção da PB (Anexo B): SQL = arquivo de seed, com o grupo M', async () => {
+  const esperado = await server.ssrLoadModule('/src/data/normas/PB/validade_inspecao.js')
+  const lido = normas.getValidadeInspecao('PB')
+  for (const k of ['NORMA', 'TABELA_ANEXO_B']) assert.deepEqual(lido[k], esperado[k], k)
+  assert.deepEqual(lido.TABELA_ANEXO_B['M-7'], { risco: 'medio', validadeAnos: 2 })
+  assert.equal(normas.getValidadeInspecao('MA'), null)
 })
