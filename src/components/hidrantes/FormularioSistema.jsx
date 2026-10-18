@@ -23,6 +23,7 @@ import { fmtNum } from '../../utils/numero'
 import { LANCES_INTERNOS, LANCES_EXTERNOS, NAO_SE_APLICA, tiposMangueiraPermitidos } from '../../data/hidrantesMangueiras'
 
 const RISCO_LABEL = { baixo: 'Risco baixo', medio: 'Risco médio', alto: 'Risco alto' }
+const RISCO_NOME = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 
 // Mesma lógica de cores da Etapa 6 (legenda acima dos cards): estrutura em
 // que a norma EXIGE hidrantes é vermelha — cheia quando selecionada e só com
@@ -84,6 +85,10 @@ export default function FormularioSistema() {
     areaTotal, sugestao, escolherOpcao,
     tipoAtual, dadosTipo,
   } = useClassificacaoHidrantes()
+  // Maior risco (e carga de incêndio) entre as estruturas selecionadas.
+  const maiorRisco = infoPorEstrutura
+    .filter(e => estruturasSelecionadas.includes(e.id) && e.carga != null)
+    .reduce((m, e) => (!m || e.carga > m.carga ? e : m), null)
   // Opções de posição do reservatório do estado (PB inclui o manancial).
   const posicoes = posicoesReservatorio(useProjeto().state.uf)
 
@@ -104,11 +109,13 @@ export default function FormularioSistema() {
 
       {/* A — Classificação do sistema */}
       <FormSection title="Classificação do Sistema">
-        <div className="grid grid-cols-2 gap-4 bg-surface-2 border border-solid border-border rounded-lg p-4 mb-4">
-          <Resultado label="Área total construída (estruturas selecionadas acima)"
+        <div className="grid grid-cols-3 gap-4 bg-surface-2 border border-solid border-border rounded-lg p-4 mb-4 max-[720px]:grid-cols-1">
+          <Resultado label="Área construída considerada para classificação"
             value={areaTotal ? `${fmtNum(areaTotal)} m²` : '—'}/>
-          <Resultado label="Ocupação usada na classificação" hint={sugestao.divisao ? `coluna ${sugestao.coluna} da Tabela 3` : undefined}
+          <Resultado label="Divisão para classificação"
             value={sugestao.divisao || 'Nenhuma divisão classificada ainda (Etapa 4/5)'}/>
+          <Resultado label="Maior risco das edificações"
+            value={maiorRisco ? `${RISCO_NOME[maiorRisco.risco]} — ${fmtNum(maiorRisco.carga)} MJ/m²` : '—'}/>
         </div>
 
         {sugestao.opcoes.length > 1 && (
@@ -150,7 +157,8 @@ export default function FormularioSistema() {
           {dadosTipo && (
             <>
               <Resultado label="Esguicho" value={`DN${dadosTipo.esguicho}`}/>
-              <Resultado label="Mangueira" value={`DN${dadosTipo.mangueiraDn} — ${dadosTipo.mangueiraComprimento} m`}/>
+              <Resultado label="Mangueira" value={`DN${dadosTipo.mangueiraDn}`}/>
+              <Resultado label="RTI" value={h.rti ? `${fmtNum(h.rti, 2, h.rti)} m³` : '—'}/>
               <Resultado label="Expedições" value={dadosTipo.expedicoes} className="capitalize"/>
               <Resultado label="Vazão mín." value={`${dadosTipo.vazaoMin} L/min`}/>
               <Resultado label="Pressão mín." value={`${dadosTipo.pressaoMin} mca`}/>
