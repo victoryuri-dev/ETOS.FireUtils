@@ -75,9 +75,9 @@ export default function ProjectAside({ activePage, onNavigate }) {
     return () => mobile.removeEventListener('change', collapseOnMobile)
   }, [])
 
-  const enabledSystems = SISTEMAS.filter(s =>
-    sistemas[s.key]?.ativo || sistemas[s.key]?.obrigatorio
-  )
+  // `ativo` já cai para `obrigatorio` sem toggle manual; medida desativada
+  // pelo RT (isenção) sai do menu.
+  const enabledSystems = SISTEMAS.filter(s => sistemas[s.key]?.ativo)
 
   const itemProps = { activePage, collapsed: col, onNavigate }
 

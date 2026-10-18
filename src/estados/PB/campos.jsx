@@ -475,7 +475,7 @@ export function CamposAcessoViaturaPB() {
   const av = m.acessoViatura || {}
   const setAv = changes => set({ acessoViatura: { ...av, ...changes } })
   // Hidrante de recalque: há sempre que o sistema de hidrantes é exigido.
-  const recalque = !!(sistemas?.hidrantes?.ativo || sistemas?.hidrantes?.obrigatorio)
+  const recalque = !!sistemas?.hidrantes?.ativo
   const r = decidirAcessoViaturaPB(av, recalque, P)
   const numero = (key, label, extra = {}) => (
     <NumeroLimitado label={label} value={av[key]} onChange={v => setAv({ [key]: v })} {...extra}/>

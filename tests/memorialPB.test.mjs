@@ -655,3 +655,9 @@ test('Configuração da PB: campos que o estado não usa saem da auditoria; CNPJ
     assert.ok(!pbOpc.includes(id), `PB não lista ${id}`)
   }
 })
+
+test('medida exigida desativada manualmente pelo RT sai do formulário (não exigível, sem dimensionamento)', () => {
+  const s = secao(gerar(projeto({ sistemasPorEstrutura: { e1: { saida_emergencia: false } } })), '10.')
+  assert.equal(s.linhas.find(l => l.tipo === 'exigivel').exigivel, false)
+  assert.equal(valorCampo(s, 'Capacidade de público (pessoas) total da edificação:'), '')
+})

@@ -517,7 +517,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
   const data = useMemo(() => {
     const structures = state.estruturas || []
     const activeSystems = SYSTEMS
-      .filter(system => sistemas[system.key]?.ativo || sistemas[system.key]?.obrigatorio)
+      .filter(system => sistemas[system.key]?.ativo)
       .map(system => {
         const required = Boolean(sistemas[system.key]?.obrigatorio)
         const progress = getSystemProgress(system.key, state)
@@ -569,7 +569,7 @@ export default function DashboardPage({ onGoConfig, onNavigate }) {
     const structureSystems = selectedStructure
       ? porEstrutura.find(item => item.estrutura.id === selectedStructure.id)?.sistemas || {}
       : sistemas
-    const summarySystems = SYSTEMS.filter(system => structureSystems[system.key]?.ativo || structureSystems[system.key]?.obrigatorio)
+    const summarySystems = SYSTEMS.filter(system => structureSystems[system.key]?.ativo)
     const displayedSystems = summarySystems
       .map(system => {
         const required = Boolean(structureSystems[system.key]?.obrigatorio)

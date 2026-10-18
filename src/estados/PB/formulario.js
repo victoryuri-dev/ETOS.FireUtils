@@ -106,10 +106,12 @@ const faixaDe = (faixas, v) => faixas.find(f => f.max == null || v <= f.max) || 
  * projeto ainda sem ocupação classificada, ou o estado sem a tabela de
  * exigências cadastrada (aí o motor só aplica o mínimo de referência, ver
  * useMedidasObrigatorias:BASELINE_QUANDO_FALTA_DADO, e "não exigível" seria
- * uma afirmação sem base). */
+ * uma afirmação sem base). `ativo` já segue o toggle manual do RT. */
 function exigibilidade(ctx, key) {
   const s = ctx.sistemas?.[key]
-  if (s?.ativo || s?.obrigatorio) return true
+  if (s?.ativo) return true
+  // Exigida pela norma mas desativada pelo RT (isenção): sai do formulário.
+  if (s?.obrigatorio) return false
   if (!ctx.temClassificacao || !ctx.temTabelaExigencias) return null
   return false
 }
@@ -290,7 +292,7 @@ function secaoRiscos(state, ctx) {
 function secaoAcessoViatura(state, F, ctx) {
   const ativo = !!ctx.sistemas?.acesso_viatura?.ativo
   // Hidrante de recalque: sistema de hidrantes exigido no projeto.
-  const temRecalqueProjeto = !!(ctx.sistemas?.hidrantes?.ativo || ctx.sistemas?.hidrantes?.obrigatorio)
+  const temRecalqueProjeto = !!ctx.sistemas?.hidrantes?.ativo
   const r = ativo ? decidirAcessoViaturaPB(state.memorialPB?.acessoViatura, temRecalqueProjeto, F.ACESSO_VIATURA) : null
   // Distâncias nas lacunas "______" das linhas, só na linha marcada.
   const d = v => (v == null ? '______' : fmtNum(v, 2, String(v)))
@@ -393,7 +395,7 @@ function secaoCompartimentacao(state, ctx) {
   let areaMax = null, comissao = false
   if (exigH) {
     const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO } = getCompartimentacao(state.uf) || {}
-    ;(TABELA_AREA_MAXIMA ? ctx.porEstrutura || [] : []).filter(pe => pe.sistemas?.compart_horizontal?.obrigatorio || pe.sistemas?.compart_horizontal?.ativo).forEach(pe => {
+    ;(TABELA_AREA_MAXIMA ? ctx.porEstrutura || [] : []).filter(pe => pe.sistemas?.compart_horizontal?.ativo).forEach(pe => {
       const pavs = (state.pavimentos || []).filter(p => p.estruturaId === pe.estrutura.id)
       calcularAreaMaximaCompartimentacao(pavs, pe.estrutura, TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, state.areaCompartimentacaoHorizontal)
         .linhas.forEach(l => {
