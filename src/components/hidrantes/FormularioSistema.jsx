@@ -16,7 +16,7 @@ import FormSection from '../ui/FormSection'
 import { inputClass, Field, Resultado, Pill, Nota, ToggleRow } from './formUi'
 import { POSICOES_RESERVATORIO } from '../../data/hidrantes_calc'
 import { fmtNum } from '../../utils/numero'
-import { LANCES_INTERNOS, LANCES_EXTERNOS, TIPOS_MANGUEIRA, NAO_SE_APLICA } from '../../data/hidrantesMangueiras'
+import { LANCES_INTERNOS, LANCES_EXTERNOS, NAO_SE_APLICA, tiposMangueiraPermitidos } from '../../data/hidrantesMangueiras'
 
 const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
 const RISCO_COLOR = { baixo: 'text-ink-faint', medio: 'text-amber', alto: 'text-red' }
@@ -205,43 +205,59 @@ export default function FormularioSistema() {
         )}
       </FormSection>
 
-      {/* E — Abrigos e mangueiras (derivado da Tabela 4, somente leitura) */}
-      {dadosTipo && (
-        <FormSection title="Abrigos e Mangueiras" description={`Componentes obrigatórios para o Tipo de sistema adotado (Tabela 4, ${norma.NORMA.nome}).`}>
-          <div className="grid grid-cols-2 gap-y-2 text-xs">
-            <span className="text-ink-faint">Abrigo</span><span className="text-ink font-medium capitalize">{dadosTipo.componentes.abrigo}</span>
-            <span className="text-ink-faint">Mangueira de incêndio</span><span className="text-ink font-medium">{norma.LABEL_MANGUEIRA_INCENDIO[dadosTipo.componentes.mangueiraIncendio] || (dadosTipo.componentes.mangueiraIncendio ? dadosTipo.componentes.mangueiraIncendio : 'Não se aplica')}</span>
-            <span className="text-ink-faint">Diâmetro / comprimento da mangueira</span><span className="text-ink font-medium">DN{dadosTipo.mangueiraDn} — {dadosTipo.mangueiraComprimento} m</span>
-            <span className="text-ink-faint">Esguicho regulável</span><span className="text-ink font-medium">DN{dadosTipo.esguicho}</span>
-            <span className="text-ink-faint">Chave para hidrante / engate</span><span className="text-ink font-medium">{dadosTipo.componentes.chaveEngate ? 'Sim' : 'Não'}</span>
-            <span className="text-ink-faint">Esguicho avulso</span><span className="text-ink font-medium">{dadosTipo.componentes.esguichoAvulso ? 'Sim' : 'Não'}</span>
-            <span className="text-ink-faint">Mangueira semirrígida com esguicho</span><span className="text-ink font-medium">{dadosTipo.componentes.mangueiraSemirrigida ? 'Sim' : 'Não'}</span>
-          </div>
-          {/* Lances e tipo de mangueira — informados pelo RT (memorial do MA e
-              item 17.2 do formulário da PB). */}
-          <div className="grid grid-cols-3 gap-4 mt-4 max-[720px]:grid-cols-1">
-            <Field label="Lances de mangueira — hidrantes internos">
-              <select className={inputClass} value={h.lancesInternos || ''} onChange={e => set({ lancesInternos: e.target.value })}>
-                <option value="">Selecione...</option>
-                {LANCES_INTERNOS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-              </select>
-            </Field>
-            <Field label="Lances de mangueira — hidrantes externos">
-              <select className={inputClass} value={h.lancesExternos || ''} onChange={e => set({ lancesExternos: e.target.value })}>
-                <option value="">Selecione...</option>
-                <option value={NAO_SE_APLICA}>Não se aplica</option>
-                {LANCES_EXTERNOS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-              </select>
-            </Field>
-            <Field label="Tipo de mangueira (NBR 11861)">
-              <select className={inputClass} value={h.mangueiraTipo || ''} onChange={e => set({ mangueiraTipo: e.target.value })}>
-                <option value="">Selecione...</option>
-                {TIPOS_MANGUEIRA.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-              </select>
-            </Field>
-          </div>
-        </FormSection>
-      )}
+      {/* E — Abrigos e mangueiras: o que o RT escolhe (lances e tipo de
+          mangueira, só os tipos que o sistema admite) e, depois, os
+          componentes obrigatórios do Tipo (Tabela 4) como resultado. */}
+      {dadosTipo && (() => {
+        const c = dadosTipo.componentes
+        const tipos = tiposMangueiraPermitidos(c.mangueiraIncendio)
+        const tipoMangueira = tipos.some(([k]) => k === h.mangueiraTipo) ? h.mangueiraTipo : ''
+        const sn = v => (v ? 'Sim' : 'Não')
+        const componentes = [
+          ['Abrigo', c.abrigo === 'obrigatorio' ? 'Obrigatório' : 'Opcional', c.abrigo === 'obrigatorio'],
+          ['Mangueira de incêndio', norma.LABEL_MANGUEIRA_INCENDIO[c.mangueiraIncendio] || c.mangueiraIncendio || 'Não se aplica', !!c.mangueiraIncendio],
+          ['Diâmetro / comprimento', `DN${dadosTipo.mangueiraDn} — ${dadosTipo.mangueiraComprimento} m`, true],
+          ['Esguicho regulável', `DN${dadosTipo.esguicho}`, true],
+          ['Chave para hidrante / engate', sn(c.chaveEngate), c.chaveEngate],
+          ['Esguicho avulso', sn(c.esguichoAvulso), c.esguichoAvulso],
+          ['Mangueira semirrígida com esguicho', sn(c.mangueiraSemirrigida), c.mangueiraSemirrigida],
+        ]
+        return (
+          <FormSection title="Abrigos e Mangueiras" description={`Lances e tipo de mangueira adotados e os componentes obrigatórios do Tipo de sistema (Tabela 4, ${norma.NORMA.nome}).`}>
+            <div className="grid grid-cols-3 gap-4 max-[720px]:grid-cols-1">
+              <Field label="Lances de mangueira — hidrantes internos">
+                <select className={inputClass} value={h.lancesInternos || ''} onChange={e => set({ lancesInternos: e.target.value })}>
+                  <option value="">Selecione...</option>
+                  {LANCES_INTERNOS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </Field>
+              <Field label="Lances de mangueira — hidrantes externos">
+                <select className={inputClass} value={h.lancesExternos || ''} onChange={e => set({ lancesExternos: e.target.value })}>
+                  <option value="">Selecione...</option>
+                  <option value={NAO_SE_APLICA}>Não se aplica</option>
+                  {LANCES_EXTERNOS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </Field>
+              <Field label="Tipo de mangueira (NBR 11861)">
+                <select className={inputClass} value={tipoMangueira} disabled={tipos.length === 0}
+                  onChange={e => set({ mangueiraTipo: e.target.value })}>
+                  <option value="">{tipos.length ? 'Selecione...' : 'Não se aplica (mangotinho)'}</option>
+                  {tipos.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </Field>
+            </div>
+            {/* Resultado da Tabela 4: azul o que o Tipo exige; neutro o que não. */}
+            <div className="grid grid-cols-4 gap-3 mt-5 max-[720px]:grid-cols-2">
+              {componentes.map(([rotulo, valor, exigido]) => (
+                <div key={rotulo} className={`rounded-md border border-solid py-2.5 px-3 ${exigido ? 'border-blue-border bg-blue-dim' : 'border-border bg-transparent'}`}>
+                  <div className={`text-[10px] uppercase tracking-[.06em] font-semibold mb-1 ${exigido ? 'text-blue' : 'text-ink-faint'}`}>{rotulo}</div>
+                  <div className={`text-[13px] font-semibold leading-[1.4] ${exigido ? 'text-ink' : 'text-ink-faint'}`}>{valor}</div>
+                </div>
+              ))}
+            </div>
+          </FormSection>
+        )
+      })()}
 
       {/* F — Válvulas */}
       <FormSection title="Válvulas">

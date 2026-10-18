@@ -8,7 +8,7 @@ import { getHidrantes, getExtintores } from '../normas/index'
 import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
 import { classificacaoHidrantesData } from '../../hooks/useClassificacaoHidrantes'
 import { fmtNum } from '../../utils/numero'
-import { rotuloLancesInternos, rotuloLancesExternos, rotuloTipoMangueira } from '../hidrantesMangueiras'
+import { rotuloLancesInternos, rotuloLancesExternos, rotuloTipoMangueira, tipoMangueiraValido } from '../hidrantesMangueiras'
 
 const f2 = (n) => fmtNum(n, 2)
 const fmtM = f2
@@ -231,7 +231,7 @@ export function textoMemorialHidrantes(state, _sistemas, porEstrutura) {
       ['Chave para hidrante / engate', dadosTipo.componentes.chaveEngate ? 'Sim' : 'Não'],
       ...(h.lancesInternos ? [['Lances de mangueira — hidrantes internos', rotuloLancesInternos(h.lancesInternos)]] : []),
       ...(h.lancesExternos ? [['Lances de mangueira — hidrantes externos', rotuloLancesExternos(h.lancesExternos)]] : []),
-      ...(h.mangueiraTipo ? [['Tipo de mangueira', rotuloTipoMangueira(h.mangueiraTipo)]] : []),
+      ...(tipoMangueiraValido(h.mangueiraTipo, dadosTipo.componentes.mangueiraIncendio) ? [['Tipo de mangueira', rotuloTipoMangueira(h.mangueiraTipo)]] : []),
       ['Válvula do hidrante', `Globo angular DN${h.valvulaHidranteDn}`],
       ['Válvulas de bloqueio', LABEL_VALVULA_BLOQUEIO[h.valvulaBloqueioTipo] || '—'],
     ],

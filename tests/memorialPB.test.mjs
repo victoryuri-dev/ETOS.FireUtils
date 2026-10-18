@@ -478,6 +478,17 @@ test('8. elementos e características vêm das páginas comuns de compartimenta�
   assert.equal(secao(gerar(p), '8.').linhas.find(l => l.tipo === 'checkValor' && l.label === PAREDE).valor, 'alvenaria EI-120')
 })
 
+test('17. tipo de mangueira só entre os que o tipo de sistema admite (Tabela 4)', async () => {
+  const { tiposMangueiraPermitidos, tipoMangueiraValido } = await server.ssrLoadModule('/src/data/hidrantesMangueiras.js')
+  assert.deepEqual(tiposMangueiraPermitidos('tipo2_3_4_ou_5').map(([k]) => k), ['2', '3', '4', '5'])
+  assert.deepEqual(tiposMangueiraPermitidos('tipo1_residencial_ou_tipo2').map(([k]) => k), ['1', '2'])
+  assert.deepEqual(tiposMangueiraPermitidos(null), [])                 // Tipo 1 (mangotinho)
+  assert.equal(tipoMangueiraValido('1', 'tipo2_3_4_ou_5'), '')
+  // no formulário: Tipo 4 com "Mangueira 1" (não admitida) não marca nada
+  const p = projeto({ sistemasPorEstrutura: { e1: { hidrantes: true } }, hidrantes: { tipo: '4', mangueiraTipo: '1' } })
+  assert.ok(!marcados(secao(gerar(p), '17.')).includes('Mangueira 1'))
+})
+
 test('6. acesso de viatura: as distâncias informadas marcam a linha certa do formulário', () => {
   const sec = (av, hid = false) => secao(gerar(projeto({
     sistemasPorEstrutura: { e1: { acesso_viatura: true, hidrantes: hid } },

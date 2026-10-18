@@ -47,7 +47,7 @@ import { textoMemorialBrigadaIncendio } from '../../data/memorial/brigada_incend
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
 import { opcaoCapacidade } from '../../data/extintores_calc'
-import { LANCES_INTERNOS, LANCES_EXTERNOS, TIPOS_MANGUEIRA } from '../../data/hidrantesMangueiras'
+import { LANCES_INTERNOS, LANCES_EXTERNOS, TIPOS_MANGUEIRA, tipoMangueiraValido } from '../../data/hidrantesMangueiras'
 
 const vazio = v => v === '' || v === null || v === undefined
 const fmtM  = v => `${fmtNum(v, 2, String(v))} m`
@@ -1050,7 +1050,7 @@ function secaoHidrantes(state, ctx) {
       { tipo: 'texto', centro: true, negrito: true, texto: 'Quantidade de lances de mangueira (hidrantes externos)' },
       um(LANCES_EXTERNOS_PB, h.lancesExternos || extra.lancesExternos),   // 'nao_aplica' não marca nada
       { tipo: 'texto', centro: true, negrito: true, texto: 'Tipo de mangueira (NBR ABNT 11861)' },
-      um(MANGUEIRAS_PB, h.mangueiraTipo || extra.mangueira),
+      um(MANGUEIRAS_PB, comp ? tipoMangueiraValido(h.mangueiraTipo || extra.mangueira, comp.mangueiraIncendio) : (h.mangueiraTipo || extra.mangueira)),
       sub('17.3 Bombas de incêndio e casa de bombas', '(Informe e/ou marque X nas características da RTI, conforme NT CBMPB 15)'),
       campo('Pressão da bomba principal (mca) de incêndio:', ativo && alturaBomba ? alturaBomba : ''),
       campo('Pressão da bomba reserva (mca) para risco médio e alto:', ativo && h.bombaReserva && alturaBomba ? alturaBomba : ''),
