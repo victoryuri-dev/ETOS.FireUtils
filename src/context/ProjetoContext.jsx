@@ -616,7 +616,8 @@ const INITIAL_STATE = {
     // exigido. estados/PB/acessoViatura.js decide a linha do formulário.
     acessoViatura: {},
     // 17 — só o que a página de hidrantes comum não tem: manancial, nsth,
-    // tubDiametro, lancesInternos, lancesExternos, mangueira.
+    // lancesInternos, lancesExternos, mangueira (o diâmetro das tubulações
+    // vem do dimensionamento do Revit).
     hidrantes: {},
     extintorNivelIII: '',    // 'nivel_III_4A' = RT adotou 4A/80BC; vazio = 3A/40BC (automático)
     // Itens de "atesto" do formulário (as escadas atendem ao item 5.7 da NT

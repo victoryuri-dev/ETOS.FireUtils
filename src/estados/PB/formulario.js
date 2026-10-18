@@ -949,6 +949,28 @@ const RECALQUE_DO_TIPO = {
 /** Atestos de bombas e tubulação que o RT marca (sem os do recalque). */
 export const ATESTOS_BOMBAS_MARCAVEIS = ATESTOS_HIDRANTES.bombas.filter(([key]) => !(key in RECALQUE_DO_TIPO))
 
+// Diâmetros das tubulações (17.2): os dos trechos do dimensionamento do
+// Revit (state.hidrantes.dimensionamento.res.j), agrupados por diâmetro.
+// Todos iguais → só "DN65"; senão "DN80 (RTI → Bomba, Bomba → Ponto A);
+// DN65 (Ponto A → HD01, Ponto A → HD02)".
+const TRECHOS_HIDRANTE = [['t1', 'RTI → Bomba'], ['t2', 'Bomba → Ponto A'], ['t3', 'Ponto A → HD01'], ['t4', 'Ponto A → HD02']]
+export function diametrosTubulacaoPB(dimensionamento) {
+  const j = dimensionamento?.res?.j
+  if (!j) return ''
+  const porDiametro = new Map()
+  TRECHOS_HIDRANTE.forEach(([id, rotulo]) => {
+    ;(j[id]?.segmentos || []).forEach(seg => {
+      const dn = Math.round(Number(seg.d_mm))
+      if (!(dn > 0)) return
+      if (!porDiametro.has(dn)) porDiametro.set(dn, [])
+      if (!porDiametro.get(dn).includes(rotulo)) porDiametro.get(dn).push(rotulo)
+    })
+  })
+  const grupos = [...porDiametro.entries()].sort((a, b) => b[0] - a[0])
+  if (grupos.length <= 1) return grupos.length ? `DN${grupos[0][0]}` : ''
+  return grupos.map(([dn, trechos]) => `DN${dn} (${trechos.join(', ')})`).join('; ')
+}
+
 // Tipo do formulário a partir do tipo/variante da página de hidrantes
 // (Tipo 4: variante 0 = DN40, 1 = DN65).
 const tipoFormularioHidrante = h => {
@@ -997,7 +1019,7 @@ function secaoHidrantes(state, ctx) {
       campo('Area construída da edificação:', ativo && state.areaConstruidaTotal ? fmtM2(state.areaConstruidaTotal) : ''),
       campo('RTI em m³:', v(h.rti)),
       sub('17.2 Mangueiras e tubulações', '(Informe e/ou marque X nas características da RTI, conforme NT CBMPB 15)'),
-      campo('Diâmetro das tubulações:', v(extra.tubDiametro)),
+      campo('Diâmetro das tubulações:', v(diametrosTubulacaoPB(d))),
       campo('Material das tubulações:', v(h.redeMaterial)),
       ...atestos(ATESTOS_HIDRANTES.mangueiras),
       { tipo: 'texto', centro: true, negrito: true, texto: 'Quantidade de lances de mangueira (hidrantes internos)' },

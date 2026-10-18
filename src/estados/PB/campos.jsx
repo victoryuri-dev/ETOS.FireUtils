@@ -401,9 +401,9 @@ export function CamposExtintoresPB() {
 }
 
 // 17 — o que o formulário pede e a página de hidrantes comum não tem: NSTH
-// (reservatório subterrâneo), manancial, diâmetro das tubulações, lances e
-// tipo de mangueira e as declarações. Tipo, vazão/pressão, RTI,
-// reservatório, materiais e bombas vêm da página comum.
+// (reservatório subterrâneo), manancial, lances e tipo de mangueira e as
+// declarações. Tipo, vazão/pressão, RTI, reservatório, materiais, bombas e
+// os diâmetros das tubulações (Revit) vêm da página comum.
 export function CamposHidrantesPB() {
   const { state, m, set, atestos, alternarAtesto } = useCamposPB()
   const h = m.hidrantes || {}
@@ -417,10 +417,7 @@ export function CamposHidrantesPB() {
       <FormSection title="Formulário do CBMPB — item 17" description="Só o que o formulário pede além do dimensionamento acima.">
         <div className="flex flex-col gap-3">
           <SimNao pergunta="A reserva técnica é um manancial?" valor={h.manancial} onChange={v => setH({ manancial: v })}/>
-          <div className="g2">
-            {subterraneo && !h.manancial && inp('nsth', 'NSTH (reservatório enterrado)')}
-            {inp('tubDiametro', 'Diâmetro das tubulações', { placeholder: 'Ex.: 65 mm' })}
-          </div>
+          {subterraneo && !h.manancial && <div className="g2">{inp('nsth', 'NSTH (reservatório enterrado)')}</div>}
           <div className="g2">
             <Opcoes titulo="Lances de mangueira — hidrantes internos" lista={LANCES_INTERNOS_PB} valor={h.lancesInternos} onChange={v => setH({ lancesInternos: v })}/>
             <Opcoes titulo="Lances de mangueira — hidrantes externos" lista={LANCES_EXTERNOS_PB} valor={h.lancesExternos} onChange={v => setH({ lancesExternos: v })}/>

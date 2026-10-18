@@ -442,6 +442,17 @@ test('17. declarações padrão já marcadas; recalque marcado pelo tipo da pág
   assert.ok(passeio.includes(PASSEIO) && !passeio.includes(FACHADA))
 })
 
+test('17.2 diâmetros das tubulações vêm dos trechos do Revit, agrupados', async () => {
+  const { diametrosTubulacaoPB } = await server.ssrLoadModule('/src/estados/PB/formulario.js')
+  const seg = d_mm => ({ d_mm })
+  const dim = j => ({ res: { j } })
+  assert.equal(diametrosTubulacaoPB(null), '')
+  assert.equal(diametrosTubulacaoPB(dim({ t1: { segmentos: [seg(65)] }, t2: { segmentos: [seg(65.0)] }, t3: { segmentos: [seg(65)] }, t4: { segmentos: [seg(65)] } })), 'DN65')
+  assert.equal(diametrosTubulacaoPB(dim({
+    t1: { segmentos: [seg(80)] }, t2: { segmentos: [seg(80), seg(65)] }, t3: { segmentos: [seg(65)] }, t4: { segmentos: [seg(65)] },
+  })), 'DN80 (RTI → Bomba, Bomba → Ponto A); DN65 (Bomba → Ponto A, Ponto A → HD01, Ponto A → HD02)')
+})
+
 test('6. acesso de viatura: as distâncias informadas marcam a linha certa do formulário', () => {
   const sec = (av, hid = false) => secao(gerar(projeto({
     sistemasPorEstrutura: { e1: { acesso_viatura: true, hidrantes: hid } },
