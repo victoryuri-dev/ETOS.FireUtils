@@ -13,6 +13,7 @@ import Obrigatorio from '../ui/Obrigatorio'
 // mora em hooks/useClassificacaoHidrantes.js, não duplicada nos dois lugares.
 import { useClassificacaoHidrantes } from '../../hooks/useClassificacaoHidrantes'
 import FormSection from '../ui/FormSection'
+import { Chip } from '../ui/EstruturaHeaderInfo'
 import InfoTip from '../ui/InfoTip'
 import CaixaInfo from '../ui/CaixaInfo'
 import { inputClass, Field, Resultado, Pill, Nota, ToggleRow } from './formUi'
@@ -21,31 +22,39 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { fmtNum } from '../../utils/numero'
 import { LANCES_INTERNOS, LANCES_EXTERNOS, NAO_SE_APLICA, tiposMangueiraPermitidos } from '../../data/hidrantesMangueiras'
 
-const RISCO_LABEL = { baixo: 'Baixo', medio: 'Médio', alto: 'Alto' }
-const RISCO_COLOR = { baixo: 'text-ink-faint', medio: 'text-amber', alto: 'text-red' }
+const RISCO_LABEL = { baixo: 'Risco baixo', medio: 'Risco médio', alto: 'Risco alto' }
+const RISCO_TONE = { baixo: 'green', medio: 'amber', alto: 'red' }
 
-// Mesma lógica de cores da Etapa 6 (medidas de segurança): estrutura em que a
-// norma EXIGE hidrantes é vermelha — cheia quando selecionada e só com a
-// borda vermelha se o RT a desmarcou (sinaliza que a norma exige mesmo assim);
-// as não exigidas ficam verdes quando selecionadas (opcional) e neutras quando não.
-function EstruturaPill({ active, obrigatorio, onClick, nome, area, divisao, carga, risco }) {
+// Mesma lógica de cores da Etapa 6 (medidas de segurança, legenda acima dos
+// cards): estrutura em que a norma EXIGE hidrantes é vermelha — cheia quando
+// selecionada e só com a borda vermelha se o RT a desmarcou; as não exigidas
+// ficam verdes quando selecionadas (opcional) e neutras quando não. Área,
+// ocupação e risco em badges, como no cabeçalho das estruturas.
+function EstruturaPill({ active, obrigatorio, onClick, nome, area, divisao, risco }) {
   const tom = obrigatorio
     ? (active ? 'border-red bg-red-dim' : 'border-red bg-bg hover:bg-red-dim')
     : (active ? 'border-green bg-green-dim' : 'border-border bg-bg hover:border-ink-faint')
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
-      className={`text-left p-3 rounded-md border border-solid transition-colors ${tom}`}>
-      <div className="flex items-start justify-between gap-2 mb-1.5">
-        <div className="text-xs font-semibold text-ink">{nome}</div>
-        {obrigatorio && <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[.06em] text-red">Obrigatório</span>}
-      </div>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-ink-faint">
-        <span>Área</span><span className="text-ink font-medium text-right">{area ? `${fmtNum(area)} m²` : '—'}</span>
-        <span>Ocupação</span><span className="text-ink font-medium text-right">{divisao || '—'}</span>
-        <span>Carga de incêndio</span><span className="text-ink font-medium text-right">{carga != null ? `${carga} MJ/m²` : '—'}</span>
-        <span>Risco</span><span className={`font-medium text-right ${risco ? RISCO_COLOR[risco] : ''}`}>{risco ? RISCO_LABEL[risco] : '—'}</span>
+      className={`text-left p-3 rounded-md border border-solid transition-colors flex flex-col gap-2.5 ${tom}`}>
+      <div className="text-xs font-semibold text-ink">{nome}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {area ? <Chip icon="area">{fmtNum(area)} m²</Chip> : null}
+        {divisao ? <Chip tone="red" icon="newbld">{divisao}</Chip> : null}
+        {risco ? <Chip tone={RISCO_TONE[risco]} icon="flame">{RISCO_LABEL[risco]}</Chip> : null}
       </div>
     </button>
+  )
+}
+
+// Legenda das cores dos cards (mesma da Etapa 6).
+function LegendaEstruturas() {
+  return (
+    <div className="flex flex-wrap gap-x-5 gap-y-2 mb-3 text-[11px] text-ink-faint">
+      <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 bg-red"/>Obrigatória (exigida pela norma)</div>
+      <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 bg-green"/>Opcional</div>
+      <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 bg-ink-hint"/>Desabilitada</div>
+    </div>
   )
 }
 
@@ -84,10 +93,11 @@ export default function FormularioSistema() {
       {/* Áreas para classificação — nem toda estrutura do projeto exige
           hidrantes; o RT confirma/ajusta quais entram na conta. */}
       <FormSection title="Áreas para Classificação do Sistema" description="Selecione as estruturas que exigem sistema de hidrantes — só elas entram na área total e na ocupação usadas na Tabela 3.">
+        <LegendaEstruturas/>
         <div className="grid grid-cols-2 gap-3">
           {infoPorEstrutura.map(e => (
             <EstruturaPill key={e.id} active={estruturasSelecionadas.includes(e.id)} obrigatorio={e.hidrantesObrigatorio} onClick={() => toggleEstrutura(e.id)}
-              nome={e.nome} area={e.area} divisao={e.divisaoLabel} carga={e.carga} risco={e.risco}/>
+              nome={e.nome} area={e.area} divisao={e.divisaoLabel} risco={e.risco}/>
           ))}
         </div>
       </FormSection>
