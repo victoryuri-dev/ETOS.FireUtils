@@ -28,6 +28,7 @@ function textosCondicoes(catalogo, chaves) {
 }
 
 function fmtArea(valor) {
+  if (valor === 'CTD') return 'a definir pela Comissão Técnica (CTD)'
   return typeof valor === 'number' ? fmtUn(valor, 'm²') : 'sem limite definido'
 }
 const m2 = v => fmtUn(v, 'm²', 2, `${v} m²`)

@@ -9,6 +9,9 @@
 const num = v => parseFloat(v) || 0
 const vazio = v => v === '' || v == null
 
+/** Valor da tabela de área máxima: área definida pela Comissão Técnica. */
+export const CTD = 'CTD'
+
 /** Tipo de edificação (I a VI) a partir da altura (Anexo B, NT 09 CBMMA).
  *  Retorna null quando a altura ainda não foi informada. Edificação térrea
  *  (altura 0) cai no Tipo I; qualquer altura > 0 segue as faixas normais. */
@@ -23,8 +26,9 @@ export function classificarTipoEdificacao(altura, classes) {
 
 /** Busca a área máxima de compartimentação (m²) de uma divisão para um tipo
  *  de edificação, na tabela do Anexo B da NT 09 CBMMA. O valor pode ser: um
- *  número (m²) ou null (combinação sem limite de área nessa tabela — outras
- *  regras da NT se aplicam, ex.: unidades autônomas do Grupo A). */
+ *  número (m²), null (combinação sem limite de área nessa tabela — outras
+ *  regras da NT se aplicam, ex.: unidades autônomas do Grupo A) ou 'CTD'
+ *  (PB, NT 36/2024: área definida pela Comissão Técnica). */
 export function buscarAreaMaxima(tabela, divisao, tipo) {
   const linha = tabela.find(r => r.divisoes.includes(divisao))
   if (!linha) return { encontrado: false, valor: null }
@@ -67,13 +71,16 @@ export function calcularAreaMaximaCompartimentacao(pavimentosOrdenados, estrutur
   // edificação é conhecido, há pelo menos um pavimento classificado e TODOS
   // já têm área informada — sem isso, "nenhum excedente" só significa que
   // ainda não sabemos, não que está conforme.
-  const conclusivo = !!tipo && linhas.length > 0 && linhas.every(l => l.area > 0)
+  // 'CTD' (Comissão Técnica define a área): sem limite tabelado, então
+  // também não dá para concluir a dispensa.
+  const dependeComissao = linhas.some(l => l.valor === CTD)
+  const conclusivo = !!tipo && linhas.length > 0 && linhas.every(l => l.area > 0) && !dependeComissao
   const dentroDoLimite = conclusivo && pavimentosExcedentes.length === 0
 
   return {
     tipo, tipoNome: tipoObj?.nome ?? null,
     linhas,
     pavimentosExcedentes,
-    conclusivo, dentroDoLimite,
+    conclusivo, dentroDoLimite, dependeComissao,
   }
 }

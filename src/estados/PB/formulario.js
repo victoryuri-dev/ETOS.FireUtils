@@ -377,16 +377,21 @@ function secaoCompartimentacao(state, ctx) {
 
   // Área máxima a compartimentar: a mais restritiva entre os pavimentos das
   // estruturas em que a horizontal é exigida (mesmo cálculo da tela).
-  let areaMax = null
+  let areaMax = null, comissao = false
   if (exigH) {
     const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO } = getCompartimentacao(state.uf) || {}
     ;(TABELA_AREA_MAXIMA ? ctx.porEstrutura || [] : []).filter(pe => pe.sistemas?.compart_horizontal?.obrigatorio || pe.sistemas?.compart_horizontal?.ativo).forEach(pe => {
       const pavs = (state.pavimentos || []).filter(p => p.estruturaId === pe.estrutura.id)
       calcularAreaMaximaCompartimentacao(pavs, pe.estrutura, TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, state.areaCompartimentacaoHorizontal)
-        .linhas.forEach(l => { if (typeof l.valor === 'number') areaMax = areaMax == null ? l.valor : Math.min(areaMax, l.valor) })
+        .linhas.forEach(l => {
+          if (typeof l.valor === 'number') areaMax = areaMax == null ? l.valor : Math.min(areaMax, l.valor)
+          else if (l.valor === 'CTD') comissao = true
+        })
     })
   }
-  const area = areaMax != null ? fmtNum(areaMax, 0, String(areaMax)) : '______'
+  // Só 'CTD' (Comissão Técnica) e nenhum limite numérico: a área fica para a
+  // Comissão; com limite numérico, vale o mais restritivo.
+  const area = areaMax != null ? fmtNum(areaMax, 0, String(areaMax)) : comissao ? '(a definir pela Comissão Técnica)' : '______'
   const spec = m.especificacaoCompart || {}
   const linhaElemento = (prefixo, marcados) => ([key, label]) => ({
     tipo: 'checkValor', x: marcados.has(key), label, valor: marcados.has(key) ? (spec[`${prefixo}:${key}`] || '') : '',

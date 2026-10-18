@@ -10,8 +10,7 @@ import {
 // Página da PB de cada medida (chave = sistema, a mesma das rotas
 // /medida/:sistKey e do menu lateral). Ver estados/registro.js.
 const compart = (
-  <PaginaPB titulo="Compartimentação" secoes={['8.']}
-    aviso="A NT 36 (compartimentação) da PB ainda não está cadastrada: a área máxima a compartimentar sai em branco.">
+  <PaginaPB titulo="Compartimentação" secoes={['8.']}>
     <CamposCompartimentacaoPB/>
   </PaginaPB>
 )

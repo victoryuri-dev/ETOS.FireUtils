@@ -14,6 +14,7 @@ const server = await servidorComNormas({
     brigada: dadosDoSql('20261016180000_seed_normas_brigada_pb.sql'),
     trrf: dadosDoSql('20261016190000_seed_normas_trrf_pb.sql'),
     iluminacao: dadosDoSql('20261016200000_seed_normas_iluminacao_pb.sql'),
+    compartimentacao: dadosDoSql('20261018120000_seed_normas_compartimentacao_pb.sql'),
   },
   MA: {
     compartimentacao: dadosDoSql('20261016140000_seed_normas_compartimentacao_ma.sql'),
@@ -43,7 +44,7 @@ test('tipos de escada do MA: SQL = arquivo de seed', async () => {
 })
 
 test('sem o sistema cadastrado para o estado, o getter devolve null (nunca a norma de outro estado)', () => {
-  for (const get of ['getAV', 'getSinalizacao', 'getCompartimentacao', 'getControleAcabamento', 'getHidrantes', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
+  for (const get of ['getAV', 'getSinalizacao', 'getControleAcabamento', 'getHidrantes', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
     assert.equal(normas[get]('PB'), null, get)
   }
   assert.ok(normas.getSE('PB'))
@@ -193,4 +194,29 @@ test('iluminação da PB: SQL = arquivo de seed e parâmetros da NT 18/2024', as
 
 test('iluminação do MA: SQL acrescenta a NORMA igual ao seed', async () => {
   assert.deepEqual(dadosDoSql('20261016200001_add_norma_iluminacao_ma.sql'), { norma: (await seed('iluminacao')).NORMA })
+})
+
+test('compartimentação da PB: SQL = arquivo de seed', async () => {
+  const esperado = await server.ssrLoadModule('/src/data/normas/PB/compartimentacao.js')
+  const lido = normas.getCompartimentacao('PB')
+  for (const [k, v] of Object.entries(esperado)) assert.deepEqual(lido[k], v, k)
+  assert.equal(lido.CLASSES_TIPO_EDIFICACAO.at(-1).max, Infinity)
+})
+
+test('compartimentação da PB: Anexo B da NT 36/2024 e CTD (Comissão Técnica)', async () => {
+  const { buscarAreaMaxima, calcularAreaMaximaCompartimentacao } = await server.ssrLoadModule('/src/data/compart_calc.js')
+  const { TABELA_AREA_MAXIMA: T, CLASSES_TIPO_EDIFICACAO: C } = normas.getCompartimentacao('PB')
+  assert.equal(buscarAreaMaxima(T, 'I-1', 'V').valor, 1500)      // MA: 2.000
+  assert.equal(buscarAreaMaxima(T, 'M-2', 'I').valor, 1000)      // MA: 11.000
+  assert.equal(buscarAreaMaxima(T, 'L-1', 'I').valor, 100)
+  assert.equal(buscarAreaMaxima(T, 'L-1', 'II').valor, 'CTD')
+  assert.equal(buscarAreaMaxima(T, 'M-5', 'I').valor, 750)
+  assert.equal(buscarAreaMaxima(T, 'A-2', 'III').valor, null)
+  // CTD: não conclui a dispensa por área
+  const est = { alturaPisoPiso: 5 }
+  const r = calcularAreaMaximaCompartimentacao([{ id: 'p', divisao: 'M-1', area: '50' }], est, T, C)
+  assert.equal(r.dependeComissao, true)
+  assert.equal(r.dentroDoLimite, false)
+  const ok = calcularAreaMaximaCompartimentacao([{ id: 'p', divisao: 'C-1', area: '500' }], est, T, C)
+  assert.equal(ok.dentroDoLimite, true)
 })
