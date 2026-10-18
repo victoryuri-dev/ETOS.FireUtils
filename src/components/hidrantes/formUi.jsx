@@ -36,10 +36,10 @@ export function Resultado({ label, value, hint, className = '' }) {
   )
 }
 
-export function Pill({ active, onClick, children }) {
+export function Pill({ active, onClick, children, centro = false }) {
   return (
     <button type="button" onClick={onClick}
-      className={`text-left py-2 px-3 rounded-md border border-solid text-xs transition-colors ${active ? 'border-red bg-red-dim text-ink font-semibold' : 'border-border bg-bg text-ink-faint hover:text-ink'}`}>
+      className={`${centro ? 'text-center' : 'text-left'} py-2 px-3 rounded-md border border-solid text-xs transition-colors ${active ? 'border-red bg-red-dim text-ink font-semibold' : 'border-border bg-bg text-ink-faint hover:text-ink'}`}>
       {children}
     </button>
   )

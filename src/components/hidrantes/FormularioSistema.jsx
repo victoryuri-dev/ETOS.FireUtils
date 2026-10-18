@@ -106,7 +106,7 @@ export default function FormularioSistema() {
             <Field label="A norma permite dois sistemas para esta ocupação — escolha qual adotar" />
             <div className="grid grid-cols-2 gap-2 mt-1">
               {sugestao.opcoes.map(op => (
-                <Pill key={op.tipo} active={h.tipo === op.tipo} onClick={() => escolherOpcao(op)}>
+                <Pill key={op.tipo} centro active={h.tipo === op.tipo} onClick={() => escolherOpcao(op)}>
                   Tipo {op.tipo} — RTI {fmtNum(op.rti)} m³
                 </Pill>
               ))}
@@ -126,7 +126,7 @@ export default function FormularioSistema() {
             <Field label="Mangueira do Tipo 4"/>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {norma.TIPOS_SISTEMA[tipoAtual].variantes.map((v, i) => (
-                <Pill key={i} active={(h.tipoVariante || 0) === i} onClick={() => set({ tipoVariante: i })}>
+                <Pill key={i} centro active={(h.tipoVariante || 0) === i} onClick={() => set({ tipoVariante: i })}>
                   Esguicho DN{v.esguicho} — mangueira DN{v.mangueiraDn} — {v.pressaoMin} mca
                 </Pill>
               ))}
@@ -134,7 +134,8 @@ export default function FormularioSistema() {
           </div>
         )}
 
-        <div className="grid grid-cols-6 gap-3 bg-surface-2 border border-solid border-border rounded-lg p-4 mt-4">
+        {/* Colunas na largura do conteúdo, igualmente espaçadas. */}
+        <div className="flex flex-wrap justify-between gap-x-8 gap-y-3 bg-surface-2 border border-solid border-border rounded-lg p-4 mt-4">
           <Resultado label="Tipo" value={tipoAtual ? `Tipo ${tipoAtual}` : '—'}/>
           {dadosTipo && (
             <>
@@ -149,7 +150,12 @@ export default function FormularioSistema() {
       </FormSection>
 
       {/* B — Reservatório e RTI */}
-      <FormSection title="Reservatório">
+      <FormSection title="Reservatório" extra={
+        <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-solid border-red-border bg-red-dim text-[11px] font-semibold text-red whitespace-nowrap"
+          title={`RTI — Tabela 3, ${norma.NORMA.nome}`}>
+          RTI {h.rti ? `${fmtNum(h.rti, 2, h.rti)} m³` : '—'}
+        </span>
+      }>
         <div className="grid grid-cols-2 gap-4 mb-3">
           <Field label={<>Material do reservatório <Obrigatorio id="hidrantes.reservatorioMaterial"/></>}>
             <select className={inputClass} value={h.reservatorioMaterial} onChange={e => set({ reservatorioMaterial: e.target.value })}>
@@ -176,24 +182,18 @@ export default function FormularioSistema() {
             </Field>
           </div>
         )}
-        <div className="grid grid-cols-2 gap-4 mt-3 bg-surface-2 border border-solid border-border rounded-lg p-4">
-          <Resultado label="RTI (Reserva Técnica de Incêndio)" hint={`Tabela 3, ${norma.NORMA.nome}`} value={h.rti ? `${fmtNum(h.rti, 2, h.rti)} m³` : '—'}/>
-        </div>
       </FormSection>
 
       {/* C — Rede de tubulação */}
-      <FormSection title="Rede de Tubulação">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label={<>Material <Obrigatorio id="hidrantes.redeMaterial"/></>}>
-            <select className={inputClass} value={h.redeMaterial} onChange={e => set({ redeMaterial: e.target.value })}>
-              <option value="">Selecione...</option>
-              {norma.MATERIAIS_TUBULACAO.map(m => (
-                <option key={m.key} value={m.key}>{m.label} (C={m.fatorC})</option>
-              ))}
-            </select>
-          </Field>
-        </div>
-      </FormSection>
+      {/* Select na linha do título (FormSection extra). */}
+      <FormSection title={<>Material da Tubulação <Obrigatorio id="hidrantes.redeMaterial"/></>} extra={
+        <select className={inputClass.replace('w-full', 'w-[280px] max-w-full')} value={h.redeMaterial} onChange={e => set({ redeMaterial: e.target.value })} aria-label="Material da tubulação">
+          <option value="">Selecione...</option>
+          {norma.MATERIAIS_TUBULACAO.map(m => (
+            <option key={m.key} value={m.key}>{m.label} (C={m.fatorC})</option>
+          ))}
+        </select>
+      }/>
 
       {/* D — Dispositivo de recalque */}
       {/* Opções na mesma linha do título (FormSection extra). */}
