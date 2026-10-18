@@ -10,7 +10,7 @@ const MA_HID = await import('../src/data/normas/MA/hidrantes.js')
 const hidrantesPB = Object.fromEntries(Object.entries(MA_HID).map(([k, v]) => [k.toLowerCase(), v]))
 const server = await servidorComNormas({ PB: { hidrantes: hidrantesPB } })
 after(() => server.close())
-const { buildFormularioPB } = await server.ssrLoadModule('/src/estados/PB/formulario.js')
+const { buildFormularioPB, semDestaque } = await server.ssrLoadModule('/src/estados/PB/formulario.js')
 const { medidasObrigatorias } = await server.ssrLoadModule('/src/hooks/useMedidasObrigatorias.js')
 const { riscosEspeciaisDoEstado, RISCOS_ESPECIAIS } = await server.ssrLoadModule('/src/utils/anexoB.js')
 
@@ -36,7 +36,7 @@ function gerar(state) {
   return buildFormularioPB(state, sistemas, porEstrutura)
 }
 const secao = (f, prefixo) => f.secoes.find(s => s.titulo.startsWith(prefixo))
-const marcados = s => s.linhas.flatMap(l => [...(l.itens || []), ...(l.tipo === 'checkValor' ? [l] : [])]).filter(i => i.x).map(i => i.label)
+const marcados = s => s.linhas.flatMap(l => [...(l.itens || []), ...(l.tipo === 'checkValor' ? [l] : [])]).filter(i => i.x).map(i => semDestaque(i.label))
 const valorCampo = (s, label) => s.linhas.flatMap(l => l.celulas || []).find(c => c.label === label)?.valor
 
 test('estado sem formulário próprio não gera o memorial da PB', () => {
@@ -318,7 +318,7 @@ test('13. iluminação: tipo, fluxo e altura da página da PB → distância 4×
   const vazio = secao(gerar(comIlu()), '13.')
   assert.equal(valorCampo(vazio, 'Altura de instalação do ponto de luz em relação ao piso (metros):'), '')
   assert.deepEqual(marcados(vazio).sort(), ['Central por UPS', ...PADRAO].sort())
-  assert.ok(vazio.linhas.some(l => (l.itens || []).some(i => i.label.includes('Fluxo exato: 400 lm'))))
+  assert.ok(vazio.linhas.some(l => (l.itens || []).some(i => semDestaque(i.label).includes('Fluxo exato: 400 lm'))))
 
   // O RT pode desmarcar um padrão e marcar outros.
   const s = secao(gerar(comIlu({ iluAlturaInstalacao: '2,5', atestos: { ilu_autonomia_2h: false, ilu_ups_exclusiva: true } })), '13.')
@@ -503,7 +503,7 @@ test('6. acesso de viatura: as distâncias informadas marcam a linha certa do fo
   })), '6.')
   const linha = s => s.linhas.filter(l => l.tipo === 'checks').findIndex(l => l.itens[0].x) + 1
   assert.equal(linha(sec({ distanciaEdificacao: '15' })), 1)
-  assert.ok(marcados(sec({ distanciaEdificacao: '15' }))[0].endsWith('Distância: 15'))
+  assert.ok(marcados(sec({ distanciaEdificacao: '15' }))[0].endsWith('Distância: 15 m'))
   assert.equal(linha(sec({ distanciaEdificacao: '25' })), 3)
   assert.equal(linha(sec({ distanciaEdificacao: '40', distanciaRecalque: '12' }, true)), 2)
   assert.equal(linha(sec({ distanciaEdificacao: '60', distanciaRecalque: '12' }, true)), 4)
@@ -546,7 +546,7 @@ test('9. CMAR: linha e classes por estrutura (a mais restritiva entre as divisõ
   const m = marcados(s)
   assert.ok(m.some(l => l.startsWith('Natureza da ocupação A ')))
   assert.ok(m.some(l => l.startsWith('Natureza da ocupação C,')))
-  const textos = s.linhas.filter(l => l.tipo === 'texto').map(l => l.texto)
+  const textos = s.linhas.filter(l => l.tipo === 'texto').map(l => semDestaque(l.texto))
   assert.ok(textos.includes('Bloco A: Piso Classe I, II-A, III-A ou IV-A; Parede Classe I, II-A ou III-A; Teto Classe I, II-A ou III-A; Fachada Classe I a II-B'))
   assert.ok(textos.some(t => t.startsWith('Bloco B: ') && t.includes('Parede Classe I ou II-A')))
 })
@@ -686,4 +686,11 @@ test('3.4: risco e validade pelo Anexo B da NT 02/2023 — maior risco entre as 
   assert.deepEqual(risco34(p), ['Médio'])
   p.memorialPB = { f3EstadioFutebol: true }
   assert.deepEqual(risco34(p), ['Alto'])
+})
+
+test('valores preenchidos no meio do texto saem destacados (negrito) e o texto limpo continua igual', () => {
+  assert.equal(semDestaque('a \uE000b\uE001 c'), 'a b c')
+  const s = secao(gerar(projeto({ sistemasPorEstrutura: { e1: { acesso_viatura: true } }, memorialPB: { acessoViatura: { distanciaEdificacao: '15' } } })), '6.')
+  const marcada = s.linhas.filter(l => l.tipo === 'checks').find(l => l.itens[0].x).itens[0].label
+  assert.ok(marcada.endsWith('Distância: \uE00015 m\uE001'))
 })

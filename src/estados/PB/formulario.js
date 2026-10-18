@@ -51,6 +51,13 @@ import { opcaoCapacidade } from '../../data/extintores_calc'
 import { LANCES_INTERNOS, LANCES_EXTERNOS, TIPOS_MANGUEIRA, tipoMangueiraValido } from '../../data/hidrantesMangueiras'
 
 const vazio = v => v === '' || v === null || v === undefined
+// Valor preenchido no meio de um texto do formulário: sai em negrito no
+// documento (SecaoFormulario.jsx, `comDestaque`). Campos com `valor` próprio
+// já saem em negrito.
+export const DESTAQUE = /\uE000([\s\S]*?)\uE001/g
+const V = v => `\uE000${v}\uE001`
+export const semDestaque = t => String(t ?? '').replace(DESTAQUE, '$1')
+
 const fmtM  = v => `${fmtNum(v, 2, String(v))} m`
 const fmtM2 = v => `${fmtNum(v, 2, String(v))} m²`
 const unicos = lista => [...new Set(lista.filter(v => !vazio(v)))]
@@ -164,7 +171,7 @@ function secaoParametros(state, F, ctx) {
   const naoListadas = [...ctx.divisoes].filter(d => fora.has(d)).sort()
   linhas.push({ tipo: 'texto', negrito: true, texto: 'O responsável Técnico deverá consultar a Norma Técnica (NT) 04/2023 para realizar o enquadramento da edificação' })
   linhas.push(obs('Observação Livre:', texto(
-    naoListadas.length ? `Divisão(ões) também presente(s) na edificação, sem linha no formulário: ${naoListadas.join(', ')}.` : '',
+    naoListadas.length ? `Divisão(ões) também presente(s) na edificação, sem linha no formulário: ${V(naoListadas.join(', '))}.` : '',
     m.obsNatureza,
   )))
 
@@ -183,7 +190,7 @@ function secaoParametros(state, F, ctx) {
     linhas.push(ck(...itens))
   })
   if (informada && !classeAltura) {
-    linhas.push({ tipo: 'texto', texto: `Altura da edificação: ${fmtM(h)} — acima da faixa coberta pelo formulário (Tipo V, até 30 m).` })
+    linhas.push({ tipo: 'texto', texto: `Altura da edificação: ${V(fmtM(h))} — acima da faixa coberta pelo formulário (Tipo V, até 30 m).` })
   }
 
   // 3.3 Área construída.
@@ -297,7 +304,7 @@ function secaoAcessoViatura(state, F, ctx) {
   const temRecalqueProjeto = !!ctx.sistemas?.hidrantes?.ativo
   const r = ativo ? decidirAcessoViaturaPB(state.memorialPB?.acessoViatura, temRecalqueProjeto, F.ACESSO_VIATURA) : null
   // Distâncias nas lacunas "______" das linhas, só na linha marcada.
-  const d = v => (v == null ? '______' : fmtNum(v, 2, String(v)))
+  const d = v => (v == null ? '______' : V(fmtM(v)))
   const preencher = (texto, ...valores) => valores.reduce((t, v) => t.replace('______', d(v)), texto)
   const linha = (n, texto, ...valores) => ck({ x: r?.caso === n, label: r?.caso === n ? preencher(texto, ...valores) : texto })
   return {
@@ -417,7 +424,7 @@ function secaoCompartimentacao(state, ctx) {
     titulo: '8. COMPARTIMENTAÇÃO VERTICAL E HORIZONTAL', nota: '(Informar na área sublinhada a característica da edificação, conforme NT CBMPB Nº 36)',
     linhas: [
       { tipo: 'exigivel', exigivel, rotuloExigivel: 'EXIGÍVEL E ATESTO AS INFORMAÇÕES ABAIXO' },
-      { tipo: 'texto', justificado: true, texto: `Atesto que as compartimentações foram/serão realizadas de acordo com as normas construtivas em vigor e NT 36, de acordo com as características da construção. Os compartimentos independentes de sua natureza de ocupação, possuem dimensões adequadas à sua atividade e que para esta edificação possuirá área máxima a ser compartimentada horizontalmente de ${area} m². Os materiais de construção (estruturas, VEDAÇÕES, acabamento etc.) empregados, mediante aplicação adequada, atendem aos requisitos técnicos quanto à estabilidade, ventilação, higiene, segurança, salubridade, conforto técnico e acústico, atendendo às posturas municipais e às normas do Corpo de Bombeiros do Estado da Paraíba. Que as instalações hidráulicas e elétricas obedecem aos requisitos normativos da ABNT e das respectivas concessionárias. Que os elementos envidraçados atendem aos critérios de segurança previstos nas normas da ABNT.` },
+      { tipo: 'texto', justificado: true, texto: `Atesto que as compartimentações foram/serão realizadas de acordo com as normas construtivas em vigor e NT 36, de acordo com as características da construção. Os compartimentos independentes de sua natureza de ocupação, possuem dimensões adequadas à sua atividade e que para esta edificação possuirá área máxima a ser compartimentada horizontalmente de ${V(`${area} m²`)}. Os materiais de construção (estruturas, VEDAÇÕES, acabamento etc.) empregados, mediante aplicação adequada, atendem aos requisitos técnicos quanto à estabilidade, ventilação, higiene, segurança, salubridade, conforto técnico e acústico, atendendo às posturas municipais e às normas do Corpo de Bombeiros do Estado da Paraíba. Que as instalações hidráulicas e elétricas obedecem aos requisitos normativos da ABNT e das respectivas concessionárias. Que os elementos envidraçados atendem aos critérios de segurança previstos nas normas da ABNT.` },
       { tipo: 'texto', texto: 'Indicar os elementos da compartimentação HORIZONTAL e especifica as características:' },
       ...COMPART_H.map(linhaElemento('h', marcadosH)),
       { tipo: 'texto', texto: 'Indicar os elementos da compartimentação VERTICAL e especifica as características:' },
@@ -433,7 +440,7 @@ function secaoCmar(state, F, ctx) {
   // Classes aceitas por estrutura (só com mais de uma — com uma, a linha
   // marcada já diz tudo).
   const porEstrutura = resultado.length > 1
-    ? resultado.filter(r => r.linha).map(r => ({ tipo: 'texto', texto: `${r.estrutura.nome}: ${ELEMENTOS_CMAR.map(([k, rot]) => `${rot} Classe ${r.linha.classes?.[k] || '—'}`).join('; ')}` }))
+    ? resultado.filter(r => r.linha).map(r => ({ tipo: 'texto', texto: `${r.estrutura.nome}: ${ELEMENTOS_CMAR.map(([k, rot]) => `${rot} ${V(`Classe ${r.linha.classes?.[k] || '—'}`)}`).join('; ')}` }))
     : []
   return {
     titulo: '9. CMAR', nota: '(Conforme tabela B.1 da NT CBMPB nº 09/2024)',
@@ -760,7 +767,7 @@ function secaoIluminacao(state, ctx) {
       ...atestos(G.circuitoLuminarias, 'circuitoLuminarias'),
       sub('Características das luminárias:'),
       ...atestos([G.luminarias[0]]),
-      ck({ x: ativo && atestoMarcado(at, fluxoKey), label: `${fluxoLabel} (Fluxo exato: ${ativo && fluxos ? `${fluxos} lm` : '______ lm'})` }),
+      ck({ x: ativo && atestoMarcado(at, fluxoKey), label: `${fluxoLabel} (Fluxo exato: ${ativo && fluxos ? V(`${fluxos} lm`) : '______ lm'})` }),
       ...atestos(G.luminarias.slice(2)),
       sub('Tipo de sistema:'),
       ck(
@@ -1017,7 +1024,7 @@ function secaoHidrantes(state, ctx) {
   const vazao = fmt(d?.dados_sistema?.q_min)
   const pressao = fmt(d?.res?.P_valv_ref)
   const vp = key => (ativo && tipo === key
-    ? `Vazão exata do hidrante mais desfavorável: ${vazao || '______'} l/min. Pressão exata: ${pressao || '______'} mca.`
+    ? `Vazão exata do hidrante mais desfavorável: ${vazao ? V(`${vazao} l/min`) : '______ l/min'}. Pressão exata: ${pressao ? V(`${pressao} mca`) : '______ mca'}.`
     : 'Vazão exata do hidrante mais desfavorável: ______ l/min. Pressão exata: ______ mca.')
   const um = (lista, valor) => ck(...lista.map(([key, label]) => ({ x: ativo && valor === key, label })))
   const carga = ctx.cargaMaxima > 0 ? FAIXAS_CARGA_RTI.find(([, max]) => ctx.cargaMaxima <= max)?.[0] : null
