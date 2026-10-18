@@ -13,7 +13,7 @@ import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
 import { fmtNum } from '../../utils/numero'
 import { NIVEL_LABEL } from '../../data/brigada_calc'
 import FormSection from '../../components/ui/FormSection'
-import Checkbox from '../../components/ui/Checkbox'
+import { CaixaMarcacao } from '../../components/ui/Checkbox'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import { EscolhaSistemaIluminacao } from '../../pages/medidas/IluminacaoPage'
 import { BotaoOpcao } from '../../components/deteccao/DaUi'
@@ -46,13 +46,16 @@ export function BoxPB({ titulo = 'Preenchimento do formulário', item, children 
   )
 }
 
+// Linha marcável: a linha inteira é o controle (clique, teclado e foco),
+// com respiro próprio e hover; marcada, o texto fica em destaque e a caixa
+// vermelha — dá para ver o que está marcado sem ler item por item.
 function Marcador({ label, checked, onChange }) {
   return (
-    <div role="button" tabIndex={0} className="flex items-start gap-2 text-[12.5px] text-ink-muted leading-[1.45] cursor-pointer" onClick={onChange}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange() } }}>
-      <span className="mt-0.5"><Checkbox checked={checked} onChange={onChange}/></span>
-      <span>{label}</span>
-    </div>
+    <button type="button" role="checkbox" aria-checked={!!checked} onClick={onChange}
+      className={`group w-full flex items-start gap-3 text-left bg-transparent border-none rounded-md py-2 px-2.5 cursor-pointer transition-colors duration-150 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-red focus-visible:outline-offset-[-2px] ${checked ? 'text-ink' : 'text-ink-muted'}`}>
+      <span className="pt-[3px]"><CaixaMarcacao checked={checked}/></span>
+      <span className="text-[13px] leading-[1.5]">{label}</span>
+    </button>
   )
 }
 
@@ -60,11 +63,22 @@ function Rotulo({ children }) {
   return <span className="text-[11px] font-medium text-ink-faint uppercase tracking-[.06em]">{children}</span>
 }
 
+// Grupo de declarações: título com a contagem do que está marcado e as
+// linhas logo abaixo (recuadas pelo próprio padding da linha, alinhando a
+// caixa com o título).
 function Atestos({ lista, atestos, alternar, titulo = 'Declarações do responsável técnico' }) {
+  const marcados = lista.filter(([key]) => atestoMarcado(atestos, key)).length
   return (
-    <div className="flex flex-col gap-2">
-      {titulo && <Rotulo>{titulo}</Rotulo>}
-      {lista.map(([key, label]) => <Marcador key={key} label={label} checked={atestoMarcado(atestos, key)} onChange={() => alternar(key)}/>)}
+    <div className="flex flex-col">
+      {titulo && (
+        <div className="flex items-baseline justify-between gap-3 mb-1.5">
+          <Rotulo>{titulo}</Rotulo>
+          <span className="text-[11px] text-ink-faint tabular-nums">{marcados} de {lista.length}</span>
+        </div>
+      )}
+      <div className="flex flex-col gap-0.5 -mx-2.5">
+        {lista.map(([key, label]) => <Marcador key={key} label={label} checked={atestoMarcado(atestos, key)} onChange={() => alternar(key)}/>)}
+      </div>
     </div>
   )
 }
@@ -162,15 +176,15 @@ export function CamposCompartimentacaoPB() {
     set({ compartElementos: { ...el, [sentido]: lista.includes(key) ? lista.filter(k => k !== key) : [...lista, key] } })
   }
   const grupo = (sentido, titulo, lista) => (
-    <div className="flex flex-col gap-2">
-      {titulo && <Rotulo>{titulo}</Rotulo>}
+    <div className="flex flex-col gap-0.5">
+      {titulo && <div className="mb-1.5"><Rotulo>{titulo}</Rotulo></div>}
       {lista.map(([key, label]) => {
         const marcado = (el[sentido] || []).includes(key)
         return (
-          <div key={key} className="flex flex-col gap-1.5">
+          <div key={key} className="flex flex-col gap-1.5 -mx-2.5">
             <Marcador label={label} checked={marcado} onChange={() => alternar(sentido, key)}/>
             {marcado && (
-              <input className="ml-6" value={spec[`${sentido}:${key}`] || ''} placeholder="Característica — ex.: alvenaria EI-120"
+              <input className="ml-[38px] mr-2.5 mb-2 w-auto" value={spec[`${sentido}:${key}`] || ''} placeholder="Característica — ex.: alvenaria EI-120"
                 onChange={e => set({ especificacaoCompart: { ...spec, [`${sentido}:${key}`]: e.target.value } })}/>
             )}
           </div>
@@ -384,15 +398,15 @@ export function CamposExtintoresPB() {
               <div className="fg"><label>Caminhamento máximo — classes B e C</label><input readOnly value={op?.B?.distanciaMaxima != null ? `${op.B.distanciaMaxima} m` : ''}/></div>
             </div>
             {r.nivel === 'III' && (
-              <Marcador label="Adotar capacidade extintora mínima de 4A e 80BC (no lugar de 3A e 40BC com distância reduzida)"
+              <div className="-mx-2.5"><Marcador label="Adotar capacidade extintora mínima de 4A e 80BC (no lugar de 3A e 40BC com distância reduzida)"
                 checked={m.extintorNivelIII === 'nivel_III_4A'}
-                onChange={() => set({ extintorNivelIII: m.extintorNivelIII === 'nivel_III_4A' ? '' : 'nivel_III_4A' })}/>
+                onChange={() => set({ extintorNivelIII: m.extintorNivelIII === 'nivel_III_4A' ? '' : 'nivel_III_4A' })}/></div>
             )}
           </>
         )}
       </BoxPB>
       <FormSection title="Situações específicas">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-0.5 -mx-2.5">
           {especiais.map(e => <Marcador key={e.key} label={e.label} checked={especialMarcado(atestos, e)} onChange={() => alternarEspecial(e)}/>)}
         </div>
       </FormSection>
