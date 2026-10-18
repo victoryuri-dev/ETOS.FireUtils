@@ -38,7 +38,9 @@ const html = el => renderToString(createElement(MemoryRouter, null, createElemen
 for (const [key, pagina] of Object.entries(PAGINAS_PB)) {
   test(`página PB "${key}" renderiza`, () => {
     const h = html(pagina)
-    if (key === 'saida_emergencia' || key === 'hidrantes') return assert.ok(h.includes('Declarações do responsável técnico'), key)
+    if (key === 'saida_emergencia') return assert.ok(h.includes('Declarações do responsável técnico'), key)
+    // Hidrantes: declarações do RT só na etapa 3 (bomba); a página abre na 1.
+    if (key === 'hidrantes') return assert.ok(h.includes('Hidrantes') && !h.includes('Declarações do responsável técnico'), key)
     if (key === 'brigada') return assert.ok(h.includes('Formulário do CBMPB — item 12'), key)   // página comum + campos da PB
     assert.ok(h.includes('Formulário do Memorial Descritivo'), key)
   })
@@ -56,6 +58,13 @@ test('compartimentação: páginas comuns separadas (horizontal e vertical) com 
   assert.ok(v.includes('Compartimentação Vertical') && !v.includes('Compartimentação Horizontal'))
   assert.ok(h.includes('NT 36/2024 CBMPB'))
   assert.equal(PAGINAS_PB.compart_horizontal, undefined)               // PB usa a página comum
+})
+
+test('hidrantes PB: declarações do RT no componente da etapa 3', async () => {
+  const { DeclaracoesHidrantesPB } = await server.ssrLoadModule('/src/estados/PB/campos.jsx')
+  assert.ok(html(createElement(DeclaracoesHidrantesPB)).includes('Bombas e tubulação'))
+  assert.ok(PAGINAS_PB.hidrantes.props.extra[3])
+  assert.equal(PAGINAS_PB.hidrantes.props.extra[2], undefined)
 })
 
 test('páginas PB mostram os valores calculados', () => {

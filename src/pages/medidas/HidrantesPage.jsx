@@ -1,5 +1,5 @@
 import LinkNorma from '../../components/ui/LinkNorma'
-import { useState, useRef } from 'react'
+import { useState, useRef, isValidElement } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
 import { supabase } from '../../lib/supabase'
@@ -453,8 +453,9 @@ const ETAPAS_HIDRANTES = [
 ]
 
 // ── Page Principal ────────────────────────────────────────────────────
-// `extra`: conteúdo do estado no fim da página (ex.: PB, campos do item 17
-// do formulário do CBMPB — ver estados/PB/paginas.jsx).
+// `extra`: conteúdo do estado no fim da página — um elemento (em todas as
+// etapas) ou { [etapa]: elemento } (ex.: PB, campos do item 17 do formulário
+// do CBMPB por etapa — ver estados/PB/paginas.jsx).
 export default function HidrantesPage({ extra = null }) {
   const { state, dispatch } = useProjeto()
   // Persistido em state.hidrantes.dimensionamento (não mais useState local)
@@ -627,7 +628,8 @@ export default function HidrantesPage({ extra = null }) {
             )}
           </>
         )}
-        {extra}
+        {/* `extra` do estado: um elemento (todas as etapas) ou { [etapa]: elemento }. */}
+        {extra && !isValidElement(extra) ? extra[etapa] : extra}
         </div>
       </div>
     </div>

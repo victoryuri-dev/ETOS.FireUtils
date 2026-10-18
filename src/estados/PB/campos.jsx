@@ -373,26 +373,29 @@ export function CamposExtintoresPB() {
 // manancial é uma das posições do reservatório da página comum). Tipo, vazão/pressão, RTI, reservatório, materiais, bombas,
 // lances e tipo de mangueira e os diâmetros das tubulações (Revit) vêm da
 // página comum; as declarações de mangueiras, dos componentes do tipo.
+// Etapa 1 (classificação): a NSTH, só com reservatório enterrado.
 export function CamposHidrantesPB() {
-  const { state, m, set, atestos, alternarAtesto } = useCamposPB()
+  const { state, m, set } = useCamposPB()
   const h = m.hidrantes || {}
-  const setH = changes => set({ hidrantes: { ...h, ...changes } })
-  const inp = (key, label, extra = {}) => (
-    <div className="fg"><label>{label}</label><input value={h[key] || ''} onChange={e => setH({ [key]: e.target.value })} {...extra}/></div>
-  )
-  const subterraneo = state.hidrantes?.reservatorioPosicao === 'subterraneo'
+  if (state.hidrantes?.reservatorioPosicao !== 'subterraneo') return null
   return (
     <div className="mt-6">
-      {/* Só com reservatório enterrado (posição escolhida no box Reservatório). */}
-      {subterraneo && (
-        <FormSection title="Formulário do CBMPB — item 17" description="Só o que o formulário pede além do dimensionamento acima.">
-          <div className="g2">{inp('nsth', 'NSTH (reservatório enterrado)')}</div>
-        </FormSection>
-      )}
-      <FormSection title="Declarações do responsável técnico" description="Item 17 do formulário do Memorial Descritivo do CBMPB.">
-        <div className="flex flex-col gap-3">
-          <Atestos titulo="Bombas e tubulação" lista={ATESTOS_BOMBAS_MARCAVEIS} atestos={atestos} alternar={alternarAtesto}/>
+      <FormSection title="Formulário do CBMPB — item 17" description="Só o que o formulário pede além do dimensionamento acima.">
+        <div className="g2">
+          <div className="fg"><label>NSTH (reservatório enterrado)</label><input value={h.nsth || ''} onChange={e => set({ hidrantes: { ...h, nsth: e.target.value } })}/></div>
         </div>
+      </FormSection>
+    </div>
+  )
+}
+
+// Etapa 3 (bomba de incêndio): as declarações de bombas e tubulação.
+export function DeclaracoesHidrantesPB() {
+  const { atestos, alternarAtesto } = useCamposPB()
+  return (
+    <div className="mt-6">
+      <FormSection title="Declarações do responsável técnico" description="Item 17 do formulário do Memorial Descritivo do CBMPB.">
+        <Atestos titulo="Bombas e tubulação" lista={ATESTOS_BOMBAS_MARCAVEIS} atestos={atestos} alternar={alternarAtesto}/>
       </FormSection>
     </div>
   )
