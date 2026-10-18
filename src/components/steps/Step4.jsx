@@ -119,7 +119,7 @@ function CnaeBusca({ auditPrefix, divisao, value, descValue, onSelect, onDescCha
             {results.map((r, i) => (
               <div key={i} onClick={() => handleSelect(r)}
                 className="px-3 py-2.5 cursor-pointer border-b border-solid border-border-2 grid grid-cols-[90px_1fr_72px] gap-3 items-center hover:bg-red-dim">
-                <span className="text-xs font-mono text-red font-semibold">{r.cnae}</span>
+                <span className="text-xs tabular-nums text-red font-semibold">{r.cnae}</span>
                 <span className="text-xs text-ink leading-[1.4]">{r.descricao}</span>
                 <div className={`text-center border border-solid rounded-sm py-1 px-1.5 ${r.cargaIncendio<=300?'bg-green-dim border-green-border':r.cargaIncendio<=1200?'bg-amber-dim border-amber-border':'bg-red-dim border-red-border'}`}>
                   <div className={`text-sm font-bold leading-none ${r.cargaIncendio<=300?'text-green':r.cargaIncendio<=1200?'text-amber':'text-red'}`}>{r.cargaIncendio}</div>
@@ -132,7 +132,7 @@ function CnaeBusca({ auditPrefix, divisao, value, descValue, onSelect, onDescCha
       </div>
       {selectedData && (
         <div className="mt-2 text-[12px] text-ink-muted leading-[1.5] py-2 px-3 bg-surface-2 rounded-md border border-solid border-border">
-          <span className="font-mono text-ink mr-2">{value}</span>
+          <span className="tabular-nums text-ink mr-2">{value}</span>
           {selectedData.descricao}
         </div>
       )}
@@ -455,7 +455,7 @@ function PavCard({ pav, classificacao, onOpen }) {
                 <div className="text-[14px] font-semibold text-ink leading-[1.4]">{divLabel}</div>
               )}
               <div className="flex flex-wrap items-center gap-x-2 text-[12px] text-ink-faint mt-1.5">
-                {pav.cnae && <span>CNAE <span className="font-mono text-ink-muted">{pav.cnae}</span></span>}
+                {pav.cnae && <span>CNAE <span className="tabular-nums text-ink-muted">{pav.cnae}</span></span>}
                 {pav.cnae && pav.area && <span aria-hidden="true">·</span>}
                 {pav.area && <span>{fmtUn(pav.area, 'm²', 2, `${pav.area} m²`)}</span>}
               </div>
@@ -478,12 +478,12 @@ function PavCard({ pav, classificacao, onOpen }) {
                     <div className="min-w-0 text-[14px] font-semibold text-ink leading-[1.4]">
                       {aCnaeDesc || aDivLabel || a.divisao}
                       <div className="flex flex-wrap items-center gap-x-2 text-[12px] text-ink-faint mt-1.5">
-                        {a.cnae && <span>CNAE <span className="font-mono text-ink-muted">{a.cnae}</span></span>}
+                        {a.cnae && <span>CNAE <span className="tabular-nums text-ink-muted">{a.cnae}</span></span>}
                         {a.cnae && a.area && <span aria-hidden="true">·</span>}
                         {a.area && <span>{fmtUn(a.area, 'm²', 2, `${a.area} m²`)}</span>}
                       </div>
                     </div>
-                    <span className="font-mono text-[11px] font-semibold text-ink-muted py-0.5 px-2 rounded bg-surface-2 border border-solid border-border shrink-0">{a.divisao}</span>
+                    <span className="tabular-nums text-[11px] font-semibold text-ink-muted py-0.5 px-2 rounded bg-surface-2 border border-solid border-border shrink-0">{a.divisao}</span>
                   </div>
                 )
               })}
@@ -498,7 +498,7 @@ function PavCard({ pav, classificacao, onOpen }) {
               {grupoLabel && (
                 <span className="text-[12px] text-ink-faint text-right leading-[1.35] max-w-[170px]">Grupo {pav.divisao?.charAt(0) || pav.grupo} — {grupoLabel}</span>
               )}
-              <span className="font-mono text-[16px] font-bold text-ink py-1 px-3 rounded-md bg-red-dim border border-solid border-red-border">{pav.divisao}</span>
+              <span className="tabular-nums text-[16px] font-bold text-ink py-1 px-3 rounded-md bg-red-dim border border-solid border-red-border">{pav.divisao}</span>
             </div>
           )}
           <span className="text-ink-faint"><Icon name="chevD" size={14} className="-rotate-90"/></span>

@@ -97,11 +97,11 @@ function EstruturaCarga({ est, divMap, keys, cargaDaEst, dispatch, ocupacoes, cn
                 {/* Identificacao: divisao (principal), CNAE e pavimentos (apoio) */}
                 <div className="min-w-0">
                   <div className="text-[14px] font-semibold text-ink leading-[1.35]">
-                    <span className="font-mono text-[12px] text-ink-faint mr-2">{code}</span>{getDivLabel(code)} <Obrigatorio id={`${est.id}.carga.${code}`}/>
+                    <span className="tabular-nums text-[12px] text-ink-faint mr-2">{code}</span>{getDivLabel(code)} <Obrigatorio id={`${est.id}.carga.${code}`}/>
                   </div>
                   {cnae ? (
                     <div className="text-[12px] text-ink-muted leading-[1.5] mt-1.5">
-                      <span className="font-mono text-ink-faint mr-1.5">{cnae}</span>{descCnae}
+                      <span className="tabular-nums text-ink-faint mr-1.5">{cnae}</span>{descCnae}
                     </div>
                   ) : temCnaeDisponivel && (
                     <div className="text-[12px] text-amber mt-1.5">Sem CNAE configurado — volte a etapa 4</div>

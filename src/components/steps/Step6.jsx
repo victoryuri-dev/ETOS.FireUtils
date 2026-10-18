@@ -73,7 +73,7 @@ function EstruturaResumo({ pe }) {
           </div>
           <div className="flex gap-1.5 flex-wrap">
             {subsidiarias.map(d => (
-              <span key={d} className="py-[3px] px-2.5 rounded font-semibold text-xs font-mono bg-surface border border-solid border-border text-ink-muted">{d}</span>
+              <span key={d} className="py-[3px] px-2.5 rounded font-semibold text-xs tabular-nums bg-surface border border-solid border-border text-ink-muted">{d}</span>
             ))}
           </div>
         </div>

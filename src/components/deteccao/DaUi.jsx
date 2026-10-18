@@ -31,7 +31,7 @@ export function Rotulo({ children, dica }) {
   return (
     <div className="flex items-center justify-between gap-2 mb-1">
       <div className="text-[10px] text-ink-faint uppercase tracking-[.06em]">{children}</div>
-      {dica && <div className="text-[10px] text-ink-faint font-mono whitespace-nowrap">{dica}</div>}
+      {dica && <div className="text-[10px] text-ink-faint tabular-nums whitespace-nowrap">{dica}</div>}
     </div>
   )
 }
@@ -178,7 +178,7 @@ export function QuadroParametros({ titulo, sigla, linhas }) {
         <dl className="m-0 py-3.5 px-[18px] grid grid-cols-2 gap-x-8 gap-y-2.5">
           {linhas.map(([rotulo, valor, item]) => (
             <div key={rotulo} className="flex items-baseline justify-between gap-3 border-b border-solid border-border pb-2">
-              <dt className="text-[11px] text-ink-faint">{rotulo}{item && <span className="ml-1.5 font-mono text-[10px]">item {item}</span>}</dt>
+              <dt className="text-[11px] text-ink-faint">{rotulo}{item && <span className="ml-1.5 tabular-nums text-[10px]">item {item}</span>}</dt>
               <dd className="m-0 text-xs font-semibold text-ink text-right">{valor}</dd>
             </div>
           ))}

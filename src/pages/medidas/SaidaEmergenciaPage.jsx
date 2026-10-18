@@ -61,7 +61,7 @@ function TD({ children, red, bold, muted, right, center }) {
   return <td className={`py-2.5 px-3.5 text-[13px] ${colorClass} ${bold ? 'font-bold' : 'font-normal'} border-b border-solid border-border-2 align-middle ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}>{children}</td>
 }
 function Chip({ val, green }) {
-  return <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[13px] font-mono border border-solid ${green ? 'bg-green-dim border-green-border text-green' : 'bg-red-dim border-red-border text-red'}`}>{val}</span>
+  return <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[13px] tabular-nums border border-solid ${green ? 'bg-green-dim border-green-border text-green' : 'bg-red-dim border-red-border text-red'}`}>{val}</span>
 }
 function DimTable({ children }) {
   return <div className="border border-solid border-border rounded-md overflow-hidden mb-1"><table className="w-full border-collapse">{children}</table></div>

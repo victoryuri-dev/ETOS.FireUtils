@@ -250,7 +250,7 @@ function UnidadeCard({ ext, tiposPortatil, tiposSobreRodas, onEdit, onRemove, se
       <div className="flex items-center gap-2.5 shrink-0 text-[11px] text-ink-faint whitespace-nowrap">
         <span>{ext.sobreRodas ? 'Sobre rodas' : 'Portátil'}</span>
         <span className="opacity-30">|</span>
-        <span className="font-mono">{ext.capacidade || '—'}</span>
+        <span className="tabular-nums">{ext.capacidade || '—'}</span>
         {ext.carga !== '' && ext.carga != null && (
           <>
             <span className="opacity-30">|</span>
@@ -327,7 +327,7 @@ function ExtintorForm({ ext, tiposPortatil, tiposSobreRodas, onSave, onCancel })
       <div className="grid grid-cols-2 gap-3.5">
         <div>
           <Label>Capacidade <Obrigatorio/></Label>
-          <input className={`${inputClass} font-mono`} value={form.capacidade}
+          <input className={`${inputClass} tabular-nums`} value={form.capacidade}
             onChange={e => setForm(f => ({ ...f, capacidade: e.target.value }))} onKeyDown={e => e.key === 'Enter' && salvar()}/>
         </div>
         <div>
@@ -697,8 +697,8 @@ function TabelaCapacidadePorRisco({ extNorma, classe }) {
           return (ops.length ? ops : [null]).map((op, i) => (
             <tr key={`${r.key}-${i}`}>
               <td className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2">{i === 0 ? r.label : 'ou'}</td>
-              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op?.[classe]?.capacidade ?? '—'}</td>
-              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{op?.[classe] ? `${op[classe].distanciaMaxima} m` : '—'}</td>
+              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink tabular-nums text-right border-b border-solid border-border-2">{op?.[classe]?.capacidade ?? '—'}</td>
+              <td className="py-1.5 px-2.5 text-sm font-semibold text-ink tabular-nums text-right border-b border-solid border-border-2">{op?.[classe] ? `${op[classe].distanciaMaxima} m` : '—'}</td>
             </tr>
           ))
         })}
@@ -738,13 +738,13 @@ function ReferenciaNormativa({ extNorma }) {
                 {RISCO_ROWS.map(r => (
                   <tr key={r.key}>
                     <td className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2">{r.label}</td>
-                    <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{DISTANCIA_MAXIMA.portatil[r.key]} m</td>
-                    <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2">{DISTANCIA_MAXIMA.sobreRodas[r.key]} m</td>
+                    <td className="py-1.5 px-2.5 text-sm font-semibold text-ink tabular-nums text-right border-b border-solid border-border-2">{DISTANCIA_MAXIMA.portatil[r.key]} m</td>
+                    <td className="py-1.5 px-2.5 text-sm font-semibold text-ink tabular-nums text-right border-b border-solid border-border-2">{DISTANCIA_MAXIMA.sobreRodas[r.key]} m</td>
                   </tr>
                 ))}
                 <tr>
                   <td className="py-1.5 px-2.5 text-sm text-ink border-b border-solid border-border-2">Classe D (metais)</td>
-                  <td className="py-1.5 px-2.5 text-sm font-semibold text-ink font-mono text-right border-b border-solid border-border-2" colSpan={2}>{DISTANCIA_MAXIMA.classeD} m</td>
+                  <td className="py-1.5 px-2.5 text-sm font-semibold text-ink tabular-nums text-right border-b border-solid border-border-2" colSpan={2}>{DISTANCIA_MAXIMA.classeD} m</td>
                 </tr>
               </tbody>
             </table>
@@ -777,7 +777,7 @@ function ReferenciaNormativa({ extNorma }) {
               <ul className="flex flex-col gap-1">
                 {TIPOS_PORTATIL.map(t => (
                   <li key={t.key} className="text-[13px] text-ink-muted flex justify-between gap-2">
-                    <span>{t.label}</span><span className="font-mono font-semibold text-ink">{t.capacidadeMinima}</span>
+                    <span>{t.label}</span><span className="tabular-nums font-semibold text-ink">{t.capacidadeMinima}</span>
                   </li>
                 ))}
               </ul>
@@ -787,7 +787,7 @@ function ReferenciaNormativa({ extNorma }) {
               <ul className="flex flex-col gap-1">
                 {TIPOS_SOBRE_RODAS.map(t => (
                   <li key={t.key} className="text-[13px] text-ink-muted flex justify-between gap-2">
-                    <span>{t.label}</span><span className="font-mono font-semibold text-ink">{t.capacidadeMinima}</span>
+                    <span>{t.label}</span><span className="tabular-nums font-semibold text-ink">{t.capacidadeMinima}</span>
                   </li>
                 ))}
               </ul>
@@ -800,11 +800,11 @@ function ReferenciaNormativa({ extNorma }) {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex justify-between gap-2 text-[13px]">
               <span className="text-ink-muted">Suporte de parede</span>
-              <span className="font-mono font-semibold text-ink">{ALTURA_INSTALACAO.suporteParede.alturaMinimaBase}–{ALTURA_INSTALACAO.suporteParede.alturaMaxima} m</span>
+              <span className="tabular-nums font-semibold text-ink">{ALTURA_INSTALACAO.suporteParede.alturaMinimaBase}–{ALTURA_INSTALACAO.suporteParede.alturaMaxima} m</span>
             </div>
             <div className="flex justify-between gap-2 text-[13px]">
               <span className="text-ink-muted">Apoiado no piso</span>
-              <span className="font-mono font-semibold text-ink">{ALTURA_INSTALACAO.apoiadoPiso.min}–{ALTURA_INSTALACAO.apoiadoPiso.max} m</span>
+              <span className="tabular-nums font-semibold text-ink">{ALTURA_INSTALACAO.apoiadoPiso.min}–{ALTURA_INSTALACAO.apoiadoPiso.max} m</span>
             </div>
           </div>
         </div>

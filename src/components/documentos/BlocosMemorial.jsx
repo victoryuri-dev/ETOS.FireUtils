@@ -123,7 +123,7 @@ export function BlocoMedida({ bloco }) {
     case 'formula':
       return (
         <div
-          className="text-[12px] text-black font-mono leading-[1.5] pl-3 border-l-2 border-solid border-[#c9c9cb] whitespace-pre-line"
+          className="text-[12px] text-black tabular-nums leading-[1.5] pl-3 border-l-2 border-solid border-[#c9c9cb] whitespace-pre-line"
           dangerouslySetInnerHTML={{ __html: formatarFormula(bloco.texto) }}
         />
       )

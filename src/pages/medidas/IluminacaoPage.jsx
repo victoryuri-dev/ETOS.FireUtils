@@ -467,17 +467,17 @@ function ReferenciaNormativa({ iluNorma }) {
         <div>
           <RefLabel>Iluminância mínima</RefLabel>
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">{rotulo('aclaramento_normal', 'Aclaramento (normal)')}</span><span className="font-mono font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_normal} lux</span></div>
-            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">{rotulo('aclaramento_risco', 'Aclaramento (risco/público)')}</span><span className="font-mono font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_risco} lux</span></div>
+            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">{rotulo('aclaramento_normal', 'Aclaramento (normal)')}</span><span className="tabular-nums font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_normal} lux</span></div>
+            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">{rotulo('aclaramento_risco', 'Aclaramento (risco/público)')}</span><span className="tabular-nums font-semibold text-ink">{ILUMINANCIA_MINIMA.aclaramento_risco} lux</span></div>
           </div>
         </div>
 
         <div>
           <RefLabel>Uniformidade, autonomia e tempo de resposta</RefLabel>
           <div className="grid grid-cols-3 gap-4">
-            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Uniformidade máx.</span><span className="font-mono font-semibold text-ink">{RAZAO_UNIFORMIDADE_MAX}:1</span></div>
-            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Autonomia mínima</span><span className="font-mono font-semibold text-ink">{AUTONOMIA_MINIMA_HORAS} h</span></div>
-            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Tempo de resposta</span><span className="font-mono font-semibold text-ink">≤ {TEMPO_RESPOSTA_MAX_S} s</span></div>
+            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Uniformidade máx.</span><span className="tabular-nums font-semibold text-ink">{RAZAO_UNIFORMIDADE_MAX}:1</span></div>
+            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Autonomia mínima</span><span className="tabular-nums font-semibold text-ink">{AUTONOMIA_MINIMA_HORAS} h</span></div>
+            <div className="flex justify-between gap-2 text-[13px]"><span className="text-ink-muted">Tempo de resposta</span><span className="tabular-nums font-semibold text-ink">≤ {TEMPO_RESPOSTA_MAX_S} s</span></div>
           </div>
         </div>
 

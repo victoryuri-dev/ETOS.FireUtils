@@ -23,6 +23,9 @@
      Grotesk fica reservada a títulos e textos de ênfase via .font-heading */
   --font-sans: 'Inter', -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --font-heading: 'Space Grotesk', -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  /* Sem fonte monoespaçada no projeto (só Inter e Space Grotesk): font-mono
+     cai na Inter; números alinhados com tabular-nums. */
+  --font-mono: var(--font-sans);
 }
 
 /* A landing possui identidade escura própria. Estes tokens pertencem somente
