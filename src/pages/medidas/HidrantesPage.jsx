@@ -7,7 +7,7 @@ import Icon from '../../components/ui/Icon'
 import { useToast } from '../../hooks/useToast'
 import StepsNav from '../../components/layout/StepsNav'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
-import FormularioSistema from '../../components/hidrantes/FormularioSistema'
+import FormularioSistema, { VerificacaoRecalque } from '../../components/hidrantes/FormularioSistema'
 import { SelecaoBombas, SucaoBomba } from '../../components/hidrantes/BombaESuccaoForm'
 import FormSection from '../../components/ui/FormSection'
 import InfoTip from '../../components/ui/InfoTip'
@@ -584,6 +584,8 @@ export default function HidrantesPage({ extra = null }) {
                 </button>
               </div>
             </div>
+
+            <VerificacaoRecalque/>
 
             {!dados && (
               <div className="py-[60px] px-10 text-center border border-dashed border-border rounded-lg text-ink-faint">

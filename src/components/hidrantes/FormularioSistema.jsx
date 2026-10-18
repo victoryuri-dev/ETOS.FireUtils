@@ -46,12 +46,31 @@ function EstruturaPill({ active, obrigatorio, onClick, nome, area, divisao, carg
   )
 }
 
+/** Verificação do nº de entradas do recalque — item 5.3.3: vazão do sistema
+ *  acima de 1.000 L/min exige recalque duplo. Não é escolha do RT
+ *  (auto-sincronizada em h.recalqueEntradas, ver useClassificacaoHidrantes)
+ *  — resultado mostrado na etapa de Dimensionamento do Sistema. */
+export function VerificacaoRecalque() {
+  const { norma, dadosTipo, recalqueDuplo, vazaoSistema } = useClassificacaoHidrantes()
+  if (!dadosTipo) return null
+  return (
+    <div className={`flex items-center justify-between gap-3 mb-6 py-2.5 px-3.5 rounded-md border border-solid ${recalqueDuplo ? 'bg-amber-dim border-amber-border' : 'bg-surface-2 border-border'}`}>
+      <span className="text-xs text-ink">
+        Vazão do sistema ({fmtNum(dadosTipo.vazaoMin)} L/min × {norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = {fmtNum(vazaoSistema)} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min ({norma.HIDRANTES_SIMULTANEOS_REF})
+      </span>
+      <span className={`shrink-0 inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${recalqueDuplo ? 'bg-amber-dim border-amber-border text-amber' : 'bg-green-dim border-green-border text-green'}`}>
+        Recalque {recalqueDuplo ? 'duplo — 2 entradas' : 'simples — 1 entrada'}
+      </span>
+    </div>
+  )
+}
+
 export default function FormularioSistema() {
   const {
     h, set, norma,
     infoPorEstrutura, estruturasSelecionadas, toggleEstrutura,
     areaTotal, sugestao, escolherOpcao,
-    tipoAtual, dadosTipo, recalqueDuplo, vazaoSistema,
+    tipoAtual, dadosTipo,
   } = useClassificacaoHidrantes()
 
   return (
@@ -175,33 +194,21 @@ export default function FormularioSistema() {
       </FormSection>
 
       {/* D — Dispositivo de recalque */}
-      <FormSection title={<>Dispositivo de Recalque (Corpo de Bombeiros) <Obrigatorio id="hidrantes.recalqueTipo"/></>}>
-        <div className="flex flex-wrap gap-2 mb-3">
+      {/* Opções na mesma linha do título (FormSection extra). */}
+      <FormSection title={<>Dispositivo de Recalque <Obrigatorio id="hidrantes.recalqueTipo"/></>} extra={
+        <div className="flex flex-wrap justify-end gap-2">
           {norma.TIPOS_RECALQUE.map(op => (
             <Pill key={op.key} active={h.recalqueTipo === op.key} onClick={() => set({ recalqueTipo: op.key })}>
               {op.label}
             </Pill>
           ))}
         </div>
+      }>
         {h.recalqueTipo === 'passeio' && (
           <Field label={<>Justificativa técnica de impossibilidade <Obrigatorio id="hidrantes.recalqueJustificativaPasseio"/></>}>
             <textarea className={inputClass + ' min-h-[70px] resize-y'} value={h.recalqueJustificativaPasseio}
               onChange={e => set({ recalqueJustificativaPasseio: e.target.value })}/>
           </Field>
-        )}
-        {/* Verificação do nº de entradas — item 5.3.3, NT 22: vazão do
-            sistema acima de 1.000 L/min exige recalque duplo. Não é uma
-            escolha do RT (auto-sincronizada em h.recalqueEntradas, ver
-            useClassificacaoHidrantes) — só um resultado a conferir. */}
-        {dadosTipo && (
-          <div className={`flex items-center justify-between gap-3 mt-3 py-2.5 px-3.5 rounded-md border border-solid ${recalqueDuplo ? 'bg-amber-dim border-amber-border' : 'bg-surface-2 border-border'}`}>
-            <span className="text-xs text-ink">
-              Vazão do sistema ({fmtNum(dadosTipo.vazaoMin)} L/min × {norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = {fmtNum(vazaoSistema)} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min ({norma.HIDRANTES_SIMULTANEOS_REF})
-            </span>
-            <span className={`shrink-0 inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${recalqueDuplo ? 'bg-amber-dim border-amber-border text-amber' : 'bg-green-dim border-green-border text-green'}`}>
-              Recalque {recalqueDuplo ? 'duplo — 2 entradas' : 'simples — 1 entrada'}
-            </span>
-          </div>
         )}
       </FormSection>
 
