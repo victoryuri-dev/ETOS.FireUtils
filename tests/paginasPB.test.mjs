@@ -20,7 +20,7 @@ const projeto = {
   riscosEspeciaisPorEstrutura: { e1: { glp: true } }, riscosOutrosDescPorEstrutura: {},
   hidrantes: { estruturasSelecionadas: [], tipo: '', tipoVariante: 0, rti: '', bombaExiste: true, recalqueEntradas: 1 },
   iluminacaoMesmoSistema: true, iluminacaoSistema: { tipo: 'bloco_autonomo', localizacaoFonte: '' }, iluminacaoSistemaPorEstrutura: {},
-  memorialPB: { iluAlturaInstalacao: '2,4', compartElementos: { h: ['paredes'], v: [] }, atestos: {} },
+  memorialPB: { iluAlturaInstalacao: '2,4', atestos: {} },
 }
 // A linha ('PB','hidrantes') só existe no Supabase (sem arquivo de seed):
 // no teste, a estrutura da do MA serve para renderizar a página comum.
@@ -47,6 +47,16 @@ for (const [key, pagina] of Object.entries(PAGINAS_PB)) {
     assert.ok(html(createElement(PreviaPB, { sistKey: key })).includes('pbf-tabela'), `${key}: sem prévia`)
   })
 }
+
+test('compartimentação: páginas comuns separadas (horizontal e vertical) com a norma da PB', async () => {
+  const CompartimentacaoPage = (await server.ssrLoadModule('/src/pages/medidas/CompartimentacaoPage.jsx')).default
+  const h = html(createElement(CompartimentacaoPage, { sentido: 'horizontal' }))
+  const v = html(createElement(CompartimentacaoPage, { sentido: 'vertical' }))
+  assert.ok(h.includes('Compartimentação Horizontal') && !h.includes('Compartimentação Vertical'))
+  assert.ok(v.includes('Compartimentação Vertical') && !v.includes('Compartimentação Horizontal'))
+  assert.ok(h.includes('NT 36/2024 CBMPB'))
+  assert.equal(PAGINAS_PB.compart_horizontal, undefined)               // PB usa a página comum
+})
 
 test('páginas PB mostram os valores calculados', () => {
   assert.ok(html(PAGINAS_PB.iluminacao).includes('9,6'))                 // 4 × 2,4 m

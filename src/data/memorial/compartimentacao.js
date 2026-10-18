@@ -19,8 +19,15 @@ import { calcularAreaMaximaCompartimentacao } from '../compart_calc'
 import { getCompartimentacao } from '../normas/index'
 import { fmtUn } from '../../utils/numero'
 
-function labelsMarcados(catalogo, chaves) {
-  return catalogo.filter(o => (chaves || []).includes(o.key)).map(o => o.label || o.texto)
+// `caracteristicas` (opcional): estrutura.caracteristicasCompart e o
+// prefixo do sentido ('h'/'v') — a característica informada entra depois do
+// nome do elemento.
+function labelsMarcados(catalogo, chaves, caracteristicas, prefixo) {
+  return catalogo.filter(o => (chaves || []).includes(o.key)).map(o => {
+    const nome = o.label || o.texto
+    const c = (caracteristicas?.[`${prefixo}:${o.key}`] || '').trim()
+    return c ? `${nome} — ${c}` : nome
+  })
 }
 
 function textosCondicoes(catalogo, chaves) {
@@ -145,7 +152,7 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
 
     blocos.push({ tipo: 'campo', recuo:true, label: 'TRRF mínimo da parede de compartimentação', valor: `EI-${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}` })
 
-    const elementos = labelsMarcados(ELEMENTOS_COMPART_HORIZONTAL, est.elementosCompartHorizontal)
+    const elementos = labelsMarcados(ELEMENTOS_COMPART_HORIZONTAL, est.elementosCompartHorizontal, est.caracteristicasCompart, 'h')
     if (elementos.length > 0) {
       blocos.push({ tipo: 'paragrafo', texto: 'A compartimentação horizontal é composta pelos seguintes elementos de proteção:' })
       blocos.push({ tipo: 'lista', recuo:true, itens: elementos })
@@ -213,7 +220,7 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
 
     // A partir daqui a compartimentação vertical é exigida de fato (não
     // isenta por substituição) — mostra elementos, condições e TRRF.
-    const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical)
+    const elementos = labelsMarcados(ELEMENTOS_COMPART_VERTICAL, est.elementosCompartVertical, est.caracteristicasCompart, 'v')
     if (elementos.length > 0) {
       blocos.push({ tipo: 'paragrafo', texto: 'A compartimentação vertical é composta pelos seguintes elementos de proteção:' })
       blocos.push({ tipo: 'lista', recuo:true, itens: elementos })

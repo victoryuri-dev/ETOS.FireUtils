@@ -17,6 +17,8 @@
 //  - M-1 não aparece na tabela do Anexo B (nem L-1/L-2/L-3, que a própria
 //    NT 01 já reserva para avaliação por Comissão Técnica/NT específica).
 
+export const NORMA = { sigla: 'NT 09 CBMMA', nome: 'Compartimentação Horizontal e Vertical' }
+
 // ── Tipos de edificação (Anexo B, NT 09 CBMMA) ──────────────────────────────
 export const CLASSES_TIPO_EDIFICACAO = [
   { classe: 'I',   nome: 'Edificação térrea',                  min: 0,  max: 0   },

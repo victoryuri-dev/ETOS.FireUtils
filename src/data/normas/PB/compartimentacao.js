@@ -13,6 +13,8 @@
 // do MA (normas/MA/compartimentacao.js), por decisão do usuário, até serem
 // conferidos com o texto da NT 36/2024.
 
+export const NORMA = { sigla: 'NT 36/2024 CBMPB', nome: 'Compartimentação Horizontal e Compartimentação Vertical' }
+
 // ── Tipos de edificação (Anexo B) — mesmas faixas do MA ─────────────────────
 export const CLASSES_TIPO_EDIFICACAO = [
   { classe: 'I',   nome: 'Edificação térrea',                  min: 0,  max: 0   },

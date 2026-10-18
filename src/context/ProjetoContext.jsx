@@ -596,11 +596,8 @@ const INITIAL_STATE = {
     estagioConstrucao: '',   // ESTAGIOS_CONSTRUCAO; '' = deriva de state.situacao
     adaptacoes: '',          // adaptações da NT 16 / Resoluções Técnicas (3.6)
     glpClasse: '',           // CLASSES_GLP (3.4.1) — só com o risco especial GLP
-    // Elementos de compartimentação adotados (8) — { h: [chave], v: [chave] }
-    // (ELEMENTOS_COMPART_H_PB/V_PB) e a característica de cada um, chave
-    // `h:<elemento>` ou `v:<elemento>`.
-    compartElementos: { h: [], v: [] },
-    especificacaoCompart: {},
+    // Compartimentação (8): elementos e características vêm das páginas
+    // comuns (estrutura.elementosCompart* e estrutura.caracteristicasCompart).
     planoModelo: '',         // 'item6' | 'anexoB' (MODELOS_PLANO, 11.1)
     // Carga horária: da Tabela B.2 pelo nível exigido (não é campo).
     brigadaIntervaloSimulados: '12 meses', // padrão; o RT pode alterar

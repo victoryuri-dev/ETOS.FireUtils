@@ -5,7 +5,7 @@ import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { calcularAreaMaximaCompartimentacao } from '../../data/compart_calc'
 import Icon from '../../components/ui/Icon'
-import Checkbox from '../../components/ui/Checkbox'
+import LinhaMarcavel from '../../components/ui/LinhaMarcavel'
 import InfoTip from '../../components/ui/InfoTip'
 import EstruturaSection from '../../components/ui/EstruturaSection'
 import EstruturaHeaderInfo from '../../components/ui/EstruturaHeaderInfo'
@@ -33,17 +33,23 @@ function SectionLabel({ children, tip }) {
   )
 }
 
-function Checklist({ titulo, tip, opcoes, valores, onToggle }) {
+// Lista marcável (linhas de components/ui/LinhaMarcavel). Com
+// `caracteristicas`, o item marcado ganha o campo da característica do
+// elemento (ex.: "alvenaria EI-120"), que vai para o memorial/formulário.
+function Checklist({ titulo, tip, opcoes, valores, onToggle, caracteristicas, onCaracteristica }) {
   return (
     <div>
       <SectionLabel tip={tip}>{titulo}</SectionLabel>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-0.5 -mx-2.5">
         {opcoes.map(o => (
-          <div key={o.key} className="flex items-center gap-2 text-xs text-ink-muted cursor-pointer" onClick={() => onToggle(o.key)}>
-            <Checkbox checked={valores.includes(o.key)} onChange={() => onToggle(o.key)}/>
-            <span className="flex-1">{o.label || o.texto}</span>
-            {o.texto && o.label && <InfoTip text={o.ref ? `${o.texto} (item ${o.ref})` : o.texto}/>}
-          </div>
+          <LinhaMarcavel key={o.key} label={o.label || o.texto} checked={valores.includes(o.key)} onChange={() => onToggle(o.key)}
+            tip={o.texto && o.label ? (o.ref ? `${o.texto} (item ${o.ref})` : o.texto) : null}>
+            {caracteristicas && (
+              <input value={caracteristicas[o.key] || ''} onChange={e => onCaracteristica(o.key, e.target.value)}
+                placeholder="Característica — ex.: alvenaria EI-120" aria-label={`Característica — ${o.label}`}
+                className="bg-bg border border-solid border-border rounded-md text-ink text-xs py-1.5 px-2.5 w-full outline-none box-border"/>
+            )}
+          </LinhaMarcavel>
         ))}
       </div>
     </div>
@@ -81,7 +87,7 @@ function ObrigatoriedadeBadge({ obrigatorio, isenta, compartimentoUnico }) {
 function SubstituicaoButtons({ opcoes, ativa, onSelecionar, onLimpar }) {
   return (
     <div>
-      <SectionLabel tip="Notas de rodapé da Tabela 6 (NT 01 CBMMA) — a nota exata varia por grupo de ocupação e altura; confirme contra a tabela aplicável antes de marcar.">
+      <SectionLabel tip="Notas de rodapé da tabela de exigências do estado — a nota exata varia por grupo de ocupação e altura; confirme contra a tabela aplicável antes de marcar.">
         Substituir por sistema alternativo
       </SectionLabel>
       <div className="flex flex-wrap gap-2">
@@ -129,12 +135,12 @@ function SituacaoCelula({ linha }) {
   return <span className="inline-flex items-center gap-1 text-green"><Icon name="check" size={12}/> Conforme</span>
 }
 
-function TabelaAreaMaxima({ resultado, onChangeArea, isenta }) {
+function TabelaAreaMaxima({ resultado, onChangeArea, isenta, sigla }) {
   if (!resultado.tipo) {
     return (
       <div className="ibox amber">
         <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-        <span className="text-xs">Informe a altura da estrutura (Etapa 2 — Edificação) para classificar o tipo de edificação (Anexo B, NT 09 CBMMA) e verificar a área máxima de compartimentação.</span>
+        <span className="text-xs">Informe a altura da estrutura (Etapa 2 — Edificação) para classificar o tipo de edificação (Anexo B, {sigla}) e verificar a área máxima de compartimentação.</span>
       </div>
     )
   }
@@ -157,7 +163,7 @@ function TabelaAreaMaxima({ resultado, onChangeArea, isenta }) {
               <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">
                 <span className="inline-flex items-center gap-1">
                   Área considerada
-                  <InfoTip text="Item 5.1.2, NT 09 CBMMA: deve incluir a área de todos os pavimentos e mezaninos interligados com este pavimento — o padrão é a área cadastrada do próprio pavimento, sem interligação."/>
+                  <InfoTip text={`${sigla}: deve incluir a área de todos os pavimentos e mezaninos interligados com este pavimento — o padrão é a área cadastrada do próprio pavimento, sem interligação.`}/>
                 </span>
               </th>
               <th className="py-2 px-3 text-left text-[10px] text-ink-faint uppercase tracking-[.06em]">Área máxima</th>
@@ -214,7 +220,7 @@ function TrrfNota({ children }) {
   )
 }
 
-function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizontal, compart, obrigH, obrigV, dispatch }) {
+function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimentacaoHorizontal, compart, obrigH, obrigV, dispatch }) {
   const {
     TABELA_AREA_MAXIMA: tabelaArea, CLASSES_TIPO_EDIFICACAO: classesTipo,
     ELEMENTOS_COMPART_HORIZONTAL, ELEMENTOS_COMPART_VERTICAL,
@@ -223,6 +229,13 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
     TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS,
     TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR,
   } = compart
+  const sigla = compart.NORMA?.sigla || 'norma de compartimentação do estado'
+  const horizontal = sentido === 'horizontal'
+  // Característica de cada elemento adotado — `h:<key>` / `v:<key>`.
+  const caracteristicas = est.caracteristicasCompart || {}
+  const caracDe = prefixo => Object.fromEntries(Object.entries(caracteristicas).filter(([k]) => k.startsWith(`${prefixo}:`)).map(([k, v]) => [k.slice(2), v]))
+  const setCaracteristica = prefixo => (key, valor) =>
+    dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field: 'caracteristicasCompart', value: { ...caracteristicas, [`${prefixo}:${key}`]: valor } })
   const resultadoArea = calcularAreaMaximaCompartimentacao(pavimentos, est, tabelaArea, classesTipo, areaCompartimentacaoHorizontal)
 
   const elementosH = est.elementosCompartHorizontal || []
@@ -245,10 +258,12 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   // subdivisão a construir) e vertical (isenção ou elementos adotados).
   const resolvidoH = !obrigH || !!isencaoH || resultadoArea.dentroDoLimite || elementosH.length > 0
   const resolvidoV = !obrigV || !!isencaoV || elementosV.length > 0
-  const exigidos = (obrigH ? 1 : 0) + (obrigV ? 1 : 0)
-  const status = exigidos === 0
+  // Status só do sentido desta página.
+  const exigida = horizontal ? obrigH : obrigV
+  const resolvido = horizontal ? resolvidoH : resolvidoV
+  const status = !exigida
     ? statusEstrutura('concluido', 'Não exigida')
-    : statusPorProgresso((obrigH && resolvidoH ? 1 : 0) + (obrigV && resolvidoV ? 1 : 0), exigidos, {
+    : statusPorProgresso(resolvido ? 1 : 0, 1, {
         pendente: 'Configuração pendente', andamento: 'Em andamento', concluido: 'Configurada',
       })
 
@@ -272,10 +287,10 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   const limparSubstituicao = (campo) => dispatch({ type: 'SET_ESTRUTURA_FIELD', id: est.id, field: campo, value: null })
 
   return (
-    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={status} conclusao={exigidos === 0 ? null : { estruturaId: est.id, medida: 'compartimentacao' }} defaultOpen={false}>
+    <EstruturaSection titulo={est.nome} extra={<EstruturaHeaderInfo estrutura={est}/>} status={status} conclusao={!exigida ? null : { estruturaId: est.id, medida: horizontal ? 'compart_horizontal' : 'compart_vertical' }} defaultOpen={false}>
 
       {/* Compartimentação Horizontal */}
-      <Card className="mb-3">
+      {horizontal && <Card className="mb-3">
         <div className="py-3.5 px-[18px] flex items-center justify-between border-b border-solid border-border">
           <div className="flex items-center gap-2">
             <Icon name={SISTEMA_ICON.compart_horizontal} size={15} color="var(--color-red)"/>
@@ -295,7 +310,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
               </div>
             )}
 
-            <TabelaAreaMaxima resultado={resultadoArea} onChangeArea={onChangeArea} isenta={!!isencaoH}/>
+            <TabelaAreaMaxima resultado={resultadoArea} onChangeArea={onChangeArea} isenta={!!isencaoH} sigla={sigla}/>
 
             {mostrarSubstituicaoH && (
               <SubstituicaoButtons
@@ -319,10 +334,12 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
               <div className="grid grid-cols-2 gap-6">
                 <Checklist
                   titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartHorizontal`}/></>}
-                  tip="Itens 5.1.3 e 5.1.5, NT 09 CBMMA — a solução adotada deve constar no memorial descritivo."
+                  tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
                   opcoes={ELEMENTOS_COMPART_HORIZONTAL}
                   valores={elementosH}
                   onToggle={(k) => toggleArr('elementosCompartHorizontal', elementosH, k)}
+                  caracteristicas={caracDe('h')}
+                  onCaracteristica={setCaracteristica('h')}
                 />
                 <Checklist
                   titulo="Condições especiais aplicáveis"
@@ -335,7 +352,7 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
 
             {horizontalExigida && (
               <TrrfNota>
-                TRRF mínimo da parede: {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (EI-{TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}). Portas/vedadores/registros podem ter até {TRRF_REDUCAO_MAXIMA_ABERTURAS} min a menos, nunca abaixo de {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (itens 5.4.1 e 5.4.2).
+                TRRF mínimo da parede: {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (EI-{TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}). Portas/vedadores/registros podem ter até {TRRF_REDUCAO_MAXIMA_ABERTURAS} min a menos, nunca abaixo de {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min.
               </TrrfNota>
             )}
           </div>
@@ -343,14 +360,14 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
           <div className="py-3.5 px-[18px]">
             <div className="ibox green">
               <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-              <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a compartimentação horizontal, conforme NT 01 CBMMA (Tabela 5 ou 6 aplicável).</span>
+              <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a compartimentação horizontal, conforme a tabela de exigências do estado.</span>
             </div>
           </div>
         )}
-      </Card>
+      </Card>}
 
       {/* Compartimentação Vertical */}
-      <Card className="mb-3">
+      {!horizontal && <Card className="mb-3">
         <div className="py-3.5 px-[18px] flex items-center justify-between border-b border-solid border-border">
           <div className="flex items-center gap-2">
             <Icon name={SISTEMA_ICON.compart_vertical} size={15} color="var(--color-red)"/>
@@ -383,10 +400,12 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
               {precisaElementosV && (
                 <Checklist
                   titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartVertical`}/></>}
-                  tip="Itens 6.1.2 e 6.1.5, NT 09 CBMMA — a solução adotada deve constar no memorial descritivo."
+                  tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
                   opcoes={ELEMENTOS_COMPART_VERTICAL}
                   valores={elementosV}
                   onToggle={(k) => toggleArr('elementosCompartVertical', elementosV, k)}
+                  caracteristicas={caracDe('v')}
+                  onCaracteristica={setCaracteristica('v')}
                 />
               )}
               <Checklist
@@ -398,18 +417,18 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
             </div>
 
             <TrrfNota>
-              TRRF mínimo dos entrepisos: {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (EI-{TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}). Enclausuramento de escadas/elevadores de segurança: mínimo {TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR} min (EI-{TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR}), itens 6.4.1 e 6.4.2.2.
+              TRRF mínimo dos entrepisos: {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (EI-{TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}). Enclausuramento de escadas/elevadores de segurança: mínimo {TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR} min (EI-{TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR}).
             </TrrfNota>
           </div>
         ) : (
           <div className="py-3.5 px-[18px]">
             <div className="ibox green">
               <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-              <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a compartimentação vertical, conforme NT 01 CBMMA (Tabela 5 ou 6 aplicável). Atenção: a inexistência ou quebra da compartimentação vertical soma as áreas dos pavimentos interligados para fins de área máxima de compartimentação horizontal (item 6.1.1).</span>
+              <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam a compartimentação vertical, conforme a tabela de exigências do estado. Atenção: a inexistência ou quebra da compartimentação vertical soma as áreas dos pavimentos interligados para fins de área máxima de compartimentação horizontal.</span>
             </div>
           </div>
         )}
-      </Card>
+      </Card>}
 
       <Card>
         <div className="py-3.5 px-[18px]">
@@ -426,10 +445,16 @@ function EstruturaCompartimentacao({ est, pavimentos, areaCompartimentacaoHorizo
   )
 }
 
-export default function CompartimentacaoPage() {
+/** Página de uma das compartimentações (`sentido`: 'horizontal' ou
+ *  'vertical'), comum a todos os estados — a norma do estado define tabela,
+ *  elementos e textos. `extra`: conteúdo do estado no fim da página. */
+export default function CompartimentacaoPage({ sentido = 'horizontal', extra = null }) {
   const { state, dispatch } = useProjeto()
   const { compart } = useNorma()
   const { porEstrutura } = useMedidasObrigatorias()
+  const horizontal = sentido === 'horizontal'
+  const sistKey = horizontal ? 'compart_horizontal' : 'compart_vertical'
+  const sigla = compart.NORMA?.sigla || 'norma de compartimentação do estado'
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -438,12 +463,14 @@ export default function CompartimentacaoPage() {
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
           <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
-            <Icon name={SISTEMA_ICON.compart_horizontal} size={20} color="var(--color-red)" className="shrink-0"/>
-            Compartimentação Horizontal e Vertical
-          <LinkNorma sistema="compart_horizontal"/>
+            <Icon name={SISTEMA_ICON[sistKey]} size={20} color="var(--color-red)" className="shrink-0"/>
+            {horizontal ? 'Compartimentação Horizontal' : 'Compartimentação Vertical'}
+          <LinkNorma sistema={sistKey}/>
           </h2>
           <p className="w-full text-[13px] text-ink-faint leading-[1.6] m-0">
-            Verificação de exigibilidade (NT 01 CBMMA) e de área máxima de compartimentação (Anexo B, NT 09 CBMMA), por estrutura, a partir da ocupação, altura e área de cada pavimento.
+            {horizontal
+              ? `Exigibilidade pela tabela de exigências do estado e área máxima de compartimentação (Anexo B, ${sigla}), por estrutura, a partir da ocupação, altura e área de cada pavimento; elementos de proteção adotados e suas características.`
+              : `Exigibilidade pela tabela de exigências do estado, substituição por sistema alternativo e elementos de proteção adotados (${sigla}), com suas características, por estrutura.`}
           </p>
         </div>
 
@@ -452,6 +479,7 @@ export default function CompartimentacaoPage() {
           return (
             <EstruturaCompartimentacao
               key={est.id}
+              sentido={sentido}
               est={est}
               pavimentos={state.pavimentos.filter(p => p.estruturaId === est.id)}
               areaCompartimentacaoHorizontal={state.areaCompartimentacaoHorizontal}
@@ -463,6 +491,7 @@ export default function CompartimentacaoPage() {
           )
         })}
 
+        {extra}
       </div>
     </div>
   )

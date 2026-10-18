@@ -367,13 +367,24 @@ const COMPART_V = [
 ]
 
 function secaoCompartimentacao(state, ctx) {
-  const m = state.memorialPB || {}
   const exigH = exigibilidade(ctx, 'compart_horizontal')
   const exigV = exigibilidade(ctx, 'compart_vertical')
   const exigivel = exigH || exigV ? true : (exigH === false && exigV === false ? false : null)
-  // Elementos adotados: marcados na página de Compartimentação da PB.
-  const marcadosH = new Set(exigH ? m.compartElementos?.h || [] : [])
-  const marcadosV = new Set(exigV ? m.compartElementos?.v || [] : [])
+  // Elementos adotados e suas características: os das páginas de
+  // Compartimentação (comuns aos estados), somando as estruturas.
+  const estruturas = state.estruturas || []
+  const marcadosH = new Set(exigH ? estruturas.flatMap(e => e.elementosCompartHorizontal || []) : [])
+  const marcadosV = new Set(exigV ? estruturas.flatMap(e => e.elementosCompartVertical || []) : [])
+  // Característica do elemento: a de cada estrutura que a informou (com o
+  // nome da estrutura quando há mais de uma).
+  const caracteristica = (prefixo, key) => {
+    const campo = prefixo === 'h' ? 'elementosCompartHorizontal' : 'elementosCompartVertical'
+    const com = estruturas
+      .filter(e => (e[campo] || []).includes(key))
+      .map(e => [e.nome, (e.caracteristicasCompart?.[`${prefixo}:${key}`] || '').trim()])
+      .filter(([, t]) => t)
+    return com.length === 1 || estruturas.length === 1 ? com.map(([, t]) => t).join('; ') : com.map(([n, t]) => `${n}: ${t}`).join('; ')
+  }
 
   // Área máxima a compartimentar: a mais restritiva entre os pavimentos das
   // estruturas em que a horizontal é exigida (mesmo cálculo da tela).
@@ -392,9 +403,8 @@ function secaoCompartimentacao(state, ctx) {
   // Só 'CTD' (Comissão Técnica) e nenhum limite numérico: a área fica para a
   // Comissão; com limite numérico, vale o mais restritivo.
   const area = areaMax != null ? fmtNum(areaMax, 0, String(areaMax)) : comissao ? '(a definir pela Comissão Técnica)' : '______'
-  const spec = m.especificacaoCompart || {}
   const linhaElemento = (prefixo, marcados) => ([key, label]) => ({
-    tipo: 'checkValor', x: marcados.has(key), label, valor: marcados.has(key) ? (spec[`${prefixo}:${key}`] || '') : '',
+    tipo: 'checkValor', x: marcados.has(key), label, valor: marcados.has(key) ? caracteristica(prefixo, key) : '',
   })
 
   return {
@@ -1175,4 +1185,3 @@ export const ATESTOS_PB = {
   sinalizacao: ATESTOS_SINALIZACAO,
   hidrantes: ATESTOS_HIDRANTES,
 }
-export { COMPART_H as ELEMENTOS_COMPART_H_PB, COMPART_V as ELEMENTOS_COMPART_V_PB }

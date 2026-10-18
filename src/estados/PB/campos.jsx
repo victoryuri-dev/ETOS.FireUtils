@@ -4,7 +4,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { getMemorialFormulario } from '../../data/normas/index'
 import {
-  ATESTOS_PB, atestoMarcado, resumoBrigadaPB, INTERVALO_SIMULADOS_PADRAO, ELEMENTOS_COMPART_H_PB, ELEMENTOS_COMPART_V_PB, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
+  ATESTOS_PB, atestoMarcado, resumoBrigadaPB, INTERVALO_SIMULADOS_PADRAO, ESTAGIOS_EXISTENTE, ESTAGIOS_COM_ADAPTACOES,
   distanciaMaximaPontosPB, tiposIluminacaoPB, secoesIluminacaoPB, DETECTORES_PB,
   contextoFormularioPB, resultadoExtintoresPB, especiaisExtintoresPB, especialMarcado, ATESTOS_BOMBAS_MARCAVEIS, LANCES_INTERNOS_PB, LANCES_EXTERNOS_PB, MANGUEIRAS_PB,
 } from './formulario'
@@ -13,7 +13,7 @@ import { cmarPorEstrutura, ELEMENTOS_CMAR } from './cmar'
 import { fmtNum } from '../../utils/numero'
 import { NIVEL_LABEL } from '../../data/brigada_calc'
 import FormSection from '../../components/ui/FormSection'
-import { CaixaMarcacao } from '../../components/ui/Checkbox'
+import LinhaMarcavel from '../../components/ui/LinhaMarcavel'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import { EscolhaSistemaIluminacao } from '../../pages/medidas/IluminacaoPage'
 import { BotaoOpcao } from '../../components/deteccao/DaUi'
@@ -46,18 +46,8 @@ export function BoxPB({ titulo = 'Preenchimento do formulário', item, children 
   )
 }
 
-// Linha marcável: a linha inteira é o controle (clique, teclado e foco),
-// com respiro próprio e hover; marcada, o texto fica em destaque e a caixa
-// vermelha — dá para ver o que está marcado sem ler item por item.
-function Marcador({ label, checked, onChange }) {
-  return (
-    <button type="button" role="checkbox" aria-checked={!!checked} onClick={onChange}
-      className={`group w-full flex items-start gap-3 text-left bg-transparent border-none rounded-md py-2 px-2.5 cursor-pointer transition-colors duration-150 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-red focus-visible:outline-offset-[-2px] ${checked ? 'text-ink' : 'text-ink-muted'}`}>
-      <span className="pt-[3px]"><CaixaMarcacao checked={checked}/></span>
-      <span className="text-[13px] leading-[1.5]">{label}</span>
-    </button>
-  )
-}
+// Linha marcável comum (components/ui/LinhaMarcavel).
+const Marcador = props => <LinhaMarcavel {...props}/>
 
 function Rotulo({ children }) {
   return <span className="text-[11px] font-medium text-ink-faint uppercase tracking-[.06em]">{children}</span>
@@ -165,40 +155,6 @@ export function CamposPBGlp() {
 }
 
 // ── Páginas de medida da PB ───────────────────────────────────────────────
-
-// 8 — elementos de compartimentação adotados e a característica de cada um.
-export function CamposCompartimentacaoPB() {
-  const { m, set } = useCamposPB()
-  const el = m.compartElementos || { h: [], v: [] }
-  const spec = m.especificacaoCompart || {}
-  const alternar = (sentido, key) => {
-    const lista = el[sentido] || []
-    set({ compartElementos: { ...el, [sentido]: lista.includes(key) ? lista.filter(k => k !== key) : [...lista, key] } })
-  }
-  const grupo = (sentido, titulo, lista) => (
-    <div className="flex flex-col gap-0.5">
-      {titulo && <div className="mb-1.5"><Rotulo>{titulo}</Rotulo></div>}
-      {lista.map(([key, label]) => {
-        const marcado = (el[sentido] || []).includes(key)
-        return (
-          <div key={key} className="flex flex-col gap-1.5 -mx-2.5">
-            <Marcador label={label} checked={marcado} onChange={() => alternar(sentido, key)}/>
-            {marcado && (
-              <input className="ml-[38px] mr-2.5 mb-2 w-auto" value={spec[`${sentido}:${key}`] || ''} placeholder="Característica — ex.: alvenaria EI-120"
-                onChange={e => set({ especificacaoCompart: { ...spec, [`${sentido}:${key}`]: e.target.value } })}/>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-  return (
-    <BoxPB item="8">
-      {grupo('h', 'Compartimentação horizontal', ELEMENTOS_COMPART_H_PB)}
-      {grupo('v', 'Compartimentação vertical', ELEMENTOS_COMPART_V_PB)}
-    </BoxPB>
-  )
-}
 
 // 10 — declarações do RT (o dimensionamento vem da página de Saída de
 // Emergência, comum aos estados).

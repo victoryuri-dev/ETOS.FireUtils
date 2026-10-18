@@ -453,6 +453,23 @@ test('17.2 diâmetros das tubulações vêm dos trechos do Revit, agrupados', as
   })), 'DN80 (RTI → Bomba, Bomba → Ponto A); DN65 (Bomba → Ponto A, Ponto A → HD01, Ponto A → HD02)')
 })
 
+test('8. elementos e características vêm das páginas comuns de compartimentação (por estrutura)', () => {
+  const PAREDE = 'Paredes corta-fogo'
+  const est2 = { id: 'e2', nome: 'Bloco B', areaTotal: '300', altura: '3', nPavimentos: 1, nSubsolos: 0 }
+  const p = projeto({ sistemasPorEstrutura: { e1: { compart_horizontal: true, compart_vertical: true } } })
+  p.pavimentos[0].area = '3000'                                     // acima da área máxima (não é compartimento único)
+  p.estruturas = [
+    { ...p.estruturas[0], elementosCompartHorizontal: ['parede_corta_fogo'], caracteristicasCompart: { 'h:parede_corta_fogo': 'alvenaria EI-120' } },
+    { ...est2, elementosCompartHorizontal: ['parede_corta_fogo'], caracteristicasCompart: { 'h:parede_corta_fogo': 'drywall EI-60' } },
+  ]
+  const s8 = secao(gerar(p), '8.')
+  const linha = s8.linhas.find(l => l.tipo === 'checkValor' && l.label === PAREDE)
+  assert.equal(linha.x, true)
+  assert.equal(linha.valor, 'Bloco A: alvenaria EI-120; Bloco B: drywall EI-60')
+  p.estruturas = [p.estruturas[0]]
+  assert.equal(secao(gerar(p), '8.').linhas.find(l => l.tipo === 'checkValor' && l.label === PAREDE).valor, 'alvenaria EI-120')
+})
+
 test('6. acesso de viatura: as distâncias informadas marcam a linha certa do formulário', () => {
   const sec = (av, hid = false) => secao(gerar(projeto({
     sistemasPorEstrutura: { e1: { acesso_viatura: true, hidrantes: hid } },

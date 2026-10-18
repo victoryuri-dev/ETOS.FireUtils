@@ -3,17 +3,12 @@ import SaidaEmergenciaPage from '../../pages/medidas/SaidaEmergenciaPage'
 import HidrantesPage from '../../pages/medidas/HidrantesPage'
 import BrigadaIncendioPage from '../../pages/medidas/BrigadaIncendioPage'
 import {
-  CamposCompartimentacaoPB, CamposSaidasPB, CamposPlanoPB, CamposBrigadaPB, CamposIluminacaoPB,
+  CamposSaidasPB, CamposPlanoPB, CamposBrigadaPB, CamposIluminacaoPB,
   CamposAlarmePB, CamposDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB, ResultadoCmarPB,
 } from './campos'
 
 // Página da PB de cada medida (chave = sistema, a mesma das rotas
 // /medida/:sistKey e do menu lateral). Ver estados/registro.js.
-const compart = (
-  <PaginaPB titulo="Compartimentação" secoes={['8.']}>
-    <CamposCompartimentacaoPB/>
-  </PaginaPB>
-)
 const semSecao = titulo => (
   <PaginaPB titulo={titulo} secoes={['4.']}
     aviso="Esta medida não tem seção própria no formulário do CBMPB: ela só é marcada no item 4 (Medidas de proteção da edificação)."/>
@@ -25,8 +20,8 @@ export const PAGINAS_PB = {
   ),
   // seg_estrutural: sem página própria — a do MA (SegurancaEstruturalPage) só
   // mostra o resultado do TRRF, com a norma do estado; vale para os dois.
-  compart_horizontal: compart,
-  compart_vertical: compart,
+  // Compartimentação: as páginas comuns (horizontal e vertical separadas),
+  // com a NT 36/2024 da PB — elementos e características vão para o item 8.
   controle_acabamento: <PaginaPB titulo="Controle de Materiais de Acabamento (CMAR)" secoes={['9.']} observacoes="controle_acabamento"><ResultadoCmarPB/></PaginaPB>,
   // Saídas: a página comum (dimensionamento completo, base do Anexo A) com a
   // NT 12/2025 da PB, mais as declarações do formulário no fim.

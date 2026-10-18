@@ -267,7 +267,8 @@ function PaginaDaMedida({ sistKey }) {
   if (sistKey === 'hidrantes')         return <HidrantesPage/>
   if (sistKey === 'acesso_viatura')    return <AcessoViaturaPage/>
   if (sistKey === 'seg_estrutural')    return <SegurancaEstruturalPage/>
-  if (sistKey === 'compart_horizontal' || sistKey === 'compart_vertical') return <CompartimentacaoPage/>
+  if (sistKey === 'compart_horizontal') return <CompartimentacaoPage sentido="horizontal"/>
+  if (sistKey === 'compart_vertical')   return <CompartimentacaoPage sentido="vertical"/>
   if (sistKey === 'extintores')        return <ExtintoresPage/>
   if (sistKey === 'iluminacao')        return <IluminacaoPage/>
   if (sistKey === 'sinalizacao')       return <SinalizacaoPage/>

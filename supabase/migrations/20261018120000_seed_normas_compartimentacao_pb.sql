@@ -166,6 +166,10 @@ insert into public.normas_dados (uf, sistema, dados, versao) values
       "label": "Dispositivo automatizado de enrolar corta-fogo (EI)"
     }
   ],
+  "norma": {
+    "sigla": "NT 36/2024 CBMPB",
+    "nome": "Compartimentação Horizontal e Compartimentação Vertical"
+  },
   "notas_gerais_area_maxima": {
     "a": "Observar os casos permitidos de substituição da compartimentação de áreas por sistema de chuveiros automáticos, acrescidos, em alguns casos, do sistema de detecção de incêndio, conforme tabelas de exigências da norma técnica específica de Classificação das edificações e áreas de risco e exigências das medidas de segurança contra incêndio, explosão e controle de pânico.",
     "b": "Os locais assinalados com traço ( – ) estão dispensados de áreas máximas de compartimentação, mantendo a compartimentação vertical, de acordo com as tabelas de exigências da norma técnica específica de Classificação das edificações e áreas de risco e exigências das medidas de segurança contra incêndio, explosão e controle de pânico.",

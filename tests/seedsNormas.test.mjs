@@ -17,7 +17,7 @@ const server = await servidorComNormas({
     compartimentacao: dadosDoSql('20261018120000_seed_normas_compartimentacao_pb.sql'),
   },
   MA: {
-    compartimentacao: dadosDoSql('20261016140000_seed_normas_compartimentacao_ma.sql'),
+    compartimentacao: { ...dadosDoSql('20261016140000_seed_normas_compartimentacao_ma.sql'), ...dadosDoSql('20261018120001_add_norma_compartimentacao_ma.sql') },
     controle_acabamento: dadosDoSql('20261016140001_seed_normas_controle_acabamento_ma.sql'),
   },
 })

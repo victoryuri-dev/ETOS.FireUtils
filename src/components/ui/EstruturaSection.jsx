@@ -93,7 +93,7 @@ export default function EstruturaSection({ titulo, extra, status: statusBase, co
   const [open, setOpen] = useState(defaultOpen || new URLSearchParams(search).has('audit'))
   const c = useConclusao(conclusao, statusBase)
   const { pendencias } = useAuditoria()
-  const rota = conclusao?.medida === 'compartimentacao' ? ['medida/compart_horizontal','medida/compart_vertical'] : [`medida/${conclusao?.medida}`]
+  const rota = [`medida/${conclusao?.medida}`]
   const pendenciasMedida = pendencias.filter(p => (!p.estruturaId || p.estruturaId === conclusao?.estruturaId) && rota.includes(p.rota))
   const status = c.status
   const bar = status ? (STATUS_TONE[status.tone] || STATUS_TONE.pendente).bar : null
