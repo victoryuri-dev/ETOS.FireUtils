@@ -394,9 +394,10 @@ test('17. hidrantes: tipo, vazão/pressão, RTI e bombas vêm da página comum; 
   assert.equal(valorCampo(s, 'Pressão da bomba principal (mca) de incêndio:'), '48,2')
   assert.equal(valorCampo(s, 'Pressão da bomba reserva (mca) para risco médio e alto:'), '48,2')
   assert.equal(valorCampo(s, 'Vazão da bomba jockey (l/min) em sistema com mais de 6 pontos de hidrante:'), '20')
-  // manancial informado na página da PB
-  p.memorialPB.hidrantes.manancial = true
-  assert.ok(marcados(secao(gerar(p), '17.')).includes('Manancial'))
+  // manancial: uma das posições do reservatório da página (opções da PB)
+  p.hidrantes.reservatorioPosicao = 'manancial'
+  const mm = marcados(secao(gerar(p), '17.'))
+  assert.ok(mm.includes('Manancial') && !mm.includes('Reservatório enterrado'))
 })
 
 test('14: central e detectores informados na página da PB', () => {
@@ -487,6 +488,12 @@ test('17. tipo de mangueira só entre os que o tipo de sistema admite (Tabela 4)
   // no formulário: Tipo 4 com "Mangueira 1" (não admitida) não marca nada
   const p = projeto({ sistemasPorEstrutura: { e1: { hidrantes: true } }, hidrantes: { tipo: '4', mangueiraTipo: '1' } })
   assert.ok(!marcados(secao(gerar(p), '17.')).includes('Mangueira 1'))
+})
+
+test('17.1 posições do reservatório por estado (PB com manancial; MA com nível do solo)', async () => {
+  const { posicoesReservatorio } = await server.ssrLoadModule('/src/data/hidrantes_calc.js')
+  assert.deepEqual(posicoesReservatorio('PB').map(p => p.key), ['elevado', 'subterraneo', 'manancial', 'semienterrado'])
+  assert.deepEqual(posicoesReservatorio('MA').map(p => p.key), ['elevado', 'nivel_solo', 'semienterrado', 'subterraneo'])
 })
 
 test('6. acesso de viatura: as distâncias informadas marcam a linha certa do formulário', () => {

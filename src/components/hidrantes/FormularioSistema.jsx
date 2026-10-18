@@ -15,7 +15,8 @@ import { useClassificacaoHidrantes } from '../../hooks/useClassificacaoHidrantes
 import FormSection from '../ui/FormSection'
 import CaixaInfo from '../ui/CaixaInfo'
 import { inputClass, Field, Resultado, Pill, Nota, ToggleRow } from './formUi'
-import { POSICOES_RESERVATORIO } from '../../data/hidrantes_calc'
+import { posicoesReservatorio } from '../../data/hidrantes_calc'
+import { useProjeto } from '../../context/ProjetoContext'
 import { fmtNum } from '../../utils/numero'
 import { LANCES_INTERNOS, LANCES_EXTERNOS, NAO_SE_APLICA, tiposMangueiraPermitidos } from '../../data/hidrantesMangueiras'
 
@@ -73,6 +74,8 @@ export default function FormularioSistema() {
     areaTotal, sugestao, escolherOpcao,
     tipoAtual, dadosTipo,
   } = useClassificacaoHidrantes()
+  // Opções de posição do reservatório do estado (PB inclui o manancial).
+  const posicoes = posicoesReservatorio(useProjeto().state.uf)
 
   return (
     <div className="mb-8">
@@ -154,9 +157,9 @@ export default function FormularioSistema() {
             </select>
           </Field>
           <Field label={<>Posição do reservatório <Obrigatorio id="hidrantes.reservatorioPosicao"/></>}>
-            <select className={inputClass} value={h.reservatorioPosicao} onChange={e => set({ reservatorioPosicao: e.target.value })}>
+            <select className={inputClass} value={posicoes.some(p => p.key === h.reservatorioPosicao) ? h.reservatorioPosicao : ''} onChange={e => set({ reservatorioPosicao: e.target.value })}>
               <option value="">Selecione...</option>
-              {POSICOES_RESERVATORIO.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+              {posicoes.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
           </Field>
         </div>

@@ -997,7 +997,7 @@ const tipoFormularioHidrante = h => {
   return `tipo${t}`
 }
 // Posição do reservatório da página → opção do formulário.
-const RESERVATORIO_DA_POSICAO = { elevado: 'elevado', subterraneo: 'enterrado', semienterrado: 'semienterrado' }
+const RESERVATORIO_DA_POSICAO = { elevado: 'elevado', subterraneo: 'enterrado', semienterrado: 'semienterrado', manancial: 'manancial' }
 
 function secaoHidrantes(state, ctx) {
   const m = state.memorialPB || {}
@@ -1025,7 +1025,8 @@ function secaoHidrantes(state, ctx) {
     : key in DOS_COMPONENTES ? DOS_COMPONENTES[key]
     : atestoMarcado(at, key))
   const atestos = lista => lista.map(([key, label]) => ck({ x: ativo && marcado(key), label }))
-  const reservatorio = extra.manancial ? 'manancial' : RESERVATORIO_DA_POSICAO[h.reservatorioPosicao] || ''
+  // Posição do reservatório da página (a da PB inclui o manancial).
+  const reservatorio = RESERVATORIO_DA_POSICAO[h.reservatorioPosicao] || (extra.manancial ? 'manancial' : '')
   const alturaBomba = h.bombaExiste && d?.res?.P_RTI != null ? fmt(d.res.P_RTI) : null
   return {
     titulo: '17. SISTEMA DE HIDRANTES E MANGOTINHOS (Conforme NT 15/2016)',

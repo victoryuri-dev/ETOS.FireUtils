@@ -23,6 +23,20 @@ export const POSICOES_RESERVATORIO = [
   { key: 'subterraneo',   label: 'Subterrâneo' },
 ]
 
+// Opções de posição do reservatório que diferem por estado — PB: as do item
+// 17.1 do formulário do CBMPB (enterrado = 'subterraneo', que pede a NSTH;
+// manancial como uma das posições). Sem entrada, as do MA.
+const POSICOES_RESERVATORIO_UF = {
+  PB: [
+    { key: 'elevado',       label: 'Reservatório elevado' },
+    { key: 'subterraneo',   label: 'Reservatório enterrado' },
+    { key: 'manancial',     label: 'Manancial' },
+    { key: 'semienterrado', label: 'Reservatório semi-enterrado' },
+  ],
+}
+/** Posições do reservatório do estado. */
+export const posicoesReservatorio = uf => POSICOES_RESERVATORIO_UF[uf] || POSICOES_RESERVATORIO
+
 /** Coluna da Tabela 3 (1-4) para uma divisão, dada a carga de incêndio
  *  (MJ/m²) do pavimento — usa a faixa quando a divisão depende de carga,
  *  senão a coluna fixa. Retorna null se a divisão não consta na tabela. */

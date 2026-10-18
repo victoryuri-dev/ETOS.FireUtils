@@ -369,8 +369,8 @@ export function CamposExtintoresPB() {
 }
 
 // 17 — o que o formulário pede e a página de hidrantes comum não tem: NSTH
-// (reservatório subterrâneo), manancial e as declarações de bombas e
-// tubulação. Tipo, vazão/pressão, RTI, reservatório, materiais, bombas,
+// (reservatório enterrado) e as declarações de bombas e tubulação (o
+// manancial é uma das posições do reservatório da página comum). Tipo, vazão/pressão, RTI, reservatório, materiais, bombas,
 // lances e tipo de mangueira e os diâmetros das tubulações (Revit) vêm da
 // página comum; as declarações de mangueiras, dos componentes do tipo.
 export function CamposHidrantesPB() {
@@ -383,12 +383,12 @@ export function CamposHidrantesPB() {
   const subterraneo = state.hidrantes?.reservatorioPosicao === 'subterraneo'
   return (
     <div className="mt-6">
-      <FormSection title="Formulário do CBMPB — item 17" description="Só o que o formulário pede além do dimensionamento acima.">
-        <div className="flex flex-col gap-3">
-          <SimNao pergunta="A reserva técnica é um manancial?" valor={h.manancial} onChange={v => setH({ manancial: v })}/>
-          {subterraneo && !h.manancial && <div className="g2">{inp('nsth', 'NSTH (reservatório enterrado)')}</div>}
-        </div>
-      </FormSection>
+      {/* Só com reservatório enterrado (posição escolhida no box Reservatório). */}
+      {subterraneo && (
+        <FormSection title="Formulário do CBMPB — item 17" description="Só o que o formulário pede além do dimensionamento acima.">
+          <div className="g2">{inp('nsth', 'NSTH (reservatório enterrado)')}</div>
+        </FormSection>
+      )}
       <FormSection title="Declarações do responsável técnico" description="Item 17 do formulário do Memorial Descritivo do CBMPB.">
         <div className="flex flex-col gap-3">
           <Atestos titulo="Bombas e tubulação" lista={ATESTOS_BOMBAS_MARCAVEIS} atestos={atestos} alternar={alternarAtesto}/>

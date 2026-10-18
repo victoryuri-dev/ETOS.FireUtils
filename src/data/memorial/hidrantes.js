@@ -5,7 +5,7 @@
 // (memorial de cálculo) é responsabilidade do plugin Revit e entra depois.
 
 import { getHidrantes, getExtintores } from '../normas/index'
-import { dadosDoTipo, POSICOES_RESERVATORIO } from '../hidrantes_calc'
+import { dadosDoTipo, posicoesReservatorio } from '../hidrantes_calc'
 import { classificacaoHidrantesData } from '../../hooks/useClassificacaoHidrantes'
 import { fmtNum } from '../../utils/numero'
 import { rotuloLancesInternos, rotuloLancesExternos, rotuloTipoMangueira, tipoMangueiraValido } from '../hidrantesMangueiras'
@@ -89,7 +89,7 @@ export function textoMemorialHidrantes(state, _sistemas, porEstrutura) {
 
   blocos.push({ tipo: 'titulo2', texto: 'Reservatório' })
   const materialReservatorio = norma.MATERIAIS_RESERVATORIO.find(m => m.key === h.reservatorioMaterial)
-  const posicaoReservatorio = POSICOES_RESERVATORIO.find(p => p.key === h.reservatorioPosicao)
+  const posicaoReservatorio = posicoesReservatorio(state.uf).find(p => p.key === h.reservatorioPosicao)
   blocos.push({ tipo: 'campo', label: 'Material do reservatório', valor: materialReservatorio?.label || '—' })
   if (posicaoReservatorio) {
     blocos.push({ tipo: 'campo', label: 'Posição do reservatório', valor: posicaoReservatorio.label })

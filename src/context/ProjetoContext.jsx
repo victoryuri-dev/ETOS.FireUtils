@@ -615,7 +615,8 @@ const INITIAL_STATE = {
     // Faixa de estacionamento: obrigatória só com via abaixo de 6 m. Recalque = sistema de hidrantes
     // exigido. estados/PB/acessoViatura.js decide a linha do formulário.
     acessoViatura: {},
-    // 17 — só o que a página de hidrantes comum não tem: manancial e nsth
+    // 17 — só o que a página de hidrantes comum não tem: nsth (o manancial é
+    // uma posição do reservatório, state.hidrantes.reservatorioPosicao)
     // (lances e tipo de mangueira ficam em state.hidrantes; o diâmetro das
     // tubulações vem do dimensionamento do Revit).
     hidrantes: {},
