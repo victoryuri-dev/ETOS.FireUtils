@@ -7,7 +7,7 @@ import Icon from '../../components/ui/Icon'
 import { useToast } from '../../hooks/useToast'
 import StepsNav from '../../components/layout/StepsNav'
 import { SISTEMA_ICON } from '../../data/sistemasIcons'
-import FormularioSistema, { VerificacaoRecalque } from '../../components/hidrantes/FormularioSistema'
+import FormularioSistema, { TomadasRecalque } from '../../components/hidrantes/FormularioSistema'
 import { SelecaoBombas, SucaoBomba } from '../../components/hidrantes/BombaESuccaoForm'
 import FormSection from '../../components/ui/FormSection'
 import InfoTip from '../../components/ui/InfoTip'
@@ -250,9 +250,6 @@ function VerificacaoHidranteDesfavoravel({ ranking }) {
           <Icon name="chevD" size={12} className={`transition-transform ${expandido ? 'rotate-180' : ''}`}/>
         </button>
       )}
-      <div className="text-[11px] text-ink-faint mt-2 leading-[1.6]">
-        Perda de Carga Total = perda de carga (vazão nominal de um hidrante, sem equilíbrio hidráulico) + desnível geométrico até a bomba — usado só pra ranquear. O 1º e o 2º hidrante mais desfavorável recebem a marcha de cálculo completa, com equilíbrio hidráulico, no restante desta etapa.
-      </div>
     </div>
   )
 }
@@ -396,9 +393,8 @@ function PerdasPorTrecho({ d }) {
 // Ht/Qt já convergidos — o passo a passo de como Ht foi montado (Ponto A →
 // saída da bomba → RTI) fica só no memorial de cálculo impresso. São os
 // dois números mais importantes da página (alimentam a bomba na Etapa 3),
-// por isso ganham a cor de destaque — Ramal Governante é só referência de
-// qual ramal governou o dimensionamento, não um valor a conferir, então
-// fica em tom neutro.
+// por isso ganham a cor de destaque; o terceiro card é o número de tomadas
+// d'água do recalque (simples/duplo), em tom neutro.
 function ResultadoHidraulico({ d }) {
   const { res } = d
   return (
@@ -411,10 +407,7 @@ function ResultadoHidraulico({ d }) {
         <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Vazão Total (Qt)</div>
         <div className="text-xl font-bold text-red font-mono">{lmin(res.Qt)}</div>
       </div>
-      <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
-        <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Ramal Governante</div>
-        <div className="text-base font-semibold text-ink font-mono">{res.hid_governa}</div>
-      </div>
+      <TomadasRecalque/>
     </div>
   )
 }
@@ -566,13 +559,7 @@ export default function HidrantesPage({ extra = null }) {
 
         {etapa === 2 && (
           <>
-            <div className="flex items-center justify-between gap-4 mb-7">
-              <div>
-                <h3 className="text-sm font-bold text-ink m-0 mb-1">Dimensionamento (plugin Revit)</h3>
-                <p className="text-[12px] text-ink-faint leading-[1.6] max-w-[600px] m-0">
-                  Resultados calculados pelo plugin a partir da classificação da Etapa 1.
-                </p>
-              </div>
+            <div className="flex items-center justify-end gap-4 mb-7">
               <div className="shrink-0 flex flex-col items-end gap-1.5">
                 <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
                 <button className="btn-ghost flex items-center gap-1.5 whitespace-nowrap" onClick={handleBuscarRevit} disabled={buscando}>
@@ -584,8 +571,6 @@ export default function HidrantesPage({ extra = null }) {
                 </button>
               </div>
             </div>
-
-            <VerificacaoRecalque/>
 
             {!dados && (
               <div className="py-[60px] px-10 text-center border border-dashed border-border rounded-lg text-ink-faint">

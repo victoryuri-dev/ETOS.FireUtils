@@ -13,6 +13,7 @@ import Obrigatorio from '../ui/Obrigatorio'
 // mora em hooks/useClassificacaoHidrantes.js, não duplicada nos dois lugares.
 import { useClassificacaoHidrantes } from '../../hooks/useClassificacaoHidrantes'
 import FormSection from '../ui/FormSection'
+import InfoTip from '../ui/InfoTip'
 import CaixaInfo from '../ui/CaixaInfo'
 import { inputClass, Field, Resultado, Pill, Nota, ToggleRow } from './formUi'
 import { posicoesReservatorio } from '../../data/hidrantes_calc'
@@ -48,21 +49,21 @@ function EstruturaPill({ active, obrigatorio, onClick, nome, area, divisao, carg
   )
 }
 
-/** Verificação do nº de entradas do recalque — item 5.3.3: vazão do sistema
- *  acima de 1.000 L/min exige recalque duplo. Não é escolha do RT
- *  (auto-sincronizada em h.recalqueEntradas, ver useClassificacaoHidrantes)
- *  — resultado mostrado na etapa de Dimensionamento do Sistema. */
-export function VerificacaoRecalque() {
+/** Tomadas d'água do recalque — item 5.3.3: vazão do sistema acima de
+ *  1.000 L/min exige recalque duplo. Não é escolha do RT (auto-sincronizada
+ *  em h.recalqueEntradas, ver useClassificacaoHidrantes) — card de resultado
+ *  da etapa de Dimensionamento do Sistema, com a conta no tooltip. */
+export function TomadasRecalque() {
   const { norma, dadosTipo, recalqueDuplo, vazaoSistema } = useClassificacaoHidrantes()
-  if (!dadosTipo) return null
   return (
-    <div className={`flex items-center justify-between gap-3 mb-6 py-2.5 px-3.5 rounded-md border border-solid ${recalqueDuplo ? 'bg-amber-dim border-amber-border' : 'bg-surface-2 border-border'}`}>
-      <span className="text-xs text-ink">
-        Vazão do sistema ({fmtNum(dadosTipo.vazaoMin)} L/min × {norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = {fmtNum(vazaoSistema)} L/min) {recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min ({norma.HIDRANTES_SIMULTANEOS_REF})
-      </span>
-      <span className={`shrink-0 inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid whitespace-nowrap ${recalqueDuplo ? 'bg-amber-dim border-amber-border text-amber' : 'bg-green-dim border-green-border text-green'}`}>
-        Recalque {recalqueDuplo ? 'duplo — 2 entradas' : 'simples — 1 entrada'}
-      </span>
+    <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
+      <div className="flex items-center gap-1 text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">
+        Tomadas d'água do recalque
+        {dadosTipo && <InfoTip text={`Vazão do sistema: ${fmtNum(dadosTipo.vazaoMin)} L/min × ${norma.HIDRANTES_SIMULTANEOS} hidrantes simultâneos = ${fmtNum(vazaoSistema)} L/min, ${recalqueDuplo ? 'acima' : 'dentro'} do limite de 1.000 L/min (${norma.HIDRANTES_SIMULTANEOS_REF}).`}/>}
+      </div>
+      <div className={`text-base font-semibold ${recalqueDuplo ? 'text-amber' : 'text-ink'}`}>
+        {!dadosTipo ? '—' : recalqueDuplo ? 'Duplo — 2 entradas' : 'Simples — 1 entrada'}
+      </div>
     </div>
   )
 }
@@ -92,7 +93,7 @@ export default function FormularioSistema() {
       </FormSection>
 
       {/* A — Classificação do sistema */}
-      <FormSection title="Classificação do Sistema" description={`Cruzamento área construída × ocupação, conforme Tabela 3 da ${norma.NORMA.nome}.`}>
+      <FormSection title="Classificação do Sistema">
         <div className="grid grid-cols-2 gap-4 bg-surface-2 border border-solid border-border rounded-lg p-4 mb-4">
           <Resultado label="Área total construída (estruturas selecionadas acima)"
             value={areaTotal ? `${fmtNum(areaTotal)} m²` : '—'}/>
@@ -192,9 +193,6 @@ export default function FormularioSistema() {
             </select>
           </Field>
         </div>
-        <div className="text-[11px] text-ink-faint mt-3">
-          Diâmetro mínimo da rede: DN65 (DN50 permitido apenas em sistemas Tipo 1 ou 2, item 5.11.6).
-        </div>
       </FormSection>
 
       {/* D — Dispositivo de recalque */}
@@ -234,7 +232,7 @@ export default function FormularioSistema() {
           ['Mangueira semirrígida com esguicho', sn(c.mangueiraSemirrigida), c.mangueiraSemirrigida],
         ]
         return (
-          <FormSection title="Abrigos e Mangueiras" description={`Lances e tipo de mangueira adotados e os componentes obrigatórios do Tipo de sistema (Tabela 4, ${norma.NORMA.nome}).`}>
+          <FormSection title="Abrigos e Mangueiras">
             <div className="grid grid-cols-3 gap-4 max-[720px]:grid-cols-1">
               <Field label="Lances de mangueira — hidrantes internos">
                 <select className={inputClass} value={h.lancesInternos || ''} onChange={e => set({ lancesInternos: e.target.value })}>
@@ -290,9 +288,6 @@ export default function FormularioSistema() {
               <option value="gaveta_os_y">Gaveta de haste ascendente (OS&Y)</option>
             </select>
           </Field>
-        </div>
-        <div className="text-[11px] text-ink-faint mt-3">
-          Válvula do mangotinho: esfera de abertura rápida, DN25 (1") — fixo pela {norma.NORMA.nome}.
         </div>
       </FormSection>
 
