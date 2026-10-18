@@ -1160,7 +1160,7 @@ export function buildFormularioPB(state, sistemas, porEstrutura) {
   return {
     norma: F.NORMA,
     temTabelaExigencias: ctx.temTabelaExigencias,
-    secoes: [
+    secoes: semMarcasNaoExigiveis([
       secaoIdentificacao(state),
       secaoFormaApresentacao(state, F),
       secaoParametros(state, F, ctx),
@@ -1181,8 +1181,25 @@ export function buildFormularioPB(state, sistemas, porEstrutura) {
       secaoChuveiros(ctx),
       secaoSpda(ctx),
       secaoIsolamento(),
-    ],
+    ]),
   }
+}
+
+// Sistema "NÃO EXIGÍVEL": nada marcado nos campos internos dele — da linha
+// de exigibilidade até o próximo subtítulo (ou o fim da seção).
+export function semMarcasNaoExigiveis(secoes) {
+  return secoes.map(secao => {
+    let bloqueado = false
+    const linhas = secao.linhas.map(l => {
+      if (l.tipo === 'sub') bloqueado = false
+      if (l.tipo === 'exigivel') bloqueado = l.exigivel === false
+      if (!bloqueado) return l
+      if (l.tipo === 'checkValor') return { ...l, x: false, valor: '' }
+      if (!l.itens) return l
+      return { ...l, itens: l.itens.map(i => ({ ...i, x: false })) }
+    })
+    return { ...secao, linhas }
+  })
 }
 
 // Chaves de state.memorialPB.atestos usadas acima, com o rótulo — o painel

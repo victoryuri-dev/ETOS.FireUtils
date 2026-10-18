@@ -661,3 +661,15 @@ test('medida exigida desativada manualmente pelo RT sai do formulário (não exi
   assert.equal(s.linhas.find(l => l.tipo === 'exigivel').exigivel, false)
   assert.equal(valorCampo(s, 'Capacidade de público (pessoas) total da edificação:'), '')
 })
+
+test('sistema não exigível não tem marcações nos campos internos (até o próximo subtítulo)', async () => {
+  const { semMarcasNaoExigiveis } = await server.ssrLoadModule('/src/estados/PB/formulario.js')
+  const x = label => ({ x: true, label })
+  const [s] = semMarcasNaoExigiveis([{ titulo: '14.', linhas: [
+    { tipo: 'sub', titulo: '14.1' }, { tipo: 'exigivel', exigivel: false }, { tipo: 'checks', itens: [x('a')] },
+    { tipo: 'checkValor', x: true, label: 'v', valor: '60' },
+    { tipo: 'sub', titulo: '14.2' }, { tipo: 'exigivel', exigivel: true }, { tipo: 'checks', itens: [x('b')] },
+  ] }])
+  assert.deepEqual(marcados(s), ['b'])
+  assert.equal(s.linhas[3].valor, '')
+})
