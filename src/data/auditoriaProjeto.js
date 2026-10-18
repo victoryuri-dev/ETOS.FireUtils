@@ -203,7 +203,6 @@ export function camposOpcionais(state, porEstrutura = []) {
     root([['respCNPJ','CNPJ']].filter(([id]) => campoOpcionalNoEstado(state.uf, id)), config(1,'Identificação'))
     root([['respFantasia','Nome fantasia'], ['respTelefone','Telefone do responsável pelo uso'], ['respEmail','E-mail do responsável pelo uso'], ['numero','Número do endereço'], ['complemento','Complemento'], ['bairro','Bairro'], ['cep','CEP'], ['propTelefone','Telefone do proprietário'], ['propEmail','E-mail do proprietário']], config(1,'Identificação'))
     root([['rtCpf','CPF do responsável técnico'], ['rtEmpresa','Empresa / escritório'], ['rtEmail','E-mail do responsável técnico'], ['rtTelefone','Telefone do responsável técnico']], config(3,'Responsável técnico'))
-    if (state.usaArt) root([['artData','Data de emissão da ART'], ['artTipoServico','Tipo de serviço'], ['artValorObra','Valor da obra']],config(3,'Responsável técnico'))
     root([['areaTerreno','Área do terreno'], ['quantidadePublico','Quantidade de público'], ['areaComplementar','Área complementar'], ['condicoesAtuais','Observações complementares']],config(2,'Edificação'))
     if (state.informarDadosLegais === 'sim' || state.numeroAlvara || state.anoConstrucao || state.numeroAVCB || state.validadeAVCB) {
       root([['numeroAlvara','Número do alvará']],config(2,'Edificação'))

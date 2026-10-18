@@ -85,21 +85,11 @@ export default function Step3({ step, totalSteps }) {
           </label>
         }
       >
+        {/* Só o número da ART. */}
         {state.usaArt && (
-          <>
-            <div className="g2 mb-3">
-              <div className="fg"><label>Numero da ART <Obrigatorio id={'artNumero'}/></label><input value={state.artNumero} onChange={set('artNumero')}/></div>
-              <div className="fg"><label>Data de emissao <Obrigatorio id="artData"/></label><input type="date" value={state.artData} onChange={set('artData')}/></div>
-            </div>
-            <div className="g2">
-              <div className="fg"><label>Tipo de servico <Obrigatorio id="artTipoServico"/></label>
-                <select value={state.artTipoServico} onChange={set('artTipoServico')}>
-                  <option>Projeto</option><option>Execucao</option><option>Projeto e execucao</option><option>Consultoria / Laudo</option>
-                </select>
-              </div>
-              <div className="fg"><label>Valor da obra (R$) <Obrigatorio id="artValorObra"/></label><input value={state.artValorObra} onChange={set('artValorObra')} placeholder="R$ 0,00"/></div>
-            </div>
-          </>
+          <div className="fg max-w-[calc(50%-8px)] max-[720px]:max-w-full">
+            <label>Numero da ART <Obrigatorio id={'artNumero'}/></label><input value={state.artNumero} onChange={set('artNumero')}/>
+          </div>
         )}
       </FormSection>
     </div>
