@@ -13,6 +13,7 @@ import Obrigatorio from '../ui/Obrigatorio'
 // mora em hooks/useClassificacaoHidrantes.js, não duplicada nos dois lugares.
 import { useClassificacaoHidrantes } from '../../hooks/useClassificacaoHidrantes'
 import FormSection from '../ui/FormSection'
+import CaixaInfo from '../ui/CaixaInfo'
 import { inputClass, Field, Resultado, Pill, Nota, ToggleRow } from './formUi'
 import { POSICOES_RESERVATORIO } from '../../data/hidrantes_calc'
 import { fmtNum } from '../../utils/numero'
@@ -253,14 +254,19 @@ export default function FormularioSistema() {
                 </select>
               </Field>
             </div>
-            {/* Resultado da Tabela 4: azul o que o Tipo exige; neutro o que não. */}
-            <div className="grid grid-cols-4 gap-3 mt-5 max-[720px]:grid-cols-2">
-              {componentes.map(([rotulo, valor, exigido]) => (
-                <div key={rotulo} className={`rounded-md border border-solid py-2.5 px-3 ${exigido ? 'border-blue-border bg-blue-dim' : 'border-border bg-transparent'}`}>
-                  <div className={`text-[10px] uppercase tracking-[.06em] font-semibold mb-1 ${exigido ? 'text-blue' : 'text-ink-faint'}`}>{rotulo}</div>
-                  <div className={`text-[13px] font-semibold leading-[1.4] ${exigido ? 'text-ink' : 'text-ink-faint'}`}>{valor}</div>
-                </div>
-              ))}
+            {/* Resultado da Tabela 4, recolhido (mesma caixa azul do Acesso de
+                Viatura); o que o Tipo não exige fica apagado. */}
+            <div className="mt-5">
+              <CaixaInfo titulo="Componentes obrigatórios">
+                <dl className="m-0 grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-1.5 text-xs">
+                  {componentes.map(([rotulo, valor, exigido]) => (
+                    <div key={rotulo} className="contents">
+                      <dt className={exigido ? 'text-ink-muted' : 'text-ink-faint'}>{rotulo}</dt>
+                      <dd className={`m-0 text-right font-semibold ${exigido ? 'text-ink' : 'text-ink-faint'}`}>{valor}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </CaixaInfo>
             </div>
           </FormSection>
         )

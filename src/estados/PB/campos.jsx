@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import Icon from '../../components/ui/Icon'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { getMemorialFormulario } from '../../data/normas/index'
@@ -13,6 +11,7 @@ import { fmtNum } from '../../utils/numero'
 import { NIVEL_LABEL } from '../../data/brigada_calc'
 import FormSection from '../../components/ui/FormSection'
 import LinhaMarcavel from '../../components/ui/LinhaMarcavel'
+import CaixaInfo from '../../components/ui/CaixaInfo'
 import SwitchToggle from '../../components/ui/SwitchToggle'
 import { EscolhaSistemaIluminacao } from '../../pages/medidas/IluminacaoPage'
 import { BotaoOpcao } from '../../components/deteccao/DaUi'
@@ -446,35 +445,22 @@ function NumeroLimitado({ label, value, onChange, padrao, minimo, sufixo = 'm' }
 // Exigência que passa a valer no projeto (azul): título, motivo e a lista
 // de itens como no formulário (a, b, c…).
 function Exigencia({ titulo, motivo, itens = [], rotuloItens }) {
-  const [aberto, setAberto] = useState(false)
   return (
-    <div className="ibox blue flex-col items-stretch gap-0 p-0 m-0">
-      <button type="button" onClick={() => setAberto(a => !a)} aria-expanded={aberto}
-        className="w-full flex items-center gap-2 bg-transparent border-none cursor-pointer text-left py-2.5 px-3">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-blue)" strokeWidth="2" strokeLinecap="round" className="shrink-0" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="12" y1="7" x2="12.01" y2="7"/>
-        </svg>
-        <span className="text-[12.5px] font-semibold text-ink flex-1">{titulo}</span>
-        <Icon name="chevD" size={14} className={`text-ink-faint transition-transform ${aberto ? 'rotate-180' : ''}`}/>
-      </button>
-      {aberto && (
-        <div className="flex flex-col gap-2 px-3 pb-3 pl-9">
-          {motivo && <div className="text-xs text-ink-muted">{motivo}</div>}
-          {itens.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              {rotuloItens && <div className="text-[10px] uppercase tracking-[.06em] text-ink-faint">{rotuloItens}</div>}
-              <ol className="m-0 pl-0 list-none flex flex-col gap-1.5">
-                {itens.map((t, k) => (
-                  <li key={k} className="grid grid-cols-[20px_1fr] gap-1 text-xs text-ink-muted leading-[1.5]">
-                    <span className="font-semibold text-ink">{String.fromCharCode(97 + k)})</span><span>{t}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
+    <CaixaInfo titulo={titulo}>
+      {motivo && <div className="text-xs text-ink-muted">{motivo}</div>}
+      {itens.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {rotuloItens && <div className="text-[10px] uppercase tracking-[.06em] text-ink-faint">{rotuloItens}</div>}
+          <ol className="m-0 pl-0 list-none flex flex-col gap-1.5">
+            {itens.map((t, k) => (
+              <li key={k} className="grid grid-cols-[20px_1fr] gap-1 text-xs text-ink-muted leading-[1.5]">
+                <span className="font-semibold text-ink">{String.fromCharCode(97 + k)})</span><span>{t}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
-    </div>
+    </CaixaInfo>
   )
 }
 
