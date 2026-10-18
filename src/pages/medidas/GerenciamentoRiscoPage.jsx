@@ -56,7 +56,7 @@ export default function GerenciamentoRiscoPage() {
         <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]">
           Medidas de segurança
         </div>
-        <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-semibold text-ink mb-[5px]">
+        <h2 className="flex flex-wrap items-center gap-2 font-heading text-[22px] font-semibold text-ink mb-[5px]">
           <Icon name={SISTEMA_ICON.gerenciamento_risco} size={20} color="var(--color-red)" className="shrink-0"/>
           Gerenciamento de Risco de Incêndio
         <LinkNorma sistema="gerenciamento_risco"/>

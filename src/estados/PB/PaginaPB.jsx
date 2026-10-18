@@ -37,7 +37,7 @@ export default function PaginaPB({ titulo, secoes: prefixos, observacoes, aviso,
       <div className="max-w-[880px] mx-auto pt-8 px-10 pb-20 max-[720px]:px-4">
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Formulário do Memorial Descritivo — CBMPB</div>
-          <h2 className="flex flex-wrap items-center gap-3 text-[22px] font-bold text-ink mb-1.5">
+          <h2 className="flex flex-wrap items-center gap-3 font-heading text-[22px] font-bold text-ink mb-1.5">
             {titulo}
             <StatusExigivel secoes={secoes}/>
           </h2>

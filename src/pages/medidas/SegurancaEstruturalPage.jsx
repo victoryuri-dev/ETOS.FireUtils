@@ -157,7 +157,7 @@ export default function SegurancaEstruturalPage() {
 
         <div className="mb-7">
           <div className="text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-1">Medidas de Segurança</div>
-          <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-bold text-ink mb-1.5">
+          <h2 className="flex flex-wrap items-center gap-2 font-heading text-[22px] font-bold text-ink mb-1.5">
             <Icon name={SISTEMA_ICON.seg_estrutural} size={20} color="var(--color-red)" className="shrink-0"/>
             Segurança Estrutural Contra Incêndio
           <LinkNorma sistema="seg_estrutural"/>

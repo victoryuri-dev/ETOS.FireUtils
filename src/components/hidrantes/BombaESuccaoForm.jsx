@@ -67,7 +67,7 @@ function Dado({ rotulo, valor, unidade, conversao, tom = 'text-ink' }) {
     <div>
       <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">{rotulo}</div>
       <div className="h-[30px] flex items-baseline gap-1.5 pt-1">
-        <span className={`font-heading tabular-nums text-base font-bold ${tom}`}>{valor}</span>
+        <span className={`tabular-nums text-base font-bold ${tom}`}>{valor}</span>
         {unidade && <span className="text-[11px] text-ink-faint">{unidade}</span>}
         {conversao && <span className="text-[11px] text-ink-faint">· {conversao}</span>}
       </div>
