@@ -23,26 +23,26 @@ import { fmtNum } from '../../utils/numero'
 import { LANCES_INTERNOS, LANCES_EXTERNOS, NAO_SE_APLICA, tiposMangueiraPermitidos } from '../../data/hidrantesMangueiras'
 
 const RISCO_LABEL = { baixo: 'Risco baixo', medio: 'Risco médio', alto: 'Risco alto' }
-const RISCO_TONE = { baixo: 'green', medio: 'amber', alto: 'red' }
 
-// Mesma lógica de cores da Etapa 6 (medidas de segurança, legenda acima dos
-// cards): estrutura em que a norma EXIGE hidrantes é vermelha — cheia quando
-// selecionada e só com a borda vermelha se o RT a desmarcou; as não exigidas
-// ficam verdes quando selecionadas (opcional) e neutras quando não. Área,
-// ocupação e risco em badges, como no cabeçalho das estruturas.
+// Mesma lógica de cores da Etapa 6 (legenda acima dos cards): estrutura em
+// que a norma EXIGE hidrantes é vermelha — cheia quando selecionada e só com
+// a borda vermelha se o RT a desmarcou; as não exigidas ficam verdes quando
+// selecionadas (opcional) e neutras quando não. Os badges (área, ocupação e
+// risco) seguem a cor do card, alinhados à direita do nome.
 function EstruturaPill({ active, obrigatorio, onClick, nome, area, divisao, risco }) {
-  const tom = obrigatorio
+  const tom = obrigatorio ? 'red' : active ? 'green' : 'neutral'
+  const card = obrigatorio
     ? (active ? 'border-red bg-red-dim' : 'border-red bg-bg hover:bg-red-dim')
     : (active ? 'border-green bg-green-dim' : 'border-border bg-bg hover:border-ink-faint')
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
-      className={`text-left p-3 rounded-md border border-solid transition-colors flex flex-col gap-2.5 ${tom}`}>
-      <div className="text-xs font-semibold text-ink">{nome}</div>
-      <div className="flex flex-wrap gap-1.5">
-        {area ? <Chip icon="area">{fmtNum(area)} m²</Chip> : null}
-        {divisao ? <Chip tone="red" icon="newbld">{divisao}</Chip> : null}
-        {risco ? <Chip tone={RISCO_TONE[risco]} icon="flame">{RISCO_LABEL[risco]}</Chip> : null}
-      </div>
+      className={`text-left py-2.5 px-3 rounded-md border border-solid transition-colors flex items-center justify-between gap-3 ${card}`}>
+      <span className="text-xs font-semibold text-ink truncate">{nome}</span>
+      <span className="flex flex-wrap justify-end gap-1.5">
+        {area ? <Chip tone={tom} icon="area">{fmtNum(area)} m²</Chip> : null}
+        {divisao ? <Chip tone={tom} icon="newbld">{divisao}</Chip> : null}
+        {risco ? <Chip tone={tom} icon="flame">{RISCO_LABEL[risco]}</Chip> : null}
+      </span>
     </button>
   )
 }
