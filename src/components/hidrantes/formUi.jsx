@@ -13,7 +13,7 @@ export function Field({ label, hint, children }) {
       {label && (
         <div className="flex items-center justify-between gap-2 mb-1">
           <div className="text-[10px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
-          {hint && <div className="text-[10px] text-ink-faint tabular-nums whitespace-nowrap">{hint}</div>}
+          {hint && <div className="text-[10px] text-ink-faint font-heading tabular-nums whitespace-nowrap">{hint}</div>}
         </div>
       )}
       {children}
@@ -29,7 +29,7 @@ export function Resultado({ label, value, hint, className = '' }) {
     <div>
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="text-[10px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
-        {hint && <div className="text-[10px] text-ink-faint tabular-nums whitespace-nowrap">{hint}</div>}
+        {hint && <div className="text-[10px] text-ink-faint font-heading tabular-nums whitespace-nowrap">{hint}</div>}
       </div>
       <div className={`text-sm font-bold text-ink ${className}`}>{value}</div>
     </div>

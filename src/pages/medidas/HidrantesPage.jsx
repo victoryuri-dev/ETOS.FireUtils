@@ -34,14 +34,14 @@ function TH({ children, right, center, w }) {
 }
 function TD({ children, red, green, bold, muted, right, center, mono }) {
   const colorClass = red ? 'text-red' : green ? 'text-green' : muted ? 'text-ink-faint' : 'text-ink'
-  return <td className={`py-[9px] px-3.5 text-[13px] ${colorClass} ${bold?'font-bold':'font-normal'} border-b border-solid border-border-2 align-middle ${right?'text-right':center?'text-center':'text-left'} ${mono?'tabular-nums':'font-sans'}`}>{children}</td>
+  return <td className={`py-[9px] px-3.5 text-[13px] ${colorClass} ${bold?'font-bold':'font-normal'} border-b border-solid border-border-2 align-middle ${right?'text-right':center?'text-center':'text-left'} ${mono?'font-heading tabular-nums':'font-sans'}`}>{children}</td>
 }
 // `limite` é o limite normativo de velocidade DESTE trecho (recalque/
 // descarga sempre 5,0 m/s; sucção 3,0 ou 2,0 m/s conforme positiva/negativa
 // — ver normas/<UF>/hidrantes.js) — nunca um valor fixo pra todos os trechos.
 function VelChip({ v, limite }) {
   const ok = v <= limite
-  return <span className={`inline-flex items-center gap-1 py-[3px] px-2 rounded tabular-nums font-bold text-xs border border-solid ${ok?'bg-green-dim border-green-border text-green':'bg-red-dim border-red-border text-red'}`}>{ok?'✓':' ✗'} {ms(v)}</span>
+  return <span className={`inline-flex items-center gap-1 py-[3px] px-2 rounded font-heading tabular-nums font-bold text-xs border border-solid ${ok?'bg-green-dim border-green-border text-green':'bg-red-dim border-red-border text-red'}`}>{ok?'✓':' ✗'} {ms(v)}</span>
 }
 function AtendeChip({ ok }) {
   return <span className={`inline-block py-[3px] px-2.5 rounded font-bold text-[11px] border border-solid ${ok?'bg-green-dim border-green-border text-green':'bg-red-dim border-red-border text-red'}`}>{ok ? 'ATENDE' : 'NÃO ATENDE'}</span>
@@ -97,14 +97,14 @@ function ResumoExecutivo({ d }) {
       {cards.map(c => (
         <Card key={c.id}>
           <CardHeader>
-            <span style={{color:c.color}} className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border tabular-nums">{c.id}</span>
+            <span style={{color:c.color}} className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border font-heading tabular-nums">{c.id}</span>
             <span className="text-[10px] text-ink-faint font-medium uppercase tracking-[.06em]">{c.label}</span>
           </CardHeader>
           <div className="py-3.5 px-[18px] flex flex-col gap-2.5">
             {c.rows.map((r, i) => (
               <div key={i} className="flex justify-between items-baseline gap-2">
                 <span className="text-xs text-ink-faint">{r.label}</span>
-                <span className="text-sm font-bold text-ink tabular-nums whitespace-nowrap">{r.val}</span>
+                <span className="text-sm font-bold text-ink font-heading tabular-nums whitespace-nowrap">{r.val}</span>
               </div>
             ))}
             {c.atende !== null && (
@@ -315,7 +315,7 @@ function MiniStat({ label, nivel = 'secundario', val }) {
   return (
     <div className="bg-surface border border-solid border-border rounded-md py-2 px-3">
       <div className="text-[10px] text-ink-faint uppercase tracking-[.05em] mb-1 whitespace-nowrap">{label}</div>
-      <div className={`tabular-nums ${valClass}`}>{val}</div>
+      <div className={`font-heading tabular-nums ${valClass}`}>{val}</div>
     </div>
   )
 }
@@ -329,11 +329,11 @@ function SegmentoTrecho({ seg }) {
   return (
     <div className="bg-surface-2 border border-solid border-border rounded-md p-3.5">
       <div className="flex items-baseline gap-2 mb-3">
-        <span className="text-[12px] font-bold text-ink tabular-nums bg-bg border border-solid border-border rounded px-2 py-0.5">
+        <span className="text-[12px] font-bold text-ink font-heading tabular-nums bg-bg border border-solid border-border rounded px-2 py-0.5">
           DN{Number(seg.d_mm).toFixed(0)}
         </span>
         <span className="text-xs text-ink-faint">
-          Tubo reto: <strong className="text-ink tabular-nums">{f4(seg.L)} m</strong>
+          Tubo reto: <strong className="text-ink font-heading tabular-nums">{f4(seg.L)} m</strong>
         </span>
       </div>
 
@@ -369,7 +369,7 @@ function TrechoDetalhe({ id, t }) {
   return (
     <Card className="mb-3">
       <CardHeader>
-        <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border text-ink-faint tabular-nums">{id.toUpperCase()}</span>
+        <span className="text-[11px] font-bold py-0.5 px-2 rounded bg-surface border border-solid border-border text-ink-faint font-heading tabular-nums">{id.toUpperCase()}</span>
         <span className="text-[13px] font-semibold text-ink">{t.label}</span>
         <span className="text-[11px] text-ink-faint ml-auto">Q = {lmin(t.Q_lmin)} · J total = {fmca(t.J)}</span>
       </CardHeader>
@@ -401,11 +401,11 @@ function ResultadoHidraulico({ d }) {
     <div className="grid grid-cols-3 gap-4 mb-8">
       <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
         <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura Manométrica Total (Ht)</div>
-        <div className="text-xl font-bold text-red tabular-nums">{fmca(res.P_RTI)}</div>
+        <div className="text-xl font-bold text-red font-heading tabular-nums">{fmca(res.P_RTI)}</div>
       </div>
       <div className="bg-surface border border-solid border-border rounded-lg py-4 px-5">
         <div className="text-[11px] text-ink-faint uppercase tracking-[.06em] mb-1">Vazão Total (Qt)</div>
-        <div className="text-xl font-bold text-red tabular-nums">{lmin(res.Qt)}</div>
+        <div className="text-xl font-bold text-red font-heading tabular-nums">{lmin(res.Qt)}</div>
       </div>
       <TomadasRecalque/>
     </div>
@@ -417,7 +417,7 @@ function ValorOperacao({ rotulo, valor, unidade, conversao, tom }) {
     <div className="py-4 px-5">
       <div className="text-[10px] text-ink-faint uppercase tracking-[.08em] mb-1.5">{rotulo}</div>
       <div className="flex items-baseline gap-1.5">
-        <span className={`tabular-nums text-xl font-bold ${tom}`}>{valor}</span>
+        <span className={`font-heading tabular-nums text-xl font-bold ${tom}`}>{valor}</span>
         <span className="text-[11px] text-ink-faint">{unidade}</span>
         {conversao && <span className="text-[11px] text-ink-faint">· {conversao}</span>}
       </div>
