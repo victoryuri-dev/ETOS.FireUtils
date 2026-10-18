@@ -30,10 +30,6 @@ function labelsMarcados(catalogo, chaves, caracteristicas, prefixo) {
   })
 }
 
-function textosCondicoes(catalogo, chaves) {
-  return catalogo.filter(o => (chaves || []).includes(o.key)).map(o => `${o.texto} (item ${o.ref})`)
-}
-
 function fmtArea(valor) {
   if (valor === 'CTD') return 'a definir pela Comissão Técnica (CTD)'
   return typeof valor === 'number' ? fmtUn(valor, 'm²') : 'sem limite definido'
@@ -66,7 +62,7 @@ function textoDentroDoLimite(r) {
 
 export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
   const blocos = []
-  const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, CONDICOES_ESPECIAIS_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO } = getCompartimentacao(state.uf)
+  const { TABELA_AREA_MAXIMA, CLASSES_TIPO_EDIFICACAO, ELEMENTOS_COMPART_HORIZONTAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO } = getCompartimentacao(state.uf)
 
   ;(state.estruturas || []).forEach(est => {
     // `ativo` já respeita o toggle manual de Configuração E as isenções de
@@ -160,10 +156,6 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
       blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
     }
 
-    const condicoes = textosCondicoes(CONDICOES_ESPECIAIS_HORIZONTAL, est.condicoesEspeciaisCompartHorizontal)
-    if (condicoes.length > 0) {
-      blocos.push({ tipo: 'campo', label: 'Condições especiais aplicáveis', valor: condicoes.join('; ') })
-    }
 
     if (est.obsCompartimentacao?.trim()) {
       blocos.push({ tipo: 'campo', label: 'Observações complementares', valor: est.obsCompartimentacao.trim() })
@@ -184,7 +176,7 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
 
 export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
   const blocos = []
-  const { ELEMENTOS_COMPART_VERTICAL, CONDICOES_ESPECIAIS_VERTICAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR } = getCompartimentacao(state.uf)
+  const { ELEMENTOS_COMPART_VERTICAL, SUBSTITUICOES_COMPARTIMENTACAO, TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR } = getCompartimentacao(state.uf)
 
   ;(state.estruturas || []).forEach(est => {
     const pe = porEstrutura?.find(p => p.estrutura.id === est.id)
@@ -228,10 +220,6 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
       blocos.push({ tipo: 'paragrafo', texto: 'Elementos de proteção adotados ainda não informados pelo responsável técnico.' })
     }
 
-    const condicoes = textosCondicoes(CONDICOES_ESPECIAIS_VERTICAL, est.condicoesEspeciaisCompartVertical)
-    if (condicoes.length > 0) {
-      blocos.push({ tipo: 'campo', label: 'Condições especiais aplicáveis', valor: condicoes.join('; ') })
-    }
 
     blocos.push({ tipo: 'campo', label: 'TRRF mínimo dos entrepisos', valor: `EI-${TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}` })
     blocos.push({ tipo: 'campo', label: 'TRRF mínimo do enclausuramento de escadas e elevadores de segurança', valor: `EI-${TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR}` })

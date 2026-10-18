@@ -224,7 +224,6 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
   const {
     TABELA_AREA_MAXIMA: tabelaArea, CLASSES_TIPO_EDIFICACAO: classesTipo,
     ELEMENTOS_COMPART_HORIZONTAL, ELEMENTOS_COMPART_VERTICAL,
-    CONDICOES_ESPECIAIS_HORIZONTAL, CONDICOES_ESPECIAIS_VERTICAL,
     SUBSTITUICOES_COMPARTIMENTACAO,
     TRRF_MINIMO_PAREDE_COMPARTIMENTACAO, TRRF_REDUCAO_MAXIMA_ABERTURAS,
     TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR,
@@ -240,8 +239,6 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
 
   const elementosH = est.elementosCompartHorizontal || []
   const elementosV = est.elementosCompartVertical || []
-  const condH = est.condicoesEspeciaisCompartHorizontal || []
-  const condV = est.condicoesEspeciaisCompartVertical || []
   const isencaoH = est.isencaoCompartHorizontal || null
   const isencaoV = est.isencaoCompartVertical || null
   // Estes controles pertencem apenas ao cenário em que a compartimentação
@@ -331,7 +328,7 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
             )}
 
             {horizontalExigida && (
-              <div className="grid grid-cols-2 gap-6">
+              <div>
                 <Checklist
                   titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartHorizontal`}/></>}
                   tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
@@ -340,12 +337,6 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
                   onToggle={(k) => toggleArr('elementosCompartHorizontal', elementosH, k)}
                   caracteristicas={caracDe('h')}
                   onCaracteristica={setCaracteristica('h')}
-                />
-                <Checklist
-                  titulo="Condições especiais aplicáveis"
-                  opcoes={CONDICOES_ESPECIAIS_HORIZONTAL}
-                  valores={condH}
-                  onToggle={(k) => toggleArr('condicoesEspeciaisCompartHorizontal', condH, k)}
                 />
               </div>
             )}
@@ -396,8 +387,8 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
 
             <Divisor/>
 
-            <div className={precisaElementosV ? 'grid grid-cols-2 gap-6' : ''}>
-              {precisaElementosV && (
+            {precisaElementosV && (
+              <div>
                 <Checklist
                   titulo={<>Elementos de proteção adotados <Obrigatorio id={`${est.id}.elementosCompartVertical`}/></>}
                   tip={`${sigla} — a solução adotada deve constar no memorial descritivo, com a característica de cada elemento.`}
@@ -407,14 +398,8 @@ function EstruturaCompartimentacao({ sentido, est, pavimentos, areaCompartimenta
                   caracteristicas={caracDe('v')}
                   onCaracteristica={setCaracteristica('v')}
                 />
-              )}
-              <Checklist
-                titulo="Condições especiais aplicáveis"
-                opcoes={CONDICOES_ESPECIAIS_VERTICAL}
-                valores={condV}
-                onToggle={(k) => toggleArr('condicoesEspeciaisCompartVertical', condV, k)}
-              />
-            </div>
+              </div>
+            )}
 
             <TrrfNota>
               TRRF mínimo dos entrepisos: {TRRF_MINIMO_PAREDE_COMPARTIMENTACAO} min (EI-{TRRF_MINIMO_PAREDE_COMPARTIMENTACAO}). Enclausuramento de escadas/elevadores de segurança: mínimo {TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR} min (EI-{TRRF_MINIMO_ENCLAUSURAMENTO_ESCADA_ELEVADOR}).
