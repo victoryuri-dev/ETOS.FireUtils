@@ -318,7 +318,7 @@ function Building({ small = false }) {
     <g className="fl-pipes" fill="none" strokeWidth="3"><path d="M350 351V191L253 145 350 99 449 145M350 246L448 199 497 223M350 299L254 253 207 275"/><path d="M301 123V148M399 122V146M448 199V221M254 253V274"/>
       {[ [350,351], [253,145], [350,99], [449,145], [497,223], [207,275] ].map(([x,y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="4"/>)}
     </g>
-    <g fill="currentColor" fontSize="9" fontFamily="Inter, sans-serif"><text x="550" y="120">03 / COBERTURA</text><text x="550" y="175">02 / PAVIMENTO</text><text x="550" y="230">01 / PAVIMENTO</text><text x="550" y="285">00 / TÉRREO</text></g>
+    <g fill="currentColor" fontSize="9" fontFamily="'Space Mono', monospace"><text x="550" y="120">03 / COBERTURA</text><text x="550" y="175">02 / PAVIMENTO</text><text x="550" y="230">01 / PAVIMENTO</text><text x="550" y="285">00 / TÉRREO</text></g>
   </svg>
 }
 
