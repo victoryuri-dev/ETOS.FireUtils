@@ -109,13 +109,13 @@ function MedidasGrid({ pe, dispatch, sistConfig }) {
         const obrig = sist.obrigatorio
 
         const toneClass = obrig
-          ? (on ? 'border-solid border-red-border bg-red-dim' : 'border-solid border-red-border bg-transparent')
+          ? (on ? 'step6-measure-required-active border-solid border-red-border bg-red-dim' : 'border-solid border-red-border bg-transparent')
           : (on ? 'border-solid border-green-border bg-green-dim' : 'border-solid border-border bg-transparent')
         // O estado aparece so na cor do simbolo (sem caixa, fundo nem texto de status):
-        // ligado = vermelho (obrigatoria) ou verde (opcional); desligado = cinza. A borda
-        // vermelha do cartao marca o que a norma exige (ver legenda). Cor via prop, nao
-        // classe: os simbolos proprios do Icon fixam a cor inline.
-        const iconColor = on ? (obrig ? 'var(--color-red)' : 'var(--color-green)') : 'var(--color-ink-hint)'
+        // Obrigatorias permanecem vermelhas mesmo quando desativadas, acompanhando
+        // a borda que sinaliza a exigencia normativa. Opcionais desligadas ficam cinza.
+        // Cor via prop, pois os simbolos proprios do Icon fixam a cor inline.
+        const iconColor = obrig ? 'var(--color-red)' : (on ? 'var(--color-green)' : 'var(--color-ink-hint)')
         const labelClass = on || obrig ? 'text-ink' : 'text-ink-muted'
         const alternar = () => dispatch({ type:'TOGGLE_SISTEMA_ESTRUTURA', estruturaId: pe.estrutura.id, key:s.key })
 
@@ -127,7 +127,7 @@ function MedidasGrid({ pe, dispatch, sistConfig }) {
             tabIndex={0}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar() } }}
             title={on ? 'Habilitada' : 'Desabilitada'}
-            className={`group border rounded-md p-3.5 flex items-center relative transition-[border-color,background-color,transform,box-shadow] duration-150 cursor-pointer motion-safe:hover:-translate-y-[2px] hover:shadow-[0_10px_22px_rgba(0,0,0,.3)] ${toneClass}`}>
+            className={`group border-[1.5px] rounded-md p-3.5 flex items-center relative transition-[border-color,background-color,transform,box-shadow] duration-150 cursor-pointer motion-safe:hover:-translate-y-[2px] hover:shadow-[0_10px_22px_rgba(0,0,0,.3)] ${toneClass}`}>
             {/* Simbolo + nome, alinhados */}
             <div className="flex items-center gap-2.5 min-w-0">
               <Icon name={SISTEMA_ICON[s.key] || s.icon} size={26} color={iconColor} className="shrink-0"/>

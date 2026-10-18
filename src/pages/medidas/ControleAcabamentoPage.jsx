@@ -46,6 +46,7 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
   const ensaiado = item?.origem === 'ensaiado'
   const incombustivel = item?.origem === 'incombustivel'
   const naoPossui = item?.origem === 'nao_possui'
+  const semMaterial = !item?.origem
   const [editando, setEditando] = useState(manual && !(item.classeAdotada && item.fabricante && item.laudoNumero))
   const materiaisEnsaiadosDoElemento = MATERIAIS_ENSAIADOS[elemento] || []
   const normasDisponiveis = NORMAS_ENSAIO_POR_ELEMENTO[elemento] || []
@@ -136,6 +137,8 @@ function LinhaAcabamento({ estruturaId, linha, dispatch }) {
             <span className="text-ink-faint">N/A — {TXT_NAO_POSSUI.toLowerCase()}</span>
           ) : incombustivel ? (
             <span className="text-ink-faint">{TXT_INCOMBUSTIVEL_MOTIVO}</span>
+          ) : semMaterial ? (
+            <span className="text-ink-faint">Selecione um material</span>
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">

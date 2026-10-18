@@ -184,14 +184,14 @@ function BuscaCnaePorCnpj({ pav, dispatch }) {
           <Icon name="search" size={12}/> Preencher do CNPJ
         </button>
         {cnpjDigits.length !== 14 && (
-          <div className="text-xs text-ink-faint mt-1.5">Informe o CNPJ do responsável na Etapa 1 pra usar este atalho.</div>
+          <div className="text-xs text-ink-faint mt-1.5">Informe o CNPJ na identificação do projeto para usar este atalho.</div>
         )}
       </div>
     )
   }
 
   if (loading) {
-    return <div className="text-xs text-ink-faint mb-5">Buscando CNAE pelo CNPJ da Etapa 1...</div>
+    return <div className="text-xs text-ink-faint mb-5">Buscando CNAE pelo CNPJ do projeto...</div>
   }
   if (error) {
     return (

@@ -41,7 +41,7 @@ export function camposObrigatorios(state, porEstrutura = []) {
     if (state.usaArt) root([['artNumero','Número da ART']], config(3))
   }
   root([['areaConstruidaTotal','Área construída total',positivo]], config(2))
-  root([['caracteristicasEstrutura','Características construtivas · Estrutura'], ['cobertura','Elementos de cobertura'], ['fachada','Elementos de vedação']], config(2))
+  if (!dim) root([['caracteristicasEstrutura','Características construtivas · Estrutura'], ['cobertura','Elementos de cobertura'], ['fachada','Elementos de vedação']], config(2))
   add('estruturas', 'Cadastrar uma estrutura', state.estruturas, config(2))
   for (const est of state.estruturas || []) {
     estruturaId = est.id

@@ -13,8 +13,8 @@
   --color-surface-2: #f0f2f5;
   --color-surface-3: #ffffff;
   --color-border: rgba(25,30,40,.14); --color-border-2: rgba(25,30,40,.08);
-  --color-ink: #17191f; --color-ink-muted: rgba(23,25,31,.72);
-  --color-ink-faint: rgba(23,25,31,.54); --color-ink-hint: rgba(23,25,31,.40);
+  --color-ink: #17191f; --color-ink-muted: rgba(23,25,31,.80);
+  --color-ink-faint: rgba(23,25,31,.66); --color-ink-hint: rgba(23,25,31,.54);
   --shadow-sm: 0 1px 2px rgba(20,24,32,.05),0 6px 20px rgba(20,24,32,.04);
   --shadow-md: 0 16px 42px rgba(20,24,32,.10);
   /* Bordas discretas — nunca muito arredondadas */
@@ -56,6 +56,13 @@
   --color-blue-border:rgba(105,174,245,.34);
   --shadow-sm:0 1px 2px rgba(0,0,0,.18),0 8px 24px rgba(0,0,0,.12);
   --shadow-md:0 18px 46px rgba(0,0,0,.32);
+}
+
+/* No tema claro, os cartões obrigatórios usam um vermelho mais fechado para
+   manter a leitura de alerta sem adquirir aparência rosada. */
+.platform-theme[data-theme='light'] .step6-measure-required-active{
+  background:rgba(160,16,36,.11);
+  border-color:rgba(160,16,36,.46);
 }
 
 @layer base {
