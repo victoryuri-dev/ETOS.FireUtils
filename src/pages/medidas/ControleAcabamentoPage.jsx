@@ -5,7 +5,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useNorma } from '../../hooks/useNorma'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { divisoesDaEstrutura } from '../../utils/classificacao'
-import { montarLinhas, classeResolvida, ORDEM_CLASSE, NORMAS_ENSAIO_POR_ELEMENTO, parseNormasEnsaio } from '../../data/cmar_calc'
+import { montarLinhas, classeResolvida, ORDEM_CLASSE, NORMAS_ENSAIO_POR_ELEMENTO, parseNormasEnsaio, classesExigidasEstrutura, formatarClasses, ELEMENTOS_TABELA_B1 } from '../../data/cmar_calc'
 import { MATERIAIS_INCOMBUSTIVEIS, buscarMaterialIncombustivel, CLASSE_INCOMBUSTIVEL, MATERIAIS_ENSAIADOS, buscarMaterialEnsaiado } from '../../data/materiaisAcabamento'
 import Icon from '../../components/ui/Icon'
 import EstruturaSection from '../../components/ui/EstruturaSection'
@@ -240,7 +240,24 @@ function TabelaAcabamento({ ambiente, linhas, estruturaId, dispatch }) {
   )
 }
 
-function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido }) {
+// Resultado: classes exigidas para a estrutura pela Tabela B.1 (a mais
+// restritiva entre as divisões dela), um box por elemento.
+function ClassesExigidas({ classes }) {
+  return (
+    <div className="grid grid-cols-4 gap-3 mb-4 max-[720px]:grid-cols-2">
+      {ELEMENTOS_TABELA_B1.map(({ key, label }) => (
+        <div key={key} className="rounded-md border border-solid border-blue-border bg-blue-dim py-2.5 px-3">
+          <div className="text-[10px] text-blue uppercase tracking-[.06em] font-semibold mb-1">{label}</div>
+          <div className="text-[13px] font-semibold text-ink leading-[1.4]">
+            {classes?.[key]?.length ? `Classe ${formatarClasses(classes[key])}` : '—'}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido, classes }) {
   const linhasPorAmbiente = ambientes.map(amb => ({ ambiente: amb, linhas: montarLinhas(amb, itens) }))
   const todasLinhas = linhasPorAmbiente.flatMap(({ linhas }) => linhas)
   const preenchidas = todasLinhas.filter(l => l.item?.origem === 'nao_possui' || classeResolvida(l.item)).length
@@ -255,10 +272,12 @@ function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido }) {
       {!exigido ? (
         <div className="ibox green">
           <Icon name="check" size={13} color="var(--color-green)" className="shrink-0"/>
-          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam o controle de materiais de acabamento, conforme NT 01 CBMMA.</span>
+          <span className="text-xs"><strong className="font-semibold text-green">Não exigida —</strong>{' '}a ocupação e a altura atuais desta estrutura dispensam o controle de materiais de acabamento, conforme a tabela de exigências do estado.</span>
         </div>
       ) : (
         <>
+          <ClassesExigidas classes={classes}/>
+
           {ambientes.length === 0 && (
             <div className="ibox amber">
               <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
@@ -282,7 +301,7 @@ function EstruturaAcabamento({ est, ambientes, itens, dispatch, exigido }) {
 
 export default function ControleAcabamentoPage() {
   const { state, dispatch } = useProjeto()
-  const { ocupacoes } = useNorma()
+  const { ocupacoes, cmar } = useNorma()
   const { porEstrutura } = useMedidasObrigatorias()
 
   // Semeia uma caixa de ambiente por divisão já classificada na estrutura —
@@ -336,6 +355,7 @@ export default function ControleAcabamentoPage() {
               itens={state.acabamentos.filter(a => a.estruturaId === est.id)}
               dispatch={dispatch}
               exigido={!!pe?.sistemas?.controle_acabamento?.ativo}
+              classes={classesExigidasEstrutura(cmar?.TABELA_B1, divisoesDaEstrutura(state.pavimentos.filter(p => p.estruturaId === est.id)))}
             />
           )
         })}

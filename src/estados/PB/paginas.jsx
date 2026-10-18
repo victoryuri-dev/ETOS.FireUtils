@@ -4,7 +4,7 @@ import HidrantesPage from '../../pages/medidas/HidrantesPage'
 import BrigadaIncendioPage from '../../pages/medidas/BrigadaIncendioPage'
 import {
   CamposSaidasPB, CamposPlanoPB, CamposBrigadaPB, CamposIluminacaoPB,
-  CamposAlarmePB, CamposDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB, ResultadoCmarPB,
+  CamposAlarmePB, CamposDeteccaoPB, CamposSinalizacaoPB, CamposExtintoresPB, CamposHidrantesPB, CamposAcessoViaturaPB,
 } from './campos'
 
 // Página da PB de cada medida (chave = sistema, a mesma das rotas
@@ -22,7 +22,8 @@ export const PAGINAS_PB = {
   // mostra o resultado do TRRF, com a norma do estado; vale para os dois.
   // Compartimentação: as páginas comuns (horizontal e vertical separadas),
   // com a NT 36/2024 da PB — elementos e características vão para o item 8.
-  controle_acabamento: <PaginaPB titulo="Controle de Materiais de Acabamento (CMAR)" secoes={['9.']} observacoes="controle_acabamento"><ResultadoCmarPB/></PaginaPB>,
+  // CMAR: a página comum (quadro por ambiente e classes exigidas por
+  // estrutura) com a NT 09/2024 da PB.
   // Saídas: a página comum (dimensionamento completo, base do Anexo A) com a
   // NT 12/2025 da PB, mais as declarações do formulário no fim.
   saida_emergencia: <SaidaEmergenciaPage extra={<CamposSaidasPB/>}/>,

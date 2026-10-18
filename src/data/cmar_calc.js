@@ -148,3 +148,22 @@ export function resumoCMAR(linhas) {
   if (resultados.includes('PENDENTE_LAUDO') || resultados.includes('NAO_PREENCHIDO')) return 'ATENDE_COM_PENDENCIAS'
   return 'ATENDE'
 }
+
+// Elementos com classe na Tabela B.1 (resultado por estrutura na tela).
+export const ELEMENTOS_TABELA_B1 = [
+  { key: 'piso', label: 'Piso' },
+  { key: 'parede', label: 'Parede' },
+  { key: 'teto', label: 'Teto' },
+  { key: 'fachada', label: 'Fachada' },
+]
+
+/** Classes exigidas para a estrutura, por elemento: as aceitas por TODAS as
+ *  divisões dela que estão na tabela (a interseção — vale a mais
+ *  restritiva). null no elemento = nenhuma divisão com dado. */
+export function classesExigidasEstrutura(tabela, divisoes) {
+  return Object.fromEntries(ELEMENTOS_TABELA_B1.map(({ key }) => {
+    const listas = (divisoes || []).map(d => classesAdmitidasDivisao(tabela, d, key)).filter(Boolean)
+    if (listas.length === 0) return [key, null]
+    return [key, ORDEM_CLASSE.filter(c => listas.every(l => l.includes(c)))]
+  }))
+}

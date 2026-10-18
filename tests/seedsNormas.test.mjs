@@ -15,6 +15,7 @@ const server = await servidorComNormas({
     trrf: dadosDoSql('20261016190000_seed_normas_trrf_pb.sql'),
     iluminacao: dadosDoSql('20261016200000_seed_normas_iluminacao_pb.sql'),
     compartimentacao: dadosDoSql('20261018120000_seed_normas_compartimentacao_pb.sql'),
+    controle_acabamento: dadosDoSql('20261018130000_seed_normas_controle_acabamento_pb.sql'),
   },
   MA: {
     compartimentacao: { ...dadosDoSql('20261016140000_seed_normas_compartimentacao_ma.sql'), ...dadosDoSql('20261018120001_add_norma_compartimentacao_ma.sql') },
@@ -44,7 +45,7 @@ test('tipos de escada do MA: SQL = arquivo de seed', async () => {
 })
 
 test('sem o sistema cadastrado para o estado, o getter devolve null (nunca a norma de outro estado)', () => {
-  for (const get of ['getAV', 'getSinalizacao', 'getControleAcabamento', 'getHidrantes', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
+  for (const get of ['getAV', 'getSinalizacao', 'getHidrantes', 'getDeteccaoAlarme', 'getMedidas', 'getNts']) {
     assert.equal(normas[get]('PB'), null, get)
   }
   assert.ok(normas.getSE('PB'))
@@ -233,4 +234,19 @@ test('compartimentação: TRRF automático dos elementos (TRRF da estrutura; abe
   assert.equal(caracteristicaElementoCompart({}, 'h', 'registro_corta_fogo', 120, norma), 'TRRF de 90 min (EI-90)')
   const est = { caracteristicasCompart: { 'h:registro_corta_fogo': 'Damper EI-120' } }
   assert.equal(caracteristicaElementoCompart(est, 'h', 'registro_corta_fogo', 120, norma), 'Damper EI-120')   // o informado vence
+})
+
+test('CMAR da PB: SQL = arquivo de seed; classes exigidas por estrutura = a mais restritiva', async () => {
+  const esperado = await server.ssrLoadModule('/src/data/normas/PB/controle_acabamento.js')
+  const lido = normas.getControleAcabamento('PB')
+  for (const [k, v] of Object.entries(esperado)) assert.deepEqual(lido[k], v, k)
+  const { classesExigidasEstrutura, formatarClasses } = await server.ssrLoadModule('/src/data/cmar_calc.js')
+  const pb = classesExigidasEstrutura(lido.TABELA_B1, ['C-1'])
+  assert.equal(formatarClasses(pb.piso), 'I, II-A, III-A ou IV-A')
+  assert.equal(formatarClasses(pb.parede), 'I ou II-A')
+  assert.equal(formatarClasses(pb.fachada), 'I, II-A ou II-B')
+  // MA: A-3 (parede até IV-A) + C-2 (parede I ou II-A) → vale a mais restritiva
+  const ma = classesExigidasEstrutura(normas.getControleAcabamento('MA').TABELA_B1, ['A-3', 'C-2'])
+  assert.equal(formatarClasses(ma.parede), 'I ou II-A')
+  assert.equal(classesExigidasEstrutura(lido.TABELA_B1, []).piso, null)
 })

@@ -41,7 +41,7 @@ Regras do gerador:
 | **6. Acesso de viatura** | ✅ | O RT informa as distâncias (entrada da circulação comum e registro do recalque até a via) e os dados da via; `estados/PB/acessoViatura.js` marca a linha (casos 1–5) e as exigências da via (a–f, largura 5–6 m, retorno, portão, faixa de estacionamento). Limites no `memorial_formulario` (`acesso_viatura`). Recalque > 20 m com edificação ≤ 50 m não tem linha no formulário: obrigatório, nenhuma marcada, aviso na página. |
 | **7. Segurança estrutural** | ✅ | Grupo, divisão, classe e TRRF de `trrf_calc`, pela tabela da NT 08/2024 da PB. |
 | **8. Compartimentação** | ✅ | Páginas comuns aos estados, horizontal e vertical separadas: área máxima (a mais restritiva) e elementos com a característica de cada um (`estrutura.caracteristicasCompart`, `h:`/`v:`<elemento>), somando as estruturas. NT 36/2024 cadastrada (`20261018120000`): Anexo B da PB; "CTD" = área definida pela Comissão Técnica (não conclui dispensa; só CTD → "a definir pela Comissão Técnica"). TRRF mínimos, elementos, condições e substituições ainda do MA, a conferir. |
-| **9. CMAR** | ✅ | Linha marcada pelo grupo/divisão; observação nova. |
+| **9. CMAR** | ✅ | Linha marcada pelo grupo/divisão. Página comum aos estados (quadro por ambiente + classes exigidas por estrutura); NT 09/2024 cadastrada (`20261018130000`, Tabela B.1 transcrita do formulário). |
 | **10. Saídas de emergência** | ✅ | Página comum de Saída de Emergência (ambientes, acessos, tipo de escada) com a norma da PB; no fim, as declarações do RT do item 10. Anexo A = texto do dimensionamento. |
 | **11.1 Plano de emergência** | ✅ | Novo: `memorialPB.planoModelo` (item 6 / Anexo B da NT 13/2023) + observação. |
 | **12. Brigada** | ✅ | Quantidade, divisão, risco e nível de `brigada_calc` com a Tabela A.1 da NT 17/2024 e o item 4.11.2 (público da edificação). Carga horária pela Tabela B.2 da NT 17/2024 (maior nível exigido: básico 4 h, intermediário 8 h, avançado 24 h), mostrada com a origem na página; tempo entre simulados com 12 meses por padrão; dimensionamento preenchido pelo cálculo; 2 atestos. |
@@ -67,7 +67,7 @@ TRRF (NT 08/2024, Anexo B): `20261016190000_seed_normas_trrf_pb.sql` — tabela 
 
 Iluminação (NT 18/2024): `20261016200000_seed_normas_iluminacao_pb.sql` — 3 lux (planos) / 5 lux (desnível), espaçamento 15 m / 7,5 m, 30 V, isenção de salas ≤ 50 m², balizamento em F-3/F-5/F-6/F-7/F-10/F-11; uniformidade e tempo de resposta da NBR 10898; autonomia 2 h (formulário do CBMPB). Sigla na tela/memorial: migração `20261016200001_add_norma_iluminacao_ma.sql` para o MA.
 
-Faltam: `controle_acabamento`, `acesso_viatura` (NT 14/2023), `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
+Faltam: `acesso_viatura` (NT 14/2023), `sinalizacao`, `deteccao_alarme`, `nts` e `links_normas`. Sem cada um, a página da medida mostra "norma não cadastrada" e a seção do formulário fica em branco.
 
 Na saída de emergência, L-4, M-2, M-6 e M-7 (NT 04/2023) não estão na Tabela 1 nem na Tabela 2 da NT 12/2025; H-2/H-3 têm larguras especiais que o cálculo ainda não modela.
 
