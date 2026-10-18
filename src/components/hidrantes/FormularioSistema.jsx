@@ -99,7 +99,7 @@ export default function FormularioSistema() {
           hidrantes; o RT confirma/ajusta quais entram na conta. */}
       <FormSection title="Áreas para Classificação do Sistema" description="Selecione as estruturas que exigem sistema de hidrantes — só elas entram na área total e na ocupação usadas na Tabela 3.">
         <LegendaEstruturas/>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 max-[720px]:grid-cols-1">
           {infoPorEstrutura.map(e => (
             <EstruturaPill key={e.id} active={estruturasSelecionadas.includes(e.id)} obrigatorio={e.hidrantesObrigatorio} onClick={() => toggleEstrutura(e.id)}
               nome={e.nome} area={e.area} divisao={e.divisaoLabel} risco={e.risco}/>
@@ -121,7 +121,7 @@ export default function FormularioSistema() {
         {sugestao.opcoes.length > 1 && (
           <div className="mb-4">
             <Field label="A norma permite dois sistemas para esta ocupação — escolha qual adotar" />
-            <div className="grid grid-cols-2 gap-2 mt-1">
+            <div className="grid grid-cols-2 gap-2 mt-1 max-[600px]:grid-cols-1">
               {sugestao.opcoes.map(op => (
                 <Pill key={op.tipo} centro active={h.tipo === op.tipo} onClick={() => escolherOpcao(op)}>
                   Tipo {op.tipo} — RTI {fmtNum(op.rti)} m³
@@ -141,7 +141,7 @@ export default function FormularioSistema() {
         {dadosTipo && norma.TIPOS_SISTEMA[tipoAtual]?.variantes.length > 1 && (
           <div className="mb-4">
             <Field label="Mangueira do Tipo 4"/>
-            <div className="grid grid-cols-2 gap-2 mt-1">
+            <div className="grid grid-cols-2 gap-2 mt-1 max-[600px]:grid-cols-1">
               {norma.TIPOS_SISTEMA[tipoAtual].variantes.map((v, i) => (
                 <Pill key={i} centro active={(h.tipoVariante || 0) === i} onClick={() => set({ tipoVariante: i })}>
                   Esguicho DN{v.esguicho} — mangueira DN{v.mangueiraDn} — {v.pressaoMin} mca
@@ -174,7 +174,7 @@ export default function FormularioSistema() {
           RTI {h.rti ? `${fmtNum(h.rti, 2, h.rti)} m³` : '—'}
         </span>
       }>
-        <div className="grid grid-cols-2 gap-4 mb-3">
+        <div className="grid grid-cols-2 items-end gap-4 mb-3 max-[720px]:grid-cols-1">
           <Field label={<>Material do reservatório <Obrigatorio id="hidrantes.reservatorioMaterial"/></>}>
             <select className={inputClass} value={h.reservatorioMaterial} onChange={e => set({ reservatorioMaterial: e.target.value })}>
               <option value="">Selecione...</option>
@@ -251,7 +251,7 @@ export default function FormularioSistema() {
         ]
         return (
           <FormSection title="Abrigos e Mangueiras">
-            <div className="grid grid-cols-3 gap-4 max-[720px]:grid-cols-1">
+            <div className="grid grid-cols-3 items-end gap-4 max-[900px]:grid-cols-1">
               <Field label="Lances de mangueira — hidrantes internos">
                 <select className={inputClass} value={h.lancesInternos || ''} onChange={e => set({ lancesInternos: e.target.value })}>
                   <option value="">Selecione...</option>

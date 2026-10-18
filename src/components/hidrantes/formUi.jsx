@@ -11,9 +11,9 @@ export function Field({ label, hint, children }) {
   return (
     <div>
       {label && (
-        <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 mb-1">
           <div className="text-[10px] text-ink-faint uppercase tracking-[.06em]">{label}</div>
-          {hint && <div className="text-[10px] text-ink-faint tabular-nums whitespace-nowrap">{hint}</div>}
+          {hint && <div className="text-[10px] text-ink-faint tabular-nums">{hint}</div>}
         </div>
       )}
       {children}

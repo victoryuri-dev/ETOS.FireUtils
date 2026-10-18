@@ -4,12 +4,12 @@
 export default function FormSection({ title, description, extra, children }) {
   return (
     <section className="bg-surface border border-solid border-border rounded-lg p-5 mb-6 transition-colors duration-300 ease-out hover:border-ink-hint focus-within:border-ink-hint">
-      <div className={`flex items-start justify-between gap-3 ${children ? 'mb-4' : ''}`}>
-        <div>
+      <div className={`flex flex-wrap items-start justify-between gap-3 ${children ? 'mb-4' : ''}`}>
+        <div className="min-w-0">
           <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
           {description && <p className="text-[12px] text-ink-faint leading-[1.5] mt-1">{description}</p>}
         </div>
-        {extra && <div className="shrink-0">{extra}</div>}
+        {extra && <div className="max-w-full">{extra}</div>}
       </div>
       {children}
     </section>
