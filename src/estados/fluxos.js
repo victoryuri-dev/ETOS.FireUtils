@@ -2,3 +2,23 @@
 // estados/<UF>/paginas) — em vez das páginas detalhadas do MA. Só dado, para
 // módulos de cálculo/auditoria consultarem sem importar componentes.
 export const ESTADOS_COM_FLUXO_PROPRIO = new Set(['PB'])
+
+// Campos da Configuração que o estado não usa — somem da tela e da auditoria
+// (PB: o formulário do CBMPB não pede contato, proprietário, AVCB, terreno,
+// público, área complementar nem características construtivas).
+const CAMPOS_OCULTOS = {
+  PB: new Set([
+    'respFantasia', 'respTelefone', 'respEmail',
+    'propNome', 'propDocumento', 'propTelefone', 'propEmail',
+    'situacaoCBM', 'numeroAVCB', 'validadeAVCB',
+    'areaTerreno', 'quantidadePublico', 'areaComplementar',
+    'caracteristicasEstrutura', 'cobertura', 'fachada',
+  ]),
+}
+// Campos que o estado deixa opcionais (PB: CNPJ).
+const CAMPOS_OPCIONAIS = { PB: new Set(['respCNPJ']) }
+
+/** O campo da Configuração fica fora da tela para o estado? */
+export const campoOculto = (uf, id) => !!CAMPOS_OCULTOS[uf]?.has(id)
+/** O campo (obrigatório no padrão) é opcional para o estado? */
+export const campoOpcionalNoEstado = (uf, id) => !!CAMPOS_OPCIONAIS[uf]?.has(id)

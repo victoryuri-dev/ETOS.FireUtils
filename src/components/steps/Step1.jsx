@@ -5,6 +5,7 @@ import { useCnpjLookup } from '../../hooks/useCnpjLookup'
 import { getEstadosDisponiveis } from '../../data/normas/index'
 import Icon from '../ui/Icon'
 import FormSection from '../ui/FormSection'
+import { campoOculto } from '../../estados/fluxos'
 
 const S = {
   section: 'max-w-[980px] mx-auto pt-8 px-10 pb-20',
@@ -25,6 +26,7 @@ function maskCNPJ(raw) {
 
 export default function Step1({ step, totalSteps }) {
   const { state, dispatch } = useProjeto()
+  const oculto = id => campoOculto(state.uf, id)
   const { buscar, loading, error, warning, enderecoFiscal, aplicarEndereco, qsa } = useCnpjLookup()
   // Fonte dos dados de "Proprietario do imovel", so pra destacar o botao
   // escolhido na caixa azul — 'manual' (padrao), 'responsavel' ou 'socio'.
@@ -103,14 +105,17 @@ export default function Step1({ step, totalSteps }) {
           )}
         </div>
 
+        {/* Campos que o estado não usa somem (estados/fluxos.js — PB). */}
         <div className="g2 mb-3">
           <div className="fg"><label>Razao social <Obrigatorio id={'respRazaoSocial'}/></label><input value={state.respRazaoSocial} onChange={set('respRazaoSocial')}/></div>
-          <div className="fg"><label>Nome fantasia <Obrigatorio id="respFantasia"/></label><input value={state.respFantasia} onChange={set('respFantasia')}/></div>
+          {!oculto('respFantasia') && <div className="fg"><label>Nome fantasia <Obrigatorio id="respFantasia"/></label><input value={state.respFantasia} onChange={set('respFantasia')}/></div>}
         </div>
-        <div className="g2 mb-3">
-          <div className="fg"><label>Telefone <Obrigatorio id="respTelefone"/></label><input type="tel" value={state.respTelefone} onChange={set('respTelefone')}/></div>
-          <div className="fg"><label>E-mail <Obrigatorio id="respEmail"/></label><input type="email" value={state.respEmail} onChange={set('respEmail')}/></div>
-        </div>
+        {!oculto('respTelefone') && (
+          <div className="g2 mb-3">
+            <div className="fg"><label>Telefone <Obrigatorio id="respTelefone"/></label><input type="tel" value={state.respTelefone} onChange={set('respTelefone')}/></div>
+            <div className="fg"><label>E-mail <Obrigatorio id="respEmail"/></label><input type="email" value={state.respEmail} onChange={set('respEmail')}/></div>
+          </div>
+        )}
       </FormSection>
 
       <FormSection title="Localizacao da obra">
@@ -151,7 +156,7 @@ export default function Step1({ step, totalSteps }) {
         </div>
       </FormSection>
 
-      <FormSection title="Proprietario do imovel">
+      {!oculto('propNome') && <FormSection title="Proprietario do imovel">
         {mostrarQuadroSocietario && (
           <div className="ibox blue flex-col items-stretch gap-2.5">
             <div className="flex items-start gap-2.5">
@@ -182,7 +187,7 @@ export default function Step1({ step, totalSteps }) {
           <div className="fg"><label>Telefone <Obrigatorio id="propTelefone"/></label><input type="tel" value={state.propTelefone} onChange={set('propTelefone')} placeholder="(99) 99999-9999"/></div>
           <div className="fg"><label>E-mail <Obrigatorio id="propEmail"/></label><input type="email" value={state.propEmail} onChange={set('propEmail')}/></div>
         </div>
-      </FormSection>
+      </FormSection>}
     </div>
   )
 }

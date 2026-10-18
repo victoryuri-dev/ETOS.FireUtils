@@ -1,4 +1,5 @@
 import Obrigatorio from '../ui/Obrigatorio'
+import { campoOculto } from '../../estados/fluxos'
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useProjeto } from '../../context/ProjetoContext'
@@ -216,6 +217,8 @@ export default function Step2({ step, totalSteps }) {
   const alvoAudit = new URLSearchParams(search).get('audit') || ''
   const [openId, setOpenId] = useState(() => state.estruturas.find(e => alvoAudit.startsWith(`${e.id}.`))?.id || null)
   const set = f => e => dispatch({ type:'SET_FIELD', field:f, value:e.target.value })
+  const oculto = id => campoOculto(state.uf, id)
+  const semTerreno = dimensionamento || oculto('areaTerreno')
   const estadosDisponiveis = getEstadosDisponiveis()
 
   // Informar alvará/AVCB/ano de construção? Projeto que já tem algum desses
@@ -315,7 +318,7 @@ export default function Step2({ step, totalSteps }) {
           <div className="mb-3.5 flex items-center justify-between gap-4 py-3 px-4 rounded-md border border-solid border-border">
             <div className="text-[13px] font-medium text-ink">
               {state.situacao === 'existente'
-                ? 'Deseja informar os dados de alvará, AVCB e ano de construção?'
+                ? (oculto('numeroAVCB') ? 'Deseja informar o número do alvará e o ano de construção?' : 'Deseja informar os dados de alvará, AVCB e ano de construção?')
                 : 'Deseja informar o número do alvará?'}
             </div>
             <div className="flex items-center gap-2.5 shrink-0">
@@ -338,19 +341,21 @@ export default function Step2({ step, totalSteps }) {
               <div className="fg mb-3 max-w-[calc(50%-8px)]"><label>Numero do alvara <Obrigatorio id="numeroAlvara"/></label><input value={state.numeroAlvara} onChange={set('numeroAlvara')}/></div>
               <div className="g2 mb-3">
                 <div className="fg"><label>Ano de construcao <Obrigatorio id="anoConstrucao"/></label><input type="number" value={state.anoConstrucao} onChange={set('anoConstrucao')} placeholder="Ex: 1998"/></div>
-                <div className="fg"><label>Situacao perante o CBMMA</label>
+                {!oculto('situacaoCBM') && <div className="fg"><label>Situacao perante o CBMMA</label>
                   <select value={state.situacaoCBM} onChange={set('situacaoCBM')}>
                     <option>Sem AVCB anterior</option>
                     <option>AVCB vencido</option>
                     <option>AVCB em vigor — renovacao</option>
                     <option>Em regularizacao</option>
                   </select>
+                </div>}
+              </div>
+              {!oculto('numeroAVCB') && (
+                <div className="g2 mb-3">
+                  <div className="fg"><label>No do AVCB anterior <Obrigatorio id="numeroAVCB"/></label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
+                  <div className="fg"><label>Validade do AVCB <Obrigatorio id="validadeAVCB"/></label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
                 </div>
-              </div>
-              <div className="g2 mb-3">
-                <div className="fg"><label>No do AVCB anterior <Obrigatorio id="numeroAVCB"/></label><input value={state.numeroAVCB} onChange={set('numeroAVCB')}/></div>
-                <div className="fg"><label>Validade do AVCB <Obrigatorio id="validadeAVCB"/></label><input type="date" value={state.validadeAVCB} onChange={set('validadeAVCB')}/></div>
-              </div>
+              )}
             </>
           )}
 
@@ -365,9 +370,9 @@ export default function Step2({ step, totalSteps }) {
           dimensionamento so a area construida total interessa (nenhum
           calculo de saida/hidrante/sprinkler usa terreno, publico ou area
           complementar). */}
-      <FormSection title={dimensionamento ? 'Area construida' : 'Terreno e area construida'}>
-        <div className={dimensionamento ? '' : 'g2 mb-3'}>
-          {!dimensionamento && (
+      <FormSection title={semTerreno ? 'Area construida' : 'Terreno e area construida'}>
+        <div className={semTerreno ? '' : 'g2 mb-3'}>
+          {!semTerreno && (
             <div className="fg"><label>Area do terreno (m2) <Obrigatorio id="areaTerreno"/></label><input type="number" value={state.areaTerreno} onChange={set('areaTerreno')}/></div>
           )}
           <div className="fg">
@@ -388,7 +393,7 @@ export default function Step2({ step, totalSteps }) {
             />
           </div>
         </div>
-        {!dimensionamento && (
+        {!dimensionamento && !oculto('quantidadePublico') && (
           <div className="g2">
             <div className="fg"><label>Quantidade de publico <Obrigatorio id="quantidadePublico"/></label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
             <div className="fg"><label>Area complementar (m2) <Obrigatorio id="areaComplementar"/></label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
@@ -408,7 +413,7 @@ export default function Step2({ step, totalSteps }) {
         </button>
       </FormSection>
 
-      <FormSection title="Características construtivas">
+      {!oculto('caracteristicasEstrutura') && <FormSection title="Características construtivas">
         <div className="space-y-5">
           {[
             { field:'caracteristicasEstrutura', label:'Estrutura', placeholder:'Descreva os materiais da estrutura', opcoes:['Concreto armado', 'Estrutura metálica', 'Alvenaria estrutural', 'Madeira'] },
@@ -425,7 +430,7 @@ export default function Step2({ step, totalSteps }) {
             </div>
           </div>)}
         </div>
-      </FormSection>
+      </FormSection>}
 
       {openEst && <EstruturaModal est={openEst} index={openIndex} dispatch={dispatch} onClose={() => setOpenId(null)}/>}
     </div>

@@ -640,3 +640,18 @@ test('brigada: maior grau de risco e maior nível entre os pavimentos', async ()
   assert.equal(maiorNivel([n('misto'), n('intermediario')]).nivel, 'intermediario')
   assert.equal(maiorNivel([null, { nivel: null, dinamico: true, label: 'A confirmar (Nota 8)' }]).label, 'A confirmar (Nota 8)')
 })
+
+test('Configuração da PB: campos que o estado não usa saem da auditoria; CNPJ opcional', async () => {
+  const { camposObrigatorios, camposOpcionais } = await server.ssrLoadModule('/src/data/auditoriaProjeto.js')
+  const ids = (uf, fn) => fn(projeto({ uf }), []).map(c => c.id)
+  const pbObrig = ids('PB', camposObrigatorios), maObrig = ids('MA', camposObrigatorios)
+  for (const id of ['respCNPJ', 'propNome', 'propDocumento', 'caracteristicasEstrutura', 'cobertura', 'fachada']) {
+    assert.ok(!pbObrig.includes(id), `PB não exige ${id}`)
+    assert.ok(maObrig.includes(id), `MA exige ${id}`)
+  }
+  const pbOpc = ids('PB', camposOpcionais)
+  assert.ok(pbOpc.includes('respCNPJ'))
+  for (const id of ['respFantasia', 'respTelefone', 'respEmail', 'propTelefone', 'areaTerreno', 'quantidadePublico', 'areaComplementar']) {
+    assert.ok(!pbOpc.includes(id), `PB não lista ${id}`)
+  }
+})

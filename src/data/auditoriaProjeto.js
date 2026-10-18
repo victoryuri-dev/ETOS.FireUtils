@@ -4,7 +4,7 @@ import { montarLinhas } from './cmar_calc'
 import { calcGatilho } from './av_calc'
 import { alturaEdificacaoBase } from './trrf_calc'
 import { linhaTabelaA1 } from './brigada_calc'
-import { ESTADOS_COM_FLUXO_PROPRIO } from '../estados/fluxos'
+import { ESTADOS_COM_FLUXO_PROPRIO, campoOculto, campoOpcionalNoEstado } from '../estados/fluxos'
 
 export const campoId = (...partes) => partes.join('.')
 export const preenchido = v => Array.isArray(v) ? v.length > 0 : v != null && String(v).trim() !== ''
@@ -29,6 +29,8 @@ export function camposObrigatorios(state, porEstrutura = []) {
   const fluxoProprio = ESTADOS_COM_FLUXO_PROPRIO.has(state.uf)
   const add = (id, rotulo, valor, destino, validar = preenchido) => {
     if (fluxoProprio && destino.rota?.startsWith('medida/') && !destino.fluxoProprio) return
+    // Campos que o estado não usa ou deixa opcionais (estados/fluxos.js).
+    if (campoOculto(state.uf, id) || campoOpcionalNoEstado(state.uf, id)) return
     campos.push({ id, rotulo, estruturaId, ...destino, pendente:!validar(valor) })
   }
   const root = (keys, destino) => keys.forEach(([key, label, validar]) => add(key, label, state[key], destino, validar))
@@ -191,10 +193,14 @@ export function etapaExibida(etapa, dimensionamento) {
 // Campos vazios que podem complementar o projeto, sem bloquear o avanço.
 export function camposOpcionais(state, porEstrutura = []) {
   const campos = []
-  const add = (id, rotulo, valor, destino) => campos.push({ id, rotulo, ...destino, obrigatorio:false, pendente:!preenchido(valor) })
+  const add = (id, rotulo, valor, destino) => {
+    if (campoOculto(state.uf, id)) return
+    campos.push({ id, rotulo, ...destino, obrigatorio:false, pendente:!preenchido(valor) })
+  }
   const config = (etapa, secao, contexto = '') => ({ etapa, secao, contexto, rota:'config' })
   const root = (itens, destino) => itens.forEach(([id, rotulo]) => add(id, rotulo, state[id], destino))
   if (state.tipoProjeto !== 'dimensionamento') {
+    root([['respCNPJ','CNPJ']].filter(([id]) => campoOpcionalNoEstado(state.uf, id)), config(1,'Identificação'))
     root([['respFantasia','Nome fantasia'], ['respTelefone','Telefone do responsável pelo uso'], ['respEmail','E-mail do responsável pelo uso'], ['numero','Número do endereço'], ['complemento','Complemento'], ['bairro','Bairro'], ['cep','CEP'], ['propTelefone','Telefone do proprietário'], ['propEmail','E-mail do proprietário']], config(1,'Identificação'))
     root([['rtCpf','CPF do responsável técnico'], ['rtEmpresa','Empresa / escritório'], ['rtEmail','E-mail do responsável técnico'], ['rtTelefone','Telefone do responsável técnico']], config(3,'Responsável técnico'))
     if (state.usaArt) root([['artData','Data de emissão da ART'], ['artTipoServico','Tipo de serviço'], ['artValorObra','Valor da obra']],config(3,'Responsável técnico'))
