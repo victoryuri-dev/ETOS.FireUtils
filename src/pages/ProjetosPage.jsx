@@ -158,12 +158,11 @@ function StatusPill({ dot, tone, label, active, onClick }) {
 // Botão de "3 pontos" que, ao ser hovereado, se transforma numa bandeja com
 // os dois ícones de ação — a bandeja tem um fundo em degradê que vai de
 // opaco (perto dos ícones, à direita) a transparente (à esquerda).
-function CardActions({ onDelete, onDuplicate, fixado = false, onFixar, className = '' }) {
-  // Abre ao passar o mouse ou ao clicar nos 3 pontinhos (toque/teclado); o
-  // clique deixa o menu aberto até clicar fora, apertar Esc ou usar uma ação.
-  const [hover, setHover] = useState(false)
+function CardActions({ onDelete, onDuplicate, fixado = false, onFixar, layout = 'linha', className = '' }) {
+  // Abre só ao clicar nos 3 pontinhos; fecha ao clicar fora, apertar Esc ou
+  // usar uma ação.
   const [clicado, setClicado] = useState(false)
-  const open = hover || clicado
+  const open = clicado
   const raizRef = useRef(null)
 
   useEffect(() => {
@@ -175,56 +174,62 @@ function CardActions({ onDelete, onDuplicate, fixado = false, onFixar, className
     return () => { document.removeEventListener('pointerdown', fora); document.removeEventListener('keydown', esc) }
   }, [clicado])
 
-  const acao = fn => () => { setClicado(false); setHover(false); fn?.() }
+  const acao = fn => () => { setClicado(false); fn?.() }
 
-  return (
-    <div
-      ref={raizRef}
-      data-menu-aberto={open || undefined}
-      onClick={e => e.stopPropagation()}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      className={`h-[26px] w-[26px] shrink-0 ${className}`}
+  const itens = [
+    onFixar && { chave: 'fixar', icone: fixado ? 'pinOff' : 'pin', rotulo: fixado ? 'Desafixar' : 'Fixar no topo', fn: onFixar },
+    { chave: 'duplicar', icone: 'copy', rotulo: 'Duplicar', fn: onDuplicate },
+    { chave: 'excluir', icone: 'trash', rotulo: 'Excluir', fn: onDelete, perigo: true },
+  ].filter(Boolean)
+
+  const botaoPontos = (
+    <button
+      type="button"
+      title="Mais opções"
+      aria-haspopup="menu"
+      aria-expanded={open}
+      onClick={() => setClicado(c => !c)}
+      className={`flex items-center justify-center w-[26px] h-[26px] rounded-md border border-solid cursor-pointer transition-colors duration-150 ${open ? 'bg-surface-2 border-border text-ink' : 'bg-transparent border-transparent text-ink-faint hover:bg-surface-2 hover:text-ink'}`}
     >
+      <Icon name="moreVert" size={14}/>
+    </button>
+  )
+
+  // Grade: menu em coluna (ícone + texto) abaixo dos 3 pontinhos.
+  if (layout === 'coluna') {
+    return (
+      <div ref={raizRef} data-menu-aberto={open || undefined} onClick={e => e.stopPropagation()} className={`h-[26px] w-[26px] shrink-0 ${className}`}>
+        {botaoPontos}
+        {open && (
+          <div role="menu" className="absolute right-0 top-[30px] z-20 min-w-[168px] flex flex-col py-1 rounded-lg border border-solid border-border bg-surface shadow-[0_8px_24px_rgba(0,0,0,.18)]">
+            {itens.map(it => (
+              <button key={it.chave} type="button" role="menuitem" onClick={acao(it.fn)}
+                className={`flex items-center gap-2.5 px-3 py-2 text-left text-[12.5px] bg-transparent border-0 cursor-pointer transition-colors duration-150 ${it.perigo ? 'text-red hover:bg-red-dim' : 'text-ink hover:bg-surface-2'}`}>
+                <Icon name={it.icone} size={13}/>{it.rotulo}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Lista: ações em linha, no lugar dos 3 pontinhos.
+  return (
+    <div ref={raizRef} data-menu-aberto={open || undefined} onClick={e => e.stopPropagation()} className={`h-[26px] w-[26px] shrink-0 ${className}`}>
       <div
+        role="menu"
         className={`absolute right-0 top-0 flex items-center gap-1 py-0.5 pl-9 rounded-md transition-opacity duration-150 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         style={{ background: 'linear-gradient(to left, var(--color-surface) 55%, transparent 100%)' }}
       >
-        {onFixar && (
-          <button
-            onClick={acao(onFixar)}
-            title={fixado ? 'Desafixar projeto' : 'Fixar no topo'}
-            aria-pressed={fixado}
-            className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-ink hover:border-border"
-          >
-            <Icon name={fixado ? 'pinOff' : 'pin'} size={12}/>
+        {itens.map(it => (
+          <button key={it.chave} type="button" role="menuitem" onClick={acao(it.fn)} title={it.chave === 'fixar' ? (fixado ? 'Desafixar projeto' : 'Fixar no topo') : `${it.rotulo} projeto`}
+            className={`flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 ${it.perigo ? 'hover:bg-red-dim hover:text-red hover:border-red-border' : 'hover:bg-surface-2 hover:text-ink hover:border-border'}`}>
+            <Icon name={it.icone} size={12}/>
           </button>
-        )}
-        <button
-          onClick={acao(onDuplicate)}
-          title="Duplicar projeto"
-          className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-ink hover:border-border"
-        >
-          <Icon name="copy" size={12}/>
-        </button>
-        <button
-          onClick={acao(onDelete)}
-          title="Excluir projeto"
-          className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-red-dim hover:text-red hover:border-red-border"
-        >
-          <Icon name="trash" size={12}/>
-        </button>
+        ))}
       </div>
-      <button
-        type="button"
-        title="Mais opções"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setClicado(c => !c)}
-        className={`flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-opacity duration-150 ${open ? 'opacity-0 pointer-events-none' : ''}`}
-      >
-        <Icon name="moreVert" size={14}/>
-      </button>
+      <div className={open ? 'opacity-0 pointer-events-none' : ''}>{botaoPontos}</div>
     </div>
   )
 }
@@ -268,6 +273,7 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate, fixado, onFixar }) {
         onDuplicate={() => onDuplicate(proj)}
         fixado={fixado}
         onFixar={() => onFixar(proj)}
+        layout="coluna"
       />
 
       {/* Nome — exatamente como foi digitado, sem forçar caixa alta */}
