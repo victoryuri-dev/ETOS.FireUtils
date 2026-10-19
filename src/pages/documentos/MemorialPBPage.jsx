@@ -18,6 +18,7 @@ import CampoRubrica from '../../components/perfil/CampoRubrica'
 import { useZoomDocumento } from '../../hooks/useZoomDocumento'
 import { BarraZoom, JanelaDocumento } from '../../components/documentos/ZoomDocumento'
 import { Secao } from '../../estados/PB/SecaoFormulario'
+import { siglaConselho } from '../../utils/conselho'
 
 // Memorial Descritivo da Paraíba: o formulário oficial do CBMPB (DSPCI),
 // preenchido a partir do projeto (data/memorial/PB/formulario.js), seguido
@@ -134,7 +135,7 @@ export default function MemorialPBPage({ onBack }) {
                 <div className="pbf-assinatura assinatura-no-fim">
                   <div>{state.rtNome || 'Nome do projetista'}</div>
                   <div>{state.rtEspecialidade || 'Graduação'}</div>
-                  <div>{state.rtConselho ? `Nº CREA/CAU ${state.rtConselho}` : 'Nº CREA/CAU'}</div>
+                  <div>{`Nº ${siglaConselho(state)}${state.rtConselho ? ` ${state.rtConselho}` : ''}`}</div>
                 </div>
               </div>
             </div>

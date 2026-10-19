@@ -16,6 +16,7 @@ import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import MenuSecoes from '../../components/documentos/MenuSecoes'
 import { Titulo, BlocoMedida } from '../../components/documentos/BlocosMemorial'
 import { TABELA, TABELA_THEAD, TABELA_TH, TABELA_TD, zebra, TEXTO, TEXTO_PEQUENO, tituloCase, numerarBlocos } from '../../utils/memorialEstilo'
+import { registroComConselho } from '../../utils/conselho'
 
 // Memorial descritivo: um documento para impressão, uma pagina A4 por medida
 // de seguranca (secao vinda de buildMemorial). Medidas ainda sem builder
@@ -255,7 +256,7 @@ function SobreEdificacao({ state }) {
     { titulo: 'Responsável Técnico', campos: [
       ['Responsável Técnico', state.rtNome],
       ['Especialidade', state.rtEspecialidade],
-      ['Registro Profissional', state.rtConselho],
+      ['Registro Profissional', registroComConselho(state)],
       ['Número da ART / RRT', state.usaArt ? state.artNumero : ''],
     ] },
     { titulo: 'Responsável pelo Uso', campos: [
@@ -532,7 +533,7 @@ function Assinatura({ state }) {
           <div className="text-[12.5px] text-black font-semibold">{state.rtNome || ' '}</div>
         </div>
         <div className="text-[11px] text-black mt-1">{state.rtEspecialidade || ' '}</div>
-        <div className="text-[11px] text-black">{state.rtConselho ? `Registro Profissional: ${state.rtConselho}` : ' '}</div>
+        <div className="text-[11px] text-black">{state.rtConselho ? `Registro Profissional: ${registroComConselho(state)}` : ' '}</div>
       </div>
     </div>
   )

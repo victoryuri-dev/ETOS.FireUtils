@@ -428,7 +428,7 @@ const INITIAL_STATE = {
   propNome: '', propDocumento: '', propTelefone: '', propEmail: '',
   respRazaoSocial: '', respFantasia: '', respCNPJ: '', respTelefone: '', respEmail: '',
   cnaePrincipal: '', cnaePrincipalDesc: '',
-  rtNome: '', rtCpf: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
+  rtNome: '', rtCpf: '', rtConselhoTipo: '', rtConselho: '', rtEspecialidade: 'Engenharia Civil',
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
   usaArt: true,
   artNumero: '', artData: '', artTipoServico: 'Projeto', artValorObra: '',

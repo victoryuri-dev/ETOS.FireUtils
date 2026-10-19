@@ -7,6 +7,7 @@ import {
   mmTw, ptTw, run, runsComDestaque, par, tabelaGrade, blocosOoxml, montarDocx,
 } from '../../utils/docx/ooxml'
 import { numerarBlocos } from '../../utils/memorialEstilo'
+import { siglaConselho } from '../../utils/conselho'
 
 // Mesmas medidas do CSS_PAGINA da MemorialPBPage.
 const MARGENS = { t: 15, r: 15, b: 22, l: 20 }
@@ -138,7 +139,7 @@ function assinaturaOoxml(state) {
   const linha = (texto, primeira) => `<w:p><w:pPr>${frame}${primeira ? borda : ''}<w:jc w:val="center"/></w:pPr>${t(texto, { b: true })}</w:p>`
   return linha(state.rtNome || 'Nome do projetista', true)
     + linha(state.rtEspecialidade || 'Graduação')
-    + linha(state.rtConselho ? `Nº CREA/CAU ${state.rtConselho}` : 'Nº CREA/CAU')
+    + linha(`Nº ${siglaConselho(state)}${state.rtConselho ? ` ${state.rtConselho}` : ''}`)
 }
 
 /** Blob do .docx do memorial da PB. */

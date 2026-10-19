@@ -5,6 +5,7 @@ import { usePerfil, temDadosRT } from '../../hooks/usePerfil'
 import FormSection from '../ui/FormSection'
 import Icon from '../ui/Icon'
 import SwitchToggle from '../ui/SwitchToggle'
+import CampoConselho from '../ui/CampoConselho'
 const S={section:'max-w-[980px] mx-auto pt-8 px-10 pb-20',header:'mb-8',stepLbl:'text-[11px] text-red uppercase tracking-[.08em] font-semibold mb-[5px]',title:'text-[22px] font-semibold text-ink mb-[5px]',desc:'text-[13px] text-ink-faint leading-[1.6]'}
 
 export default function Step3({ step, totalSteps }) {
@@ -57,7 +58,7 @@ export default function Step3({ step, totalSteps }) {
       <FormSection title="Projetista" extra={botaoPerfil}>
         <div className="g2 mb-3">
           <div className="fg"><label>Nome completo <Obrigatorio id={'rtNome'}/></label><input value={state.rtNome} onChange={set('rtNome')}/></div>
-          <div className="fg"><label>CREA / CAU <Obrigatorio id={'rtConselho'}/></label><input value={state.rtConselho} onChange={set('rtConselho')} placeholder="CREA-MA MA00000000/D"/></div>
+          <CampoConselho tipo={state.rtConselhoTipo} numero={state.rtConselho} onTipo={set('rtConselhoTipo')} onNumero={set('rtConselho')} obrigatorio={<Obrigatorio id={'rtConselho'}/>}/>
         </div>
         <div className="g2 mb-3">
           <div className="fg"><label>CPF <Obrigatorio id="rtCpf"/></label><input value={state.rtCpf} onChange={set('rtCpf')} placeholder="000.000.000-00"/></div>

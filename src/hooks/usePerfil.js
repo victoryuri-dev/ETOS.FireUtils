@@ -9,17 +9,17 @@ import { supabase } from '../lib/supabase'
 // A ART (artNumero, artData, artTipoServico, artValorObra) fica de fora: sao
 // dados de cada projeto, nao do profissional.
 const CAMPOS_RT = [
-  'rtNome', 'rtConselho', 'rtCpf', 'rtEspecialidade', 'rtEmpresa', 'rtEmail', 'rtTelefone',
+  'rtNome', 'rtConselhoTipo', 'rtConselho', 'rtCpf', 'rtEspecialidade', 'rtEmpresa', 'rtEmail', 'rtTelefone',
 ]
 
 // `rtEspecialidade` nasce preenchido com o valor padrao, entao
 // nao serve pra dizer se alguem chegou a preencher alguma coisa — daqui sai a
 // pergunta "tem dado de verdade aqui?", usada nos dois lados: pra saber se o
 // perfil tem o que oferecer e se a etapa ainda esta em branco.
-const CAMPOS_PREENCHIVEIS = CAMPOS_RT.filter(c => c !== 'rtEspecialidade')
+const CAMPOS_PREENCHIVEIS = CAMPOS_RT.filter(c => c !== 'rtEspecialidade' && c !== 'rtConselhoTipo')
 
 const RT_VAZIO = {
-  rtNome: '', rtConselho: '', rtCpf: '', rtEspecialidade: 'Engenharia Civil',
+  rtNome: '', rtConselhoTipo: '', rtConselho: '', rtCpf: '', rtEspecialidade: 'Engenharia Civil',
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
 }
 

@@ -7,6 +7,7 @@ import Loader from '../components/ui/Loader'
 import FerramentasDisponiveis from '../components/perfil/FerramentasDisponiveis'
 import LicencasAtivas from '../components/perfil/LicencasAtivas'
 import CampoRubrica from '../components/perfil/CampoRubrica'
+import CampoConselho from '../components/ui/CampoConselho'
 import './PerfilPage.css'
 
 
@@ -90,9 +91,7 @@ export default function PerfilPage() {
               <div className="fg"><label>Nome completo</label>
                 <input value={rt.rtNome} onChange={setRT('rtNome')}/>
               </div>
-              <div className="fg"><label>CREA / CAU</label>
-                <input value={rt.rtConselho} onChange={setRT('rtConselho')} placeholder="CREA-MA MA00000000/D"/>
-              </div>
+              <CampoConselho tipo={rt.rtConselhoTipo} numero={rt.rtConselho} onTipo={setRT('rtConselhoTipo')} onNumero={setRT('rtConselho')}/>
             </div>
             <div className="g2 mb-3">
               <div className="fg"><label>CPF</label>

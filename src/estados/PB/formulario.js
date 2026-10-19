@@ -49,6 +49,7 @@ import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
 import { opcoesPublicoBrigada } from '../../utils/brigadaPublico'
 import { opcaoCapacidade } from '../../data/extintores_calc'
 import { LANCES_INTERNOS, LANCES_EXTERNOS, TIPOS_MANGUEIRA, tipoMangueiraValido } from '../../data/hidrantesMangueiras'
+import { registroComConselho } from '../../utils/conselho'
 
 const vazio = v => v === '' || v === null || v === undefined
 // Valor preenchido no meio de um texto do formulário: sai em negrito no
@@ -135,7 +136,7 @@ function secaoIdentificacao(state) {
       campo('Endereço da edificação:', endereco),
       campos({ label: 'Bairro:', valor: state.bairro || '', peso: 3 }, { label: 'Município:', valor: state.cidade || '', peso: 2 }),
       campo('Responsável técnico:', state.rtNome || ''),
-      campos({ label: 'CREA/CAU nº:', valor: state.rtConselho || '', peso: 3 }, { label: 'ART/RRT nº:', valor: state.artNumero || '', peso: 2 }),
+      campos({ label: 'CREA/CAU nº:', valor: registroComConselho(state), peso: 3 }, { label: 'ART/RRT nº:', valor: state.artNumero || '', peso: 2 }),
     ],
   }
 }
