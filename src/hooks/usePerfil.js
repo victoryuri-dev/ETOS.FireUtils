@@ -72,7 +72,9 @@ export function usePerfil() {
 
     supabase
       .from('perfis')
-      .select('nome, telefone, responsavel_tecnico, rubrica')
+      // `*`: sem a coluna `rubrica` (migração ainda não rodada) o perfil
+      // continua carregando — só fica sem rubrica.
+      .select('*')
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -125,7 +127,12 @@ export function usePerfil() {
   const salvarRubrica = useCallback(async (rubrica) => {
     if (!user) return { ok: false, erro: 'Você precisa estar logado para salvar a rubrica.' }
     const { error } = await supabase.from('perfis').upsert({ user_id: user.id, rubrica, atualizado_em: new Date().toISOString() })
-    if (error) return { ok: false, erro: 'Não foi possível salvar a rubrica. Tente de novo.' }
+    if (error) {
+      const semColuna = /rubrica/i.test(error.message || '')
+      return { ok: false, erro: semColuna
+        ? 'A coluna da rubrica ainda não existe no banco (rode a migração 20261019120000_add_rubrica_perfis.sql).'
+        : 'Não foi possível salvar a rubrica. Tente de novo.' }
+    }
     const novo = { ...(perfil || PERFIL_VAZIO), rubrica }
     setPerfil(novo)
     window.dispatchEvent(new CustomEvent(EVENTO_PERFIL, { detail: novo }))

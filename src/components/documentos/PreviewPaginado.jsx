@@ -31,8 +31,12 @@ export default function PreviewPaginado({ children, css, prepararConteudo, aposP
     // Só repagina quando o conteúdo mudou de fato: o componente re-renderiza por
     // motivos alheios ao documento (contexto, status de salvamento...) e cada
     // paginação é cara.
-    const html = fonteRef.current?.innerHTML
-    if (html == null || html === s.ultimoHtml) return
+    // O CSS entra na comparação: muda sem o HTML mudar (ex.: rubrica no
+    // rodapé do memorial da PB).
+    const fonte = fonteRef.current?.innerHTML
+    if (fonte == null) return
+    const html = `${propsRef.current.css || ''}\n${fonte}`
+    if (html === s.ultimoHtml) return
     s.rodando = true
     // O loader só aparece na primeira geração; nas seguintes as páginas antigas
     // ficam na tela até as novas ficarem prontas.
