@@ -36,7 +36,8 @@ export function useZoomDocumento(rolagemRef) {
     }
     cont.addEventListener('wheel', aoRodar, { passive: false })
     return () => cont.removeEventListener('wheel', aoRodar)
-  }, [rolagemRef])
+    // maximizar remonta a área rolável (portal) — religa no elemento novo
+  }, [rolagemRef, maximizado])
   // Esc sai do modo maximizado.
   useEffect(() => {
     if (!maximizado) return
@@ -49,6 +50,6 @@ export function useZoomDocumento(rolagemRef) {
 
 /** Classes do contêiner da página: maximizado, ocupa quase toda a tela. */
 export const classeMaximizado = maximizado => (maximizado
-  ? 'fixed inset-3 z-[60] rounded-xl border border-solid border-border bg-bg shadow-[0_24px_64px_rgba(0,0,0,.45)] print:static print:inset-auto print:border-0 print:shadow-none'
+  ? 'fixed inset-3 z-[1001] rounded-xl border border-solid border-border bg-bg shadow-[0_24px_64px_rgba(0,0,0,.45)] print:static print:inset-auto print:border-0 print:shadow-none'
   : '')
 

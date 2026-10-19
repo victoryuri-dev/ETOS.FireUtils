@@ -10,8 +10,8 @@ import { numerarBlocos } from '../../utils/memorialEstilo'
 import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import Icon from '../../components/ui/Icon'
-import { useZoomDocumento, classeMaximizado } from '../../hooks/useZoomDocumento'
-import { BarraZoom, FundoMaximizado } from '../../components/documentos/ZoomDocumento'
+import { useZoomDocumento } from '../../hooks/useZoomDocumento'
+import { BarraZoom, JanelaDocumento } from '../../components/documentos/ZoomDocumento'
 import { Secao } from '../../estados/PB/SecaoFormulario'
 
 // Memorial Descritivo da Paraíba: o formulário oficial do CBMPB (DSPCI),
@@ -88,9 +88,7 @@ export default function MemorialPBPage({ onBack }) {
     : []
 
   return (
-    <>
-    <FundoMaximizado maximizado={maximizado} onFechar={() => setMaximizado(false)}/>
-    <div className={`flex flex-col flex-1 overflow-hidden ${classeMaximizado(maximizado)}`}>
+    <JanelaDocumento maximizado={maximizado} onFechar={() => setMaximizado(false)} className="flex flex-col flex-1 overflow-hidden">
       <div className="no-print shrink-0 flex items-center justify-between gap-3 py-3 px-8 border-b border-solid border-border">
         <button className="btn-ghost" onClick={onBack}><Icon name="left" size={13}/> Voltar</button>
         <BarraZoom {...zoomDoc}/>
@@ -130,7 +128,6 @@ export default function MemorialPBPage({ onBack }) {
           </PreviewPaginado>
         </div>
       </div>
-    </div>
-    </>
+    </JanelaDocumento>
   )
 }

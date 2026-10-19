@@ -8,8 +8,8 @@ import { classificarTipoEdificacao } from '../../data/compart_calc'
 import { classificarPavimentos } from '../../utils/classificacao'
 import { fmtNum, fmtUn } from '../../utils/numero'
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
-import { useZoomDocumento, classeMaximizado } from '../../hooks/useZoomDocumento'
-import { BarraZoom, FundoMaximizado } from '../../components/documentos/ZoomDocumento'
+import { useZoomDocumento } from '../../hooks/useZoomDocumento'
+import { BarraZoom, JanelaDocumento } from '../../components/documentos/ZoomDocumento'
 import Icon from '../../components/ui/Icon'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import MenuSecoes from '../../components/documentos/MenuSecoes'
@@ -575,9 +575,7 @@ export default function MemorialDescritivoPage({ onBack }) {
   const { zoom, maximizado, setMaximizado } = zoomDoc
 
   return (
-    <>
-    <FundoMaximizado maximizado={maximizado} onFechar={() => setMaximizado(false)}/>
-    <div className={`flex flex-col flex-1 overflow-hidden bg-none ${classeMaximizado(maximizado)}`}>
+    <JanelaDocumento maximizado={maximizado} onFechar={() => setMaximizado(false)} className="flex flex-col flex-1 overflow-hidden bg-none">
       <div className="no-print shrink-0 flex items-center justify-between py-3 px-8 border-b border-solid border-border bg-none">
         <button className="btn-ghost" onClick={onBack}>
           <Icon name="left" size={13}/> Voltar
@@ -613,7 +611,6 @@ export default function MemorialDescritivoPage({ onBack }) {
         )}
       </div>
       </div>
-    </div>
-    </>
+    </JanelaDocumento>
   )
 }

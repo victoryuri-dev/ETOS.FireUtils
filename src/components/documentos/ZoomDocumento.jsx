@@ -1,14 +1,23 @@
+import { createPortal } from 'react-dom'
 import Icon from '../ui/Icon'
-import { NIVEIS_ZOOM, proximoZoom } from '../../hooks/useZoomDocumento'
+import { NIVEIS_ZOOM, proximoZoom, classeMaximizado } from '../../hooks/useZoomDocumento'
 
 // Zoom e "maximizar" do preview dos documentos (memorial do MA e formulário
 // da PB). Só na tela — a impressão sai sempre em 100% e no fluxo normal.
 // Estado e atalhos em hooks/useZoomDocumento.js.
 
-/** Fundo escurecido atrás do documento maximizado (clique fecha). */
-export function FundoMaximizado({ maximizado, onFechar }) {
-  if (!maximizado) return null
-  return <div className="no-print fixed inset-0 z-[59] bg-black/50" onClick={onFechar} aria-hidden="true"/>
+/** Contêiner da página do documento. Maximizado, vai num portal no <body>
+ *  (acima do header e do menu, fora dos contextos de empilhamento do layout)
+ *  e ocupa quase toda a tela, com o fundo escurecido (clique fecha). */
+export function JanelaDocumento({ maximizado, onFechar, className = '', children }) {
+  if (!maximizado) return <div className={className}>{children}</div>
+  return createPortal(
+    <>
+      <div className="no-print fixed inset-0 z-[1000] bg-black/50" onClick={onFechar} aria-hidden="true"/>
+      <div className={`${className} ${classeMaximizado(true)}`} role="dialog" aria-modal="true" aria-label="Documento maximizado">{children}</div>
+    </>,
+    document.body,
+  )
 }
 
 export function BarraZoom({ zoom, setZoom, maximizado, setMaximizado }) {
