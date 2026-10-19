@@ -23,7 +23,7 @@ const RT_VAZIO = {
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
 }
 
-const PERFIL_VAZIO = { nome: '', telefone: '', responsavelTecnico: RT_VAZIO, rubrica: '' }
+const PERFIL_VAZIO = { nome: '', telefone: '', responsavelTecnico: RT_VAZIO, rubrica: '', projetosFixados: [] }
 
 export function temDadosRT(rt) {
   return !!rt && CAMPOS_PREENCHIVEIS.some(c => (rt[c] || '').trim())
@@ -90,6 +90,7 @@ export function usePerfil() {
               telefone: data.telefone || '',
               responsavelTecnico: normalizarRT(data.responsavel_tecnico),
               rubrica: data.rubrica || '',
+              projetosFixados: Array.isArray(data.projetos_fixados) ? data.projetos_fixados : [],
             }
           : PERFIL_VAZIO)
       })
@@ -116,7 +117,7 @@ export function usePerfil() {
     if (error) return { ok: false, erro: 'Não foi possível salvar. Tente de novo.' }
 
     // A rubrica tem gravação própria (salvarRubrica): vale a mais recente.
-    const salvo = { ...novo, rubrica: perfil?.rubrica ?? novo.rubrica ?? '' }
+    const salvo = { ...novo, rubrica: perfil?.rubrica ?? novo.rubrica ?? '', projetosFixados: perfil?.projetosFixados ?? novo.projetosFixados ?? [] }
     setPerfil(salvo)
     window.dispatchEvent(new CustomEvent(EVENTO_PERFIL, { detail: salvo }))
     return { ok: true }
@@ -139,5 +140,23 @@ export function usePerfil() {
     return { ok: true }
   }, [user, perfil])
 
-  return { perfil, erro, salvar, salvarRubrica }
+  // Projetos fixados no topo de "Meus projetos" (ids): grava só essa coluna.
+  const salvarFixados = useCallback(async (ids) => {
+    if (!user) return { ok: false, erro: 'Você precisa estar logado.' }
+    const anterior = perfil
+    const novo = { ...(perfil || PERFIL_VAZIO), projetosFixados: ids }
+    setPerfil(novo)   // otimista: o card muda de grupo na hora
+    const { error } = await supabase.from('perfis').upsert({ user_id: user.id, projetos_fixados: ids, atualizado_em: new Date().toISOString() })
+    if (error) {
+      setPerfil(anterior)
+      const semColuna = /projetos_fixados/i.test(error.message || '')
+      return { ok: false, erro: semColuna
+        ? 'A coluna de projetos fixados ainda não existe no banco (rode a migração 20261019130000_add_projetos_fixados_perfis.sql).'
+        : 'Não foi possível fixar o projeto. Tente de novo.' }
+    }
+    window.dispatchEvent(new CustomEvent(EVENTO_PERFIL, { detail: novo }))
+    return { ok: true }
+  }, [user, perfil])
+
+  return { perfil, erro, salvar, salvarRubrica, salvarFixados }
 }

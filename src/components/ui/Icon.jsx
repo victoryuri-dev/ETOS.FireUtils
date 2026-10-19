@@ -6,7 +6,7 @@ import {
   BrickWallFire, AlarmSmoke, BellElectric, Van, ShieldAlert, Loader2, CircleCheck,
   SeparatorHorizontal, GripVertical, Copy, MoreVertical, SquareArrowRightExit,
   Bold, Italic, Underline, Strikethrough, List, Palette, Lock, ExternalLink,
-  NotebookPen, MessageCircle, Download, Maximize2, Minimize2,
+  NotebookPen, MessageCircle, Download, Maximize2, Minimize2, Pin, PinOff,
 } from 'lucide-react'
 import hidranteIconSvg from '../../assets/icons/hidrante-icon.svg?raw'
 import extintorIconSvg from '../../assets/icons/extintor-icon.svg?raw'
@@ -35,7 +35,7 @@ const ICONS = {
   panelLeft: PanelLeft, wallFire: BrickWallFire, alarmSmoke: AlarmSmoke, bellElectric: BellElectric,
   van: Van, shieldAlert: ShieldAlert, spinner: Loader2, checkCircle: CircleCheck,
   wallCompart: SeparatorHorizontal,
-  maximize: Maximize2, minimize: Minimize2,
+  maximize: Maximize2, minimize: Minimize2, pin: Pin, pinOff: PinOff,
   grip: GripVertical, copy: Copy, moreVert: MoreVertical, exitBox: SquareArrowRightExit,
   bold: Bold, italic: Italic, underline: Underline, strike: Strikethrough, list: List, palette: Palette,
   lock: Lock, externalLink: ExternalLink,

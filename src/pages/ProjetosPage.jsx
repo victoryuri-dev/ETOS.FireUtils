@@ -10,6 +10,7 @@ import { statusCatalogo, carregarNormasRemotas } from '../lib/normasRemote'
 import { enquadrarTipoProjeto } from '../data/tipoProjeto'
 import { temCNAECadastrado, getEstadosDisponiveis } from '../data/normas/index'
 import { fmtUn } from '../utils/numero'
+import { usePerfil } from '../hooks/usePerfil'
 
 // ── helpers ───────────────────────────────────────────────────────────
 
@@ -157,7 +158,7 @@ function StatusPill({ dot, tone, label, active, onClick }) {
 // Botão de "3 pontos" que, ao ser hovereado, se transforma numa bandeja com
 // os dois ícones de ação — a bandeja tem um fundo em degradê que vai de
 // opaco (perto dos ícones, à direita) a transparente (à esquerda).
-function CardActions({ onDelete, onDuplicate, className = '' }) {
+function CardActions({ onDelete, onDuplicate, fixado = false, onFixar, className = '' }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -171,6 +172,16 @@ function CardActions({ onDelete, onDuplicate, className = '' }) {
         className={`absolute right-0 top-0 flex items-center gap-1 py-0.5 pl-9 rounded-md transition-opacity duration-150 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         style={{ background: 'linear-gradient(to left, var(--color-surface) 55%, transparent 100%)' }}
       >
+        {onFixar && (
+          <button
+            onClick={onFixar}
+            title={fixado ? 'Desafixar projeto' : 'Fixar no topo'}
+            aria-pressed={fixado}
+            className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-ink hover:border-border"
+          >
+            <Icon name={fixado ? 'pinOff' : 'pin'} size={12}/>
+          </button>
+        )}
         <button
           onClick={onDuplicate}
           title="Duplicar projeto"
@@ -214,7 +225,7 @@ function rotuloProjeto(proj) {
   return tipo === 'simplificado' ? 'Simplificado' : tipo === 'tecnico' ? 'Técnico' : '—'
 }
 
-function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
+function ProjectCard({ proj, onOpen, onDelete, onDuplicate, fixado, onFixar }) {
   const pavLabel = pavimentosLabel(proj)
   const [replay, setReplay] = useState(0)
   const pct    = calcCompletude(proj)
@@ -233,6 +244,8 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
         className="absolute top-2.5 right-2.5 z-10 opacity-0 group-hover:opacity-100"
         onDelete={() => onDelete(proj)}
         onDuplicate={() => onDuplicate(proj)}
+        fixado={fixado}
+        onFixar={() => onFixar(proj)}
       />
 
       {/* Nome — exatamente como foi digitado, sem forçar caixa alta */}
@@ -241,6 +254,7 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
         <div className="font-heading text-[15px] font-bold text-ink leading-[1.3] truncate">
           {proj.nome || <span className="text-ink-faint font-normal">Sem nome</span>}
         </div>
+        {fixado && <span className="shrink-0 text-ink-faint" title="Projeto fixado"><Icon name="pin" size={12}/></span>}
       </div>
 
       {/* Ocupação e risco */}
@@ -313,7 +327,7 @@ function ListHeader() {
   )
 }
 
-function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
+function ProjectRow({ proj, onOpen, onDelete, onDuplicate, fixado, onFixar }) {
   const pct   = calcCompletude(proj)
   const bar   = barToneClasses(pct)
   const ocup  = ocupacaoInfo(proj.pavimentos)
@@ -326,6 +340,7 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
     >
       {/* Nome — exatamente como foi digitado */}
       <span className="font-heading text-[13px] font-bold text-ink overflow-hidden text-ellipsis whitespace-nowrap">
+        {fixado && <span className="inline-flex align-[-1px] mr-1.5 text-ink-faint" title="Projeto fixado"><Icon name="pin" size={11}/></span>}
         {proj.nome || <span className="text-ink-faint font-normal">Sem nome</span>}
       </span>
 
@@ -348,7 +363,7 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate }) {
 
       {/* Ações */}
       <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-        <CardActions className="relative" onDelete={() => onDelete(proj)} onDuplicate={() => onDuplicate(proj)}/>
+        <CardActions className="relative" onDelete={() => onDelete(proj)} onDuplicate={() => onDuplicate(proj)} fixado={fixado} onFixar={() => onFixar(proj)}/>
       </div>
     </div>
   )
@@ -591,6 +606,16 @@ function FilterDropdown({ prefix, value, options, onChange }) {
   )
 }
 
+function TituloGrupo({ titulo, total }) {
+  return (
+    <div className="flex items-center gap-2 mb-2.5 text-[11px] font-semibold uppercase tracking-[.06em] text-ink-faint">
+      {titulo === 'Fixados' && <Icon name="pin" size={11}/>}
+      <span>{titulo}</span>
+      <span className="tabular-nums font-normal">· {total}</span>
+    </div>
+  )
+}
+
 // ── Header Logo ───────────────────────────────────────────────────────
 
 // ── ProjetosPage ──────────────────────────────────────────────────────
@@ -601,6 +626,17 @@ const cacheProjetos = new Map()
 export default function ProjetosPage({ onOpenProject, onNewProject }) {
   const { grupos } = useNorma()
   const { user } = useAuth()
+  // Fixados: preferência da conta (perfil), não dado do projeto.
+  const { perfil, salvarFixados } = usePerfil()
+  const fixadosSalvos = perfil?.projetosFixados
+  const fixados = useMemo(() => fixadosSalvos || [], [fixadosSalvos])
+  const [erroFixar, setErroFixar] = useState(null)
+  const alternarFixado = async proj => {
+    setErroFixar(null)
+    const ids = fixados.includes(proj.id) ? fixados.filter(id => id !== proj.id) : [...fixados, proj.id]
+    const r = await salvarFixados(ids)
+    if (!r.ok) setErroFixar(r.erro)
+  }
   const [view,        setView]        = useState('grid')
   const [tick,        setTick]        = useState(0)
   const [toDelete,    setToDelete]    = useState(null)
@@ -727,6 +763,15 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
 
     return list
   }, [allProjects, search, sort, filterUF, filterGrupo, filterStatus])
+
+  // Fixados em cima, separados; sem nenhum fixado, a lista fica como antes.
+  const gruposDaLista = useMemo(() => {
+    const ehFixado = p => fixados.includes(p.id)
+    const lista = filtered.filter(ehFixado)
+    if (!lista.length) return [{ chave: 'todos', titulo: null, lista: filtered }]
+    const demais = filtered.filter(p => !ehFixado(p))
+    return [{ chave: 'fixados', titulo: 'Fixados', lista }, ...(demais.length ? [{ chave: 'demais', titulo: 'Outros projetos', lista: demais }] : [])]
+  }, [filtered, fixados])
 
   useEntradaEmLote(gridRef, '.card-projeto', `${loading}|${view}|${filtered.map(p => p.id).join(',')}`)
   const hasFilter = !!(search || filterUF || filterGrupo || filterStatus.length)
@@ -857,19 +902,34 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
           ) : filtered.length === 0 ? (
             <EmptyState hasFilter={hasFilter} onNew={() => pedirEstado('completo')}/>
           ) : view === 'grid' ? (
-            <div ref={gridRef} className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-3">
-              {filtered.map(proj => (
-                <ProjectCard key={`${proj.id}-${normasVersao}`} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}/>
+            <div ref={gridRef} className="flex flex-col gap-6">
+              {gruposDaLista.map(g => (
+                <section key={g.chave} aria-label={g.titulo || 'Projetos'}>
+                  {g.titulo && <TituloGrupo titulo={g.titulo} total={g.lista.length}/>}
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-3">
+                    {g.lista.map(proj => (
+                      <ProjectCard key={`${proj.id}-${normasVersao}`} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}
+                        fixado={fixados.includes(proj.id)} onFixar={alternarFixado}/>
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           ) : (
-            <div className="flex flex-col gap-2.5">
-              <ListHeader/>
-              {filtered.map(proj => (
-                <ProjectRow key={proj.id} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}/>
+            <div className="flex flex-col gap-6">
+              {gruposDaLista.map(g => (
+                <section key={g.chave} className="flex flex-col gap-2.5" aria-label={g.titulo || 'Projetos'}>
+                  {g.titulo && <TituloGrupo titulo={g.titulo} total={g.lista.length}/>}
+                  <ListHeader/>
+                  {g.lista.map(proj => (
+                    <ProjectRow key={proj.id} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}
+                      fixado={fixados.includes(proj.id)} onFixar={alternarFixado}/>
+                  ))}
+                </section>
               ))}
             </div>
           )}
+          {erroFixar && <div className="ibox red mt-4" role="alert"><Icon name="warn" size={13} color="var(--color-red)" className="shrink-0"/><span className="text-xs">{erroFixar}</span></div>}
 
         </div>
       </div>
