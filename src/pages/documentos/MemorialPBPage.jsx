@@ -36,7 +36,7 @@ const CSS_BASE = `
   }
 }
 tr { break-inside: avoid; }
-.pbf-anexos { break-before: page; }
+.pbf-anexo-bloco { break-before: page; }
 `
 
 // Com rubrica no perfil, o quadro de cada folha leva a imagem no lugar do texto.
@@ -57,20 +57,19 @@ function Cabecalho({ norma }) {
   )
 }
 
-// Anexo do formulário: blocos do memorial (tabela/parágrafos) quando a
-// medida está ativa e há conteúdo; senão fica só o título e a orientação do
-// formulário, para o RT anexar à mão.
+// Anexo do formulário: blocos do memorial (tabela/parágrafos) da medida
+// ativa. Só entram os anexos com conteúdo, cada um em folha nova; as letras
+// seguem as do formulário (A saídas, B hidrantes, C chuveiros, D SPDA).
 const blocosDe = s => s.blocos || (s.paragrafos || []).map(texto => ({ tipo: 'paragrafo', texto }))
 
-function Anexo({ letra, titulo, descricao, secoes, numerar = true }) {
+function Anexo({ letra, secoes, numerar = true }) {
+  if (!secoes?.length) return null
   return (
-    <div>
+    <div className="pbf-anexo-bloco">
       <div className="pbf-anexo">
         <div className="pbf-anexo-titulo">ANEXO {letra}</div>
-        <div className="pbf-anexo-desc">{titulo}</div>
-        {descricao && <div className="pbf-anexo-desc">{descricao}</div>}
       </div>
-      {(secoes || []).map((s, i) => (
+      {secoes.map((s, i) => (
         <div key={i} className="mt-3">
           {(numerar ? numerarBlocos(blocosDe(s), letra) : blocosDe(s)).map((b, j) => <BlocoMedida key={j} bloco={b}/>)}
         </div>
@@ -122,15 +121,9 @@ export default function MemorialPBPage({ onBack }) {
               <Cabecalho norma={formulario.norma}/>
               {formulario.secoes.map((s, i) => <Secao key={i} secao={s}/>)}
               <div className="pbf-anexos">
-                <Anexo letra="A" titulo="APRESENTAÇÃO DOS CÁLCULOS DE DIMENSIONAMENTO DAS SAÍDAS DE EMERGÊNCIA E POPULAÇÃO PARA TODAS AS EDIFICAÇÕES" secoes={anexoA} numerar={false}/>
-                <Anexo letra="B" titulo="DIMENSIONAMENTO DO SISTEMA DE HIDRANTES"
-                  descricao="Especificar detalhes consideráveis relacionados ao dimensionamento e características do sistema de hidrantes, incluindo pressurização e acionamento de bombas de incêndio, caso sejam necessárias, condições dos abrigos, localização do recalque, entre outros."
-                  secoes={anexoB}/>
-                <Anexo letra="C" titulo="DIMENSIONAMENTO DO SISTEMA DE CHUVEIROS AUTOMÁTICOS"
-                  descricao="Especificar detalhes consideráveis relacionados ao dimensionamento e características do sistema dos chuveiros automáticos, incluindo pressurização e acionamento de bombas de incêndio, caso sejam necessárias, localização das válvulas de governo e alarme, condições do recalque, entre outros."/>
-                <Anexo letra="D" titulo="DIMENSIONAMENTO DO SPDA"
-                  descricao="Especificar detalhes consideráveis relacionados à necessidade de instalação do SPDA e execução do sistema"/>
-                <div className="pbf-assinatura">
+                <Anexo letra="A" secoes={anexoA} numerar={false}/>
+                <Anexo letra="B" secoes={anexoB}/>
+                <div className="pbf-assinatura assinatura-no-fim">
                   <div>{state.rtNome || 'Nome do projetista'}</div>
                   <div>{state.rtEspecialidade || 'Graduação'}</div>
                   <div>{state.rtConselho ? `Nº CREA/CAU ${state.rtConselho}` : 'Nº CREA/CAU'}</div>

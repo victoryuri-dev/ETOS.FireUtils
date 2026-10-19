@@ -18,6 +18,20 @@ import Loader from '../ui/Loader'
 //
 // Passar a lista de folhas de estilo (mesmo com um só item) impede o Paged.js
 // de remover e reprocessar os estilos do app (modo polyfill).
+// `.assinatura-no-fim` (assinatura do RT, nos dois modelos de memorial): vai
+// para o pé da folha em que caiu, somando o espaço livre à margem de cima.
+// Medido no palco (sem o zoom do preview); a impressão usa as mesmas folhas.
+function empurrarAssinaturasProFim(palco) {
+  palco.querySelectorAll('.assinatura-no-fim').forEach(el => {
+    const area = el.closest('.pagedjs_page_content')
+    if (!area) return
+    const livre = Math.floor(area.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom) - 2
+    if (livre <= 0) return
+    const atual = parseFloat(getComputedStyle(el).marginTop) || 0
+    el.style.marginTop = `${atual + livre}px`
+  })
+}
+
 export default function PreviewPaginado({ children, css, prepararConteudo, aposPaginar }) {
   const fonteRef = useRef(null)
   const destinoRef = useRef(null)
@@ -66,6 +80,7 @@ export default function PreviewPaginado({ children, css, prepararConteudo, aposP
       // conteúdo do palco já descartado — "Cannot read properties of null
       // (reading 'getAttribute')" a cada repaginação.
       previewer.chunker?.pages?.forEach(pg => pg.removeListeners?.())
+      empurrarAssinaturasProFim(palco)
       destinoRef.current.replaceChildren(...palco.childNodes)
       propsRef.current.aposPaginar?.(destinoRef.current)
       const anterior = s.previewer

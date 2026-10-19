@@ -525,7 +525,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
 // própria: continua no fluxo, ficando na última folha do memorial.
 function Assinatura({ state }) {
   return (
-    <div className="flex flex-col items-center mt-16 pt-6">
+    <div className="assinatura-no-fim flex flex-col items-center mt-16 pt-6">
       <div className="w-[340px] text-center">
         <div className="border-t border-solid border-black pt-2">
           <div className="text-[12.5px] text-black font-semibold">{state.rtNome || ' '}</div>
