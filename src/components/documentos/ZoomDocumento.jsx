@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import Icon from '../ui/Icon'
+import { useTheme } from '../../context/theme-context'
 import { NIVEIS_ZOOM, proximoZoom, classeMaximizado } from '../../hooks/useZoomDocumento'
 
 // Zoom e "maximizar" do preview dos documentos (memorial do MA e formulário
@@ -10,12 +11,14 @@ import { NIVEIS_ZOOM, proximoZoom, classeMaximizado } from '../../hooks/useZoomD
  *  (acima do header e do menu, fora dos contextos de empilhamento do layout)
  *  e ocupa quase toda a tela, com o fundo escurecido (clique fecha). */
 export function JanelaDocumento({ maximizado, onFechar, className = '', children }) {
+  const { theme } = useTheme()
   if (!maximizado) return <div className={className}>{children}</div>
+  // Fora do ThemeProvider no DOM: repete o .platform-theme para herdar o tema.
   return createPortal(
-    <>
+    <div className="platform-theme contents text-ink" data-theme={theme}>
       <div className="no-print fixed inset-0 z-[1000] bg-black/50" onClick={onFechar} aria-hidden="true"/>
       <div className={`${className} ${classeMaximizado(true)}`} role="dialog" aria-modal="true" aria-label="Documento maximizado">{children}</div>
-    </>,
+    </div>,
     document.body,
   )
 }
