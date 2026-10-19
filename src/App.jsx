@@ -47,6 +47,7 @@ import landingLogo from './assets/logo-fireutils-light.svg'
 import landingLogoDark from './assets/logo-fireutils-dark.svg'
 import { ThemeProvider } from './context/ThemeContext'
 import { useTheme } from './context/theme-context'
+import { tituloDaRota } from './utils/tituloPagina'
 
 // ── SaveStatusIndicator ───────────────────────────────────────────────
 // Mostra se o projeto esta sendo sincronizado com o servidor ou se ja foi
@@ -519,6 +520,16 @@ function LoginRoute() {
 }
 
 // ── AppInner ──────────────────────────────────────────────────────────
+// Título da aba conforme a rota ("FireUtils | Página").
+function TituloDaAba() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const titulo = tituloDaRota(pathname)
+    if (titulo) document.title = titulo
+  }, [pathname])
+  return null
+}
+
 function AppInner() {
   const { loading } = useAuth()
 
@@ -531,6 +542,8 @@ function AppInner() {
   }
 
   return (
+    <>
+    <TituloDaAba/>
     <Routes>
       <Route path="/landing" element={<LandingPage/>}/>
       <Route path="/pricing" element={<PricingPage/>}/>
@@ -554,6 +567,7 @@ function AppInner() {
         <Route path="*" element={<Navigate to="/projetos" replace/>}/>
       </Route>
     </Routes>
+    </>
   )
 }
 
