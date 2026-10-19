@@ -6,7 +6,8 @@ import { useNorma } from '../hooks/useNorma'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { newIds, useProjeto } from '../context/ProjetoContext'
-import { statusCatalogo } from '../lib/normasRemote'
+import { statusCatalogo, carregarNormasRemotas } from '../lib/normasRemote'
+import { enquadrarTipoProjeto } from '../data/tipoProjeto'
 import { temCNAECadastrado, getEstadosDisponiveis } from '../data/normas/index'
 import { fmtUn } from '../utils/numero'
 
@@ -204,6 +205,15 @@ function pavimentosLabel(proj) {
   return total === 1 ? 'Térrea' : `${total} pavimentos`
 }
 
+// Rótulo do tipo de projeto: dimensionamento, ou o enquadramento técnico /
+// simplificado pelos limiares da tabela de medidas do estado (o mesmo do
+// memorial). '—' enquanto as normas da UF não carregaram ou falta área/altura.
+function rotuloProjeto(proj) {
+  if (proj.tipoProjeto === 'dimensionamento') return 'Dimensionamento'
+  const { tipo } = enquadrarTipoProjeto(proj.uf, proj.estruturas)
+  return tipo === 'simplificado' ? 'Simplificado' : tipo === 'tecnico' ? 'Técnico' : '—'
+}
+
 function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
   const pavLabel = pavimentosLabel(proj)
   const [replay, setReplay] = useState(0)
@@ -243,7 +253,7 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate }) {
       {/* Números-chave */}
       <dl className="m-0 grid grid-cols-[auto_auto_auto] justify-start gap-x-6">
         <StatBloco label="UF" value={proj.uf || '—'}/>
-        <StatBloco label="Projeto" value={proj.tipoProjeto === 'dimensionamento' ? 'Dimensionamento' : 'Técnico'}/>
+        <StatBloco label="Projeto" value={rotuloProjeto(proj)}/>
         <StatBloco label="A.C.T." value={fmtArea(totalArea(proj))}/>
       </dl>
 
@@ -628,6 +638,17 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
     return () => { cancelado = true }
   }, [user, tick])
 
+  // Normas das UFs da lista (o enquadramento técnico/simplificado do card
+  // depende dos limiares do estado); a chave remonta os cards quando chegam.
+  const [normasVersao, setNormasVersao] = useState(0)
+  const ufsDaLista = [...new Set(allProjects.map(p => p.uf).filter(Boolean))].sort().join(',')
+  useEffect(() => {
+    if (!ufsDaLista) return
+    let cancelado = false
+    Promise.all(ufsDaLista.split(',').map(carregarNormasRemotas)).then(() => { if (!cancelado) setNormasVersao(v => v + 1) })
+    return () => { cancelado = true }
+  }, [ufsDaLista])
+
   const handleDeleteConfirm = async () => {
     if (!toDelete) return
     await supabase.from('projetos').delete().eq('id', toDelete.id)
@@ -838,7 +859,7 @@ export default function ProjetosPage({ onOpenProject, onNewProject }) {
           ) : view === 'grid' ? (
             <div ref={gridRef} className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-3">
               {filtered.map(proj => (
-                <ProjectCard key={proj.id} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}/>
+                <ProjectCard key={`${proj.id}-${normasVersao}`} proj={proj} onOpen={onOpenProject} onDelete={setToDelete} onDuplicate={setToDuplicate}/>
               ))}
             </div>
           ) : (

@@ -5,13 +5,19 @@ import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 // (linhas tipadas de estados/PB/formulario.js, classes .pbf-* do index.css).
 // Usada no documento (MemorialPBPage) e na prévia de cada página da PB.
 
+// Trechos marcados com DESTAQUE (valores preenchidos no meio do texto) em negrito.
+function comDestaque(texto) {
+  if (typeof texto !== 'string' || !texto.includes('\uE000')) return texto
+  return texto.split(/[\uE000\uE001]/).map((parte, i) => (i % 2 ? <strong key={i}>{parte}</strong> : parte))
+}
+
 const Caixa = ({ x }) => <span className="pbf-caixa">{x ? 'X' : ''}</span>
 
 function Item({ item }) {
   const conteudo = (
     <span className="pbf-item-texto">
       <span className={item.negrito ? 'pbf-negrito' : ''}>
-        {item.label}
+        {comDestaque(item.label)}
         {item.valor ? <> <span className="pbf-valor">{item.valor}</span></> : null}
       </span>
       {item.detalhe && <span>{item.detalhe}</span>}
@@ -61,7 +67,7 @@ function Linha({ linha }) {
       return (
         <tr><td><div className="pbf-linha">
           <Item item={{ x: linha.x, label: linha.label, peso: 1 }}/>
-          <div className="pbf-cel" style={{ flexGrow: 1 }}>{linha.valor}</div>
+          <div className="pbf-cel" style={{ flexGrow: 1 }}><span className="pbf-valor">{linha.valor}</span></div>
         </div></td></tr>
       )
     case 'grupo':
@@ -84,13 +90,13 @@ function Linha({ linha }) {
     case 'texto':
       return (
         <tr><td><div className={`pbf-texto ${linha.negrito ? 'pbf-negrito' : ''} ${linha.centro ? 'pbf-centro text-center' : ''} ${linha.justificado ? 'pbf-justificado' : ''}`}>
-          {linha.texto}
+          {comDestaque(linha.texto)}
         </div></td></tr>
       )
     case 'obs':
       return (
         <tr><td><div className="pbf-obs">
-          <span>{linha.label}</span>{linha.valor ? <>{'\n'}<span className="pbf-valor">{linha.valor}</span></> : null}
+          <span>{linha.label}</span>{linha.valor ? <>{'\n'}<span>{linha.valor}</span></> : null}
           {linha.blocos?.length > 0 && (
             <div className="pbf-obs-blocos">
               {linha.blocos.map((b, i) => <BlocoMedida key={i} bloco={b}/>)}

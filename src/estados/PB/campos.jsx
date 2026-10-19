@@ -7,6 +7,9 @@ import {
   contextoFormularioPB, resultadoExtintoresPB, especiaisExtintoresPB, especialMarcado, ATESTOS_BOMBAS_MARCAVEIS,
 } from './formulario'
 import { decidirAcessoViaturaPB } from './acessoViatura'
+import { riscoValidadePB } from './validade'
+
+const RISCO_VALIDADE_LABEL = { baixo: 'baixo', medio: 'médio', alto: 'alto' }
 import { fmtNum } from '../../utils/numero'
 import { NIVEL_LABEL } from '../../data/brigada_calc'
 import FormSection from '../../components/ui/FormSection'
@@ -126,12 +129,30 @@ export function EstagioExistentePB() {
 
 // Etapa 4 (Classificação): item 3.1.
 export function CamposPBGerais() {
-  const { campo, F } = useCamposPB()
+  const { state, m, set, campo, F } = useCamposPB()
+  const { porEstrutura } = useMedidasObrigatorias()
   if (!F) return null
+  const divisoes = [...new Set((porEstrutura || []).flatMap(pe => pe.divisoes || []))].sort()
+  const temF3 = divisoes.includes('F-3')
+  const rv = riscoValidadePB(state.uf, divisoes, !!m.f3EstadioFutebol)
   return (
     <div className="mt-6">
       <BoxPB titulo="Campos específicos da Paraíba" item="3.1">
         <Obs label="Observações complementares — natureza da ocupação" campo={campo('obsNatureza')}/>
+      </BoxPB>
+      <BoxPB titulo="Risco da edificação e validade de inspeção" item="3.4">
+        <div className="text-[11px] text-ink-faint mb-3">Anexo B da NT CBMPB 02/2023 — vale o maior risco entre as divisões do projeto.</div>
+        {temF3 && (
+          <div className="-mx-2.5 mb-2">
+            <Marcador label="O centro esportivo (F-3) é estádio de futebol" checked={!!m.f3EstadioFutebol}
+              onChange={() => set({ f3EstadioFutebol: !m.f3EstadioFutebol })}/>
+          </div>
+        )}
+        <div className="text-[12.5px] text-ink">
+          {rv
+            ? <>Risco <strong>{RISCO_VALIDADE_LABEL[rv.risco]}</strong> ({rv.divisoes.join(', ')}) — validade da inspeção de até <strong className="tabular-nums">{rv.validadeAnos}</strong> {rv.validadeAnos === 1 ? 'ano' : 'anos'}.</>
+            : <span className="text-ink-faint">Classifique as ocupações para definir o risco e a validade.</span>}
+        </div>
       </BoxPB>
     </div>
   )

@@ -46,7 +46,8 @@ export const CLASSES_ALTURA = [
 ]
 
 // 3.4 Risco da edificação e validade de inspeção (Anexo B da NT CBMPB
-// 02/2023) e 3.5 Carga de incêndio (Anexos A e C da mesma NT). `max` em
+// 02/2023 — o risco sai de validade_inspecao.js, por divisão; aqui só os
+// rótulos) e 3.5 Carga de incêndio (Anexos A e C da mesma NT). `max` em
 // MJ/m², inclusivo; null = sem teto.
 export const RISCOS_VALIDADE = [
   { risco: 'baixo', label: 'Baixo', validade: 'Validade 5 (cinco) anos para nova vistoria', max: 300  },
