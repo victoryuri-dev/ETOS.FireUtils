@@ -10,7 +10,9 @@ import { numerarBlocos } from '../../utils/memorialEstilo'
 import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import Icon from '../../components/ui/Icon'
-import { exportarWord, imprimirComNome, nomeDocumentoMemorial } from '../../utils/exportarWord'
+import { imprimirComNome, nomeDocumentoMemorial } from '../../utils/exportarWord'
+import { baixarBlob } from '../../utils/docx/ooxml'
+import { gerarDocxPB } from '../../estados/PB/formularioDocx'
 import { usePerfil } from '../../hooks/usePerfil'
 import CampoRubrica from '../../components/perfil/CampoRubrica'
 import { useZoomDocumento } from '../../hooks/useZoomDocumento'
@@ -103,7 +105,7 @@ export default function MemorialPBPage({ onBack }) {
         <BarraZoom {...zoomDoc}/>
         <div className="flex items-center gap-2">
           <CampoRubrica compacto/>
-          <button className="btn-ghost" onClick={() => exportarWord(rolagemRef.current, nomeDocumentoMemorial(state.nome))} title="Baixar o memorial como documento do Word (.doc)">
+          <button className="btn-ghost" onClick={() => baixarBlob(gerarDocxPB({ state, formulario, anexoA, anexoB, rubrica: perfil?.rubrica, titulo: nomeDocumentoMemorial(state.nome) }), `${nomeDocumentoMemorial(state.nome)}.docx`)} title="Baixar o memorial como documento do Word (.docx)">
             <Icon name="download" size={13}/> Salvar Word
           </button>
           <button className="btn-primary" onClick={() => imprimirComNome(nomeDocumentoMemorial(state.nome))}>

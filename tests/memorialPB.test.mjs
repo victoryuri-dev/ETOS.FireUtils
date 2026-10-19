@@ -694,3 +694,20 @@ test('valores preenchidos no meio do texto saem destacados (negrito) e o texto l
   const marcada = s.linhas.filter(l => l.tipo === 'checks').find(l => l.itens[0].x).itens[0].label
   assert.ok(marcada.endsWith('Distância: \uE00015 m\uE001'))
 })
+
+test('Word (.docx) do formulário: pacote com documento, rodapé com Rubrica e uma tabela por seção', async () => {
+  const { gerarDocxPB } = await server.ssrLoadModule('/src/estados/PB/formularioDocx.js')
+  const { writeFileSync } = await import('node:fs')
+  const state = projeto({ nome: 'Escola', rtNome: 'Fulano' })
+  const { sistemas, porEstrutura } = medidasObrigatorias(state)
+  const formulario = buildFormularioPB(state, sistemas, porEstrutura)
+  const blob = gerarDocxPB({ state, formulario, anexoA: [], anexoB: [], rubrica: '', titulo: 'Memorial Descritivo PPCI - Escola' })
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  if (process.env.DOCX_SAIDA) writeFileSync(process.env.DOCX_SAIDA, bytes)
+  const texto = new TextDecoder().decode(bytes)
+  assert.equal(bytes[0], 0x50); assert.equal(bytes[1], 0x4b)            // ZIP
+  assert.ok(texto.includes('word/document.xml') && texto.includes('word/footer1.xml'))
+  assert.ok(texto.includes('Rubrica'))
+  assert.ok((texto.match(/<w:tbl>/g) || []).length >= formulario.secoes.length + 1)   // seções + quadro da rubrica (+ tabelas dos dimensionamentos)
+  assert.ok(texto.includes('1. IDENTIFICAÇÃO DA EDIFICAÇÃO'))
+})
