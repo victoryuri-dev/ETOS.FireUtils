@@ -1,12 +1,12 @@
--- Bucket PRIVADO com o instalador do plugin Revit e o manifesto da última
--- versão publicada. A dockpane (FireUtils.extension) lê o manifesto para
+-- Bucket PRIVADO com os instaladores do plugin Revit. A dockpane
+-- (FireUtils.extension) lê a lista de versões para
 -- avisar quem tem o plugin instalado de que há versão nova — ou de que a
 -- versão dele é antiga demais para a interface atual — e gera um link de
 -- download de curta duração para o instalador.
 --
--- Conteúdo, enviado pelo painel do Supabase (Storage) a cada versão:
---   manifest.json                 { "versao", "hostMinVersion", "arquivo", "sha256", "notas" }
---   FireUtils-Setup-X.Y.Z.exe     o instalador (assinado)
+-- Conteúdo: só os instaladores, enviados pelo painel do Supabase (Storage) a
+-- cada versão, com o nome que o build.ps1 gera (FireUtils-Setup-X.Y.Z.exe).
+-- A dockpane lista o bucket e oferece o de maior versão; não há manifesto.
 --
 -- Só LÊ quem tem licença válida (qualquer módulo): atualizar o plugin é
 -- assunto de quem já é cliente — quem ainda vai instalar pela primeira vez
