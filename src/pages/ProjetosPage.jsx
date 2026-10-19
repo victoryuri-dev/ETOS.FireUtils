@@ -159,13 +159,31 @@ function StatusPill({ dot, tone, label, active, onClick }) {
 // os dois ícones de ação — a bandeja tem um fundo em degradê que vai de
 // opaco (perto dos ícones, à direita) a transparente (à esquerda).
 function CardActions({ onDelete, onDuplicate, fixado = false, onFixar, className = '' }) {
-  const [open, setOpen] = useState(false)
+  // Abre ao passar o mouse ou ao clicar nos 3 pontinhos (toque/teclado); o
+  // clique deixa o menu aberto até clicar fora, apertar Esc ou usar uma ação.
+  const [hover, setHover] = useState(false)
+  const [clicado, setClicado] = useState(false)
+  const open = hover || clicado
+  const raizRef = useRef(null)
+
+  useEffect(() => {
+    if (!clicado) return
+    const fora = e => { if (!raizRef.current?.contains(e.target)) setClicado(false) }
+    const esc = e => { if (e.key === 'Escape') setClicado(false) }
+    document.addEventListener('pointerdown', fora)
+    document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('pointerdown', fora); document.removeEventListener('keydown', esc) }
+  }, [clicado])
+
+  const acao = fn => () => { setClicado(false); setHover(false); fn?.() }
 
   return (
     <div
+      ref={raizRef}
+      data-menu-aberto={open || undefined}
       onClick={e => e.stopPropagation()}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       className={`h-[26px] w-[26px] shrink-0 ${className}`}
     >
       <div
@@ -174,7 +192,7 @@ function CardActions({ onDelete, onDuplicate, fixado = false, onFixar, className
       >
         {onFixar && (
           <button
-            onClick={onFixar}
+            onClick={acao(onFixar)}
             title={fixado ? 'Desafixar projeto' : 'Fixar no topo'}
             aria-pressed={fixado}
             className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-ink hover:border-border"
@@ -183,14 +201,14 @@ function CardActions({ onDelete, onDuplicate, fixado = false, onFixar, className
           </button>
         )}
         <button
-          onClick={onDuplicate}
+          onClick={acao(onDuplicate)}
           title="Duplicar projeto"
           className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-ink hover:border-border"
         >
           <Icon name="copy" size={12}/>
         </button>
         <button
-          onClick={onDelete}
+          onClick={acao(onDelete)}
           title="Excluir projeto"
           className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 hover:bg-red-dim hover:text-red hover:border-red-border"
         >
@@ -198,7 +216,11 @@ function CardActions({ onDelete, onDuplicate, fixado = false, onFixar, className
         </button>
       </div>
       <button
+        type="button"
         title="Mais opções"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setClicado(c => !c)}
         className={`flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-opacity duration-150 ${open ? 'opacity-0 pointer-events-none' : ''}`}
       >
         <Icon name="moreVert" size={14}/>
@@ -241,7 +263,7 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate, fixado, onFixar }) {
     >
       {/* Ações (excluir / duplicar) */}
       <CardActions
-        className="absolute top-2.5 right-2.5 z-10 opacity-0 group-hover:opacity-100"
+        className="absolute top-2.5 right-2.5 z-10 opacity-0 group-hover:opacity-100 has-[[data-menu-aberto]]:opacity-100 [@media(hover:none)]:opacity-100"
         onDelete={() => onDelete(proj)}
         onDuplicate={() => onDuplicate(proj)}
         fixado={fixado}
@@ -362,7 +384,7 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate, fixado, onFixar }) {
       </div>
 
       {/* Ações */}
-      <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+      <div className="flex justify-center opacity-0 group-hover:opacity-100 has-[[data-menu-aberto]]:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-150">
         <CardActions className="relative" onDelete={() => onDelete(proj)} onDuplicate={() => onDuplicate(proj)} fixado={fixado} onFixar={() => onFixar(proj)}/>
       </div>
     </div>
