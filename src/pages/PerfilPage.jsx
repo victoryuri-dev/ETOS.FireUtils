@@ -5,6 +5,7 @@ import FormSection from '../components/ui/FormSection'
 import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
 import FerramentasDisponiveis from '../components/perfil/FerramentasDisponiveis'
+import LicencasAtivas from '../components/perfil/LicencasAtivas'
 import './PerfilPage.css'
 
 
@@ -136,6 +137,13 @@ export default function PerfilPage() {
                 <div><h2 id="profile-tools-title">Ferramentas disponíveis</h2></div>
               </div>
               <FerramentasDisponiveis/>
+
+              <div className="profile-section-heading profile-section-heading-next">
+                <div><h2 id="profile-licenses-title">Licenças ativas</h2></div>
+              </div>
+              <div aria-labelledby="profile-licenses-title">
+                <LicencasAtivas/>
+              </div>
             </section>
           </div>
         </main>
