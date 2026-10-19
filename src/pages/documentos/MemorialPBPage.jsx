@@ -10,6 +10,7 @@ import { numerarBlocos } from '../../utils/memorialEstilo'
 import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import Icon from '../../components/ui/Icon'
+import { exportarWord, imprimirComNome, nomeDocumentoMemorial } from '../../utils/exportarWord'
 import { usePerfil } from '../../hooks/usePerfil'
 import CampoRubrica from '../../components/perfil/CampoRubrica'
 import { useZoomDocumento } from '../../hooks/useZoomDocumento'
@@ -102,7 +103,12 @@ export default function MemorialPBPage({ onBack }) {
         <BarraZoom {...zoomDoc}/>
         <div className="flex items-center gap-2">
           <CampoRubrica compacto/>
-          <button className="btn-primary" onClick={() => window.print()}><Icon name="file" size={13}/> Imprimir / Salvar PDF</button>
+          <button className="btn-ghost" onClick={() => exportarWord(rolagemRef.current, nomeDocumentoMemorial(state.nome))} title="Baixar o memorial como documento do Word (.doc)">
+            <Icon name="download" size={13}/> Salvar Word
+          </button>
+          <button className="btn-primary" onClick={() => imprimirComNome(nomeDocumentoMemorial(state.nome))}>
+            <Icon name="file" size={13}/> Imprimir / Salvar PDF
+          </button>
         </div>
       </div>
 

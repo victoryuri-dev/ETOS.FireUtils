@@ -11,6 +11,7 @@ import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
 import { useZoomDocumento } from '../../hooks/useZoomDocumento'
 import { BarraZoom, JanelaDocumento } from '../../components/documentos/ZoomDocumento'
 import Icon from '../../components/ui/Icon'
+import { exportarWord, imprimirComNome, nomeDocumentoMemorial } from '../../utils/exportarWord'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import MenuSecoes from '../../components/documentos/MenuSecoes'
 import { Titulo, BlocoMedida } from '../../components/documentos/BlocosMemorial'
@@ -581,9 +582,14 @@ export default function MemorialDescritivoPage({ onBack }) {
           <Icon name="left" size={13}/> Voltar
         </button>
         <BarraZoom {...zoomDoc}/>
-        <button className="btn-primary" onClick={() => window.print()} disabled={!secoes.length}>
-          <Icon name="file" size={13}/> Imprimir / Salvar PDF
-        </button>
+        <div className="flex items-center gap-2">
+          <button className="btn-ghost" onClick={() => exportarWord(rolagemRef.current, nomeDocumentoMemorial(state.nome))} disabled={!secoes.length} title="Baixar o memorial como documento do Word (.doc)">
+            <Icon name="download" size={13}/> Salvar Word
+          </button>
+          <button className="btn-primary" onClick={() => imprimirComNome(nomeDocumentoMemorial(state.nome))} disabled={!secoes.length}>
+            <Icon name="file" size={13}/> Imprimir / Salvar PDF
+          </button>
+        </div>
       </div>
 
       {/* `relative` ancora o MenuSecoes na tela; na impressão vira `static`,
