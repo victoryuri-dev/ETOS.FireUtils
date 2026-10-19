@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildMemorial, PRIMEIRA_SECAO_MEDIDA } from '../../data/memorial/registry'
@@ -8,6 +8,8 @@ import { classificarTipoEdificacao } from '../../data/compart_calc'
 import { classificarPavimentos } from '../../utils/classificacao'
 import { fmtNum, fmtUn } from '../../utils/numero'
 import { enquadrarTipoProjeto, rotuloTipoProjeto } from '../../data/tipoProjeto'
+import { useZoomDocumento, classeMaximizado } from '../../hooks/useZoomDocumento'
+import { BarraZoom, FundoMaximizado } from '../../components/documentos/ZoomDocumento'
 import Icon from '../../components/ui/Icon'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import MenuSecoes from '../../components/documentos/MenuSecoes'
@@ -556,22 +558,6 @@ function SecaoMedida({ secao, numeroSecao, state, ultima }) {
   )
 }
 
-// Níveis de zoom do preview, como num editor de texto.
-const NIVEIS_ZOOM = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.25, 1.5]
-const CHAVE_ZOOM = 'memorial-zoom'
-
-function lerZoomSalvo() {
-  try {
-    const salvo = Number(localStorage.getItem(CHAVE_ZOOM))
-    return NIVEIS_ZOOM.includes(salvo) ? salvo : 1
-  } catch { return 1 }
-}
-
-function proximoZoom(atual, direcao) {
-  const i = NIVEIS_ZOOM.indexOf(atual)
-  return NIVEIS_ZOOM[Math.min(NIVEIS_ZOOM.length - 1, Math.max(0, (i < 0 ? NIVEIS_ZOOM.indexOf(1) : i) + direcao))]
-}
-
 export default function MemorialDescritivoPage({ onBack }) {
   const { state }    = useProjeto()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
@@ -583,43 +569,20 @@ export default function MemorialDescritivoPage({ onBack }) {
     setIndice(coletarSecoes(destino))
   }
 
-  // Zoom do preview (só na tela — a impressão sai sempre em 100%): reduzindo,
-  // as folhas passam a caber lado a lado, como no Word/Docs.
-  const [zoom, setZoom] = useState(lerZoomSalvo)
-  const mudarZoom = direcao => setZoom(z => proximoZoom(z, direcao))
-  useEffect(() => {
-    try { localStorage.setItem(CHAVE_ZOOM, String(zoom)) } catch { /* sem storage: só não lembra */ }
-  }, [zoom])
-  // Ctrl + roda do mouse dá zoom no documento em vez de na página inteira.
-  useEffect(() => {
-    const cont = rolagemRef.current
-    if (!cont) return
-    const aoRodar = e => {
-      if (!e.ctrlKey) return
-      e.preventDefault()
-      setZoom(z => proximoZoom(z, e.deltaY < 0 ? 1 : -1))
-    }
-    cont.addEventListener('wheel', aoRodar, { passive: false })
-    return () => cont.removeEventListener('wheel', aoRodar)
-  }, [])
+  // Zoom do preview (reduzindo, as folhas passam a caber lado a lado, como
+  // no Word/Docs) e documento maximizado — components/documentos/ZoomDocumento.
+  const zoomDoc = useZoomDocumento(rolagemRef)
+  const { zoom, maximizado, setMaximizado } = zoomDoc
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-none">
+    <>
+    <FundoMaximizado maximizado={maximizado} onFechar={() => setMaximizado(false)}/>
+    <div className={`flex flex-col flex-1 overflow-hidden bg-none ${classeMaximizado(maximizado)}`}>
       <div className="no-print shrink-0 flex items-center justify-between py-3 px-8 border-b border-solid border-border bg-none">
         <button className="btn-ghost" onClick={onBack}>
           <Icon name="left" size={13}/> Voltar
         </button>
-        <div className="flex items-center gap-1" role="group" aria-label="Zoom do documento">
-          <button type="button" className="btn-ghost px-2" onClick={() => mudarZoom(-1)} disabled={zoom <= NIVEIS_ZOOM[0]} aria-label="Diminuir zoom" title="Diminuir zoom (Ctrl + roda do mouse)">
-            <Icon name="minus" size={13}/>
-          </button>
-          <button type="button" className="btn-ghost px-2 min-w-[58px] justify-center tabular-nums" onClick={() => setZoom(1)} title="Voltar para 100%">
-            {Math.round(zoom * 100)}%
-          </button>
-          <button type="button" className="btn-ghost px-2" onClick={() => mudarZoom(1)} disabled={zoom >= NIVEIS_ZOOM[NIVEIS_ZOOM.length - 1]} aria-label="Aumentar zoom" title="Aumentar zoom (Ctrl + roda do mouse)">
-            <Icon name="plus" size={13}/>
-          </button>
-        </div>
+        <BarraZoom {...zoomDoc}/>
         <button className="btn-primary" onClick={() => window.print()} disabled={!secoes.length}>
           <Icon name="file" size={13}/> Imprimir / Salvar PDF
         </button>
@@ -651,5 +614,6 @@ export default function MemorialDescritivoPage({ onBack }) {
       </div>
       </div>
     </div>
+    </>
   )
 }

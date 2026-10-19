@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildFormularioPB } from '../../estados/PB/formulario'
@@ -9,6 +10,8 @@ import { numerarBlocos } from '../../utils/memorialEstilo'
 import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import Icon from '../../components/ui/Icon'
+import { useZoomDocumento, classeMaximizado } from '../../hooks/useZoomDocumento'
+import { BarraZoom, FundoMaximizado } from '../../components/documentos/ZoomDocumento'
 import { Secao } from '../../estados/PB/SecaoFormulario'
 
 // Memorial Descritivo da Paraíba: o formulário oficial do CBMPB (DSPCI),
@@ -72,6 +75,9 @@ export default function MemorialPBPage({ onBack }) {
   const { state } = useProjeto()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const formulario = buildFormularioPB(state, sistemas, porEstrutura)
+  const rolagemRef = useRef(null)
+  const zoomDoc = useZoomDocumento(rolagemRef)
+  const { zoom, maximizado, setMaximizado } = zoomDoc
 
   if (!formulario) return null
   // A e B: os dimensionamentos das páginas comuns de Saída de Emergência e
@@ -82,14 +88,17 @@ export default function MemorialPBPage({ onBack }) {
     : []
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <>
+    <FundoMaximizado maximizado={maximizado} onFechar={() => setMaximizado(false)}/>
+    <div className={`flex flex-col flex-1 overflow-hidden ${classeMaximizado(maximizado)}`}>
       <div className="no-print shrink-0 flex items-center justify-between gap-3 py-3 px-8 border-b border-solid border-border">
         <button className="btn-ghost" onClick={onBack}><Icon name="left" size={13}/> Voltar</button>
+        <BarraZoom {...zoomDoc}/>
         <button className="btn-primary" onClick={() => window.print()}><Icon name="file" size={13}/> Imprimir / Salvar PDF</button>
       </div>
 
       <div className="relative print:static flex-1 min-h-0 flex">
-        <div className="flex-1 min-w-0 overflow-auto py-8 flex flex-col">
+        <div ref={rolagemRef} className="flex-1 min-w-0 overflow-auto py-8 flex flex-col" style={{ '--memorial-zoom': zoom }}>
           {/* Os campos do formulário são preenchidos nas páginas de medida da
               PB (estados/PB/paginas) — aqui o documento só é exibido. */}
           {!formulario.temTabelaExigencias && (
@@ -122,5 +131,6 @@ export default function MemorialPBPage({ onBack }) {
         </div>
       </div>
     </div>
+    </>
   )
 }
