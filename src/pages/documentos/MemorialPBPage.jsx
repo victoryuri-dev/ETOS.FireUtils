@@ -10,6 +10,8 @@ import { numerarBlocos } from '../../utils/memorialEstilo'
 import { BlocoMedida } from '../../components/documentos/BlocosMemorial'
 import PreviewPaginado from '../../components/documentos/PreviewPaginado'
 import Icon from '../../components/ui/Icon'
+import { usePerfil } from '../../hooks/usePerfil'
+import CampoRubrica from '../../components/perfil/CampoRubrica'
 import { useZoomDocumento } from '../../hooks/useZoomDocumento'
 import { BarraZoom, JanelaDocumento } from '../../components/documentos/ZoomDocumento'
 import { Secao } from '../../estados/PB/SecaoFormulario'
@@ -19,12 +21,13 @@ import { Secao } from '../../estados/PB/SecaoFormulario'
 // dos Anexos A–D pedidos no fim do formulário. Paginação pelo Paged.js, como
 // o memorial do MA (PreviewPaginado) — as tabelas das seções quebram entre
 // folhas linha a linha, e toda folha leva o quadro de "Rubrica" do modelo.
-const CSS_PAGINA = `
+const CSS_BASE = `
 @page {
   size: A4 portrait;
   margin: 15mm 15mm 22mm 20mm;
   @bottom-right {
     content: "Rubrica";
+    /* rubrica do perfil: ver cssPagina */
     width: 32mm; height: 10mm;
     border: 1px solid #538135;
     text-align: center; vertical-align: middle;
@@ -35,6 +38,11 @@ const CSS_PAGINA = `
 tr { break-inside: avoid; }
 .pbf-anexos { break-before: page; }
 `
+
+// Com rubrica no perfil, o quadro de cada folha leva a imagem no lugar do texto.
+const cssPagina = rubrica => (rubrica
+  ? CSS_BASE.replace('content: "Rubrica";\n    /* rubrica do perfil: ver cssPagina */', `content: "";\n    background: url("${rubrica}") center / contain no-repeat;`)
+  : CSS_BASE)
 
 function Cabecalho({ norma }) {
   return (
@@ -75,6 +83,7 @@ export default function MemorialPBPage({ onBack }) {
   const { state } = useProjeto()
   const { sistemas, porEstrutura } = useMedidasObrigatorias()
   const formulario = buildFormularioPB(state, sistemas, porEstrutura)
+  const { perfil } = usePerfil()
   const rolagemRef = useRef(null)
   const zoomDoc = useZoomDocumento(rolagemRef)
   const { zoom, maximizado, setMaximizado } = zoomDoc
@@ -92,7 +101,10 @@ export default function MemorialPBPage({ onBack }) {
       <div className="no-print shrink-0 flex items-center justify-between gap-3 py-3 px-8 border-b border-solid border-border">
         <button className="btn-ghost" onClick={onBack}><Icon name="left" size={13}/> Voltar</button>
         <BarraZoom {...zoomDoc}/>
-        <button className="btn-primary" onClick={() => window.print()}><Icon name="file" size={13}/> Imprimir / Salvar PDF</button>
+        <div className="flex items-center gap-2">
+          <CampoRubrica compacto/>
+          <button className="btn-primary" onClick={() => window.print()}><Icon name="file" size={13}/> Imprimir / Salvar PDF</button>
+        </div>
       </div>
 
       <div className="relative print:static flex-1 min-h-0 flex">
@@ -105,7 +117,7 @@ export default function MemorialPBPage({ onBack }) {
               <span>A tabela de exigências da NT 04/2023 CBMPB não foi encontrada (Supabase, normas_dados: uf &apos;PB&apos;, sistema &apos;medidas_seguranca&apos;): só as medidas do mínimo de referência saem como &quot;Exigível&quot;; as demais ficam sem marcação.</span>
             </div>
           )}
-          <PreviewPaginado css={CSS_PAGINA}>
+          <PreviewPaginado css={cssPagina(perfil?.rubrica)}>
             <div className="pbf">
               <Cabecalho norma={formulario.norma}/>
               {formulario.secoes.map((s, i) => <Secao key={i} secao={s}/>)}

@@ -23,7 +23,7 @@ const RT_VAZIO = {
   rtEmpresa: '', rtEmail: '', rtTelefone: '',
 }
 
-const PERFIL_VAZIO = { nome: '', telefone: '', responsavelTecnico: RT_VAZIO }
+const PERFIL_VAZIO = { nome: '', telefone: '', responsavelTecnico: RT_VAZIO, rubrica: '' }
 
 export function temDadosRT(rt) {
   return !!rt && CAMPOS_PREENCHIVEIS.some(c => (rt[c] || '').trim())
@@ -72,7 +72,7 @@ export function usePerfil() {
 
     supabase
       .from('perfis')
-      .select('nome, telefone, responsavel_tecnico')
+      .select('nome, telefone, responsavel_tecnico, rubrica')
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -87,6 +87,7 @@ export function usePerfil() {
               nome: data.nome || '',
               telefone: data.telefone || '',
               responsavelTecnico: normalizarRT(data.responsavel_tecnico),
+              rubrica: data.rubrica || '',
             }
           : PERFIL_VAZIO)
       })
@@ -112,10 +113,24 @@ export function usePerfil() {
     })
     if (error) return { ok: false, erro: 'Não foi possível salvar. Tente de novo.' }
 
+    // A rubrica tem gravação própria (salvarRubrica): vale a mais recente.
+    const salvo = { ...novo, rubrica: perfil?.rubrica ?? novo.rubrica ?? '' }
+    setPerfil(salvo)
+    window.dispatchEvent(new CustomEvent(EVENTO_PERFIL, { detail: salvo }))
+    return { ok: true }
+  }, [user, perfil])
+
+  // Rubrica (data URL; '' remove): grava só essa coluna, na hora — vale para
+  // todos os projetos (quadro "Rubrica" do memorial da PB).
+  const salvarRubrica = useCallback(async (rubrica) => {
+    if (!user) return { ok: false, erro: 'Você precisa estar logado para salvar a rubrica.' }
+    const { error } = await supabase.from('perfis').upsert({ user_id: user.id, rubrica, atualizado_em: new Date().toISOString() })
+    if (error) return { ok: false, erro: 'Não foi possível salvar a rubrica. Tente de novo.' }
+    const novo = { ...(perfil || PERFIL_VAZIO), rubrica }
     setPerfil(novo)
     window.dispatchEvent(new CustomEvent(EVENTO_PERFIL, { detail: novo }))
     return { ok: true }
-  }, [user])
+  }, [user, perfil])
 
-  return { perfil, erro, salvar }
+  return { perfil, erro, salvar, salvarRubrica }
 }

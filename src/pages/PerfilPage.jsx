@@ -6,6 +6,7 @@ import Icon from '../components/ui/Icon'
 import Loader from '../components/ui/Loader'
 import FerramentasDisponiveis from '../components/perfil/FerramentasDisponiveis'
 import LicencasAtivas from '../components/perfil/LicencasAtivas'
+import CampoRubrica from '../components/perfil/CampoRubrica'
 import './PerfilPage.css'
 
 
@@ -113,6 +114,10 @@ export default function PerfilPage() {
                 <input type="tel" value={rt.rtTelefone} onChange={setRT('rtTelefone')}/>
               </div>
             </div>
+          </FormSection>
+
+          <FormSection title="Rubrica" description="Salva na hora, sem precisar do botão abaixo.">
+            <CampoRubrica/>
           </FormSection>
 
           <div className="flex items-center gap-3">
