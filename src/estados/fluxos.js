@@ -11,7 +11,7 @@ const CAMPOS_OCULTOS = {
     'respFantasia', 'respTelefone', 'respEmail',
     'propNome', 'propDocumento', 'propTelefone', 'propEmail',
     'situacaoCBM', 'numeroAVCB', 'validadeAVCB',
-    'areaTerreno', 'quantidadePublico', 'areaComplementar',
+    'areaTerreno', 'areaComplementar',
     'caracteristicasEstrutura', 'cobertura', 'fachada',
   ]),
 }

@@ -651,7 +651,7 @@ test('Configuração da PB: campos que o estado não usa saem da auditoria; CNPJ
   }
   const pbOpc = ids('PB', camposOpcionais)
   assert.ok(pbOpc.includes('respCNPJ'))
-  for (const id of ['respFantasia', 'respTelefone', 'respEmail', 'propTelefone', 'areaTerreno', 'quantidadePublico', 'areaComplementar']) {
+  for (const id of ['respFantasia', 'respTelefone', 'respEmail', 'propTelefone', 'areaTerreno', 'areaComplementar']) {
     assert.ok(!pbOpc.includes(id), `PB não lista ${id}`)
   }
 })

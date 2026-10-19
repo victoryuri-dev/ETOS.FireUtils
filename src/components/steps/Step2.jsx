@@ -412,9 +412,8 @@ export default function Step2({ step, totalSteps }) {
             />
           </div>
         </div>
-        {!dimensionamento && !oculto('quantidadePublico') && (
+        {!dimensionamento && !oculto('areaComplementar') && (
           <div className="g2">
-            <div className="fg"><label>Quantidade de publico <Obrigatorio id="quantidadePublico"/></label><input type="number" value={state.quantidadePublico} onChange={set('quantidadePublico')} placeholder="Lotacao maxima estimada"/></div>
             <div className="fg"><label>Area complementar (m2) <Obrigatorio id="areaComplementar"/></label><input type="number" value={state.areaComplementar} onChange={set('areaComplementar')} placeholder="Area de risco nao habitavel"/></div>
           </div>
         )}

@@ -2,7 +2,7 @@
 // para exibicao na pagina de documentos do site. Campos sem fonte de dados
 // no app ficam em branco — nunca inventamos valor.
 
-import { fmtNum, fmtUn } from './numero'
+import { fmtUn } from './numero'
 import { classificarRisco } from '../data/extintores_calc'
 import { getExtintores, getOcupacoes, getMemorialFormulario } from '../data/normas/index'
 
@@ -116,7 +116,6 @@ export function buildAnexoBData(state, sistemas) {
     areaTotalConstruida: areaConstruida ? fmtUn(areaConstruida, 'm²') : '',
     pavimentosSubsolo: subsolosSum ? String(subsolosSum) : '',
     areaTerreno: state.areaTerreno ? fmtUn(state.areaTerreno, 'm²', 2, `${state.areaTerreno} m²`) : '',
-    quantidadePublico: state.quantidadePublico ? fmtNum(state.quantidadePublico, 0, String(state.quantidadePublico)) : '',
     areaComplementar: state.areaComplementar ? fmtUn(state.areaComplementar, 'm²', 2, `${state.areaComplementar} m²`) : '',
     altura: alturaNum ? fmtUn(alturaNum, 'm') : '',
     cargaIncendio: maxQ ? fmtUn(maxQ, 'MJ/m²') : '',

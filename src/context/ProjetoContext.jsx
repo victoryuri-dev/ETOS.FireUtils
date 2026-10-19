@@ -410,7 +410,7 @@ const INITIAL_STATE = {
   anoConstrucao: '', situacaoCBM: 'Sem AVCB anterior',
   numeroAVCB: '', validadeAVCB: '', condicoesAtuais: '',
   informarDadosLegais: '', // '' (não respondeu) | 'sim' | 'nao' — informar alvará/AVCB/ano de construção?
-  areaTerreno: '', areaConstruidaTotal: '', quantidadePublico: '', areaComplementar: '',
+  areaTerreno: '', areaConstruidaTotal: '', areaComplementar: '',
   areaMaiorPav: '', peDireito: '',
   usoSubsolo: '', coberturaHabitavel: 'Nao',
   compartVertical: 'Sem compartimentacao',
