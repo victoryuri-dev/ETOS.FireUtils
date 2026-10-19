@@ -195,41 +195,26 @@ function CardActions({ onDelete, onDuplicate, fixado = false, onFixar, layout = 
     </button>
   )
 
-  // Grade: menu em coluna (ícone + texto) abaixo dos 3 pontinhos.
-  if (layout === 'coluna') {
-    return (
-      <div ref={raizRef} data-menu-aberto={open || undefined} onClick={e => e.stopPropagation()} className={`h-[26px] w-[26px] shrink-0 ${className}`}>
-        {botaoPontos}
-        {open && (
-          <div role="menu" className="absolute right-0 top-[30px] z-20 min-w-[168px] flex flex-col py-1 rounded-lg border border-solid border-border bg-surface shadow-[0_8px_24px_rgba(0,0,0,.18)]">
-            {itens.map(it => (
-              <button key={it.chave} type="button" role="menuitem" onClick={acao(it.fn)}
-                className={`flex items-center gap-2.5 px-3 py-2 text-left text-[12.5px] bg-transparent border-0 cursor-pointer transition-colors duration-150 ${it.perigo ? 'text-red hover:bg-red-dim' : 'text-ink hover:bg-surface-2'}`}>
-                <Icon name={it.icone} size={13}/>{it.rotulo}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
+  const botaoAcao = it => (
+    <button key={it.chave} type="button" role="menuitem" onClick={acao(it.fn)} title={it.chave === 'fixar' ? (fixado ? 'Desafixar projeto' : 'Fixar no topo') : `${it.rotulo} projeto`}
+      className={`flex items-center justify-center w-[26px] h-[26px] rounded-md bg-surface border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 ${it.perigo ? 'hover:bg-red-dim hover:text-red hover:border-red-border' : 'hover:bg-surface-2 hover:text-ink hover:border-border'}`}>
+      <Icon name={it.icone} size={12}/>
+    </button>
+  )
 
-  // Lista: ações em linha, no lugar dos 3 pontinhos.
+  // Só ícones, sem balão: em coluna abaixo dos 3 pontinhos (grade) ou em
+  // linha à esquerda deles (lista). Os 3 pontinhos ficam sempre à vista e
+  // fecham o menu.
   return (
     <div ref={raizRef} data-menu-aberto={open || undefined} onClick={e => e.stopPropagation()} className={`h-[26px] w-[26px] shrink-0 ${className}`}>
-      <div
-        role="menu"
-        className={`absolute right-0 top-0 flex items-center gap-1 py-0.5 pl-9 rounded-md transition-opacity duration-150 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        style={{ background: 'linear-gradient(to left, var(--color-surface) 55%, transparent 100%)' }}
-      >
-        {itens.map(it => (
-          <button key={it.chave} type="button" role="menuitem" onClick={acao(it.fn)} title={it.chave === 'fixar' ? (fixado ? 'Desafixar projeto' : 'Fixar no topo') : `${it.rotulo} projeto`}
-            className={`flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border border-solid border-transparent text-ink-faint cursor-pointer transition-colors duration-150 ${it.perigo ? 'hover:bg-red-dim hover:text-red hover:border-red-border' : 'hover:bg-surface-2 hover:text-ink hover:border-border'}`}>
-            <Icon name={it.icone} size={12}/>
-          </button>
-        ))}
-      </div>
-      <div className={open ? 'opacity-0 pointer-events-none' : ''}>{botaoPontos}</div>
+      {botaoPontos}
+      {open && (
+        <div role="menu" className={layout === 'coluna'
+          ? 'absolute right-0 top-[30px] z-20 flex flex-col gap-1'
+          : 'absolute right-[30px] top-0 z-20 flex items-center gap-1'}>
+          {itens.map(botaoAcao)}
+        </div>
+      )}
     </div>
   )
 }
@@ -268,7 +253,7 @@ function ProjectCard({ proj, onOpen, onDelete, onDuplicate, fixado, onFixar }) {
     >
       {/* Ações (excluir / duplicar) */}
       <CardActions
-        className="absolute top-2.5 right-2.5 z-10 opacity-0 group-hover:opacity-100 has-[[data-menu-aberto]]:opacity-100 [@media(hover:none)]:opacity-100"
+        className="absolute top-2.5 right-2.5 z-10"
         onDelete={() => onDelete(proj)}
         onDuplicate={() => onDuplicate(proj)}
         fixado={fixado}
@@ -390,8 +375,8 @@ function ProjectRow({ proj, onOpen, onDelete, onDuplicate, fixado, onFixar }) {
       </div>
 
       {/* Ações */}
-      <div className="flex justify-center opacity-0 group-hover:opacity-100 has-[[data-menu-aberto]]:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-150">
-        <CardActions className="relative" onDelete={() => onDelete(proj)} onDuplicate={() => onDuplicate(proj)} fixado={fixado} onFixar={() => onFixar(proj)}/>
+      <div className="flex justify-center">
+        <CardActions className="relative" layout="linha" onDelete={() => onDelete(proj)} onDuplicate={() => onDuplicate(proj)} fixado={fixado} onFixar={() => onFixar(proj)}/>
       </div>
     </div>
   )
