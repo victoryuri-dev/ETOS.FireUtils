@@ -7,7 +7,9 @@ import { classificarRisco } from '../data/extintores_calc'
 import { getExtintores, getOcupacoes, getMemorialFormulario } from '../data/normas/index'
 
 // Mesma lista/ordem do formulario oficial. `key` aponta para state.sistemas —
-// quando null, a medida ainda nao e rastreada pelo app.
+// quando null, a medida nao e rastreada pelo app (nao existe no painel de
+// medidas) e nunca recebe X — nem por parecer com outra (Central de Gas, que
+// e o GLP predial, nao e o sistema de gases fixos de extincao).
 export const MEDIDAS_ANEXO_B_COL1 = [
   { key: 'acesso_viatura',      label: 'Acesso de viatura às edificações e áreas de risco' },
   { key: null,                  label: 'Isolamento de risco' },
@@ -32,7 +34,7 @@ export const MEDIDAS_ANEXO_B_COL2 = [
   { key: 'sprinklers',  label: 'Chuveiros automáticos' },
   { key: null,          label: 'Sistema de resfriamento' },
   { key: null,          label: 'Sistema de espuma' },
-  { key: 'central_gas', label: 'Sistema de gases fixos' },
+  { key: null,          label: 'Sistema de gases fixos' },
   { key: null,          label: 'Controle de fontes de ignição' },
 ]
 
