@@ -1152,6 +1152,15 @@ function reducer(state, action) {
   }
 }
 
+// Serialização do estado sem o que não é dado do projeto (etapa do wizard,
+// carimbo de tempo, flag de boot) — base pra saber se o autosave tem algo de
+// verdade pra gravar.
+function serializarSemNavegacao(state) {
+  // eslint-disable-next-line no-unused-vars
+  const { updatedAt, configStep, configUnlocked, saveReady, ...dados } = state
+  return JSON.stringify(dados)
+}
+
 // Ações puramente locais de navegação/boot — cada aba faz a sua conta, não
 // faz sentido nem é desejável replicar pras outras sessões da mesma conta
 // (LOAD/NEW_PROJECT são o próprio carregamento; SET_WIZARD é só a etapa do
@@ -1334,6 +1343,11 @@ export function ProjetoProvider({ children }) {
   // persistir, evitando as duas abas correndo pra salvar o mesmo conteúdo
   // (o que só aumentaria a chance de falso conflito de versão à toa).
   const pendingLocalRef = useRef(false)
+  // Último estado em sincronia com o que já está salvo/recebido (e a versão
+  // serializada dele, sob demanda) — o autosave só segue adiante se o estado
+  // atual diferir disso, ignorando campos de navegação.
+  const baselineRef = useRef(null)
+  const baselineStrRef = useRef(null)
 
   const dispatch = useCallback((action) => {
     // LOAD (abrir o projeto) e SET_WIZARD (trocar de etapa) não são edição
@@ -1372,7 +1386,21 @@ export function ProjetoProvider({ children }) {
     // Mudança só chegou via broadcast de outra aba (ver `dispatch` acima) —
     // essa outra aba já é responsável por persistir, nada a fazer aqui além
     // do cache local já gravado.
-    if (!pendingLocalRef.current) return
+    if (!pendingLocalRef.current) {
+      baselineRef.current = state
+      baselineStrRef.current = null
+      return
+    }
+
+    // Action local que não mudou dado nenhum (ex.: INIT_CARGA/seed de tela
+    // ao abrir uma página, que dispara mesmo com tudo já criado) deixava
+    // pending ligado e o próximo efeito — como trocar de etapa — salvava
+    // "à toa". Se o estado (sem os campos de navegação) é igual ao último
+    // sincronizado, não há nada pra salvar.
+    const serial = serializarSemNavegacao(state)
+    if (baselineStrRef.current === null && baselineRef.current) baselineStrRef.current = serializarSemNavegacao(baselineRef.current)
+    if (baselineStrRef.current === serial) { pendingLocalRef.current = false; return }
+    const marcarSalvo = () => { baselineRef.current = state; baselineStrRef.current = serial }
 
     if (!user || !state.id || !state.saveReady || conflito || versaoRef.current == null) return
     setSyncStatus('saving')
@@ -1423,6 +1451,7 @@ export function ProjetoProvider({ children }) {
             .select('version')
           if (!retryError && retry && retry.length > 0) {
             versaoRef.current = retry[0].version
+            marcarSalvo()
             setSyncStatus('saved')
             registrarAtividade()
             return
@@ -1434,11 +1463,13 @@ export function ProjetoProvider({ children }) {
         })
         if (insertErr) { console.error('Falha ao criar projeto no Supabase:', insertErr.message); setSyncStatus('error'); return }
         versaoRef.current = 1
+        marcarSalvo()
         setSyncStatus('saved')
         registrarAtividade()
         return
       }
       versaoRef.current = data[0].version
+      marcarSalvo()
       setSyncStatus('saved')
       registrarAtividade()
     }, 800)
