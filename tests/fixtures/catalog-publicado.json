@@ -1,0 +1,208 @@
+{
+  "generated_at": "2026-10-07T03:40:43Z",
+  "todas_icon_key": null,
+  "categories": [
+    {
+      "id": "deteccao-de-incendio",
+      "name": "Detecção de Incêndio",
+      "icon_key": "category-icons/deteccao-de-incendio.svg"
+    },
+    {
+      "id": "extintor-de-incendio",
+      "name": "Extintor de Incêndio",
+      "icon_key": "category-icons/extintor-de-incendio.svg"
+    },
+    {
+      "id": "hidrantes",
+      "name": "Hidrantes",
+      "icon_key": "category-icons/hidrantes.svg"
+    },
+    {
+      "id": "iluminacao-de-emergencia",
+      "name": "Iluminação de Emergência",
+      "icon_key": null
+    },
+    {
+      "id": "reservatorio",
+      "name": "Reservatório",
+      "icon_key": null
+    },
+    {
+      "id": "sinalizacao-de-emergencia",
+      "name": "Sinalização de Emergência",
+      "icon_key": null
+    }
+  ],
+  "families": [
+    {
+      "id": "extintor-de-incendio__extintor-portatil-a",
+      "name": "Extintor Portátil - A",
+      "category_id": "extintor-de-incendio",
+      "category": "Extintor de Incêndio",
+      "thumbnail_key": "thumbnails/extintor-de-incendio/extintor-portatil-a.png",
+      "storage_key": "extintor-de-incendio/extintor-portatil-a.rfa",
+      "size_bytes": 1933312,
+      "sha256": "f9a75b8fa057580e1b7b852ea5ff19ae962565d9693110d73ad959d23a7449b5"
+    },
+    {
+      "id": "extintor-de-incendio__extintor-portatil-abc",
+      "name": "Extintor portátil - ABC",
+      "category_id": "extintor-de-incendio",
+      "category": "Extintor de Incêndio",
+      "thumbnail_key": "thumbnails/extintor-de-incendio/extintor-portatil-abc.png",
+      "storage_key": "extintor-de-incendio/extintor-portatil-abc.rfa",
+      "size_bytes": 1933312,
+      "sha256": "f9a75b8fa057580e1b7b852ea5ff19ae962565d9693110d73ad959d23a7449b5"
+    },
+    {
+      "id": "extintor-de-incendio__extintor-portatil-bc",
+      "name": "Extintor Portátil - BC",
+      "category_id": "extintor-de-incendio",
+      "category": "Extintor de Incêndio",
+      "thumbnail_key": "thumbnails/extintor-de-incendio/extintor-portatil-bc.png",
+      "storage_key": "extintor-de-incendio/extintor-portatil-bc.rfa",
+      "size_bytes": 1679360,
+      "sha256": "3cac5b47a1e14fca48c9fb8b17948ea808f1d3474de0bf06eafecd8928e36e4b"
+    },
+    {
+      "id": "extintor-de-incendio__extintor-portatil-co2",
+      "name": "Extintor portátil - CO2",
+      "category_id": "extintor-de-incendio",
+      "category": "Extintor de Incêndio",
+      "thumbnail_key": "thumbnails/extintor-de-incendio/extintor-portatil-co2.png",
+      "storage_key": "extintor-de-incendio/extintor-portatil-co2.rfa",
+      "size_bytes": 2355200,
+      "sha256": "c4eb7427b65a7090da830ff3c6070d50c2c17d3d8a8b3d06d6e658e353e165f3"
+    },
+    {
+      "id": "extintor-de-incendio__extintor-portatil-k",
+      "name": "Extintor Portátil - K",
+      "category_id": "extintor-de-incendio",
+      "category": "Extintor de Incêndio",
+      "thumbnail_key": "thumbnails/extintor-de-incendio/extintor-portatil-k.png",
+      "storage_key": "extintor-de-incendio/extintor-portatil-k.rfa",
+      "size_bytes": 1671168,
+      "sha256": "b85c5bd3239d7aff64a1b2e6904f9699af6d25c53fcb12b436f8d385782eec0e"
+    },
+    {
+      "id": "hidrantes__abrigo-de-mangueira-para-hidrante",
+      "name": "Abrigo de Mangueira para Hidrante",
+      "category_id": "hidrantes",
+      "category": "Hidrantes",
+      "thumbnail_key": "thumbnails/hidrantes/abrigo-de-mangueira-para-hidrante.png",
+      "storage_key": "hidrantes/abrigo-de-mangueira-para-hidrante.rfa",
+      "size_bytes": 31571968,
+      "sha256": "2b130bfafbe6f7d400c4bd89691ca0c1fe16c0fa9ce53e8c4673f62b826a381a"
+    },
+    {
+      "id": "hidrantes__bomba-de-incendio-eletrica",
+      "name": "Bomba de Incêndio Elétrica",
+      "category_id": "hidrantes",
+      "category": "Hidrantes",
+      "thumbnail_key": "thumbnails/hidrantes/bomba-de-incendio-eletrica.png",
+      "storage_key": "hidrantes/bomba-de-incendio-eletrica.rfa",
+      "size_bytes": 1114112,
+      "sha256": "417478f77ea6bb44cbf1098a199cccc97b73000e348c5b33f24318903ee0819b"
+    },
+    {
+      "id": "hidrantes__painel-de-controle-da-bomba-de-incendio",
+      "name": "Painel de controle da bomba de incêndio",
+      "category_id": "hidrantes",
+      "category": "Hidrantes",
+      "thumbnail_key": "thumbnails/hidrantes/painel-de-controle-da-bomba-de-incendio.png",
+      "storage_key": "hidrantes/painel-de-controle-da-bomba-de-incendio.rfa",
+      "size_bytes": 2301952,
+      "sha256": "60b66c7c1d134fe50847675bc95b06b45f30dd78395f4be6d6908ada6c27ef59"
+    },
+    {
+      "id": "hidrantes__valvula-para-hidrante",
+      "name": "Válvula para hidrante",
+      "category_id": "hidrantes",
+      "category": "Hidrantes",
+      "thumbnail_key": null,
+      "storage_key": "hidrantes/valvula-para-hidrante.rfa",
+      "size_bytes": 1409024,
+      "sha256": "d4c22819e033c19f97ebff2750adf8494bbba788ca1e2caaeb06226abc31805e"
+    },
+    {
+      "id": "iluminacao-de-emergencia__bloco-de-iluminacao-de-emergencia-2-farois",
+      "name": "Bloco de Iluminação de Emergência - 2 Faróis",
+      "category_id": "iluminacao-de-emergencia",
+      "category": "Iluminação de Emergência",
+      "thumbnail_key": "thumbnails/iluminacao-de-emergencia/bloco-de-iluminacao-de-emergencia-2-farois.png",
+      "storage_key": "iluminacao-de-emergencia/bloco-de-iluminacao-de-emergencia-2-farois.rfa",
+      "size_bytes": 1474560,
+      "sha256": "a4fa4a52eed30049988d0e91331b098491bdb68040c328c2bc0316b6c7426e80"
+    },
+    {
+      "id": "iluminacao-de-emergencia__luminaria-de-emergencia-30-leds-na-parede",
+      "name": "Luminária de Emergência 30 LEDs - Na parede",
+      "category_id": "iluminacao-de-emergencia",
+      "category": "Iluminação de Emergência",
+      "thumbnail_key": "thumbnails/iluminacao-de-emergencia/luminaria-de-emergencia-30-leds-na-parede.png",
+      "storage_key": "iluminacao-de-emergencia/luminaria-de-emergencia-30-leds-na-parede.rfa",
+      "size_bytes": 897024,
+      "sha256": "3f4ab99271cb38c05d96fde5765f5ed78181e78515df211d33cff2eabcee5517"
+    },
+    {
+      "id": "reservatorio__caixa-dagua-de-fibra-de-vidro-500l-a-20000l",
+      "name": "Caixa dagua de fibra de vidro - 500L a 20000L",
+      "category_id": "reservatorio",
+      "category": "Reservatório",
+      "thumbnail_key": "thumbnails/reservatorio/caixa-dagua-de-fibra-de-vidro-500l-a-20000l.png",
+      "storage_key": "reservatorio/caixa-dagua-de-fibra-de-vidro-500l-a-20000l.rfa",
+      "size_bytes": 1474560,
+      "sha256": "f24671785d812612977a0d56919c6d915a1646d00116541d97914be1848b207b"
+    },
+    {
+      "id": "reservatorio__caixa-dagua-de-polietileno-7500-a-15000-litros-fortlev",
+      "name": "Caixa Dágua de polietileno 7500 a 15000 Litros - Fortlev",
+      "category_id": "reservatorio",
+      "category": "Reservatório",
+      "thumbnail_key": null,
+      "storage_key": "reservatorio/caixa-dagua-de-polietileno-7500-a-15000-litros-fortlev.rfa",
+      "size_bytes": 1277952,
+      "sha256": "c6db654ec75a9023ec2c4841bc187099b8b7dd21c0669a58f563b8d3178ba9b1"
+    },
+    {
+      "id": "sinalizacao-de-emergencia__placa-de-sinalizacao-e1-8m",
+      "name": "Placa de Sinalização - E1 - 8m",
+      "category_id": "sinalizacao-de-emergencia",
+      "category": "Sinalização de Emergência",
+      "thumbnail_key": "thumbnails/sinalizacao-de-emergencia/placa-de-sinalizacao-e1-8m.png",
+      "storage_key": "sinalizacao-de-emergencia/placa-de-sinalizacao-e1-8m.rfa",
+      "size_bytes": 978944,
+      "sha256": "7356ca36762ea907419c28487e522b1e63509055863c7a01a5539abd7e973da2"
+    },
+    {
+      "id": "sinalizacao-de-emergencia__placa-de-sinalizacao-e2-10m",
+      "name": "Placa de Sinalizacao - E2 - 10m",
+      "category_id": "sinalizacao-de-emergencia",
+      "category": "Sinalização de Emergência",
+      "thumbnail_key": "thumbnails/sinalizacao-de-emergencia/placa-de-sinalizacao-e2-10m.png",
+      "storage_key": "deteccao-de-incendio/placa-de-sinalizacao-e1-8m.rfa",
+      "size_bytes": 1052672,
+      "sha256": "34ec2f6c9569181f3337c8f09a734ad3c9840a98dba721d77517dda3c7267b79"
+    },
+    {
+      "id": "sinalizacao-de-emergencia__placa-de-sinalizacao-e5-8m",
+      "name": "Placa de sinalização - E5 - 8m",
+      "category_id": "sinalizacao-de-emergencia",
+      "category": "Sinalização de Emergência",
+      "thumbnail_key": "thumbnails/sinalizacao-de-emergencia/placa-de-sinalizacao-e5-8m.png",
+      "storage_key": "sinalizacao-de-emergencia/placa-de-sinalizacao-e5-8m.rfa",
+      "size_bytes": 942080,
+      "sha256": "e13779f4b24032376fe71d0296ad596e8bdcc0f1b365fb742178e3eb424311fa"
+    },
+    {
+      "id": "sinalizacao-de-emergencia__placa-de-sinalizacao-e8-8m",
+      "name": "Placa de Sinalização - E8 - 8m",
+      "category_id": "sinalizacao-de-emergencia",
+      "category": "Sinalização de Emergência",
+      "thumbnail_key": "thumbnails/sinalizacao-de-emergencia/placa-de-sinalizacao-e8-8m.png",
+      "storage_key": "sinalizacao-de-emergencia/placa-de-sinalizacao-e8-8m.rfa",
+      "size_bytes": 892928,
+      "sha256": "476c653cd7bff6f85cb7892da60c81cc8d5daf11f50e53b4d679da04f234ed06"
+    }
+  ]
+}

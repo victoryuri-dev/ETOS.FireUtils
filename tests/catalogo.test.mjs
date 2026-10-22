@@ -91,3 +91,24 @@ test('diferencas lista o que mudou em relação ao publicado', () => {
   assert.deepEqual(d.familias.removidas, [])
   assert.equal(canonico(gerarCatalogo(pub, 'a')), canonico(gerarCatalogo(base(), 'b')))
 })
+
+// O catálogo REAL publicado (plugin-assets/catalog.json em 2026-10) — ícones em
+// category-icons/*.svg. Garante que importar e gerar de novo não muda nada.
+import { readFileSync } from 'node:fs'
+const real = JSON.parse(readFileSync(new URL('./fixtures/catalog-publicado.json', import.meta.url), 'utf8'))
+
+test('catálogo real: importar e gerar de novo devolve o mesmo catálogo', () => {
+  const volta = gerarCatalogo(rascunhoDoCatalogo(real), real.generated_at)
+  assert.equal(canonico(volta), canonico(real))
+  assert.deepEqual(volta, real)
+})
+
+test('catálogo real: ícones em category-icons não são tratados como inexistentes', () => {
+  const r = rascunhoDoCatalogo(real)
+  const arquivos = [
+    ...r.familias.map((f) => ({ bucket: 'revit-families', key: f.storage_key, size: f.size_bytes })),
+    ...r.familias.filter((f) => f.thumbnail_key).map((f) => ({ bucket: 'plugin-assets', key: f.thumbnail_key, size: 1 })),
+    ...r.categorias.filter((c) => c.icon_key).map((c) => ({ bucket: 'plugin-assets', key: c.icon_key, size: 1 })),
+  ]
+  assert.deepEqual(verificarRascunho(r, arquivos).filter((p) => p.bloqueia), [])
+})

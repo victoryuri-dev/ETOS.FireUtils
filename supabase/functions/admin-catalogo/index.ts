@@ -241,7 +241,7 @@ function json(body: unknown, status = 200) {
   })
 }
 
-const PASTAS_ASSETS = ['icons', 'thumbnails'] // o resto de plugin-assets não é do catálogo
+const PASTAS_ASSETS = ['icons', 'category-icons', 'thumbnails'] // o resto de plugin-assets não é do catálogo
 const MAX_ORFAOS_POR_CHAMADA = 200
 
 // deno-lint-ignore no-explicit-any

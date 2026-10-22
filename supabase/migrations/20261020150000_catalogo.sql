@@ -6,7 +6,7 @@
 -- buckets (nada de item fantasma).
 --
 -- Arquivos: .rfa em `revit-families` (privado); ícones e thumbnails em
--- `plugin-assets` (público), sob `icons/` e `thumbnails/`. O catálogo guarda
+-- `plugin-assets` (público), sob `icons/`, `category-icons/` e `thumbnails/`. O catálogo guarda
 -- só as CHAVES; o painel sobe os arquivos direto do navegador (políticas de
 -- admin abaixo) e a function confere tudo antes de publicar.
 --
@@ -15,7 +15,7 @@
 create table if not exists public.catalogo_categorias (
   id            text        primary key check (id ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   nome          text        not null check (length(btrim(nome)) between 1 and 120),
-  icon_key      text        check (icon_key ~ '^icons/[A-Za-z0-9_.-]+$' and icon_key not like '%..%'),
+  icon_key      text        check (icon_key ~ '^(icons|category-icons)/[A-Za-z0-9_.-]+$' and icon_key not like '%..%'),
   ordem         integer     not null default 0,
   criado_em     timestamptz not null default now(),
   atualizado_em timestamptz not null default now()
@@ -48,7 +48,7 @@ create index if not exists catalogo_familias_categoria_idx
 -- Uma linha só: ícone da categoria agregada "Todas" e dados da última publicação.
 create table if not exists public.catalogo_config (
   id              boolean     primary key default true check (id),
-  todas_icon_key  text        check (todas_icon_key ~ '^icons/[A-Za-z0-9_.-]+$' and todas_icon_key not like '%..%'),
+  todas_icon_key  text        check (todas_icon_key ~ '^(icons|category-icons)/[A-Za-z0-9_.-]+$' and todas_icon_key not like '%..%'),
   publicado_em    timestamptz,
   publicado_por   uuid        references auth.users(id) on delete set null
 );
@@ -140,7 +140,7 @@ on conflict (id) do nothing;
 insert into storage.buckets (id, name, public) values ('plugin-assets', 'plugin-assets', true)
 on conflict (id) do nothing;
 
--- O admin gerencia os .rfa e, em plugin-assets, só icons/ e thumbnails/ (o
+-- O admin gerencia os .rfa e, em plugin-assets, só icons/, category-icons/ e thumbnails/ (o
 -- catalog.json é escrito apenas pela Edge Function). A leitura para clientes
 -- licenciados de revit-families e a leitura pública de plugin-assets não são
 -- tocadas aqui.
@@ -152,23 +152,23 @@ drop policy if exists catalogo_admin_insert on storage.objects;
 create policy catalogo_admin_insert on storage.objects for insert to authenticated
   with check (public.is_admin() and (
     bucket_id = 'revit-families'
-    or (bucket_id = 'plugin-assets' and (name like 'icons/%' or name like 'thumbnails/%'))
+    or (bucket_id = 'plugin-assets' and (name like 'icons/%' or name like 'category-icons/%' or name like 'thumbnails/%'))
   ));
 
 drop policy if exists catalogo_admin_update on storage.objects;
 create policy catalogo_admin_update on storage.objects for update to authenticated
   using (public.is_admin() and (
     bucket_id = 'revit-families'
-    or (bucket_id = 'plugin-assets' and (name like 'icons/%' or name like 'thumbnails/%'))
+    or (bucket_id = 'plugin-assets' and (name like 'icons/%' or name like 'category-icons/%' or name like 'thumbnails/%'))
   ))
   with check (public.is_admin() and (
     bucket_id = 'revit-families'
-    or (bucket_id = 'plugin-assets' and (name like 'icons/%' or name like 'thumbnails/%'))
+    or (bucket_id = 'plugin-assets' and (name like 'icons/%' or name like 'category-icons/%' or name like 'thumbnails/%'))
   ));
 
 drop policy if exists catalogo_admin_delete on storage.objects;
 create policy catalogo_admin_delete on storage.objects for delete to authenticated
   using (public.is_admin() and (
     bucket_id = 'revit-families'
-    or (bucket_id = 'plugin-assets' and (name like 'icons/%' or name like 'thumbnails/%'))
+    or (bucket_id = 'plugin-assets' and (name like 'icons/%' or name like 'category-icons/%' or name like 'thumbnails/%'))
   ));

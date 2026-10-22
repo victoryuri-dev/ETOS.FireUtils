@@ -189,3 +189,14 @@ test('remover_orfaos: rejeita chave fora do escopo', async () => {
   }
   assert.deepEqual(f.removidos, [])
 })
+
+test('category-icons entra na verificação (fantasma se faltar, em uso se existir)', async () => {
+  const dados = catalogoConsistente()
+  dados.tabelas.catalogo_categorias[0].icon_key = 'category-icons/a.svg'
+  const sem = await chamar(criarFake(dados), { acao: 'verificar' })
+  assert.equal(sem.corpo.problemas.find((p) => p.bloqueia).tipo, 'icone_ausente')
+  dados.buckets['plugin-assets']['category-icons/a.svg'] = arq(3)
+  const com = await chamar(criarFake(dados), { acao: 'verificar' })
+  assert.equal(com.corpo.resumo.fantasmas, 0)
+  assert.equal(com.corpo.arquivos.find((a) => a.key === 'category-icons/a.svg').situacao, 'em_uso')
+})
