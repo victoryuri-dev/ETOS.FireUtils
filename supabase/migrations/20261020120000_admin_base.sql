@@ -92,6 +92,11 @@ drop policy if exists licencas_admin_delete on public.licencas;
 create policy licencas_admin_delete on public.licencas
   for delete to authenticated using (public.is_admin());
 
+-- O admin lê os perfis (dados do usuário na tela de detalhe). Só leitura.
+drop policy if exists perfis_admin_select on public.perfis;
+create policy perfis_admin_select on public.perfis
+  for select to authenticated using (public.is_admin());
+
 -- A expiração não pode ser anterior ao início. NOT VALID: não reprova linhas
 -- antigas, só as novas e as alteradas.
 do $$
