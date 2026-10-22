@@ -63,7 +63,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
       <Card className="mb-3">
         <div className="py-3.5 px-[18px] grid grid-cols-2 gap-3.5">
           <div>
-            <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura da edificação (piso de descarga ao último pavimento)</div>
+            <div className="text-[10px] text-ink-faint uppercase tracking-[.06em] mb-1">Altura piso a piso (piso de descarga ao último pavimento)</div>
             <div className="text-xs text-ink font-semibold">
               {resultado.alturaEfetiva === '' || resultado.alturaEfetiva == null
                 ? '—'
@@ -89,7 +89,7 @@ function EstruturaTRRF({ est, pavimentos, tabela, classesAltura, classesSubsolo,
       {!resultado.classeAltura && (
         <div className="ibox amber mb-3">
           <Icon name="warn" size={13} color="var(--color-amber)" className="shrink-0"/>
-          <span className="text-xs">Altura da edificação ainda não informada ou fora da faixa coberta pelo Anexo B (acima de 250 m) — classe de altura não pôde ser determinada.</span>
+          <span className="text-xs">Altura piso a piso ainda não informada ou fora da faixa coberta pelo Anexo B (acima de 250 m) — classe de altura não pôde ser determinada.</span>
         </div>
       )}
 

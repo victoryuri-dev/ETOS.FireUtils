@@ -47,7 +47,7 @@ export function camposObrigatorios(state, porEstrutura = []) {
     estruturaId = est.id
     const destino = config(2, est.nome)
     for (const [key, label, validar] of [['nome','Nome da estrutura'], ['areaTotal','Área construída da estrutura',positivo], ['altura','Altura total',positivo], ['nPavimentos','Número de pavimentos acima do solo',inteiro]]) add(campoId(est.id,key),label,est[key],destino,validar)
-    if (numero(est.nPavimentos) > 1) add(campoId(est.id,'alturaEdificacao'),'Altura da edificação',est.alturaEdificacao,destino,positivo)
+    if (numero(est.nPavimentos) > 1) add(campoId(est.id,'alturaEdificacao'),'Altura piso a piso',est.alturaEdificacao,destino,positivo)
     if (numero(est.nSubsolos) > 0) add(campoId(est.id,'profundidadeSubsolo'),'Profundidade do subsolo',est.profundidadeSubsolo,destino,positivo)
     const pavs = (state.pavimentos || []).filter(p => p.estruturaId === est.id)
     add(campoId(est.id,'pavimentos'),'Cadastrar pavimentos',pavs,config(4,est.nome))

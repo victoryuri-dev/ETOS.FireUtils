@@ -138,7 +138,7 @@ function EstruturaModal({ est, index, dispatch, onClose }) {
                 )}
                 {nPav > 1 && (
                   <div className="fg">
-                    <label>Altura da edificação (m) <Obrigatorio id={`${est.id}.alturaEdificacao`}/><InfoTip text="medida entre o nível do piso de descarga ao piso do último pavimento"/></label>
+                    <label>Altura piso a piso (m) <Obrigatorio id={`${est.id}.alturaEdificacao`}/><InfoTip text="medida entre o nível do piso de descarga ao piso do último pavimento"/></label>
                     <input type="number" step="0.1" min="0" value={est.alturaEdificacao ?? ''} onChange={handleAlturaEdificacao}/>
                   </div>
                 )}

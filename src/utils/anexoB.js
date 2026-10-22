@@ -4,6 +4,7 @@
 
 import { fmtUn } from './numero'
 import { classificarRisco } from '../data/extintores_calc'
+import { alturaEdificacaoBase } from '../data/trrf_calc'
 import { getExtintores, getOcupacoes, getMemorialFormulario } from '../data/normas/index'
 
 // Mesma lista/ordem do formulario oficial. `key` aponta para state.sistemas —
@@ -87,7 +88,10 @@ export function buildAnexoBData(state, sistemas) {
   // Exibe somente a área total gravada no campo correspondente. A soma
   // das estruturas é feita na configuração, quando escolhida pelo usuário.
   const areaConstruida = parseFloat(state.areaConstruidaTotal)
-  const alturaNum      = estruturas.reduce((mx, e) => Math.max(mx, parseFloat(e.altura) || 0), 0)
+  // Altura piso a piso (piso de descarga ao último pavimento, Etapa 2) — a
+  // mesma usada nas medidas de segurança; nao a "altura total" ate o ponto
+  // mais alto da edificacao.
+  const alturaNum      = estruturas.reduce((mx, e) => Math.max(mx, alturaEdificacaoBase(e)), 0)
   const subsolosSum    = estruturas.reduce((s, e) => s + (parseInt(e.nSubsolos) || 0), 0)
 
   const maxQ = Object.values(state.cargaState || {}).flatMap(porEst => Object.values(porEst || {})).reduce((acc, c) => {
