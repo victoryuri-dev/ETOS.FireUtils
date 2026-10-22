@@ -199,6 +199,10 @@ const SYSTEMS = [
   { key: 'gerenciamento_risco', icon: 'gerenciamentoRiscoMedida', label: 'Gerenciamento de Risco' },
   { key: 'central_gas', icon: 'info', label: 'Central de Gás' },
   { key: 'spda', icon: 'warn', label: 'SPDA' },
+  { key: 'resfriamento', icon: 'drop', label: 'Sistema de Resfriamento' },
+  { key: 'espuma', icon: 'spray', label: 'Sistema de Espuma' },
+  { key: 'gases_fixos', icon: 'shieldAlert', label: 'Sistema de Gases Fixos' },
+  { key: 'fontes_ignicao', icon: 'flame', label: 'Controle de Fontes de Ignição' },
 ]
 
 // Sistemas com uma tela de dimensionamento própria implementada (ver rotas

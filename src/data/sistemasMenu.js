@@ -19,4 +19,8 @@ export const SISTEMAS = [
   { key:'controle_fumaca',     icon:'flame',                 label:'Controle de Fumaça' },
   { key:'central_gas',         icon:'info',                  label:'Central de Gás' },
   { key:'spda',                icon:'warn',                  label:'SPDA' },
+  { key:'resfriamento',        icon:'drop',                  label:'Sistema de Resfriamento' },
+  { key:'espuma',              icon:'spray',                 label:'Sistema de Espuma' },
+  { key:'gases_fixos',         icon:'shieldAlert',           label:'Sistema de Gases Fixos' },
+  { key:'fontes_ignicao',      icon:'flame',                 label:'Controle de Fontes de Ignição' },
 ]

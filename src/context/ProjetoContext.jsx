@@ -307,6 +307,8 @@ function hydrateState(saved) {
     ...INITIAL_STATE,
     ...saved,
     estruturas: migrarAlturaEdificacao(saved.estruturas || INITIAL_STATE.estruturas),
+    // Projetos salvos antes de uma medida existir nao tem a chave dela.
+    sistemas: { ...INITIAL_STATE.sistemas, ...(saved.sistemas || {}) },
     acessoViatura: { ...INITIAL_STATE.acessoViatura, ...(saved.acessoViatura || {}) },
     iluminacaoSistema: hydratarIluminacaoSistema(saved.iluminacaoSistema),
     iluminacao: migrarAclaramentoParaItens(saved),
@@ -651,6 +653,10 @@ const INITIAL_STATE = {
     controle_fumaca:     { obrigatorio: false, ativo: false },
     central_gas:         { obrigatorio: false, ativo: false },
     spda:                { obrigatorio: false, ativo: false },
+    resfriamento:        { obrigatorio: false, ativo: false },
+    espuma:              { obrigatorio: false, ativo: false },
+    gases_fixos:         { obrigatorio: false, ativo: false },
+    fontes_ignicao:      { obrigatorio: false, ativo: false },
   },
 }
 

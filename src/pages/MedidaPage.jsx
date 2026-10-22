@@ -21,6 +21,10 @@ const SIST_LABELS = {
   controle_fumaca:     'Controle de Fumaça',
   central_gas:         'Central de Gás',
   spda:                'SPDA',
+  resfriamento:        'Sistema de Resfriamento',
+  espuma:              'Sistema de Espuma',
+  gases_fixos:         'Sistema de Gases Fixos',
+  fontes_ignicao:      'Controle de Fontes de Ignição',
 }
 
 export default function MedidaPage({ sistKey }) {

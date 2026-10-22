@@ -28,6 +28,10 @@ const SIST_CONFIG = [
   { key:'controle_fumaca',     icon:'flame',       label:'Controle de Fumaca'                 },
   { key:'central_gas',         icon:'info',        label:'Central de Gas'                     },
   { key:'spda',                icon:'warn',        label:'SPDA'                                },
+  { key:'resfriamento',        icon:'drop',        label:'Sistema de Resfriamento'             },
+  { key:'espuma',              icon:'spray',       label:'Sistema de Espuma'                   },
+  { key:'gases_fixos',         icon:'shieldAlert', label:'Sistema de Gases Fixos'              },
+  { key:'fontes_ignicao',      icon:'flame',       label:'Controle de Fontes de Ignicao'       },
 ]
 
 // Projeto "apenas dimensionamento" (ver ProjetoContext.jsx tipoProjeto) só

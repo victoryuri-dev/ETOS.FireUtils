@@ -20,4 +20,8 @@ export const SISTEMA_ICON = {
   controle_fumaca:     'flame',
   central_gas:         'info',
   spda:                'warn',
+  resfriamento:        'drop',
+  espuma:              'spray',
+  gases_fixos:         'shieldAlert',
+  fontes_ignicao:      'flame',
 }
