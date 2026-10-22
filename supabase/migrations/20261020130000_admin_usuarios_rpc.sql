@@ -7,11 +7,14 @@
 --
 -- Idempotente: pode rodar de novo sem efeito.
 
+drop function if exists public.admin_listar_usuarios(text, text, int, int);
+
 create or replace function public.admin_listar_usuarios(
   p_busca  text default null,
   p_filtro text default 'todos',   -- todos | sem_licenca | vencendo | expirada
   p_limite int  default 25,
-  p_offset int  default 0
+  p_offset int  default 0,
+  p_user_id uuid default null      -- um usuário só (tela de detalhe)
 )
 returns table (
   user_id      uuid,
@@ -61,9 +64,10 @@ begin
       ), '[]'::jsonb) as lic
     from auth.users u
     left join public.perfis p on p.user_id = u.id
-    where busca is null
-       or u.email ilike '%' || busca || '%' escape '\'
-       or p.nome  ilike '%' || busca || '%' escape '\'
+    where (p_user_id is null or u.id = p_user_id)
+      and (busca is null
+           or u.email ilike '%' || busca || '%' escape '\'
+           or p.nome  ilike '%' || busca || '%' escape '\')
   ),
   filtrado as (
     select b.* from base b
@@ -89,8 +93,8 @@ begin
 end;
 $$;
 
-revoke all on function public.admin_listar_usuarios(text, text, int, int) from public;
-grant execute on function public.admin_listar_usuarios(text, text, int, int) to authenticated;
+revoke all on function public.admin_listar_usuarios(text, text, int, int, uuid) from public;
+grant execute on function public.admin_listar_usuarios(text, text, int, int, uuid) to authenticated;
 
 -- Visão geral: licenças válidas por módulo e as que vencem em até 15 dias.
 create or replace function public.admin_resumo_licencas()
