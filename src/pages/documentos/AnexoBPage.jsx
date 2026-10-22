@@ -3,6 +3,7 @@ import { useProjeto } from '../../context/ProjetoContext'
 import { useMedidasObrigatorias } from '../../hooks/useMedidasObrigatorias'
 import { buildAnexoBData } from '../../utils/anexoB'
 import Icon from '../../components/ui/Icon'
+import { exportarWordElemento, nomeDocumentoAnexoB } from '../../utils/exportarWord'
 
 // Grade e mesclagens extraídas do formulário CBMMA de 2024.
 const COLUNAS = [391, 3372, 543, 783, 420, 1275, 133, 266, 73, 1751, 906]
@@ -60,7 +61,12 @@ export default function AnexoBPage({ onBack }) {
     <div className="flex flex-col flex-1 overflow-hidden bg-bg">
       <div className="no-print shrink-0 flex items-center justify-between py-3 px-8 border-b border-solid border-border bg-surface">
         <button className="btn-ghost" onClick={onBack}><Icon name="left" size={13}/> Voltar</button>
-        <button className="btn-primary" onClick={() => window.print()}><Icon name="file" size={13}/> Imprimir / Salvar PDF</button>
+        <div className="flex items-center gap-2">
+          <button className="btn-ghost" onClick={() => exportarWordElemento(contentRef.current, nomeDocumentoAnexoB(state.nome))} title="Baixar o Anexo B como documento do Word (.doc)">
+            <Icon name="download" size={13}/> Salvar Word
+          </button>
+          <button className="btn-primary" onClick={() => window.print()}><Icon name="file" size={13}/> Imprimir / Salvar PDF</button>
+        </div>
       </div>
       <div className="flex-1 overflow-auto py-8 px-4">
         <article className="print-area print-area-anexob">

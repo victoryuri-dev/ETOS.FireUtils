@@ -147,6 +147,8 @@ function converter(doc, no) {
     : (cs.display.startsWith('inline') ? 'span' : 'div')
   const el = doc.createElement(tag)
   for (const a of ['colspan', 'rowspan']) if (no.hasAttribute(a)) el.setAttribute(a, no.getAttribute(a))
+  // Largura de colunas vem do style em linha (o computado seria em px).
+  if (tag === 'col' && no.style.width) el.setAttribute('width', no.style.width)
   let extra = ''
   if (tag === 'table') {
     el.setAttribute('cellspacing', '0')
@@ -174,6 +176,29 @@ export function nomeDocumentoMemorial(nomeProjeto) {
   return `Memorial Descritivo PPCI - ${nome}`.replace(/[\\/:*?"<>|]+/g, '-')
 }
 
+function baixarDoc(corpo, nomeArquivo, margens) {
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${nomeArquivo}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+@page WordSection1 { size: 21cm 29.7cm; margin: ${margens}; }
+div.WordSection1 { page: WordSection1; }
+body { font-family: Arial, sans-serif; }
+table { border-collapse: collapse; }
+p { margin: 0; }
+</style></head><body>${corpo.outerHTML}</body></html>`
+  const blob = new Blob(['﻿', html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${nomeArquivo}.doc`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  return true
+}
+
 /** Gera e baixa o .doc a partir da área com as folhas paginadas. */
 export function exportarWord(areaPaginada, nomeArquivo) {
   const paginas = [...(areaPaginada?.querySelectorAll('.pagedjs_page') || [])]
@@ -191,26 +216,24 @@ export function exportarWord(areaPaginada, nomeArquivo) {
     const conteudo = pagina.querySelector('.pagedjs_page_content')
     if (conteudo) for (const filho of conteudo.childNodes) corpo.appendChild(converter(doc, filho))
   })
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8"><title>${nomeArquivo}</title>
-<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
-<style>
-@page WordSection1 { size: 21cm 29.7cm; margin: ${margensDaFolha(paginas[0])}; }
-div.WordSection1 { page: WordSection1; }
-body { font-family: Arial, sans-serif; }
-table { border-collapse: collapse; }
-p { margin: 0; }
-</style></head><body>${corpo.outerHTML}</body></html>`
-  const blob = new Blob(['﻿', html], { type: 'application/msword' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${nomeArquivo}.doc`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-  return true
+  return baixarDoc(corpo, nomeArquivo, margensDaFolha(paginas[0]))
+}
+
+/** Gera e baixa o .doc de um documento de uma folha só (sem Paged.js), como o
+ *  Anexo B — converte o elemento na tela, com margens fixas. */
+export function exportarWordElemento(elemento, nomeArquivo, margens = '20mm') {
+  if (!elemento) return false
+  const doc = document.implementation.createHTMLDocument('')
+  const corpo = doc.createElement('div')
+  corpo.className = 'WordSection1'
+  corpo.appendChild(converter(doc, elemento))
+  return baixarDoc(corpo, nomeArquivo, margens)
+}
+
+/** Nome do arquivo do Anexo B: "Anexo B - {projeto}". */
+export function nomeDocumentoAnexoB(nomeProjeto) {
+  const nome = (nomeProjeto || '').trim() || 'Sem nome'
+  return `Anexo B - ${nome}`.replace(/[\\/:*?"<>|]+/g, '-')
 }
 
 /** Imprime com o título da aba trocado — o navegador usa ele como nome do PDF. */
