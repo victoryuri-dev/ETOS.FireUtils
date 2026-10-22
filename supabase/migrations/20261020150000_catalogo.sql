@@ -146,7 +146,10 @@ on conflict (id) do nothing;
 -- tocadas aqui.
 drop policy if exists catalogo_admin_select on storage.objects;
 create policy catalogo_admin_select on storage.objects for select to authenticated
-  using (bucket_id = 'revit-families' and public.is_admin());
+  using (public.is_admin() and (
+    bucket_id = 'revit-families'
+    or (bucket_id = 'plugin-assets' and (name like 'icons/%' or name like 'category-icons/%' or name like 'thumbnails/%'))
+  ));
 
 drop policy if exists catalogo_admin_insert on storage.objects;
 create policy catalogo_admin_insert on storage.objects for insert to authenticated
