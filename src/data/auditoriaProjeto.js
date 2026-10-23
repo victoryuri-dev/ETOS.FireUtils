@@ -77,7 +77,7 @@ export function camposObrigatorios(state, porEstrutura = []) {
     const ativo = key => !!pe?.sistemas?.[key]?.ativo
     if (state.riscosEspeciaisPorEstrutura?.[est.id]?.outros) add(campoId(est.id,'riscoOutros'),'Descrição do risco especial',state.riscosOutrosDescPorEstrutura?.[est.id],config(6,est.nome))
     for (const [key, sistema] of Object.entries(pe?.sistemas || {})) {
-      if (sistema.obrigatorio && state.sistemasPorEstrutura?.[est.id]?.[key] === false) add(campoId(est.id,'isencao',key),`Motivo da isenção · ${key}`,state.motivosIsencaoPorEstrutura?.[est.id]?.[key],config(6,est.nome))
+      if (sistema.obrigatorio && state.sistemasPorEstrutura?.[est.id]?.[key] === false && !state.semMotivoIsencaoPorEstrutura?.[est.id]?.[key]) add(campoId(est.id,'isencao',key),`Motivo da isenção · ${key}`,state.motivosIsencaoPorEstrutura?.[est.id]?.[key],config(6,est.nome))
     }
     for (const [key,label,field] of [['compart_horizontal','Compartimentação horizontal','elementosCompartHorizontal'],['compart_vertical','Compartimentação vertical','elementosCompartVertical']]) {
       if (ativo(key)) add(campoId(est.id,field),'Elementos de proteção adotados',est[field],medida(key,label,est.nome))

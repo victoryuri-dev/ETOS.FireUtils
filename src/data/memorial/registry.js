@@ -108,7 +108,7 @@ const TITULO_MEDIDA = {
 function secaoIsencaoGenerica(key, state, porEstrutura) {
   const titulo = TITULO_MEDIDA[key]
   if (!titulo) return null
-  const isentas = (porEstrutura || []).filter(pe => pe.sistemas[key]?.obrigatorio && !pe.sistemas[key]?.ativo)
+  const isentas = (porEstrutura || []).filter(pe => pe.sistemas[key]?.obrigatorio && !pe.sistemas[key]?.ativo && !state.semMotivoIsencaoPorEstrutura?.[pe.estrutura.id]?.[key])
   if (isentas.length === 0) return null
   const multiplas = porEstrutura.length > 1
   const blocos = isentas.map(pe => {

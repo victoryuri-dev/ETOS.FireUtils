@@ -396,9 +396,16 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
   const riscosAtivosGlobal = RISCOS_ESPECIAIS
     .filter(r => porEstrutura.some(pe => !!riscosPorEstrutura[pe.estrutura.id]?.[r.key]))
   const multiplasEstruturas = porEstrutura.length > 1
+  // Isenta por desativação manual SEM justificativa (opção do RT em
+  // Configuração): a célula fica vazia, nem "X" nem "-".
+  const semMotivo = (estId, key) => !!state.semMotivoIsencaoPorEstrutura?.[estId]?.[key] && state.sistemasPorEstrutura?.[estId]?.[key] === false
+  const estadoCelula = (pe, key) => {
+    const e = estadoMedidaSistema(pe.sistemas, key)
+    return e === 'isenta' && semMotivo(pe.estrutura.id, key) ? 'none' : e
+  }
   const temIsenta = multiplasEstruturas
-    ? medidas.some(m => porEstrutura.some(pe => estadoMedidaSistema(pe.sistemas, m.key) === 'isenta'))
-    : medidas.some(m => estadoMedidaSistema(sistemas, m.key) === 'isenta')
+    ? medidas.some(m => porEstrutura.some(pe => estadoCelula(pe, m.key) === 'isenta'))
+    : medidas.some(m => estadoMedidaSistema(sistemas, m.key) === 'isenta' && !semMotivo(porEstrutura[0]?.estrutura.id, m.key))
   // Estrutura unica: reaproveita o riscos dessa unica estrutura pra manter o
   // rotulo "Outros: <descricao>" embutido, como antes.
   const unicaEst = porEstrutura[0]?.estrutura
@@ -430,7 +437,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
               <tr key={m.key} className={zebra(i)}>
                 <td className={TABELA_TD}>{m.label}</td>
                 {porEstrutura.map(pe => {
-                  const estado = estadoMedidaSistema(pe.sistemas, m.key)
+                  const estado = estadoCelula(pe, m.key)
                   return (
                     <td key={pe.estrutura.id} className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
                       {estado === 'x' ? 'X' : estado === 'isenta' ? '-' : ''}
@@ -454,7 +461,7 @@ function MedidasAplicadas({ state, sistemas, porEstrutura }) {
               <tr key={m.key} className={zebra(i)}>
                 <td className={TABELA_TD}>{m.label}</td>
                 <td className={`${TABELA_TD} text-center text-[16px] font-bold leading-none`}>
-                  {estadoMedidaSistema(sistemas, m.key) === 'isenta' ? '-' : 'X'}
+                  {estadoMedidaSistema(sistemas, m.key) === 'isenta' ? (semMotivo(porEstrutura[0]?.estrutura.id, m.key) ? '' : '-') : 'X'}
                 </td>
               </tr>
             ))}

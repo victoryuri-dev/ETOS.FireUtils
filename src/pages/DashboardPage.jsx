@@ -262,7 +262,7 @@ const COMPLETE_CONFIG_STEPS = [
       const manuais = s.sistemasPorEstrutura?.[estId] || {}
       const motivos = s.motivosIsencaoPorEstrutura?.[estId] || {}
       return Object.keys(pe.sistemas).every(key =>
-        !(pe.sistemas[key]?.obrigatorio && manuais[key] === false) || Boolean(motivos[key]))
+        !(pe.sistemas[key]?.obrigatorio && manuais[key] === false) || Boolean(motivos[key]) || Boolean(s.semMotivoIsencaoPorEstrutura?.[estId]?.[key]))
     })
   } },
 ]

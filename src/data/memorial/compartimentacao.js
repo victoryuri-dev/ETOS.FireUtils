@@ -77,6 +77,8 @@ export function textoMemorialCompartHorizontal(state, sistemas, porEstrutura) {
     const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_horizontal?.ativo
     const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_horizontal?.obrigatorio
     const manual = state.sistemasPorEstrutura?.[est.id]?.compart_horizontal
+    // Desativada manualmente e sem justificativa (opção do RT): nada a narrar.
+    if (manual === false && state.semMotivoIsencaoPorEstrutura?.[est.id]?.compart_horizontal) return
 
     // A norma simplesmente não exige esta medida pra esta estrutura — nem
     // pela Tabela 6 (ocupação/altura não pedem) nem pelo processo
@@ -184,6 +186,8 @@ export function textoMemorialCompartVertical(state, sistemas, porEstrutura) {
     const ativo = sistemaPE ? !!sistemaPE.ativo : !!sistemas?.compart_vertical?.ativo
     const obrigatorioPelaNorma = sistemaPE ? !!sistemaPE.obrigatorio : !!sistemas?.compart_vertical?.obrigatorio
     const manual = state.sistemasPorEstrutura?.[est.id]?.compart_vertical
+    // Desativada manualmente e sem justificativa (opção do RT): nada a narrar.
+    if (manual === false && state.semMotivoIsencaoPorEstrutura?.[est.id]?.compart_vertical) return
 
     // Mesma regra da horizontal: dispensa pura pela norma (Tabela 5 ou 6)
     // não cita a estrutura nesta seção.

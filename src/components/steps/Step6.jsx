@@ -157,6 +157,7 @@ function MotivosIsencao({ pe, state, dispatch, sistConfig }) {
   const estId = pe.estrutura.id
   const manuais = state.sistemasPorEstrutura[estId] || {}
   const motivos = state.motivosIsencaoPorEstrutura[estId] || {}
+  const semMotivo = state.semMotivoIsencaoPorEstrutura?.[estId] || {}
   const desativados = sistConfig.filter(s => pe.sistemas[s.key]?.obrigatorio && manuais[s.key] === false)
 
   if (desativados.length === 0) return null
@@ -166,19 +167,36 @@ function MotivosIsencao({ pe, state, dispatch, sistConfig }) {
       <div className="flex items-start gap-2.5">
         <Icon name="warn" size={14} color="var(--color-amber)" className="shrink-0 mt-0.5"/>
         <span className="text-xs text-amber leading-[1.6]">
-          Sistema(s) obrigatório(s) desativado(s) manualmente nesta estrutura — descreva o motivo da isenção, sob responsabilidade do RT.
+          Sistema(s) obrigatório(s) desativado(s) manualmente nesta estrutura — se quiser, descreva o motivo da isenção, sob responsabilidade do RT.
         </span>
       </div>
       <div className="flex flex-col gap-2.5 pl-6">
         {desativados.map(s => (
           <div key={s.key} className="fg mb-0">
-            <label className="text-[11px]">Motivo da isenção — {s.label} <Obrigatorio id={`${estId}.isencao.${s.key}`}/></label>
-            <textarea
-              rows={2}
-              value={motivos[s.key] || ''}
-              onChange={e => dispatch({ type:'SET_MOTIVO_ISENCAO_SISTEMA', estruturaId: estId, key:s.key, value:e.target.value })}
-              placeholder="Ex: medida compensatoria adotada, dispensa em analise junto ao CBMMA..."
-            />
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-[11px]">Motivo da isenção — {s.label} {!semMotivo[s.key] && <Obrigatorio id={`${estId}.isencao.${s.key}`}/>}</label>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!semMotivo[s.key]}
+                onClick={() => dispatch({ type:'SET_SEM_MOTIVO_ISENCAO', estruturaId: estId, key:s.key, value: !semMotivo[s.key] })}
+                className="inline-flex items-center gap-2 shrink-0 text-[11px] text-ink-muted"
+                title="Desligado: a isenção fica sem justificativa — o memorial não mostra seção de isenção nem marca na tabela de medidas."
+              >
+                Prestar justificativa
+                <span className={`relative w-8 h-[18px] rounded-full transition-colors ${!semMotivo[s.key] ? 'bg-red' : 'bg-border'}`}>
+                  <span className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform ${!semMotivo[s.key] ? 'translate-x-[14px]' : ''}`}/>
+                </span>
+              </button>
+            </div>
+            {!semMotivo[s.key] && (
+              <textarea
+                rows={2}
+                value={motivos[s.key] || ''}
+                onChange={e => dispatch({ type:'SET_MOTIVO_ISENCAO_SISTEMA', estruturaId: estId, key:s.key, value:e.target.value })}
+                placeholder="Ex: medida compensatoria adotada, dispensa em analise junto ao CBMMA..."
+              />
+            )}
           </div>
         ))}
       </div>

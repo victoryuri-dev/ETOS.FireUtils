@@ -447,6 +447,10 @@ const INITIAL_STATE = {
   cargaState: {},
   sistemasPorEstrutura: {},
   motivosIsencaoPorEstrutura: {},
+  // Por estrutura+sistema: true quando o RT escolheu NAO prestar justificativa
+  // ao desativar manualmente a medida (padrao = justificar). Sem justificativa
+  // a medida nao ganha secao de isencao no memorial nem marca na tabela.
+  semMotivoIsencaoPorEstrutura: {},
   riscosEspeciaisPorEstrutura: {},
   riscosOutrosDescPorEstrutura: {},
   extintores: [],
@@ -708,6 +712,7 @@ function reducer(state, action) {
         cargaState: semChave(state.cargaState, action.id),
         sistemasPorEstrutura: semChave(state.sistemasPorEstrutura, action.id),
         motivosIsencaoPorEstrutura: semChave(state.motivosIsencaoPorEstrutura, action.id),
+        semMotivoIsencaoPorEstrutura: semChave(state.semMotivoIsencaoPorEstrutura, action.id),
         riscosEspeciaisPorEstrutura: semChave(state.riscosEspeciaisPorEstrutura, action.id),
         riscosOutrosDescPorEstrutura: semChave(state.riscosOutrosDescPorEstrutura, action.id),
         iluminacaoSistemaPorEstrutura: semChave(state.iluminacaoSistemaPorEstrutura, action.id),
@@ -1119,6 +1124,16 @@ function reducer(state, action) {
         motivosIsencaoPorEstrutura: {
           ...state.motivosIsencaoPorEstrutura,
           [estruturaId]: { ...state.motivosIsencaoPorEstrutura[estruturaId], [key]: value },
+        },
+      }
+    }
+    case 'SET_SEM_MOTIVO_ISENCAO': {
+      const { estruturaId, key, value } = action
+      return {
+        ...state,
+        semMotivoIsencaoPorEstrutura: {
+          ...state.semMotivoIsencaoPorEstrutura,
+          [estruturaId]: { ...state.semMotivoIsencaoPorEstrutura[estruturaId], [key]: !!value },
         },
       }
     }
